@@ -2,6 +2,35 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4 — Show Finance & Funding Policies
+
+### Added
+- Distinguishes shows the team **attends** from shows it **hosts & attends**.
+- Configurable season show-fee policies for Regular Season, Region Finals, Zone Finals, National Finals, and other/special events.
+- Funding choices: Included in membership dues, Bill families per show, Season show package, or Manual/mixed.
+- Optional default rider show fee and plain-language dues/package coverage notes.
+- Show Finance workspace with ledger income, expenses, net result, family charges, outstanding family responsibility, show budget, and reimbursements.
+- Show budget lines distinguish **Our team participation** from **Hosting operations**.
+- Hosted-show finance guidance keeps hosting economics distinct from the team's own participation costs.
+- Optional family show-charge generation from actual show participants, with duplicate protection.
+- Shows covered by membership dues do not suggest family show charges and actively block bulk generation unless the funding policy is changed.
+- Reimbursement workflow available to team users without granting ledger access: submit expense → Treasurer review → approved/rejected → paid.
+- Marking a reimbursement Paid creates the corresponding expense transaction in the team ledger.
+- Treasurer reimbursement inbox; non-finance users see only their own requests.
+- Permission-checked private reimbursement receipt downloads.
+- New transaction receipts are stored under the private finance receipt path.
+- Show Detail displays Attending / Hosting & attending financial role and links authorized finance users to Show Finance.
+
+### Migration
+- Adds show funding-policy fields to Season.
+- Adds Show financial role.
+- Adds ShowBudgetLine and ReimbursementRequest.
+- Updates the upload path for new FinancialTransaction receipts.
+- Migration: `0019_v194_show_finance.py`.
+
+### Design principle
+Show cost and funding source are deliberately separate. A team's dues can cover show fees without generating family receivables, while another team can bill per show or use a mixed policy.
+
 ## v1.9.3 — Financial Reporting
 
 ### Added
