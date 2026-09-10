@@ -1,0 +1,386 @@
+# IEA Team Portal
+
+**Current version: v1.9.0**
+
+IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
+
+The portal is intended to complement official IEA systems and records, not replace them. It is **not an official IEA website**.
+
+For version-by-version changes, see [`RELEASE_NOTES.md`](RELEASE_NOTES.md).
+
+## What the portal does
+
+### Dashboard and My Team
+
+The dashboard gives users a season-oriented view of upcoming shows and events, announcements, action items, RSVP or availability items needing attention, volunteer progress, and qualification information appropriate to their role.
+
+**My Team** provides a more personal view of linked riders, upcoming events, RSVPs, and assigned or claimable action items.
+
+### Riders, parents, and season enrollment
+
+Rider records are permanent team records while `SeasonMembership` represents a rider's enrollment for a particular season. A season membership can identify the rider's Futures or Upper School team and the classes they ride that season.
+
+The portal also maintains Guardian/Parent contacts and rider-to-guardian relationships. A user's primary portal role is independent of being a parent or guardian, so an Administrator or Coach can also be linked to their own rider without giving up staff permissions.
+
+### Shows, entries, results, and availability
+
+The Shows area supports:
+
+- show schedule and details;
+- show classes;
+- rider entries;
+- regular-season Individual/Team/Both entry types;
+- point-rider designation for eligible regular-season team classes;
+- rider availability responses;
+- show planning and show-lead workflows;
+- show-week summaries;
+- result entry including place, points, horse, and notes;
+- Region, Zone, and National Finals competition levels;
+- separate Individual and Team finals tracks, including the same rider competing in both tracks in the same class;
+- Futures and Upper School overall team placing at finals.
+
+Regular-season qualification scoring is kept separate from postseason finals results. Region Finals Individual results can identify the top two riders in a class as Zone qualifiers, while a first-place overall team result can identify team advancement to Zones. Later postseason advancement rules can be expanded when needed.
+
+### Standings and qualification
+
+Standings calculate regular-season rider/class points and team points using the season's scoring configuration.
+
+Individual qualification is tracked **by class**, not by a rider's combined points across classes. Team scoring uses designated point riders and excludes classes such as H8/H14 where team points do not apply.
+
+Administrators/Coaches can manage point-rider strategy. Rider and Parent accounts do not see point-rider identity or other protected team strategy.
+
+### Season history and record book
+
+Closed seasons remain available for historical review. The portal includes:
+
+- Season Review;
+- Team Record Book;
+- rider season history;
+- development notes;
+- awards;
+- printable rider season summaries;
+- historical result entry for regular season, Region Finals, Zone Finals, and National Finals.
+
+Historical finals can record separate Individual and Team tracks as well as overall Futures and Upper School team placing.
+
+### Calendar and event RSVP
+
+The calendar combines shows, lessons, and manually created team events. Team events can request rider RSVPs. Synced show and lesson calendar entries are managed through their source records, while manual calendar events can be edited or deleted directly.
+
+### Lessons and attendance
+
+Lesson groups can organize riders by season/team level and coach. Lessons support recurring weekly creation, rider attendance, attendance status, horse name, and notes.
+
+### Volunteer tracking
+
+Families can submit volunteer activity for linked riders. Managers review submissions, and only approved hours count toward season requirements. Futures and Upper School can have separate volunteer-hour requirements.
+
+### Team operations
+
+Operational tools include:
+
+- committees and committee assignments;
+- Futures and Upper Team Parent roles;
+- Treasurer;
+- Secretary / Points Secretary;
+- show leads;
+- show-planning items;
+- team action items;
+- claim/complete workflows.
+
+Capabilities are delegated by responsibility rather than making every committee role a full Administrator.
+
+### Communications and notifications
+
+The portal includes in-app announcements, audience targeting, notifications, email preferences, optional SMTP email delivery, show-week communication, and reminder processing.
+
+### Team Finance
+
+v1.9.0 introduces the Finance foundation:
+
+- financial accounts such as checking, savings, cash, and payment/clearing accounts;
+- configurable income/expense categories;
+- transaction ledger;
+- optional show and rider relationships on transactions;
+- PDF/JPG/JPEG/PNG receipt attachments;
+- season budgets;
+- budget-vs-actual reporting;
+- account balances calculated from opening balance and ledger activity;
+- CSV transaction export;
+- created/updated audit information.
+
+Finance access is intentionally separate from ordinary Coach access. Administrators, active-season Treasurers, and superusers can use the Finance area.
+
+Family balances, rider fees, fundraising campaigns, reimbursements, and expanded financial reporting are planned as later v1.9.x work.
+
+## Roles and privacy
+
+The primary portal roles are:
+
+| Role | Typical access |
+| --- | --- |
+| Administrator | Full team administration and Finance |
+| Coach | Team/rider/show operations and competition management |
+| Parent/Guardian | Linked riders and family-visible team information |
+| Rider | Own private information plus team-visible information |
+
+Additional committee assignments delegate specific capabilities. For example, the Points Secretary can assist with standings-related work and the Treasurer can access Finance without needing to become an Administrator.
+
+Private rider information is limited to staff, the rider, and linked guardians as appropriate. Team roster/profile information can be visible to teammates while protected personal details remain restricted.
+
+## Requirements
+
+The provided deployment is designed for a Linux server with:
+
+- Docker Engine;
+- Docker Compose v2 (`docker compose`);
+- an existing reverse proxy such as Apache, Nginx, or Caddy for public HTTPS access;
+- a DNS hostname pointing to the server.
+
+The application stack includes Django, PostgreSQL, Gunicorn, and the services defined in `docker-compose.yml`.
+
+Docker does **not** need to own host ports 80 or 443. By default the portal gateway is exposed only on loopback at port `8088`, and the host web server proxies the public HTTPS hostname to it.
+
+## Recommended installation layout
+
+Keep the environment file and backups outside individual release directories:
+
+```text
+/opt/iea-team-portal/
+├── .env
+├── backups/
+└── iea-team-portal-v1.9.0/
+```
+
+Future versions can then sit beside v1.9.0 while continuing to use the same environment configuration and Docker volumes.
+
+## Fresh installation
+
+### 1. Extract the release
+
+Copy the release ZIP to the server and extract it under `/opt/iea-team-portal`.
+
+For example:
+
+```bash
+sudo mkdir -p /opt/iea-team-portal
+cd /opt/iea-team-portal
+sudo unzip iea-team-portal-v1.9.0.zip
+cd iea-team-portal-v1.9.0
+chmod +x portalctl
+```
+
+Adjust ownership/permissions for the account that will operate Docker on your server.
+
+### 2. Create the persistent environment file
+
+Create:
+
+```text
+/opt/iea-team-portal/.env
+```
+
+A typical production configuration is:
+
+```env
+APP_PORT=8088
+
+DJANGO_SECRET_KEY=replace-with-a-long-random-secret
+DJANGO_DEBUG=0
+DJANGO_ALLOWED_HOSTS=iea.example.com
+DJANGO_CSRF_TRUSTED_ORIGINS=https://iea.example.com
+
+POSTGRES_DB=iea_team
+POSTGRES_USER=iea_team
+POSTGRES_PASSWORD=replace-with-a-strong-database-password
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+
+TIME_ZONE=America/New_York
+
+SECURE_COOKIES=1
+SECURE_HSTS_SECONDS=31536000
+```
+
+Use your real hostname instead of `iea.example.com`.
+
+Optional email settings can also be added:
+
+```env
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_HOST_USER=your-user
+EMAIL_HOST_PASSWORD=your-password
+EMAIL_USE_TLS=1
+EMAIL_USE_SSL=0
+DEFAULT_FROM_EMAIL=team@example.com
+```
+
+If `EMAIL_HOST` is blank, communications remain available in-app and Django uses its console email backend.
+
+`DEFAULT_TEMP_PASSWORD` may optionally be configured for onboarding workflows, although using individually generated temporary credentials is preferable.
+
+### 3. Start the portal
+
+From the release directory:
+
+```bash
+./portalctl upgrade
+```
+
+The upgrade/start workflow starts PostgreSQL, creates a database backup when an existing database is present, builds the web image, runs the portal schema preflight, applies Django migrations, and starts the release.
+
+Check status with the commands supported by `portalctl`, or with:
+
+```bash
+docker compose ps
+```
+
+### 4. Configure the reverse proxy
+
+The default gateway binds only to:
+
+```text
+127.0.0.1:8088
+```
+
+Configure the existing host Apache/Nginx/Caddy installation to proxy the public HTTPS site to:
+
+```text
+http://127.0.0.1:8088
+```
+
+The reverse proxy should forward the original host and HTTPS/proxy headers. The portal's production settings expect HTTPS when `SECURE_COOKIES=1`.
+
+### 5. Create the initial administrator
+
+If the deployment does not already contain an administrator account, run Django's superuser command inside the web service using Docker Compose. The exact service name is defined in `docker-compose.yml`; for the standard release it can be run with the web service, for example:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
+
+Sign in with that account and create/configure the team, season, users, riders, and other portal data.
+
+## Upgrading an existing installation
+
+Keep the existing `.env`, database volume, media volume, and backups. Extract the new release beside the old one:
+
+```text
+/opt/iea-team-portal/
+├── .env
+├── backups/
+├── iea-team-portal-v1.8.14/
+└── iea-team-portal-v1.9.0/
+```
+
+Then:
+
+```bash
+cd /opt/iea-team-portal/iea-team-portal-v1.9.0
+chmod +x portalctl
+./portalctl upgrade
+```
+
+The Compose project uses the stable project name `iea-team-portal`, so releases continue to use the same persistent PostgreSQL and media volumes.
+
+Do **not** replace the shared `/opt/iea-team-portal/.env` with a release-specific environment file during normal upgrades.
+
+Review `RELEASE_NOTES.md` before upgrading, especially when a release contains database migrations.
+
+## Initial portal setup
+
+After the first login, a practical setup order is:
+
+1. Configure the Team identity and authorized team logo.
+2. Create/activate the current Season.
+3. Configure Season Classes.
+4. Add Riders and their season memberships/classes.
+5. Add Parent/Guardian contacts and link them to riders.
+6. Create user accounts and assign the appropriate primary roles.
+7. Configure scoring/qualification settings.
+8. Add Shows and Lessons.
+9. Set volunteer requirements if the team uses them.
+10. Assign committee roles such as Treasurer or Points Secretary.
+11. For Finance, create at least one Financial Account and review the seeded categories before entering transactions and budget lines.
+
+## Using Finance for the first time
+
+After assigning an active-season Treasurer or signing in as an Administrator, open **Team → Finance**.
+
+A sensible starting workflow is:
+
+1. Open **Accounts & Categories**.
+2. Create the team's checking/savings/cash accounts and enter their opening balances.
+3. Review the starter categories and edit/deactivate them as needed.
+4. Open **Season Budget** and enter planned income and expenses.
+5. Use **Add Transaction** to record actual income and expenses.
+6. Attach receipts where useful.
+7. Review budget-vs-actual and account balances from the Finance dashboard.
+8. Export the ledger to CSV when an external working copy or report is needed.
+
+The portal is a team-maintained ledger, not a bank feed or replacement for professional accounting/tax software.
+
+## Backups and persistent data
+
+The deployment is designed so application releases are replaceable while important data persists outside the release code.
+
+The stable Docker volumes are:
+
+```text
+iea-team-portal_postgres_data
+iea-team-portal_media_data
+```
+
+PostgreSQL contains application records. The media volume contains rider/team images, finance receipts, and other uploaded media.
+
+`portalctl upgrade` creates a timestamped PostgreSQL dump before upgrading an existing installation. Keep `/opt/iea-team-portal/backups/` protected and include it in the server's normal backup strategy.
+
+For a complete disaster-recovery plan, back up both:
+
+- PostgreSQL/database dumps; and
+- the persistent media volume.
+
+## Reminder processing
+
+The portal includes reminder processing for supported workflows. It can be invoked with:
+
+```bash
+./portalctl reminders
+```
+
+If automatic reminders are desired, schedule that command using the server's preferred scheduler (for example cron or a systemd timer) at an appropriate daily interval.
+
+## Security and production notes
+
+- Keep `DJANGO_DEBUG=0` in production.
+- Use a strong, unique `DJANGO_SECRET_KEY`.
+- Use a strong PostgreSQL password.
+- Serve the public portal through HTTPS.
+- Keep the Docker application port bound to loopback unless there is a deliberate network architecture requiring otherwise.
+- Restrict server/Docker access to trusted administrators.
+- Treat uploaded receipts and rider/guardian information as private team data.
+- Review user and committee assignments when staff responsibilities change.
+- Do not expose the media volume directly as a public file directory; sensitive Finance receipt access in the portal is permission checked.
+
+## Branding
+
+The portal supports an authorized team logo and team identity. Only upload branding artwork that the team is permitted to use.
+
+The portal identifies itself as a private team portal and not an official IEA website.
+
+## Release history
+
+Detailed release history and upgrade notes are maintained in:
+
+```text
+RELEASE_NOTES.md
+```
+
+The README intentionally describes the **current product, installation, configuration, and usage** rather than duplicating the version changelog.
+
+## Roadmap
+
+Planned areas include additional v1.9.x finance workflows such as family balances, rider fees, fundraising, reimbursements, and richer reports.
+
+Horse & Hoofprint Management remains planned for the v2.x series rather than being folded into the v1.9 finance work.

@@ -1,4 +1,8 @@
-# IEA Team Portal v1.9.0 — Team Finance Foundation
+# Release Notes
+
+Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
+
+## v1.9.0 — Team Finance Foundation
 
 ## Added
 - Team financial accounts with calculated ledger balances.
