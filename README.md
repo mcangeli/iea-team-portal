@@ -493,7 +493,7 @@ The schedule is explicitly presented as an estimate; official show announcements
 
 ### Show Day dashboard and rider check-in
 
-v1.9.7 Preview 3 introduces the first combined Show Day workspace at:
+The portal provides a combined mobile-friendly Show Day workspace at:
 
 `Show → Open Show Day`
 
@@ -525,7 +525,7 @@ The Show Day dashboard continues to keep points-rider editing restricted to the 
 
 ### Show-day checklist and volunteer coordination
 
-v1.9.7 Preview 4 expands the existing show-planning workflow into a structured show-day coordination area.
+The existing show-planning workflow includes structured show-day checklist and volunteer coordination.
 
 Planning items now include:
 - **Checklist**
@@ -558,7 +558,7 @@ The Show Day Dashboard now surfaces:
 
 ### My Show Day
 
-v1.9.7 Preview 5 adds a personal show-day view for riders and linked parents/guardians at:
+The portal provides a personal show-day view for riders and linked parents/guardians at:
 
 ```text
 /shows/<show-id>/my-day/

@@ -4,48 +4,125 @@ Version-by-version changes for IEA Team Portal. For installation, configuration,
 
 ## v1.9.7 — Show Day Operations & Team Coordination
 
-### Show-day public updates / active notification foundation
-- Added show-scoped public updates with Everyone, Futures, and Upper audiences.
-- Futures/Upper Team Parent committee chairs can publish and revise public information only for their assigned team designation.
+v1.9.7 adds a mobile-first show-day operations layer for coaches, show leads, committee chairs, parents, and riders. It combines public show updates, estimated scheduling, rider check-in, results workflow, volunteer/checklist coordination, and a personal **My Show Day** experience while preserving the portal's existing role and privacy boundaries.
+
+### Show-day public updates and active notifications
+- Added show-scoped public updates with **Everyone**, **Futures Team**, and **Upper School Team** audiences.
+- Futures and Upper Team Parent committee chairs can publish and revise public information only for their assigned team designation.
 - Coach/Admin and assigned Show Leads can publish to either squad or everyone.
-- Youth Rider accounts are explicitly blocked from publishing even if misassigned a Team Parent committee role.
-- Updates can be revised without notifying, or actively re-notified when material information changes.
-- Immediate in-portal notifications target relevant show riders/families plus operational staff.
-- Optional email notification uses a new `email_show_updates` preference, separate from ordinary announcements.
-- Public family feed hides unrelated team-designation updates.
-- Retracting an update removes it from the public feed while retaining notification/audit history.
-- Points Secretary receives show-day notifications as operational context for results entry, without receiving Team Parent publishing authority.
+- Rider accounts are explicitly blocked from publishing even if accidentally assigned a Team Parent committee role.
+- Updates can be revised silently or actively re-notified.
+- Immediate in-portal notifications target relevant entered riders/families and operational staff.
+- Optional email delivery uses the separate **Email show-day updates** preference.
+- Retracted updates disappear from the public feed while notification/audit history is retained.
+- Points Secretary receives relevant show-day notifications without gaining Team Parent publishing authority.
 
-### Migration
-- `0026_v197_show_day_updates.py`
-- Adds `ShowDayUpdate`, links notifications to show updates, and adds `UserProfile.email_show_updates`.
-
-### Still planned for v1.9.7
-- mobile-first Show Day dashboard;
-- prize-list estimated schedule and rapid time entry/adjustment;
-- rider check-in/status;
-- Team Parent delegated workspace;
-- Secretary results-entry integration;
-- show checklist, volunteer coordination, and needs-attention panel.
-
-### Prize List / Estimated Schedule — Preview 2
+### Prize List / estimated schedule
 - Added a class schedule page for each show.
-- Preserves the original prize-list time separately from the current show-day estimate.
-- Supports optional times and public schedule notes.
-- Added one-screen schedule entry/editing for all authorized classes.
-- Added bulk show-day adjustments from a selected class forward:
-  - -30 minutes
-  - -15 minutes
-  - -10 minutes
-  - +10 minutes
-  - +15 minutes
-  - +30 minutes
-- Added Reset estimates to prize list.
-- Team Parent schedule edits are limited to the parent’s designated team.
-- Assigned Show Leads, Coach/Admin, and Secretary / Points Secretary may edit the full schedule.
-- Rider accounts remain read-only even if a committee assignment is accidentally attached.
-- Added migration `0027_v197_prize_list_schedule.py`.
-- Added schedule permission and bulk-adjustment regression tests.
+- Preserves the original **Prize list time** separately from the current **Show-day estimate**.
+- Supports blank times and short public schedule notes.
+- Added one-screen schedule entry/editing for authorized classes.
+- Added bulk schedule shifts from a selected class forward.
+- Added **Reset estimates to prize list** without changing the published baseline.
+- Admin/Coach, assigned Show Lead, and Points Secretary can edit the full schedule.
+- Futures and Upper Team Parents are limited to their designated team/shared classes.
+- Parent/Rider accounts remain read-only.
+- Schedule is clearly labeled as estimated because official show announcements remain authoritative.
+
+### Show Day Dashboard and rider check-in
+- Added **Show → Open Show Day**, optimized for phone use.
+- Dashboard combines:
+  - rider check-in/status;
+  - current estimated class schedule;
+  - recent public show updates;
+  - checklist/volunteer status;
+  - Needs Attention items;
+  - result-entry links for authorized users.
+- Rider statuses include **Expected**, **Arrived**, **Running Late**, **Scratched**, and **Finished / Left**.
+- Status updates record the updater, timestamp, and optional operational note.
+- Admin/Coach and assigned Show Leads can update all participating riders.
+- Futures Team Parent can update Futures riders; Upper Team Parent can update Upper riders.
+- Ordinary linked Parent/Guardian can update only their own rider.
+- Rider accounts can update only themselves.
+- Points Secretary has operational context and result-entry access but does not gain rider check-in authority solely from the Secretary role.
+- Operational **Scratched** status remains separate from the underlying `ShowEntry` status.
+
+### Team Parent operational workspace
+- Futures and Upper Team Parents receive squad-scoped show-day authority rather than Coach/Admin authority.
+- Team Parent Show Day dashboards are restricted to the appropriate squad's operational riders and classes.
+- Team Parents can manage their squad's planning/checklist items and publish updates for their squad.
+- Points-rider designation, Finance, and unrelated private rider information remain unavailable.
+
+### Checklist and volunteer coordination
+- Expanded `ShowPlanningItem` into structured show-day coordination with:
+  - **Checklist**;
+  - **Volunteer**;
+  - **Supply / Hospitality**.
+- Items can be designated for **Everyone**, **Futures Team**, or **Upper School Team**.
+- Admin/Coach and assigned Show Leads can manage all planning items.
+- Team Parents can create/edit/complete items for their designated team.
+- Linked families can see and claim applicable family-visible volunteer/supply items.
+- Assigned or claiming users can mark their own items complete.
+- Added duplicate-safe starter plans:
+  - attending shows receive a lightweight operational checklist;
+  - hosted + attending shows add setup, officials, parking, ring crew, hospitality, awards, and cleanup operations.
+- Show Day Dashboard surfaces open checklist count, volunteer openings, Needs Attention warnings, and the logged-in user's assignments.
+
+### My Show Day
+- Added `/shows/<show-id>/my-day/` for riders and linked Parent/Guardian accounts.
+- Shows only directly linked rider information:
+  - arrival/check-in status;
+  - active classes and current estimated/prize-list times;
+  - public schedule notes;
+  - personal volunteer/show-day assignments;
+  - applicable public/squad show updates.
+- Added clear empty states for unlinked accounts and linked riders not entered in the show.
+- No points-rider designation or Finance information is exposed.
+- Status and assignment actions return to My Show Day when initiated there.
+- Mobile layout uses compact class/time rows, larger tap targets, and simplified show-day actions.
+
+### Results and Needs Attention integration
+- Existing Secretary / Points Secretary result-entry permission is surfaced directly from Show Day.
+- Needs Attention can flag:
+  - riders still Expected / not checked in;
+  - riders Running Late;
+  - missing results;
+  - missing points-rider selections for authorized users;
+  - classes without schedule times;
+  - unfilled volunteer positions;
+  - incomplete checklist items.
+
+### Stabilization and permission hardening
+- Tightened Team Parent dashboard scope so Futures and Upper operational data do not leak across squads.
+- Admin, Coach, assigned Show Lead, and Points Secretary retain full-team operational scope.
+- Removed repeated season-membership queries from Show Day schedule/result checks by reusing prefetched membership data.
+- Archived seasons block show-day rider-status mutations and planning claim/completion changes.
+- Invalid My Show Day status submissions return to the originating personal workflow.
+- Added targeted regression coverage for:
+  - show-update audience restrictions;
+  - schedule permissions and bulk adjustments;
+  - rider check-in;
+  - Team Parent squad isolation;
+  - Secretary full-team context;
+  - planning/volunteer permissions;
+  - My Show Day family privacy;
+  - archived-season mutation protection.
+
+### Migrations
+- `0026_v197_show_day_updates.py`
+  - adds `ShowDayUpdate`;
+  - links notifications to show updates;
+  - adds `UserProfile.email_show_updates`.
+- `0027_v197_prize_list_schedule.py`
+  - adds prize-list/current-estimate scheduling fields to show classes.
+- `0028_v197_show_day_checkin.py`
+  - adds show-day rider status/check-in records.
+- `0029_v197_show_day_planning.py`
+  - adds planning item type and team designation fields.
+
+### Architecture
+- The large `portal/views.py` modularization remains intentionally deferred.
+- Modularizing `views.py` is the first planned architecture task for v2.x before major v2 feature work.
 
 ## v1.9.6.1 — Fundraising Policy & Family View
 
