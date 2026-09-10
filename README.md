@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.6.1**
+**Current version: v1.9.7**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -460,3 +460,124 @@ A Rider login cannot see its own family account, reimbursements, Finance audit h
 ### v2.x architecture note
 
 The large `portal/views.py` modularization is intentionally deferred from the v1.9.x stabilization line. It is the first planned architecture task for v2.x before major v2 feature work, with the target structure split into focused modules such as dashboard, riders, shows, standings, communications, and `views/finance/`.
+
+### Show-day updates and active notifications
+
+v1.9.7 introduces show-scoped public communication as part of the Show Day Operations work. Authorized users can publish updates for **Everyone**, **Futures Team**, or **Upper School Team**. Upper/Futures Team Parent committee chairs are restricted to their own team designation; Coach/Admin and assigned Show Leads can publish broader updates. Youth Rider logins cannot gain publishing rights through an accidental committee assignment.
+
+Publishing with **Notify recipients now** creates an in-portal notification immediately for the relevant entered riders, their linked Parent/Guardian accounts, Coach/Admin, the appropriate Team Parent, assigned Show Leads, and the Points Secretary. Optional email delivery respects the user's separate **Email show-day updates** preference. Revisions can be saved silently or actively re-notified.
+
+Families can open **Show Week → Show updates** to see only updates relevant to their rider/team. Public updates intentionally do not expose Coach-only strategy, points-rider controls, Finance, or private rider information.
+
+### Prize-list and estimated show schedule
+
+v1.9.7 adds a show-specific class schedule designed for prize-list information and show-day changes.
+
+- Each class keeps a **Prize list time** as the published baseline.
+- Each class can also have a separate **Current estimate** for show-day adjustments.
+- Blank times are supported because prize lists do not always provide precise timing.
+- A short public note can identify a ring, break, or other timing context.
+- Authorized users can edit the schedule in one table rather than opening each class separately.
+- The entire remaining schedule can be shifted by `-30`, `-15`, `-10`, `+10`, `+15`, or `+30` minutes starting with a selected class.
+- **Reset estimates to prize list** restores the working estimates without changing the published baseline.
+
+Schedule editing follows show-day delegation:
+- Admin/Coach: all classes.
+- Assigned Show Lead: all classes.
+- Secretary / Points Secretary: all classes.
+- Futures Team Parent: Futures and shared classes.
+- Upper Team Parent: Upper and shared classes.
+- Parent/Rider: read-only.
+
+The schedule is explicitly presented as an estimate; official show announcements remain authoritative.
+
+### Show Day dashboard and rider check-in
+
+v1.9.7 Preview 3 introduces the first combined Show Day workspace at:
+
+`Show → Open Show Day`
+
+The dashboard brings together:
+- rider check-in/status;
+- estimated class schedule;
+- recent public show-day updates;
+- show-day items that need attention;
+- direct result-entry links for Coach/Admin and Secretary / Points Secretary.
+
+Rider show-day statuses are:
+- Expected;
+- Arrived;
+- Running Late;
+- Scratched;
+- Finished / Left.
+
+Status changes record who made the update and when. The optional status note is intended for short operational context such as “parking now” or “at Ring 2.”
+
+Check-in permissions:
+- Admin/Coach and assigned Show Leads can update all participating riders.
+- Futures Team Parent can update Futures riders.
+- Upper Team Parent can update Upper riders.
+- Ordinary linked Parent/Guardian can update only their own rider.
+- Rider accounts can update only themselves.
+- Secretary / Points Secretary can see the operational dashboard and enter results, but does not receive general rider check-in authority solely from the Secretary role.
+
+The Show Day dashboard continues to keep points-rider editing restricted to the existing competition-management permissions. Secretary / Points Secretary receives result-entry links through the existing points-management permission without gaining Coach/Admin access.
+
+### Show-day checklist and volunteer coordination
+
+v1.9.7 Preview 4 expands the existing show-planning workflow into a structured show-day coordination area.
+
+Planning items now include:
+- **Checklist**
+- **Volunteer**
+- **Supply / Hospitality**
+
+Each item also has a team designation:
+- Everyone
+- Futures Team
+- Upper School Team
+
+Permissions:
+- Admin/Coach and assigned Show Leads can manage all planning items.
+- Futures Team Parent can create/edit/complete Futures items.
+- Upper Team Parent can create/edit/complete Upper items.
+- Team Parents may see family-visible Everyone items but cannot edit them unless they otherwise have full show-planning authority.
+- Linked families can see and claim family-visible volunteer/supply items applicable to their rider’s squad.
+- A user who is assigned to or claims an item can mark that item complete.
+- Rider accounts do not gain planning authority through committee assignments.
+
+A **starter show-day plan** can be generated by Coach/Admin or an assigned Show Lead. It is duplicate-safe and adapts to the show’s operating mode:
+- Attending shows get a lightweight checklist for paperwork, rider arrival, banner/signage, drinks, and food.
+- Hosted + attending shows add setup, officials, parking, ring crew, hospitality, awards, and cleanup operations.
+
+The Show Day Dashboard now surfaces:
+- open checklist count;
+- open volunteer count;
+- planning items that need attention;
+- the logged-in user’s assigned or claimed items.
+
+### My Show Day
+
+v1.9.7 Preview 5 adds a personal show-day view for riders and linked parents/guardians at:
+
+```text
+/shows/<show-id>/my-day/
+```
+
+The page intentionally reuses the mobile-friendly Show Day visual language while removing staff-only operational detail. It shows only the logged-in user's directly linked rider(s) and includes:
+- rider arrival/check-in status with quick update controls;
+- the rider's active classes and current estimated/prize-list time;
+- public schedule notes;
+- the user's assigned or claimed show-day volunteer/supply jobs;
+- a count/link for other family-visible volunteer openings;
+- recent show-day updates applicable to that rider/team designation;
+- quick links to the full schedule and all show updates.
+
+Privacy behavior:
+- unrelated riders and their classes are not shown;
+- no points-rider designation is exposed;
+- no finance information is exposed;
+- no other family's assignments are presented as personal work;
+- an account without a linked rider receives a clear empty state.
+
+Show-day status and assignment-completion actions return to My Show Day when started there, keeping the family workflow on one phone-friendly screen.
