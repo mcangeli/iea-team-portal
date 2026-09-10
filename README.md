@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.5**
+**Current version: v1.9.6**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -175,7 +175,7 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.5.1/
+└── iea-team-portal-v1.9.6.1/
 ```
 
 Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
@@ -191,8 +191,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.5.1.zip
-cd iea-team-portal-v1.9.5
+sudo unzip iea-team-portal-v1.9.6.1.zip
+cd iea-team-portal-v1.9.6
 chmod +x portalctl
 ```
 
@@ -298,13 +298,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.5.1/
+└── iea-team-portal-v1.9.6.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.5
+cd /opt/iea-team-portal/iea-team-portal-v1.9.6
 chmod +x portalctl
 ./portalctl upgrade
 ```
@@ -417,6 +417,32 @@ The README intentionally describes the **current product, installation, configur
 Planned areas include additional v1.9.x finance workflows such as family balances, rider fees, fundraising, reimbursements, and richer reports.
 
 Horse & Hoofprint Management remains planned for the v2.x series rather than being folded into the v1.9 finance work.
+
+### Fundraising
+
+Fundraising is managed from **Finance → Fundraising** by authorized Finance users.
+
+A campaign tracks:
+- campaign name, dates, status, goal and notes;
+- contributions and donors;
+- optional rider/family attribution;
+- the portion of a contribution applied as a family receivable credit;
+- the amount retained for the team.
+
+Accounting rule: each fundraising contribution is posted to the team ledger **once** as income. An optional family fundraising credit is a separate receivable adjustment and does not create a second cash transaction.
+
+Family fundraising credits must be tied to a specific rider-season and family charge. Voiding a fundraising contribution retains history, voids its linked ledger transaction, and cancels its linked family credit.
+
+### Family finance privacy
+
+Youth **Rider** logins do not have access to Finance or family-account financial data.
+
+Family-account financial information is visible to:
+- the Parent/Guardian login actually linked to that rider;
+- Administrator users;
+- Treasurer users with Finance permission for that season.
+
+A Rider login cannot see its own family account, reimbursements, Finance audit history, fundraiser administration, or other Finance pages. Finance restrictions are enforced in the views as well as navigation.
 
 ### v2.x architecture note
 

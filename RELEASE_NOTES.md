@@ -2,6 +2,60 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.6 — Fundraising & Family Finance Privacy
+
+### Fundraising
+- Added fundraising campaigns with Planned, Active, and Closed states.
+- Campaigns support goals, dates, descriptions, notes, and season ownership.
+- Added fundraising contribution tracking with:
+  - donor name;
+  - received date;
+  - payment method/reference;
+  - team financial account and income category;
+  - optional rider/family attribution;
+  - optional family receivable credit;
+  - notes and audit history.
+- Every posted contribution creates/updates exactly one team-ledger income transaction.
+- Family fundraising credit is tracked separately from cash so fundraising does not double-count income.
+- A contribution can be:
+  - entirely team-wide;
+  - attributed to a rider/family without changing their balance;
+  - partially or fully applied as a family credit against a specific charge.
+- Family credit cannot exceed the contribution amount or the available balance of the selected family charge.
+- Campaign dashboards show Raised, Family Credits, Team Retained, and goal progress.
+- Added campaign-level CSV contribution export.
+- Closed campaigns cannot receive new contributions.
+- Fundraiser-generated ledger transactions redirect edits/voids back to the fundraiser source workflow so ledger and family-credit records stay synchronized.
+- Voiding a contribution is non-destructive: the contribution is retained, its ledger transaction is voided, and its family credit is cancelled.
+
+### Family finance privacy
+- Youth Rider logins are explicitly denied Finance access.
+- Rider accounts cannot view their own family account.
+- Family financial information is restricted to the Parent/Guardian actually linked to that rider, plus authorized Admin/Treasurer users.
+- Rider accounts cannot access reimbursement lists/forms/receipts.
+- Rider accounts cannot gain Finance access through an accidental Treasurer committee assignment.
+- Finance navigation remains hidden for Rider accounts.
+- Finance audit scope is unavailable to Rider accounts.
+- Coaches can no longer see finance-related events through the general Manage audit log; Coach audit history is limited to non-financial operational activity.
+
+### Finance integrity hardening
+- A financial transaction cannot be reduced below the total of its existing show allocations.
+- A transaction cannot be moved to a season that conflicts with its allocated shows.
+- Category/type changes are blocked when they would invalidate an allocation tied to a specific show budget item.
+
+### Audit
+- Fundraising campaign and contribution changes are included in the v1.9.5 audit framework.
+
+### Migration
+- `0024_v196_fundraising.py`
+- Adds `FundraisingCampaign`.
+- Adds `FundraisingContribution`.
+- Adds `Fundraising credit` as a FamilyCredit type.
+
+### Architecture
+- `portal/views.py` remains intentionally unrefactored in v1.9.x.
+- The views modularization remains the first architecture task for v2.x.
+
 ## v1.9.5 — Operational & Audit Polish
 
 ### Audit history
