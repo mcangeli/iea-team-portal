@@ -2,6 +2,28 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4.2.2 — Itemized Hosted-Show Budgets
+
+### Fixed
+- Show budgets are no longer limited to one line per Scope + Type + Category.
+- A hosted show can now contain multiple Administrative expense lines such as Insurance, Judge fee, Officials, Food, Permits, or Supplies.
+- Removed the database uniqueness constraint that incorrectly treated those valid budget items as duplicates.
+
+### Added
+- Show Budget lines now include a required **Description / Budget item** field.
+- Show allocations can optionally target a specific budget item.
+- Plan vs Actual now calculates actuals against the selected budget item rather than repeating the category total on every same-category line.
+- Multiple allocations from the same transaction to the same show/scope are supported when a payment covers more than one budget item.
+- Existing budget lines receive their category name as an initial description during migration.
+- Existing allocations remain valid and may be assigned to a budget item later.
+
+### Migration
+- `0022_v19422_itemized_show_budget.py`
+- Removes the old show-budget uniqueness constraint.
+- Removes the old one-allocation-per-transaction/show/scope constraint.
+- Adds `ShowBudgetLine.description`.
+- Adds optional `ShowTransactionAllocation.budget_line`.
+
 ## v1.9.4.2.1 — Show Budget Validation Fix
 
 ### Fixed
