@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.4.2.3**
+**Current version: v1.9.5**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -175,7 +175,7 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.4.2.3.1/
+└── iea-team-portal-v1.9.5.1/
 ```
 
 Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
@@ -191,8 +191,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.4.2.3.1.zip
-cd iea-team-portal-v1.9.4.2.3
+sudo unzip iea-team-portal-v1.9.5.1.zip
+cd iea-team-portal-v1.9.5
 chmod +x portalctl
 ```
 
@@ -298,13 +298,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.4.2.3.1/
+└── iea-team-portal-v1.9.5.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.4.2.3
+cd /opt/iea-team-portal/iea-team-portal-v1.9.5
 chmod +x portalctl
 ./portalctl upgrade
 ```
@@ -417,3 +417,7 @@ The README intentionally describes the **current product, installation, configur
 Planned areas include additional v1.9.x finance workflows such as family balances, rider fees, fundraising, reimbursements, and richer reports.
 
 Horse & Hoofprint Management remains planned for the v2.x series rather than being folded into the v1.9 finance work.
+
+### v2.x architecture note
+
+The large `portal/views.py` modularization is intentionally deferred from the v1.9.x stabilization line. It is the first planned architecture task for v2.x before major v2 feature work, with the target structure split into focused modules such as dashboard, riders, shows, standings, communications, and `views/finance/`.

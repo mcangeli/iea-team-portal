@@ -2,6 +2,69 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.5 — Operational & Audit Polish
+
+### Audit history
+- Added an immutable-style `AuditEvent` activity log for important portal changes.
+- Added **Manage → Audit log** for Admin/Coach users.
+- Added a Treasurer-scoped **Finance audit log** that is limited to finance-related record types and seasons where the user has Finance access.
+- Audit events are recorded for:
+  - financial transaction create/edit/void/reversal;
+  - show allocation add/edit/remove;
+  - show budget item create/edit;
+  - reimbursement draft/submit/review/payment state changes;
+  - family charges, credits, payments, service agreements, and assistance workflows;
+  - financial account/category and season-budget changes;
+  - user account changes;
+  - committee assignments;
+  - show results.
+- Ledger and reimbursement rows include direct History links where appropriate.
+
+### Finance ledger usability
+- Added ledger filters for:
+  - search text;
+  - posted / void / all history;
+  - income / expense;
+  - season;
+  - account;
+  - category;
+  - show;
+  - date range.
+- Pagination preserves active filters.
+- CSV export now preserves the active ledger filters and includes status/void audit fields.
+
+### Reimbursement workflow
+- Reimbursements now support a true **Draft → Submit → Review → Paid** workflow.
+- Drafts remain private to the submitter until submitted.
+- Submitters can edit drafts and either save again or submit for review.
+- Treasurer review cannot access Draft records.
+- Paid remains a terminal state under the existing transition rules.
+
+### Financial safety
+- Family Payments are no longer permanently deleted.
+- Voiding a Family Payment:
+  - retains the FamilyPayment row;
+  - removes it from family balance calculations;
+  - voids the linked ledger transaction instead of deleting it;
+  - records who voided it, when, and why.
+- Voided Family Payments cannot be edited.
+- Financial-assistance reimbursement corrections now void previously-created ledger transactions rather than deleting them.
+
+### Show Finance polish
+- Added printable Show Finance summaries.
+- Added Hosting vs Participation planned/actual summary cards.
+- Added a warning when show allocations are included in show totals but are not assigned to a specific budget item.
+- Existing itemized Show Budget and multi-show allocation behavior remains unchanged.
+
+### Architecture
+- The large `portal/views.py` refactor is intentionally **not** part of v1.9.5.
+- Modularizing `views.py` is now the first planned architecture task for the v2.x line before major v2 feature work.
+
+### Migration
+- `0023_v195_operational_audit.py`
+- Creates `AuditEvent`.
+- Adds audit-safe void fields/status to `FamilyPayment`.
+
 ## v1.9.4.2.3 — Budget Item Label Fix
 
 ### Fixed
