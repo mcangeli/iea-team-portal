@@ -2,6 +2,35 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4.1 — Project Hardening
+
+### Fixed
+- Reimbursement receipt downloads no longer fail because `Path` is now imported.
+- Treasurer reimbursement visibility is season-aware; a Treasurer only receives finance access for seasons where that assignment is active.
+- Hosted-show Budget vs Actual now matches real ledger activity by **Hosting operations** vs **Our team participation** scope.
+- Existing show-linked transactions without a scope are preserved and surfaced as **Unclassified** for Treasurer review rather than guessed.
+- Season Show Package funding now behaves like dues-covered funding for bulk per-show family charges.
+- Direct web-server access to all `/media/finance/*` files is blocked; Finance receipts must use authenticated Django download views.
+- Account balances and Finance reports exclude voided ledger entries.
+
+### Added
+- Show finance scope on ledger transactions.
+- Non-destructive ledger transaction lifecycle: Posted / Void.
+- Void audit fields: who, when, and why.
+- Optional opposite-direction reversal entry when voiding.
+- Ledger audit views for Posted, Voided, or All History.
+- Voided transactions cannot be edited.
+- Pagination for the Finance ledger and reimbursement inbox (50 rows/page).
+- Formal reimbursement state transitions; Paid requests cannot be silently reopened.
+- Targeted automated tests for season-specific Treasurer permissions, funding-policy routing, show-scope validation, and retained void history.
+
+### Migration
+- `0020_v1941_finance_hardening.py`
+- Adds transaction scope, status, void audit metadata, and reversal linkage.
+
+### Security
+- Caddy now returns 404 for `/media/finance/*`, including legacy and new Finance receipts. Permission-checked Django receipt endpoints remain the supported access path.
+
 ## v1.9.4 — Show Finance & Funding Policies
 
 ### Added
