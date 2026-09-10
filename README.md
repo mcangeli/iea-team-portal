@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.7**
+**Current version: v1.9.8**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -178,7 +178,7 @@ Keep the environment file and backups outside individual release directories:
 └── iea-team-portal-v1.9.6.1.1/
 ```
 
-Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
+Future versions can sit beside prior releases while continuing to use the same environment configuration and Docker volumes.
 
 ## Fresh installation
 
@@ -191,8 +191,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.6.1.1.zip
-cd iea-team-portal-v1.9.6.1
+sudo unzip iea-team-portal-v1.9.8.zip
+cd iea-team-portal-v1.9.8
 chmod +x portalctl
 ```
 
@@ -460,6 +460,27 @@ A Rider login cannot see its own family account, reimbursements, Finance audit h
 ### v2.x architecture note
 
 The large `portal/views.py` modularization is intentionally deferred from the v1.9.x stabilization line. It is the first planned architecture task for v2.x before major v2 feature work, with the target structure split into focused modules such as dashboard, riders, shows, standings, communications, and `views/finance/`.
+
+
+### Historical data and season management
+
+v1.9.8 begins a dedicated historical-data workflow under **Season Archive**.
+
+Each season card shows its rider, show, and result counts. Managers can open **Historical data** to review the season roster and add prior results rider-by-rider. This workflow intentionally permits historical result entry for archived seasons while keeping normal operational edits protected.
+
+Season lifecycle behavior:
+- **Archive season** closes the season to normal operational changes and removes it from active-season use.
+- **Reopen for corrections** temporarily allows normal corrections but does **not** automatically make that season active.
+- Archive and reopen actions are Administrator-only and are recorded in the audit log.
+
+Historical results can also be imported in bulk from **Historical data → Import CSV**. AccessIEA Rider Performance exports are detected automatically. The importer always previews the file before writing records, flags validation problems, and skips matching existing results instead of overwriting them.
+
+For AccessIEA exports, **Create missing historical roster/classes** can bootstrap the selected historical season directly from the export. Existing riders are matched by `#IEA` first and exact name second; the portal proposes missing season memberships, season classes, class assignments, and genuinely missing riders. Proposed setup is shown before commit. Varsity/JV class names map to Upper School and Future/Futures class names map to Futures; ambiguous team-level cases are blocked for manual review rather than guessed.
+
+The portal's own row-oriented CSV template remains supported for manual data preparation. Imports are atomic and can be used against archived seasons without reopening normal operations. After a successful import, Historical Data shows a one-time reconciliation summary of records created, duplicates skipped, and setup changes made.
+
+Before archiving an open season, Administrators now review an **Archive readiness** screen for incomplete shows, entries without results, riders without classes, open family charges, and unresolved reimbursements. These are warnings rather than hard blockers; intentional archive-with-warnings is supported after explicit confirmation.
+
 
 ### Show-day updates and active notifications
 

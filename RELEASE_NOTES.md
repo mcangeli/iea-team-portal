@@ -2,6 +2,98 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.8 — Historical Data & Season Management
+
+v1.9.8 adds a complete historical-season workflow centered on real AccessIEA Rider Performance exports. Managers can build prior-season roster/class structure, import results safely, correct rider-specific history, and archive seasons with a readiness review while keeping normal operational protections in place.
+
+### Historical season workspace
+- Added a manager-facing **Historical data** workspace for every season.
+- Season Archive shows rider, show, and result counts at a glance.
+- Added direct rider-by-rider historical result entry from the selected season.
+- Historical entry uses the same SeasonMembership, SeasonClass, ShowEntry, and ShowResult structure as normal operations.
+- Historical result entry remains available for archived seasons without reopening normal operational workflows.
+- Rebuilt the Season Review historical-season presentation and added clearer season lifecycle messaging.
+- Archive and reopen actions are audited and idempotent.
+- Reopening an archived season for corrections does not automatically make it the active season.
+
+### AccessIEA Rider Performance import
+- Added a safe three-step bulk import workflow:
+  1. upload CSV;
+  2. preview and validate;
+  3. explicitly commit.
+- AccessIEA Rider Performance exports are detected automatically.
+- Detection tolerates capitalization, spacing, and UTF-8 BOM differences in AccessIEA fixed headers.
+- AccessIEA `#IEA` member number is the primary rider match; exact legal/preferred name is the fallback.
+- Dated show columns are converted into historical shows/results.
+- Region, Zone, and National Finals naming is recognized; Team and Individual finals columns become separate competition tracks on the same finals show.
+- Blank AccessIEA show cells are ignored; a populated `0` is preserved as a real zero-point result.
+- AccessIEA `Total Rider Points` and `# of Shows` are cross-checked and surfaced as warnings when they do not reconcile with the populated show columns.
+- Existing matching results are previewed as duplicates and skipped instead of overwritten.
+- Duplicate rows and conflicting show metadata are blocked.
+- Out-of-season show dates are warnings rather than silently changed.
+- Imports are atomic and may be committed against archived seasons without reopening them.
+- The portal's own row-oriented historical CSV template remains supported.
+
+### Historical roster and class bootstrap
+- Added **Create missing historical roster/classes** for AccessIEA imports.
+- Preview distinguishes between:
+  - riders already on the selected season;
+  - existing team riders missing from that historical season;
+  - existing riders missing an IEA member number;
+  - genuinely missing riders.
+- Missing riders can be proposed from AccessIEA name and `#IEA`.
+- Existing exact-name matches with a blank portal IEA number can receive the AccessIEA number on commit.
+- Conflicting nonblank IEA numbers are never silently replaced.
+- Missing SeasonMembership records, SeasonClass records, and rider class assignments can be proposed during preview.
+- Team-level inference is intentionally conservative:
+  - Varsity / Junior Varsity / JV → Upper School;
+  - Future/Futures class naming → Futures;
+  - an existing rider grade may resolve grades 4–8 vs 9–12;
+  - unresolved team level blocks the row instead of guessing.
+- Existing compatible classes are reused.
+- Preview includes a **Proposed Historical Setup** summary before any write occurs.
+- Roster/class bootstrap and results commit in one transaction; any failure rolls the import back.
+
+### Historical result corrections
+- Added rider-history **Edit** and **Delete** actions for imported historical results.
+- Historical result editing remains available while the season is archived.
+- Edit supports class, regular/finals competition track, placing, manual/calculated points, explicit points, horse name, and notes.
+- Regular-season history is restricted to the Regular track; finals use Individual or Team.
+- H8/H14 Walk/Trot remain blocked from Team-track finals edits.
+- Duplicate rider/show/class/track combinations are blocked.
+- Deleting a result removes only that rider's historical result and entry.
+- Other riders on the same imported show are preserved.
+- If the removed result was the final entry on an imported historical show, orphaned ShowClass/Show records are cleaned up automatically.
+- Historical edits and deletes create audit events.
+- Normal/non-historical show results cannot use the historical-only correction routes.
+
+### Season archive readiness
+- Added an Administrator-only **Archive readiness** review before closing a season.
+- Readiness checks surface:
+  - incomplete shows;
+  - planned/entered rider entries without results;
+  - season memberships with no class assignments;
+  - open family charges;
+  - unresolved Draft, Submitted, or Approved reimbursement requests.
+- Readiness findings are warnings rather than hard blockers.
+- Administrators can intentionally archive with warnings after explicit confirmation.
+- Direct archive submissions without readiness confirmation are redirected to the review screen.
+- Season Review now clearly identifies **Active season**, **Open / inactive**, and **Archived** states.
+- Archive/reopen controls use an explicit Admin permission flag from the view.
+
+### Import reconciliation and performance
+- Added a one-time **Import Reconciliation** summary after successful historical imports.
+- Reconciliation reports results created, duplicates skipped, shows touched, riders/memberships/classes created, class assignments added, IEA numbers added, and warning count.
+- Optimized Season Archive counts using database annotations instead of per-season count queries.
+- Optimized Historical Data rider show/result counts using annotated membership queries instead of per-rider queries.
+- Added mobile/responsive polish for historical import, reconciliation, readiness, and archive controls.
+
+### Release notes
+- No new database migration is required for v1.9.8.
+- Historical finance starting balances are intentionally deferred to the v1.9.9 stabilization/backlog.
+- AccessIEA CSV is the supported primary historical import workflow; XLSX support remains optional rather than required.
+
+
 ## v1.9.7 — Show Day Operations & Team Coordination
 
 v1.9.7 adds a mobile-first show-day operations layer for coaches, show leads, committee chairs, parents, and riders. It combines public show updates, estimated scheduling, rider check-in, results workflow, volunteer/checklist coordination, and a personal **My Show Day** experience while preserving the portal's existing role and privacy boundaries.
