@@ -2,6 +2,39 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4.2 — Multi-Show Financial Allocation
+
+### Added
+- One ledger payment or receipt can now be allocated across multiple shows.
+- New `ShowTransactionAllocation` records distribute a transaction amount without creating duplicate ledger transactions.
+- Each allocation records:
+  - show;
+  - Hosting operations vs Our team participation;
+  - allocated amount;
+  - optional notes.
+- Allocation totals may be less than the source transaction, leaving a clearly displayed unallocated balance.
+- Allocation totals can never exceed the source transaction amount.
+- Hosting allocations are allowed only for shows marked **Hosting & attending**.
+- Allocation management page shows Transaction Total, Allocated, and Unallocated amounts.
+- Ledger rows now include **Allocate** / **Show allocations** actions.
+- Show Finance now calculates income, expense, Budget vs Actual, and hosted-show P&L from allocation records.
+- Hosted shows display Hosting income, Hosting expenses, Hosting surplus/loss, and Our Team Participation cost separately.
+- Show-linked paid reimbursements automatically create a full allocation using the reimbursement's selected financial scope.
+- Regression coverage for multi-show splitting and over-allocation prevention.
+
+### Backward compatibility
+- Existing v1.9.4.1 transactions that already have a show and Hosting/Participation scope are automatically migrated into a full-value allocation.
+- Older show-linked transactions without a scope are not guessed. Show Finance flags them for explicit Treasurer allocation.
+
+### Migration
+- `0021_v1942_multi_show_allocations.py`
+- Creates `ShowTransactionAllocation`.
+- Adds show finance scope to reimbursement requests.
+- Includes a data migration for existing classified single-show transactions.
+
+### Accounting principle
+The bank/ledger transaction remains the authoritative cash movement. Show allocations are management-reporting distributions only, so splitting a shared insurance, facility, transportation, or supply payment never duplicates the underlying expense.
+
 ## v1.9.4.1 — Project Hardening
 
 ### Fixed
