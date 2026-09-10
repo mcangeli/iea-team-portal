@@ -2,6 +2,29 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.3 — Financial Reporting
+
+### Added
+- Financial Reports landing page with season selection.
+- Budget vs Actual report with planned income/expense, actuals, percentage used/achieved, favorable/unfavorable variance, and net comparison.
+- Family Receivables report with billed, credits, external assistance, payments, outstanding balance, overdue amount, due-soon amount, and status filters.
+- Financial Assistance & Reimbursements report with award ceiling, allocated, submitted, approved, reimbursed, remaining eligibility, draft claims, and outstanding claims.
+- Category Activity report with category/type filters and transaction drill-down.
+- CSV exports for Budget vs Actual, Family Receivables, Assistance/Reimbursements, and Category Activity.
+- Season switching on all Financial Report pages.
+- Treasurer “Needs attention” worklist on the Finance dashboard for:
+  - overdue family balances;
+  - reimbursement claims not submitted;
+  - submitted/approved reimbursements still outstanding;
+  - riders missing a Home Barn;
+  - rider barns missing a season dues rate;
+  - memberships whose dues charge has not been generated.
+- Print-friendly report styling.
+
+### Notes
+- No database migration is required.
+- v1.9.3 uses the Finance, family receivable, dues, and assistance data introduced in v1.9.0-v1.9.2.x.
+
 ## v1.9.2.3 — Version-linked Documentation
 
 ### Improved

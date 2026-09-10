@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.2.3**
+**Current version: v1.9.3**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -106,6 +106,13 @@ The Finance area includes:
 - season budgets and budget-vs-actual reporting;
 - account balances calculated from opening balance and ledger activity;
 - CSV transaction export;
+- Financial Reports hub;
+- budget-vs-actual reporting with favorable/unfavorable variance;
+- family receivables aging with overdue and due-soon status;
+- financial-assistance/reimbursement reporting;
+- category activity drill-down;
+- CSV exports for budget, receivables, assistance, and category activity;
+- Treasurer worklist for overdue balances, reimbursement claims, missing home barns/rates, and dues not yet generated;
 - created/updated audit information;
 - family receivables;
 - season-specific home barns and home-barn membership-dues rates;
@@ -168,7 +175,7 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.2.3.1/
+└── iea-team-portal-v1.9.3.1/
 ```
 
 Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
@@ -184,8 +191,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.2.3.1.zip
-cd iea-team-portal-v1.9.2.3
+sudo unzip iea-team-portal-v1.9.3.1.zip
+cd iea-team-portal-v1.9.3
 chmod +x portalctl
 ```
 
@@ -291,13 +298,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.2.3.1/
+└── iea-team-portal-v1.9.3.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.2.3
+cd /opt/iea-team-portal/iea-team-portal-v1.9.3
 chmod +x portalctl
 ./portalctl upgrade
 ```
