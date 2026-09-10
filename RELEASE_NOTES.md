@@ -2,6 +2,18 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4.2.1 — Show Budget Validation Fix
+
+### Fixed
+- Adding or editing a Show Budget line no longer runs an uncaught second model `full_clean()` after form validation.
+- The Show is attached to the `ShowBudgetLineForm` instance before model validation.
+- Duplicate Show Budget lines now return a normal form error instead of a 500 error.
+- Category income/expense compatibility is validated in the form with a readable message.
+- Hosting budget scope validation now stays inside the form rather than surfacing as a server error.
+
+### Database
+- No new migration is required.
+
 ## v1.9.4.2 — Multi-Show Financial Allocation
 
 ### Added
