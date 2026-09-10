@@ -2,6 +2,25 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.2 — Contextual Navigation
+
+### Added
+- Consistent contextual back navigation on subordinate pages.
+- Rider Profile → Back to Riders.
+- Rider History → Back to Rider Profile.
+- Family Account → Back to Family Receivables for Finance users, or Back to My Team for family users.
+- Show Detail → Back to Shows.
+- Show Planning / Availability / Show Week → Back to Show.
+- Lesson Detail → Back to Lessons.
+- Season Review → Back to Season History.
+- Awards → Back to Season Review.
+- Finance Receivables / Ledger / Accounts / Budget / Dues Setup → Back to Finance.
+- Generic create/edit/delete forms receive a compact Back action using browser history, with Dashboard fallback when opened directly.
+
+### Notes
+- No database migration is required.
+- This release is navigation/UX only.
+
 ## v1.9.1 — Membership Dues & Family Receivables
 
 ### Added
