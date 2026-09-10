@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.6**
+**Current version: v1.9.6.1**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -175,7 +175,7 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.6.1/
+└── iea-team-portal-v1.9.6.1.1/
 ```
 
 Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
@@ -191,8 +191,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.6.1.zip
-cd iea-team-portal-v1.9.6
+sudo unzip iea-team-portal-v1.9.6.1.1.zip
+cd iea-team-portal-v1.9.6.1
 chmod +x portalctl
 ```
 
@@ -298,13 +298,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.6.1/
+└── iea-team-portal-v1.9.6.1.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.6
+cd /opt/iea-team-portal/iea-team-portal-v1.9.6.1
 chmod +x portalctl
 ./portalctl upgrade
 ```
@@ -432,6 +432,19 @@ A campaign tracks:
 Accounting rule: each fundraising contribution is posted to the team ledger **once** as income. An optional family fundraising credit is a separate receivable adjustment and does not create a second cash transaction.
 
 Family fundraising credits must be tied to a specific rider-season and family charge. Voiding a fundraising contribution retains history, voids its linked ledger transaction, and cancels its linked family credit.
+
+### Fundraising policy
+
+Each season can define a fundraising policy from **Finance → Fundraising → Edit fundraising policy**.
+
+Available models:
+- **Team-wide** — fundraising stays with the team; default family credit is 0%.
+- **Family credit** — attributed fundraising defaults to 100% family credit.
+- **Hybrid** — set the normal percentage credited to an attributed family, with the remainder retained by the team.
+
+The policy can also define whether participation is optional, which FamilyCharge types fundraising may offset, and a family-facing explanation.
+
+Linked Parent/Guardian accounts can open **Family Account → Fundraising** to see only their family's attributed fundraising totals and campaign activity. Donor identities, bank/account information, and other families' fundraising are not shown. Rider accounts remain blocked from this financial view.
 
 ### Family finance privacy
 

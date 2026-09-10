@@ -2,6 +2,49 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.6.1 — Fundraising Policy & Family View
+
+### Season fundraising policy
+- Added one fundraising policy per season.
+- Supported policy models:
+  - Team-wide;
+  - Family credit;
+  - Hybrid.
+- Team-wide requires a 0% default family credit.
+- Family Credit requires a 100% default family credit.
+- Hybrid supports a configurable default family-credit percentage.
+- Policy can define whether family participation is optional.
+- Policy can restrict which family charge types fundraising credits may offset.
+- Policy includes a plain-language family message and internal notes.
+- Fundraising policy changes are recorded in the audit log.
+
+### Contribution guidance
+- Contribution entry now displays the active season's fundraising model and default family-credit percentage.
+- New contribution forms leave the family-credit amount blank so, when a family is selected, the policy default can be calculated automatically.
+- Treasurer can still override the calculated family-credit amount when circumstances require it.
+- Credits remain capped by the contribution amount and the selected charge's available balance.
+- Charge-type restrictions from the fundraising policy are enforced server-side.
+
+### Parent/Guardian family view
+- Added **Family Account → Fundraising**.
+- Linked Parent/Guardian accounts can see:
+  - amount raised for their family;
+  - family credit received;
+  - amount retained for the team;
+  - campaign/date detail;
+  - the family charge a credit was applied to;
+  - the season's family-facing fundraising policy.
+- Donor names and team financial-account/category details are intentionally hidden.
+- Parents still cannot see another rider's family fundraising.
+- Youth Rider accounts remain blocked from family financial and fundraising information.
+
+### Migration
+- `0025_v1961_fundraising_policy.py`
+- Adds `FundraisingPolicy`.
+
+### Architecture
+- No `views.py` refactor in this release; that remains the first v2.x architecture task.
+
 ## v1.9.6 — Fundraising & Family Finance Privacy
 
 ### Fundraising
