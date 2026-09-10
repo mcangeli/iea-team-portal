@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.0**
+**Current version: v1.9.1**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -96,22 +96,41 @@ The portal includes in-app announcements, audience targeting, notifications, ema
 
 ### Team Finance
 
-v1.9.0 introduces the Finance foundation:
+The Finance area includes:
 
 - financial accounts such as checking, savings, cash, and payment/clearing accounts;
 - configurable income/expense categories;
 - transaction ledger;
 - optional show and rider relationships on transactions;
 - PDF/JPG/JPEG/PNG receipt attachments;
-- season budgets;
-- budget-vs-actual reporting;
+- season budgets and budget-vs-actual reporting;
 - account balances calculated from opening balance and ledger activity;
 - CSV transaction export;
-- created/updated audit information.
+- created/updated audit information;
+- family receivables;
+- season-specific home barns and home-barn membership-dues rates;
+- rider/family charges and payments;
+- credits and adjustments;
+- conditional service-agreement credits;
+- external financial-assistance awards and reimbursement claims.
 
-Finance access is intentionally separate from ordinary Coach access. Administrators, active-season Treasurers, and superusers can use the Finance area.
+Home barn is stored on the rider's **Season Membership**, not the permanent Rider record. A rider can therefore change barns between seasons while historical dues rules remain accurate.
 
-Family balances, rider fees, fundraising campaigns, reimbursements, and expanded financial reporting are planned as later v1.9.x work.
+Membership dues can be configured by Home Barn for each season. Finance users can generate an individual rider's dues charge or generate dues for the entire active season. Existing dues charges are skipped so bulk generation does not create duplicates.
+
+Family accounts distinguish:
+
+- **charges** — money the family is responsible for;
+- **credits/adjustments** — team-authorized reductions;
+- **service-agreement credits** — reductions earned through an agreed service obligation;
+- **external assistance** — portions of charges allocated to a reimbursable grant/award;
+- **payments** — actual money received from a family.
+
+External financial assistance is tracked as an award with an approved maximum. Claims can move through Not Submitted, Submitted, Approved, Reimbursed, Denied, or Cancelled states. Submitted/approved/reimbursed claim allocations reduce family responsibility, while a Draft claim does not.
+
+When an outside reimbursement is actually received, marking the claim Reimbursed requires the received date, destination financial account, income category, and amount received. The portal then posts a real income transaction to the v1.9 finance ledger. This keeps the family receivable and the team's actual cash activity separate.
+
+Finance access is intentionally separate from ordinary Coach access. Administrators, active-season Treasurers, and superusers can use the Finance area. Parents and riders can see only the family account for riders they are authorized to view; they cannot see the team ledger or other families' accounts.
 
 ## Roles and privacy
 
@@ -149,10 +168,10 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.0/
+└── iea-team-portal-v1.9.1/
 ```
 
-Future versions can then sit beside v1.9.0 while continuing to use the same environment configuration and Docker volumes.
+Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
 
 ## Fresh installation
 
@@ -165,8 +184,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.0.zip
-cd iea-team-portal-v1.9.0
+sudo unzip iea-team-portal-v1.9.1.zip
+cd iea-team-portal-v1.9.1
 chmod +x portalctl
 ```
 
@@ -271,13 +290,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.0/
+└── iea-team-portal-v1.9.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.0
+cd /opt/iea-team-portal/iea-team-portal-v1.9.1
 chmod +x portalctl
 ./portalctl upgrade
 ```
@@ -310,16 +329,20 @@ After assigning an active-season Treasurer or signing in as an Administrator, op
 
 A sensible starting workflow is:
 
-1. Open **Accounts & Categories**.
-2. Create the team's checking/savings/cash accounts and enter their opening balances.
-3. Review the starter categories and edit/deactivate them as needed.
-4. Open **Season Budget** and enter planned income and expenses.
-5. Use **Add Transaction** to record actual income and expenses.
-6. Attach receipts where useful.
-7. Review budget-vs-actual and account balances from the Finance dashboard.
-8. Export the ledger to CSV when an external working copy or report is needed.
+1. Open **Accounts & Categories** and create the team's checking/savings/cash accounts.
+2. Review the starter ledger categories and edit/deactivate them as needed.
+3. Open **Dues Setup**, create the team's Home Barn records, and enter the current season's dues rate for each barn.
+4. Confirm each rider's Home Barn on the rider's Season Membership page.
+5. Generate membership-dues charges individually or use **Generate season dues**.
+6. Open **Family Receivables** to review billed amounts and balances.
+7. Add other family charges as they arise.
+8. Record payments; each payment posts corresponding income to the team ledger.
+9. For outside grants or financial assistance, create an Assistance Award and allocate eligible charges through reimbursement claims.
+10. For reduced dues earned through agreed services, create a Service Agreement Credit and keep it Pending until the obligation is fulfilled.
+11. Enter the Season Budget and use the Finance dashboard for account balances, budget-vs-actual, receivables, and remaining assistance-award capacity.
+12. Export the ledger to CSV when an external working copy or report is needed.
 
-The portal is a team-maintained ledger, not a bank feed or replacement for professional accounting/tax software.
+The portal is a team-maintained ledger and receivables system, not a bank feed or replacement for professional accounting/tax software.
 
 ## Backups and persistent data
 

@@ -2,6 +2,47 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.1 — Membership Dues & Family Receivables
+
+### Added
+- Home Barn records for the team.
+- `SeasonMembership.home_barn`, preserving a rider's barn historically by season.
+- Home Barn selection during rider season enrollment and on the Season Membership page.
+- Season-specific membership-dues rates by Home Barn.
+- Individual dues-charge generation and active-season bulk dues generation.
+- Family receivables dashboard with billed, credits/assistance, paid, and outstanding totals.
+- Private rider/family account ledger.
+- Family charges with due dates, charge type, show association, and notes.
+- Family credits/adjustments.
+- Conditional Service Agreement Credits with Pending, Applied, and Cancelled states and optional required hosted shows.
+- External Financial Assistance Awards with configurable approved maximum, provider/program, eligibility notes, and status.
+- Assistance Claims with Not Submitted, Submitted, Approved, Reimbursed, Denied, and Cancelled states.
+- Tracking for requested, approved, reimbursed, and family-relief amounts on assistance claims.
+- Automatic posting of received external reimbursements to the v1.9.0 team ledger only when a claim is marked Reimbursed.
+- Family payments that automatically create corresponding team-ledger income transactions.
+- Treasurer correction workflows for family credits and payments; editing or deleting a payment updates/removes its linked team-ledger transaction.
+- Finance dashboard snapshots for outstanding family receivables and remaining active external-assistance eligibility.
+- Family-account link in My Team for authorized parents/riders and Finance users.
+- Django admin coverage for all new v1.9.1 finance models.
+
+### Privacy and permissions
+- Team Finance remains available to Administrators, active-season Treasurers, and superusers.
+- Coach status alone does not grant Finance access.
+- Parents/Riders can view only the family account for their authorized rider(s).
+- Ordinary Coaches do not gain family-account access solely from their rider-management permissions.
+
+### Accounting behavior
+- Home-barn dues establish the rider's normal membership charge.
+- Team credits and service agreements reduce family responsibility without pretending cash was received.
+- External assistance awards are treated as reimbursable programs with an approved ceiling, not as immediate team income.
+- Draft assistance claims do not reduce the family balance.
+- Submitted, Approved, and Reimbursed claim allocations reduce family responsibility.
+- Reimbursed claims require an account, income category, received date, and amount actually received; that cash receipt is posted to the team ledger.
+- Family payments are separate from credits and post actual cash income to the team ledger.
+
+### Migration
+`0018_v191_family_finance.py`
+
 ## v1.9.0 — Team Finance Foundation
 
 ## Added
