@@ -2,6 +2,15 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.4.2.3 — Budget Item Label Fix
+
+### Fixed
+- Show allocation add/edit forms now display meaningful budget item labels instead of `ShowBudgetLine object (N)`.
+- Budget items are shown as `Description · Category · $Planned Amount`, making similar hosted-show expenses much easier to identify during allocation.
+
+### Database
+- No migration is required.
+
 ## v1.9.4.2.2 — Itemized Hosted-Show Budgets
 
 ### Fixed
