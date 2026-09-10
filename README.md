@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v1.9.2**
+**Current version: v1.9.2.3**
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -168,7 +168,7 @@ Keep the environment file and backups outside individual release directories:
 /opt/iea-team-portal/
 ├── .env
 ├── backups/
-└── iea-team-portal-v1.9.2/
+└── iea-team-portal-v1.9.2.3.1/
 ```
 
 Future versions can then sit beside v1.9.1 while continuing to use the same environment configuration and Docker volumes.
@@ -184,8 +184,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.2.zip
-cd iea-team-portal-v1.9.2
+sudo unzip iea-team-portal-v1.9.2.3.1.zip
+cd iea-team-portal-v1.9.2.3
 chmod +x portalctl
 ```
 
@@ -219,6 +219,7 @@ TIME_ZONE=America/New_York
 
 SECURE_COOKIES=1
 SECURE_HSTS_SECONDS=31536000
+PORTAL_REPOSITORY_URL=https://github.com/mcangeli/iea-team-portal
 ```
 
 Use your real hostname instead of `iea.example.com`.
@@ -290,13 +291,13 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 ├── .env
 ├── backups/
 ├── iea-team-portal-v1.8.14/
-└── iea-team-portal-v1.9.2/
+└── iea-team-portal-v1.9.2.3.1/
 ```
 
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.2
+cd /opt/iea-team-portal/iea-team-portal-v1.9.2.3
 chmod +x portalctl
 ./portalctl upgrade
 ```
@@ -391,6 +392,8 @@ If automatic reminders are desired, schedule that command using the server's pre
 The portal supports an authorized team logo and team identity. Only upload branding artwork that the team is permitted to use.
 
 The portal identifies itself as a private team portal and not an official IEA website.
+
+The footer version number links to the formatted README for the matching Git tag (for example, `v1.9.2.3`). The repository defaults to `https://github.com/mcangeli/iea-team-portal` and can be overridden with `PORTAL_REPOSITORY_URL` for a fork or alternate repository. Publish a Git tag matching each `VERSION` value so the version-specific documentation link resolves correctly.
 
 ## Release history
 

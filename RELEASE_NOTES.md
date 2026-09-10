@@ -2,6 +2,52 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.2.3 — Version-linked Documentation
+
+### Improved
+- The version number in the site footer is now a documentation link.
+- Each release links to the GitHub repository at its matching version tag, where GitHub renders that release's README.
+- The default repository is `mcangeli/iea-team-portal`.
+- Added optional `PORTAL_REPOSITORY_URL` configuration so forks/installations can point the footer to another repository.
+- If the application is running a development build without a release version, the link falls back to the repository root.
+
+### Deployment note
+- Publish a Git tag matching the `VERSION` value (for this release, `v1.9.2.3`) so the version-specific README link resolves.
+- No database migration is required.
+
+## v1.9.2.2 — UX Polish
+
+### Improved
+- Active navigation highlighting for Dashboard, My Team, Riders, Shows, Calendar, Competition, Team, Finance, and Manage areas.
+- Parent menu headings remain visibly active while the user is on one of their child pages.
+- Mobile tables use horizontal scrolling with a clear swipe cue and touch-friendly spacing.
+- Long operational pages use sticky mobile action controls so common actions remain reachable without scrolling back to the top.
+- Generic POST forms now warn before navigating away after unsaved changes.
+- High-traffic empty states were clarified with more useful next-step guidance.
+- Existing v1.9.2 contextual Back navigation and v1.9.2.1 mobile-menu behavior are preserved.
+
+### Notes
+- No database migration is required.
+- This release is UX-only and keeps the v1.9.3 Finance/reporting roadmap intact.
+
+## v1.9.2.1 — Navigation & Mobile Menu Polish
+
+### Improved
+- Opening one expanding navigation menu now closes any other open menu.
+- Clicking outside the navigation closes open expanding menus.
+- Escape closes the active expanding menu and returns focus to its menu heading.
+- Added a compact mobile Menu button for authenticated users.
+- On phones, the primary navigation is collapsed by default instead of occupying the top of every page.
+- Mobile navigation is presented in a single-column, touch-friendly layout with larger tap targets.
+- Competition, Team, and Manage expand inline on mobile.
+- Choosing a navigation link closes the mobile menu automatically.
+- Theme and Sign Out remain available inside the mobile navigation.
+- The Menu icon changes to a close icon while the mobile navigation is open.
+
+### Notes
+- No database migration is required.
+- This is a navigation/UX patch and preserves the planned v1.9.3 Finance/reporting release number.
+
 ## v1.9.2 — Contextual Navigation
 
 ### Added
