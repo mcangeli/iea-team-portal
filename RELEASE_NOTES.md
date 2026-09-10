@@ -2,6 +2,73 @@
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.
 
+## v1.9.9 — Pre-v2 Stabilization
+
+v1.9.9 is the final stabilization release before the v2 architecture work begins. It focuses on reliability, permission consistency, data integrity, performance, and production-readiness rather than adding major new product features.
+
+### Permissions & archive protection
+- Hardened legacy season-scoped mutation routes so archived seasons cannot be modified through older direct URLs.
+- Archive protection now covers:
+  - show edit/delete;
+  - show class add/edit/delete;
+  - rider entry add/edit/delete;
+  - regular-season points-rider changes;
+  - SeasonClass editing;
+  - lesson group/lesson/attendance editing;
+  - show availability changes;
+  - volunteer-log review;
+  - historical committee-assignment editing.
+- These workflows now consistently use the same `_ensure_season_open()` protection already used by newer show-day features.
+- Historical-data correction workflows introduced in v1.9.8 remain intentionally available for archived seasons.
+- Archive and reopen authority remains Administrator-only.
+- Reopening a season still does not automatically make it the active season.
+
+### Error handling and partial-save prevention
+- Rider creation is now transactional so a failed season-membership creation cannot leave behind a partially created Rider.
+- Rider creation converts model validation failures into visible form errors instead of avoidable server errors.
+- Added duplicate-safe handling around rider creation and several family-finance create workflows.
+- Added reusable form/model validation handling so `full_clean()` failures can be surfaced back on the submitted form.
+- Applied graceful validation handling to:
+  - family charges;
+  - family credits/adjustments;
+  - service-agreement credits;
+  - external financial-assistance awards.
+- Empty parent/guardian link submissions now return a useful validation message.
+- Repeated parent/guardian link submissions remain idempotent rather than creating duplicate relationships.
+- Record Book and Season Review retain explicit no-data states for empty historical seasons.
+
+### Performance and data integrity
+- Individual qualification totals are grouped in a single season-level result query instead of recalculating totals rider-by-rider/class-by-class.
+- Season Review and Rider History summary metrics now batch membership/classes, class points/wins, distinct shows, lesson attendance, and approved volunteer hours.
+- Team Record Book totals now use grouped result aggregates instead of nested season → rider → class query loops.
+- Show deletion now protects linked financial history. A Show cannot be deleted while referenced by:
+  - financial ledger transactions;
+  - family charges;
+  - reimbursement requests;
+  - show transaction allocations;
+  - itemized show budget lines.
+- The user receives a clear message identifying linked finance records rather than silently discarding or detaching finance history.
+- Historical CSV/AccessIEA imports no longer rewrite status or shared metadata on an existing non-historical operational Show.
+- Shows created by the historical import workflow continue to receive historical metadata and Complete status.
+
+### Production readiness and upgrade diagnostics
+- Production configuration now fails fast when critical environment values are missing or still use unsafe placeholders:
+  - `DJANGO_SECRET_KEY` must be present and at least 32 characters;
+  - `POSTGRES_PASSWORD` must be present and may not be `change-me`;
+  - `DJANGO_ALLOWED_HOSTS` must contain at least one hostname.
+- Development/debug mode retains local fallbacks for intentional development use.
+- Docker `collectstatic` uses explicit build-only development values so production secrets are not required or baked into the image during build.
+- `portalctl preflight` validates the shared `.env`, Docker, and Docker Compose before application checks.
+- Both standalone preflight and upgrade run Django deployment checks, migration-schema preflight, and print the migration plan.
+- Migration preflight reports pending migrations without applying them.
+- `portalctl upgrade` preserves backup-before-upgrade behavior and writes a timestamped operator log under the persistent `logs/` directory.
+- Upgrade logs include release/version information, Docker/Compose versions, backup/build/preflight/startup output, and final backup/log locations without printing secret values.
+
+### Release notes
+- No new database migration is required for v1.9.9.
+- v1.9.9 intentionally closes the 1.9.x stabilization cycle.
+- The large `portal/views.py` modularization/refactor remains the first architecture task for v2.x before major v2 feature work.
+
 ## v1.9.8 — Historical Data & Season Management
 
 v1.9.8 adds a complete historical-season workflow centered on real AccessIEA Rider Performance exports. Managers can build prior-season roster/class structure, import results safely, correct rider-specific history, and archive seasons with a readiness review while keeping normal operational protections in place.

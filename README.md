@@ -1,6 +1,12 @@
 # IEA Team Portal
 
-**Current version: v1.9.8**
+**Current version: v1.9.9**
+
+v1.9.9 is the final pre-v2 stabilization release. It focuses on permission/archive consistency, graceful error handling, performance/data integrity, and production hardening rather than major new features.
+
+Every `./portalctl upgrade` now writes a timestamped operator log under `/opt/iea-team-portal/logs/` while preserving the existing timestamped database backup under `/opt/iea-team-portal/backups/`.
+
+
 
 IEA Team Portal is a private, self-hosted team-management application for an interscholastic equestrian program. It brings rider records, season setup, shows and results, standings and qualification tracking, lessons, calendars, volunteer activity, communications, team operations, historical records, and team finance into one portal.
 
@@ -191,8 +197,8 @@ For example:
 ```bash
 sudo mkdir -p /opt/iea-team-portal
 cd /opt/iea-team-portal
-sudo unzip iea-team-portal-v1.9.8.zip
-cd iea-team-portal-v1.9.8
+sudo unzip iea-team-portal-v1.9.9.zip
+cd iea-team-portal-v1.9.9
 chmod +x portalctl
 ```
 
@@ -211,7 +217,7 @@ A typical production configuration is:
 ```env
 APP_PORT=8088
 
-DJANGO_SECRET_KEY=replace-with-a-long-random-secret
+DJANGO_SECRET_KEY=replace-with-a-long-random-secret-at-least-32-characters
 DJANGO_DEBUG=0
 DJANGO_ALLOWED_HOSTS=iea.example.com
 DJANGO_CSRF_TRUSTED_ORIGINS=https://iea.example.com
@@ -249,7 +255,13 @@ If `EMAIL_HOST` is blank, communications remain available in-app and Django uses
 
 ### 3. Start the portal
 
-From the release directory:
+From the release directory, you can validate the environment and migration plan first:
+
+```bash
+./portalctl preflight
+```
+
+Then perform the upgrade:
 
 ```bash
 ./portalctl upgrade
@@ -304,7 +316,7 @@ Keep the existing `.env`, database volume, media volume, and backups. Extract th
 Then:
 
 ```bash
-cd /opt/iea-team-portal/iea-team-portal-v1.9.6.1
+cd /opt/iea-team-portal/iea-team-portal-v1.9.9
 chmod +x portalctl
 ./portalctl upgrade
 ```
