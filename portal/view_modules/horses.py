@@ -4,8 +4,8 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..horse_forms import HorseCogginsForm, HorseForm, HorseSeasonProfileForm, HorseShowAssignmentForm
-from ..horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment
+from ..horse_forms import HorseCogginsForm, HorseForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
+from ..horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from ..models import AuditEvent, Season, Show
 from .common import _audit_event, _can_manage, _ensure_season_open, _team
 
@@ -44,6 +44,7 @@ def horse_detail(request, pk):
         "coggins_records": horse.coggins_records.all(),
         "season_profiles": horse.season_profiles.select_related("season").prefetch_related("eligible_classes"),
         "latest_coggins": horse.latest_coggins,
+        "show_awards": HorseShowAward.objects.filter(assignment__horse=horse).select_related("show", "assignment").order_by("-show__show_date", "session"),
     })
 
 
@@ -113,12 +114,13 @@ def horse_season_profile(request, horse_pk, season_pk=None):
 @login_required
 def show_horses(request, show_pk):
     team = _team(request.user); show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team)
-    assignments = show.horse_assignments.select_related("horse").prefetch_related("show_classes__season_class", "horse__coggins_records")
+    assignments = show.horse_assignments.select_related("horse").prefetch_related("show_classes__season_class", "horse__coggins_records", "awards")
     rows = []
     for assignment in assignments:
         coggins = assignment.horse.latest_coggins
         rows.append({"assignment": assignment, "coggins": coggins, "coggins_status": coggins.status if coggins else "missing"})
-    return render(request, "portal/show_horses.html", {"show": show, "rows": rows, "can_manage": _can_manage(request.user)})
+    awards = show.horse_awards.select_related("assignment__horse").order_by("session")
+    return render(request, "portal/show_horses.html", {"show": show, "rows": rows, "awards": awards, "can_manage": _can_manage(request.user)})
 
 
 @login_required
@@ -153,4 +155,42 @@ def show_horse_remove(request, show_pk, pk):
     assignment = get_object_or_404(HorseShowAssignment, pk=pk, show=show); label = assignment.horse.display_name
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=assignment, season=show.season, summary=f"Removed {label} from {show.name}")
     assignment.delete(); messages.success(request, f"{label} was removed from this show.")
+    return redirect("show_horses", show_pk=show.pk)
+
+
+@login_required
+def show_horse_award_add(request, show_pk):
+    _require_horse_manage(request.user); team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    form = HorseShowAwardForm(request.POST or None, show=show)
+    if form.is_valid():
+        award = form.save(commit=False); award.show = show; award.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=award, season=show.season, summary=f"Recorded {award.get_session_display()} Horse of the Day for {award.horse.display_name}")
+        messages.success(request, f"{award.get_session_display()} Horse of the Day recorded for {award.horse.display_name}.")
+        return redirect("show_horses", show_pk=show.pk)
+    return render(request, "portal/show_horse_award_form.html", {"form": form, "show": show, "title": "Record Horse of the Day"})
+
+
+@login_required
+def show_horse_award_edit(request, show_pk, pk):
+    _require_horse_manage(request.user); team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    award = get_object_or_404(HorseShowAward, pk=pk, show=show)
+    form = HorseShowAwardForm(request.POST or None, instance=award, show=show)
+    if form.is_valid():
+        award = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=award, season=show.season, summary=f"Updated {award.get_session_display()} Horse of the Day")
+        messages.success(request, "Horse of the Day award updated.")
+        return redirect("show_horses", show_pk=show.pk)
+    return render(request, "portal/show_horse_award_form.html", {"form": form, "show": show, "award": award, "title": "Edit Horse of the Day"})
+
+
+@login_required
+@require_POST
+def show_horse_award_remove(request, show_pk, pk):
+    _require_horse_manage(request.user); team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.get_session_display()} Horse of the Day — {award.horse.display_name}"
+    _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {label}")
+    award.delete(); messages.success(request, "Horse of the Day award removed.")
     return redirect("show_horses", show_pk=show.pk)
