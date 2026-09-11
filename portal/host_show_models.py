@@ -260,7 +260,7 @@ class HostShowDutyAssignment(models.Model):
             raise ValidationError("Assign a team user or enter the volunteer/staff member's name.")
         if self.starts_at and self.ends_at and self.ends_at < self.starts_at:
             raise ValidationError("Duty end time cannot be before its start time.")
-        if self.assigned_user_id:
+        if self.assigned_user_id and self.operations_id:
             profile = getattr(self.assigned_user, "profile", None)
             if profile and profile.team_id and profile.team_id != self.operations.show.team_id:
                 raise ValidationError("Assigned team user must belong to the same team as the show.")
@@ -276,4 +276,5 @@ class HostShowDutyAssignment(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.operations.show.name} — {self.title} — {self.assignee_name}"
+        show_name = self.operations.show.name if self.operations_id else "Hosted show"
+        return f"{show_name} — {self.title} — {self.assignee_name}"
