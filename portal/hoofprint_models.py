@@ -26,7 +26,7 @@ class HoofprintSnapshot(models.Model):
 
     def clean(self):
         super().clean()
-        if self.version < 1:
+        if self.version is not None and self.version < 1:
             raise ValidationError("Hoofprint version must be at least 1.")
 
     def __str__(self):
@@ -66,7 +66,9 @@ class ShowHorseListDocument(models.Model):
 
     def clean(self):
         super().clean()
-        if self.revision < 1:
+        # ModelForm validation runs before the upload view assigns the next
+        # automatic revision number, so allow the temporary None state here.
+        if self.revision is not None and self.revision < 1:
             raise ValidationError("Horse list revision must be at least 1.")
 
     def __str__(self):
