@@ -14,6 +14,7 @@ urlpatterns = [
     path("", include("portal.season_class_code_urls")),
     path("", include("portal.show_readiness_urls")),
     path("", include("portal.course_urls")),
+    path("", include("portal.post_show_horse_urls")),
     path("", include("portal.urls")),
 ]
 
