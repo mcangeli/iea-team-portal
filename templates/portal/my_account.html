@@ -1,6 +1,15 @@
 {% extends 'base.html' %}
 {% block title %}My Account{% endblock %}
 {% block content %}
+<style>
+.account-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.25rem 0 2rem}
+.account-summary-card{display:flex;flex-direction:column;align-items:flex-start;gap:.65rem;padding:1.35rem}
+.account-summary-card>small{color:var(--club-brass);font-weight:850;letter-spacing:.11em}.account-summary-card h2{margin:0;font-family:var(--display-serif)}
+.account-summary-card p{color:var(--muted);margin:.15rem 0 .45rem}.account-summary-card .btn{margin-top:auto}
+.account-details{width:100%;margin:.2rem 0 .65rem}.account-details>div{display:grid;grid-template-columns:5rem 1fr;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.account-details dt{color:var(--muted);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.account-details dd{margin:0;overflow-wrap:anywhere}
+@media(max-width:900px){.account-summary-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.account-summary-grid{grid-template-columns:1fr}.account-summary-card{padding:1rem}}
+</style>
 <section class="page-intro account-intro">
   <div>
     <div class="eyebrow">MY ACCOUNT</div>
