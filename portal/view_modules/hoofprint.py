@@ -9,7 +9,8 @@ from ..hoofprint_forms import HoofprintFinalizeForm
 from ..hoofprint_models import HoofprintSnapshot
 from ..hoofprint_service import build_hoofprint_payload, render_hoofprint_pdf
 from ..models import AuditEvent, Show
-from .common import _audit_event, _can_manage, _ensure_season_open, _team
+from ..show_readiness_views import _can_manage_show_horses
+from .common import _audit_event, _ensure_season_open, _team
 
 
 def _pdf_response(show, payload, filename_suffix):
@@ -36,7 +37,7 @@ def show_hoofprint(request, show_pk):
         "form": form,
         "latest_snapshot": latest,
         "snapshots": show.hoofprint_snapshots.all()[:10],
-        "can_manage": _can_manage(request.user),
+        "can_manage": _can_manage_show_horses(request.user, show),
     })
 
 
@@ -50,10 +51,10 @@ def show_hoofprint_preview_pdf(request, show_pk):
 
 @login_required
 def show_hoofprint_finalize(request, show_pk):
-    if not _can_manage(request.user):
-        raise PermissionDenied
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season", "team"), pk=show_pk, team=team)
+    if not _can_manage_show_horses(request.user, show):
+        raise PermissionDenied
     _ensure_season_open(show.season)
     if request.method != "POST":
         return redirect("show_hoofprint", show_pk=show.pk)
