@@ -2,8 +2,9 @@
 {% block title %}Dashboard{% endblock %}
 {% block content %}
 <style>
-.dashboard-workspaces{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0 1.4rem}.dashboard-workspace-link{display:inline-flex;align-items:center;min-height:2.25rem;padding:.45rem .8rem;border:1px solid var(--line,rgba(255,255,255,.16));border-radius:999px;text-decoration:none;font-size:.86rem;font-weight:700;letter-spacing:.01em;background:var(--surface,rgba(255,255,255,.04))}.dashboard-workspace-link:hover,.dashboard-workspace-link.active{border-color:currentColor;transform:translateY(-1px)}@media(max-width:700px){.dashboard-workspaces{flex-wrap:nowrap;overflow-x:auto;padding-bottom:.25rem;scrollbar-width:thin}.dashboard-workspace-link{flex:0 0 auto}}
+.dashboard-workspaces{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0 1.25rem;clear:both}.dashboard-workspaces + .club-summary{margin-top:0}.dashboard-workspace-link{display:inline-flex;align-items:center;min-height:2.25rem;padding:.45rem .8rem;border:1px solid var(--line,rgba(255,255,255,.16));border-radius:999px;text-decoration:none;font-size:.86rem;font-weight:700;letter-spacing:.01em;background:var(--surface,rgba(255,255,255,.04))}.dashboard-workspace-link:hover,.dashboard-workspace-link.active{border-color:currentColor;transform:translateY(-1px)}@media(max-width:700px){.dashboard-workspaces{flex-wrap:nowrap;overflow-x:auto;margin-bottom:1rem;padding:.15rem 0 .4rem;scrollbar-width:thin}.dashboard-workspace-link{flex:0 0 auto}}
 </style>
+
 <section class="hero dashboard-hero club-hero">
   <div class="hero-copy">
     <div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div>
@@ -16,7 +17,9 @@
 
 {% if workspace_links|length > 1 %}
 <nav class="dashboard-workspaces" aria-label="Dashboard workspaces">
-  {% for workspace in workspace_links %}<a class="dashboard-workspace-link{% if request.path == workspace.url %} active{% endif %}" href="{{ workspace.url }}">{{ workspace.label }}</a>{% endfor %}
+  {% for workspace in workspace_links %}
+    <a class="dashboard-workspace-link{% if request.path == workspace.url %} active{% endif %}" href="{{ workspace.url }}">{{ workspace.label }}</a>
+  {% endfor %}
 </nav>
 {% endif %}
 
@@ -63,6 +66,7 @@
 </section>
 {% endif %}
 
+
 {% if upcoming_lessons %}
 <section class="content-section"><div class="section-head"><div><div class="eyebrow">TRAINING</div><h2>Upcoming lessons</h2></div><a class="text-link" href="{% url 'lesson_list' %}">All lessons →</a></div><div class="ops-list">{% for lesson in upcoming_lessons %}<a class="ops-row card" href="{% url 'lesson_detail' lesson.pk %}"><div class="datebox"><strong>{{ lesson.starts_at|date:"M" }}</strong><span>{{ lesson.starts_at|date:"j" }}</span></div><div class="ops-main"><small>{{ lesson.group.name|default:"Team lesson" }}</small><h3>{{ lesson.title }}</h3><p>{{ lesson.starts_at|date:"g:i A" }}{% if lesson.location %} · {{ lesson.location }}{% endif %}</p></div></a>{% endfor %}</div></section>
 {% endif %}
@@ -71,8 +75,16 @@
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">MY WEEK</div><h2>Needs your attention</h2></div><a class="text-link" href="{% url 'my_team' %}">Open My Team →</a></div>
   <div class="attention-grid">
-    {% if pending_event_rsvps %}<a class="card attention-card" href="{% url 'my_team' %}"><strong>{{ pending_event_rsvps }}</strong><span>event RSVP{{ pending_event_rsvps|pluralize }} waiting for a response</span></a>{% endif %}
-    {% for item in my_action_items %}<a class="card attention-card attention-item" href="{% url 'action_item_list' %}"><small>{{ item.get_category_display }}{% if item.due_at %} · {{ item.due_at|date:"M j" }}{% endif %}</small><h3>{{ item.title }}</h3>{% if item.rider %}<span>{{ item.rider.display_name }}</span>{% endif %}</a>{% endfor %}
+    {% if pending_event_rsvps %}
+      <a class="card attention-card" href="{% url 'my_team' %}"><strong>{{ pending_event_rsvps }}</strong><span>event RSVP{{ pending_event_rsvps|pluralize }} waiting for a response</span></a>
+    {% endif %}
+    {% for item in my_action_items %}
+      <a class="card attention-card attention-item" href="{% url 'action_item_list' %}">
+        <small>{{ item.get_category_display }}{% if item.due_at %} · {{ item.due_at|date:"M j" }}{% endif %}</small>
+        <h3>{{ item.title }}</h3>
+        {% if item.rider %}<span>{{ item.rider.display_name }}</span>{% endif %}
+      </a>
+    {% endfor %}
   </div>
 </section>
 {% endif %}
