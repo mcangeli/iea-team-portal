@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Host Show Operations{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SHOW HOST OPERATIONS</div>
+    <h1>Host Show Workspace</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    {% if can_manage %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit host plan{% else %}Set up host plan{% endif %}</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show planning</a>
+    <a class="btn secondary" href="{% url 'show_courses' show.pk %}">Courses</a>
+    <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
+    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Show Day</a>
+  </div>
+</section>
+
+{% if operations %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOST READINESS</div><h2>{{ operations.readiness_percent }}% ready</h2></div><p>Core host-show operational details.</p></div>
+  <div class="stat-grid">
+    {% for label, ready in readiness_items %}
+    <article class="stat-card"><small>{{ label }}</small><strong>{% if ready %}Ready{% else %}Needed{% endif %}</strong><span>{% if ready %}Information recorded{% else %}Add before show day{% endif %}</span></article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">LEADERSHIP & CONTACTS</div><h2>Who is running the show?</h2></div></div>
+  <div class="detail-band">
+    <div><small>Show manager</small><strong>{{ operations.show_manager_name|default:"Not set" }}</strong>{% if operations.show_manager_email %}<p>{{ operations.show_manager_email }}</p>{% endif %}{% if operations.show_manager_phone %}<p>{{ operations.show_manager_phone }}</p>{% endif %}</div>
+    <div><small>Venue contact</small><strong>{{ operations.venue_contact|default:"Not set" }}</strong>{% if operations.venue_contact_phone %}<p>{{ operations.venue_contact_phone }}</p>{% endif %}</div>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">ARRIVAL & PARKING</div><h2>Getting everyone on site</h2></div></div>
+  <div class="card-grid">
+    <article class="card"><div class="card-body"><h3>Arrival instructions</h3><p>{{ operations.arrival_instructions|default:"Not recorded yet."|linebreaksbr }}</p><p><strong>Check-in:</strong> {{ operations.check_in_location|default:"Not set" }}</p></div></article>
+    <article class="card"><div class="card-body"><h3>Trailer parking</h3><p>{{ operations.trailer_parking|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+    <article class="card"><div class="card-body"><h3>Spectator parking</h3><p>{{ operations.spectator_parking|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">RINGS & HORSES</div><h2>Competition flow</h2></div></div>
+  <div class="card-grid">
+    <article class="card"><div class="card-body"><h3>Warm-up / schooling</h3><p>{{ operations.warmup_schooling|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+    <article class="card"><div class="card-body"><h3>Ring operations</h3><p>{{ operations.ring_operations|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PEOPLE & SAFETY</div><h2>Volunteer, hospitality & emergency</h2></div></div>
+  <div class="card-grid">
+    <article class="card"><div class="card-body"><h3>Volunteer check-in</h3><p>{{ operations.volunteer_check_in|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+    <article class="card"><div class="card-body"><h3>Hospitality</h3><p>{{ operations.hospitality|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+    <article class="card"><div class="card-body"><h3>Emergency information</h3><p>{{ operations.emergency_information|default:"Not recorded yet."|linebreaksbr }}</p></div></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">DOCUMENTS & COMMUNICATION</div><h2>Published information</h2></div></div>
+  <div class="actions">
+    {% if operations.prize_list_url %}<a class="btn secondary" href="{{ operations.prize_list_url }}" target="_blank" rel="noopener">Prize list</a>{% endif %}
+    {% if operations.schedule_url %}<a class="btn secondary" href="{{ operations.schedule_url }}" target="_blank" rel="noopener">Published schedule</a>{% endif %}
+  </div>
+  {% if operations.family_notes %}<div class="callout"><strong>Rider & family information</strong><span>{{ operations.family_notes|linebreaksbr }}</span></div>{% endif %}
+  {% if can_manage and operations.internal_notes %}<div class="callout"><strong>Private host-team notes</strong><span>{{ operations.internal_notes|linebreaksbr }}</span></div>{% endif %}
+</section>
+{% else %}
+<div class="empty-state"><h2>Host Show Workspace is ready to set up</h2><p>This show is marked Hosting & attending. Add the host plan to organize contacts, arrival, parking, rings, volunteers, hospitality, emergency information, and published resources.</p>{% if can_manage %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">Set up host plan</a>{% endif %}</div>
+{% endif %}
+{% endblock %}
