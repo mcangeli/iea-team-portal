@@ -31,6 +31,29 @@
 </section>
 
 <section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">HOSTING BUDGET</div><h2>Operational budget</h2><p class="muted">A show-running view of the existing Finance hosting budget. Detailed ledger access remains restricted to Finance roles.</p></div>
+    {% if can_finance_show %}<div class="actions"><a class="btn secondary" href="{% url 'show_finance' show.pk %}">View Show Finance</a></div>{% endif %}
+  </div>
+  <div class="stat-grid">
+    <article class="stat-card"><small>Budgeted expenses</small><strong>${{ hosting_budget.planned_expense|floatformat:2 }}</strong><span>Hosting operations plan</span></article>
+    <article class="stat-card"><small>Actual expenses</small><strong>${{ hosting_budget.actual_expense|floatformat:2 }}</strong><span>Posted hosting allocations</span></article>
+    <article class="stat-card"><small>Remaining</small><strong>${{ hosting_budget.remaining_expense|floatformat:2 }}</strong><span>{% if hosting_budget.over_budget %}Over budget{% else %}Against planned hosting expense{% endif %}</span></article>
+    <article class="stat-card"><small>Reimbursements pending</small><strong>${{ hosting_budget.pending_reimbursement_total|floatformat:2 }}</strong><span>{{ hosting_budget.pending_reimbursement_count }} submitted / approved</span></article>
+  </div>
+  {% if hosting_budget.planned_income or hosting_budget.actual_income %}
+  <div class="detail-band"><div><small>Planned hosting income</small><strong>${{ hosting_budget.planned_income|floatformat:2 }}</strong></div><div><small>Actual hosting income</small><strong>${{ hosting_budget.actual_income|floatformat:2 }}</strong></div></div>
+  {% endif %}
+  {% if hosting_budget.budget_rows %}
+  <div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Budget item</th><th>Category</th><th>Type</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>
+    {% for row in hosting_budget.budget_rows %}<tr><td><strong>{{ row.line.description }}</strong></td><td>{{ row.line.category.name }}</td><td>{{ row.line.get_kind_display }}</td><td>${{ row.line.amount|floatformat:2 }}</td><td>${{ row.actual|floatformat:2 }}</td><td>{% if row.over_budget %}<strong>-${{ row.remaining|floatformat:2|cut:"-" }}</strong>{% else %}${{ row.remaining|floatformat:2 }}{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="empty-state">No Hosting Operations budget lines have been created yet.{% if can_finance_show %} Open Show Finance to add the hosting budget.{% endif %}</div>
+  {% endif %}
+</section>
+
+<section class="content-section">
   <div class="section-head"><div><div class="eyebrow">SHOW LEADERSHIP</div><h2>Show Managers</h2></div><p>Show Manager is a separate show-scoped operational role from Show Lead.</p></div>
   <div class="card-grid">
     {% for assignment in managers %}
