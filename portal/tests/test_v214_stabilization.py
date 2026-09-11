@@ -116,6 +116,29 @@ class V214StabilizationTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn("course_file", form.errors)
 
+    def test_course_document_is_protected_by_course_permissions(self):
+        self.course.course_file = SimpleUploadedFile(
+            "ring-1-course.jpg",
+            b"fake course image",
+            content_type="image/jpeg",
+        )
+        self.course.save(update_fields=["course_file"])
+
+        self.client.force_login(self.show_lead)
+        response = self.client.get(
+            reverse("show_course_document", args=[self.show.pk, self.course.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+
+        self.client.force_login(self.parent)
+        self.assertEqual(
+            self.client.get(
+                reverse("show_course_document", args=[self.show.pk, self.course.pk])
+            ).status_code,
+            403,
+        )
+
     def test_horse_list_document_is_team_authenticated_and_upload_is_restricted(self):
         document = ShowHorseListDocument.objects.create(
             show=self.show,
@@ -135,10 +158,16 @@ class V214StabilizationTests(TestCase):
             reverse("show_horse_list_document", args=[self.show.pk, document.pk])
         )
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "private, no-store")
         self.assertEqual(
             self.client.get(reverse("show_horse_list_upload", args=[self.show.pk])).status_code,
             403,
         )
+
+        hoofprint = self.client.get(reverse("show_hoofprint", args=[self.show.pk]))
+        self.assertEqual(hoofprint.status_code, 200)
+        self.assertContains(hoofprint, "Please review horse descriptions before the first draw.")
+        self.assertNotContains(hoofprint, "Internal coach note")
 
         self.client.force_login(self.show_lead)
         self.assertEqual(
