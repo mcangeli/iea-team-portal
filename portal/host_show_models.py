@@ -5,12 +5,42 @@ from django.db import models
 from .models import Show
 
 
+class ShowManagerAssignment(models.Model):
+    show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="manager_assignments")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="show_manager_assignments",
+    )
+    active = models.BooleanField(default=True)
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["user__last_name", "user__first_name", "user__username"]
+        constraints = [
+            models.UniqueConstraint(fields=["show", "user"], name="unique_show_manager_assignment")
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.show_id and self.show.financial_role != Show.FinancialRole.HOSTING_ATTENDING:
+            raise ValidationError("A Show Manager can only be assigned to a hosted show.")
+        if self.user_id:
+            profile = getattr(self.user, "profile", None)
+            if profile and profile.team_id and profile.team_id != self.show.team_id:
+                raise ValidationError("The Show Manager must belong to the same team as the show.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.show} — {self.user.get_full_name() or self.user.username} (Show Manager)"
+
+
 class HostShowOperations(models.Model):
     show = models.OneToOneField(Show, on_delete=models.CASCADE, related_name="host_operations")
 
-    show_manager_name = models.CharField(max_length=160, blank=True)
-    show_manager_email = models.EmailField(blank=True)
-    show_manager_phone = models.CharField(max_length=40, blank=True)
     venue_contact = models.CharField(max_length=160, blank=True)
     venue_contact_phone = models.CharField(max_length=40, blank=True)
 
@@ -32,7 +62,7 @@ class HostShowOperations(models.Model):
     )
     internal_notes = models.TextField(
         blank=True,
-        help_text="Private host-team notes for Coaches/Admins.",
+        help_text="Private host-team notes for Coaches/Admins and the assigned Show Manager.",
     )
 
     created_by = models.ForeignKey(
@@ -63,7 +93,13 @@ class HostShowOperations(models.Model):
     @property
     def readiness_items(self):
         return [
-            ("Show manager", bool(self.show_manager_name)),
+            ("Show Manager", self.show.manager_assignments.filter(active=True).exists()),
+            ("Show Secretary", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.SECRETARY, active=True).exists()),
+            ("Judge", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.JUDGE, active=True).exists()),
+            ("Steward", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.STEWARD, active=True).exists()),
+            ("Gate", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.GATE, active=True).exists()),
+            ("Announcer", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.ANNOUNCER, active=True).exists()),
+            ("EMS", self.staff_assignments.filter(role=HostShowStaffAssignment.Role.EMS, active=True).exists()),
             ("Arrival instructions", bool(self.arrival_instructions)),
             ("Check-in location", bool(self.check_in_location)),
             ("Trailer parking", bool(self.trailer_parking)),
@@ -92,3 +128,34 @@ class HostShowOperations(models.Model):
 
     def __str__(self):
         return f"{self.show.name} — Host Show Operations"
+
+
+class HostShowStaffAssignment(models.Model):
+    class Role(models.TextChoices):
+        SECRETARY = "secretary", "Show Secretary"
+        JUDGE = "judge", "Judge"
+        STEWARD = "steward", "Steward"
+        GATE = "gate", "Gate"
+        ANNOUNCER = "announcer", "Show Announcer"
+        EMS = "ems", "EMS"
+        OTHER = "other", "Other"
+
+    operations = models.ForeignKey(
+        HostShowOperations,
+        on_delete=models.CASCADE,
+        related_name="staff_assignments",
+    )
+    role = models.CharField(max_length=20, choices=Role.choices)
+    name = models.CharField(max_length=160)
+    organization = models.CharField(max_length=160, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    email = models.EmailField(blank=True)
+    notes = models.CharField(max_length=255, blank=True)
+    active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "role", "name"]
+
+    def __str__(self):
+        return f"{self.get_role_display()} — {self.name}"
