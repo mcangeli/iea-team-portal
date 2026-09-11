@@ -24,8 +24,6 @@ def horse_list(request):
     team = _team(request.user)
     can_manage = _can_manage(request.user)
     horses = Horse.objects.filter(team=team).prefetch_related("coggins_records", "season_profiles__season")
-    if not can_manage:
-        horses = horses.filter(active=True)
 
     status = request.GET.get("status", "active")
     if status == "inactive" and can_manage:
@@ -55,6 +53,8 @@ def horse_list(request):
 def horse_detail(request, pk):
     horse = _horse_for_user(request.user, pk)
     can_manage = _can_manage(request.user)
+    if not horse.active and not can_manage:
+        raise PermissionDenied
     coggins_records = horse.coggins_records.all()
     season_profiles = horse.season_profiles.select_related("season").prefetch_related("eligible_classes")
     return render(request, "portal/horse_detail.html", {
@@ -71,7 +71,7 @@ def horse_create(request):
     _require_horse_manage(request.user)
     team = _team(request.user)
     if request.method == "POST":
-        form = HorseForm(request.POST, request.FILES)
+        form = HorseForm(request.POST, request.FILES, team=team)
         if form.is_valid():
             horse = form.save(commit=False)
             horse.team = team
@@ -83,7 +83,7 @@ def horse_create(request):
             messages.success(request, f"{horse.display_name} was added to the horse registry.")
             return redirect("horse_detail", pk=horse.pk)
     else:
-        form = HorseForm()
+        form = HorseForm(team=team)
     return render(request, "portal/horse_form.html", {"form": form, "title": "Add horse"})
 
 
@@ -92,7 +92,7 @@ def horse_edit(request, pk):
     _require_horse_manage(request.user)
     horse = _horse_for_user(request.user, pk)
     if request.method == "POST":
-        form = HorseForm(request.POST, request.FILES, instance=horse)
+        form = HorseForm(request.POST, request.FILES, instance=horse, team=horse.team)
         if form.is_valid():
             horse = form.save()
             _audit_event(
@@ -102,7 +102,7 @@ def horse_edit(request, pk):
             messages.success(request, f"{horse.display_name} was updated.")
             return redirect("horse_detail", pk=horse.pk)
     else:
-        form = HorseForm(instance=horse)
+        form = HorseForm(instance=horse, team=horse.team)
     return render(request, "portal/horse_form.html", {
         "form": form, "horse": horse, "title": f"Edit {horse.display_name}",
     })
@@ -174,6 +174,7 @@ def horse_season_profile(request, horse_pk, season_pk=None):
         profile = HorseSeasonProfile.objects.filter(horse=horse, season=season).first()
 
     if request.method == "POST":
+        was_existing = bool(profile and profile.pk)
         form = HorseSeasonProfileForm(request.POST, instance=profile, team=team, horse=horse)
         if form.is_valid():
             profile = form.save(commit=False)
@@ -182,7 +183,7 @@ def horse_season_profile(request, horse_pk, season_pk=None):
             form.save_m2m()
             _audit_event(
                 team=team, actor=request.user,
-                action=AuditEvent.Action.UPDATED if profile.pk else AuditEvent.Action.CREATED,
+                action=AuditEvent.Action.UPDATED if was_existing else AuditEvent.Action.CREATED,
                 obj=profile, season=profile.season,
                 summary=f"Updated season eligibility for {horse.display_name}",
             )
