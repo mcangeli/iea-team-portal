@@ -21,6 +21,20 @@ class HorseForm(forms.ModelForm):
             "height_hands": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
         }
 
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.team = team or getattr(self.instance, "team", None)
+
+    def clean_name(self):
+        name = self.cleaned_data["name"].strip()
+        if self.team:
+            qs = Horse.objects.filter(team=self.team, name__iexact=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("A horse with this name is already in the team registry.")
+        return name
+
 
 class HorseCogginsForm(forms.ModelForm):
     class Meta:
@@ -76,6 +90,8 @@ class HorseSeasonProfileForm(forms.ModelForm):
         season = self.cleaned_data["season"]
         if self.team and season.team_id != self.team.id:
             raise forms.ValidationError("Choose a season for this team.")
+        if self.horse and self.horse.team_id != season.team_id:
+            raise forms.ValidationError("Horse and season must belong to the same team.")
         return season
 
     def clean_eligible_classes(self):
