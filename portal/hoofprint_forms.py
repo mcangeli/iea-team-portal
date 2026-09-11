@@ -20,20 +20,23 @@ class HoofprintFinalizeForm(forms.Form):
 class ShowHorseListDocumentForm(forms.ModelForm):
     class Meta:
         model = ShowHorseListDocument
-        fields = ["document", "source_name", "notes"]
+        fields = ["document", "source_name", "notes", "family_notes"]
         labels = {
             "document": "Photo or PDF of horse list",
             "source_name": "Source / host team",
-            "notes": "Notes",
+            "notes": "Internal notes",
+            "family_notes": "Coach notes for riders & parents",
         }
         help_texts = {
             "document": "Take a clear photo of the printed horse list with your phone, or upload a PDF/image you received electronically.",
             "source_name": "Optional. Example: host barn or show office.",
-            "notes": "Optional note about this revision.",
+            "notes": "Optional internal note for coaches, administrators, and show operations.",
+            "family_notes": "Optional notes that riders and parents should see with this horse list.",
         }
         widgets = {
             "document": forms.ClearableFileInput(attrs={"accept": "image/*,application/pdf", "capture": "environment"}),
             "notes": forms.TextInput(attrs={"maxlength": 255}),
+            "family_notes": forms.Textarea(attrs={"rows": 4, "placeholder": "Example: Review horse descriptions before the first draw. Please ask a coach before using a crop or spurs."}),
         }
 
     def clean_document(self):
