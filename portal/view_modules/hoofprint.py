@@ -1,12 +1,14 @@
+from pathlib import Path
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Max
 
-from ..hoofprint_forms import HoofprintFinalizeForm
-from ..hoofprint_models import HoofprintSnapshot
+from ..hoofprint_forms import HoofprintFinalizeForm, ShowHorseListDocumentForm
+from ..hoofprint_models import HoofprintSnapshot, ShowHorseListDocument
 from ..hoofprint_service import build_hoofprint_payload, render_hoofprint_pdf
 from ..models import AuditEvent, Show
 from ..show_readiness_views import _can_manage_show_horses
@@ -31,14 +33,62 @@ def show_hoofprint(request, show_pk):
     latest = show.hoofprint_snapshots.order_by("-version").first()
     form = HoofprintFinalizeForm(show=show)
     payload = build_hoofprint_payload(show)
+    horse_lists = show.horse_list_documents.select_related("uploaded_by").all()[:10]
     return render(request, "portal/show_hoofprint.html", {
         "show": show,
         "payload": payload,
         "form": form,
         "latest_snapshot": latest,
         "snapshots": show.hoofprint_snapshots.all()[:10],
+        "horse_lists": horse_lists,
+        "latest_horse_list": horse_lists[0] if horse_lists else None,
         "can_manage": _can_manage_show_horses(request.user, show),
     })
+
+
+@login_required
+def show_horse_list_upload(request, show_pk):
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season", "team"), pk=show_pk, team=team)
+    if not _can_manage_show_horses(request.user, show):
+        raise PermissionDenied
+    _ensure_season_open(show.season)
+    form = ShowHorseListDocumentForm(request.POST or None, request.FILES or None)
+    if form.is_valid():
+        max_revision = show.horse_list_documents.aggregate(value=Max("revision"))["value"] or 0
+        document = form.save(commit=False)
+        document.show = show
+        document.revision = max_revision + 1
+        document.uploaded_by = request.user
+        document.full_clean()
+        document.save()
+        _audit_event(
+            team=team,
+            actor=request.user,
+            action=AuditEvent.Action.CREATED,
+            obj=document,
+            season=show.season,
+            summary=f"Uploaded show horse list revision {document.revision} for {show.name}",
+        )
+        messages.success(request, f"Horse list revision {document.revision} uploaded.")
+        return redirect("show_hoofprint", show_pk=show.pk)
+    return render(request, "portal/show_horse_list_upload.html", {
+        "show": show,
+        "form": form,
+        "title": "Upload show horse list",
+    })
+
+
+@login_required
+def show_horse_list_document(request, show_pk, document_pk):
+    team = _team(request.user)
+    show = get_object_or_404(Show, pk=show_pk, team=team)
+    document = get_object_or_404(ShowHorseListDocument, pk=document_pk, show=show)
+    file_obj = document.document.open("rb")
+    filename = Path(document.document.name).name
+    response = FileResponse(file_obj, as_attachment=False, filename=filename)
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @login_required
@@ -61,10 +111,14 @@ def show_hoofprint_finalize(request, show_pk):
     form = HoofprintFinalizeForm(request.POST, show=show)
     if not form.is_valid():
         payload = build_hoofprint_payload(show, request.POST)
+        horse_lists = show.horse_list_documents.select_related("uploaded_by").all()[:10]
         return render(request, "portal/show_hoofprint.html", {
             "show": show, "payload": payload, "form": form,
             "latest_snapshot": show.hoofprint_snapshots.order_by("-version").first(),
-            "snapshots": show.hoofprint_snapshots.all()[:10], "can_manage": True,
+            "snapshots": show.hoofprint_snapshots.all()[:10],
+            "horse_lists": horse_lists,
+            "latest_horse_list": horse_lists[0] if horse_lists else None,
+            "can_manage": True,
         }, status=400)
     payload = build_hoofprint_payload(show, form.cleaned_data)
     max_version = show.hoofprint_snapshots.aggregate(value=Max("version"))["value"] or 0
