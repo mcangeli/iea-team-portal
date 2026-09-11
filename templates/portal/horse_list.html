@@ -7,14 +7,14 @@
     <h1>Horse Registry</h1>
     <p class="muted">Maintain horse details, Coggins status, and season class eligibility.</p>
   </div>
-  {% if can_manage %}<a class="button" href="{% url 'horse_create' %}">Add horse</a>{% endif %}
+  {% if can_manage %}<a class="btn" href="{% url 'horse_create' %}">Add horse</a>{% endif %}
 </div>
 
 {% if can_manage %}
 <div class="filter-row">
-  <a class="button secondary{% if status_filter == 'active' %} active{% endif %}" href="?status=active">Active</a>
-  <a class="button secondary{% if status_filter == 'inactive' %} active{% endif %}" href="?status=inactive">Inactive</a>
-  <a class="button secondary{% if status_filter == 'all' %} active{% endif %}" href="?status=all">All</a>
+  <a class="btn secondary{% if status_filter == 'active' %} active{% endif %}" href="?status=active">Active</a>
+  <a class="btn secondary{% if status_filter == 'inactive' %} active{% endif %}" href="?status=inactive">Inactive</a>
+  <a class="btn secondary{% if status_filter == 'all' %} active{% endif %}" href="?status=all">All</a>
 </div>
 {% endif %}
 
@@ -28,7 +28,7 @@
           <h2>{{ row.horse.display_name }}</h2>
           {% if not row.horse.active %}<span class="badge">Inactive</span>{% endif %}
         </div>
-        <p class="muted">{% if row.horse.breed %}{{ row.horse.breed }}{% endif %}{% if row.horse.size_type %}{% if row.horse.breed %} · {% endif %}{{ row.horse.size_type }}{% endif %}{% if row.horse.height_hands %} · {{ row.horse.height_hands }}h{% endif %}</p>
+        <p class="muted">{% if row.horse.breed %}{{ row.horse.breed }}{% endif %}{% if row.horse.sex %}{% if row.horse.breed %} · {% endif %}{{ row.horse.get_sex_display }}{% endif %}{% if row.horse.size_type %}{% if row.horse.breed or row.horse.sex %} · {% endif %}{{ row.horse.size_type }}{% endif %}{% if row.horse.height_hands %} · {{ row.horse.height_hands }}h{% endif %}</p>
         <p><strong>Coggins:</strong>
           {% if row.coggins_status == 'current' %}<span class="status-good">Current through {{ row.coggins.expiration_date|date:"M j, Y" }}</span>
           {% elif row.coggins_status == 'expiring' %}<span class="status-warn">Expires {{ row.coggins.expiration_date|date:"M j, Y" }}</span>
