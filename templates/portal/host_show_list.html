@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Host Shows{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div><div class="eyebrow">SHOW HOST OPERATIONS</div><h1>Host Shows</h1><p>Shows where our team is operating the event as well as participating.</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'show_list' %}">All shows</a></div>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOST WORKSPACES</div><h2>{{ rows|length }} hosted show{{ rows|length|pluralize }}</h2></div><p>Open a workspace to coordinate venue, arrival, parking, rings, volunteers, hospitality, safety, and documents.</p></div>
+  <div class="card-grid">
+    {% for row in rows %}
+    <article class="card"><div class="card-body">
+      <div class="eyebrow">{{ row.show.show_date|date:"M j, Y" }}</div><h2>{{ row.show.name }}</h2><p class="muted">{{ row.show.venue|default:"Venue not set" }}</p>
+      {% if row.operations %}<p><span class="status-pill {% if row.operations.readiness_complete %}status-complete{% endif %}">{{ row.operations.readiness_percent }}% host ready</span></p>{% else %}<p><span class="status-pill">Setup needed</span></p>{% endif %}
+      <div class="actions"><a class="btn" href="{% url 'host_show_workspace' row.show.pk %}">Open Host Workspace</a>{% if can_manage %}<a class="btn secondary" href="{% url 'host_show_edit' row.show.pk %}">{% if row.operations %}Edit plan{% else %}Set up{% endif %}</a>{% endif %}</div>
+    </div></article>
+    {% empty %}<div class="empty-state"><h2>No hosted shows yet</h2><p>Mark a show as <strong>Hosting &amp; attending</strong> in Show setup and it will appear here.</p></div>{% endfor %}
+  </div>
+</section>
+{% endblock %}
