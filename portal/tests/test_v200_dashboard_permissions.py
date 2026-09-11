@@ -18,3 +18,11 @@ class DashboardPermissionSourceTests(SimpleTestCase):
         source = (root / "portal/view_modules/dashboards.py").read_text()
         self.assertIn("if not _is_admin(request.user):", source)
         self.assertIn("CommitteeAssignment.Role.POINTS_SECRETARY in roles", source)
+
+    def test_coach_dashboard_surfaces_assigned_tasks(self):
+        root = Path(__file__).resolve().parents[2]
+        context = (root / "portal/context_processors.py").read_text()
+        template = (root / "templates/portal/dashboard_role.html").read_text()
+        self.assertIn("assigned_to=request.user", context)
+        self.assertIn('"portal_assigned_actions": assigned_actions', context)
+        self.assertIn("Assigned to you", template)
