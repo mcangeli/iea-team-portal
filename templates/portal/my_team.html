@@ -1,8 +1,13 @@
 {% extends 'base.html' %}
+{% load portal_access %}
 {% block title %}My Team{% endblock %}
 {% block content %}
-<section class="page-intro team-hub-intro">
-  <div><div class="eyebrow">TEAM HUB</div><h1>My Team</h1>
+{% family_squad_hero portal_team rider_rows can_manage as my_team_hero %}
+<style>
+.squad-team-hero{position:relative;overflow:hidden;isolation:isolate;min-height:15rem;padding:2rem;border-radius:1.25rem;background-image:linear-gradient(90deg,rgba(9,29,30,.94) 0%,rgba(9,29,30,.78) 46%,rgba(9,29,30,.2) 100%),var(--squad-hero-image);background-size:cover;background-position:center var(--squad-hero-position);color:#fff}.squad-team-hero>div{position:relative;z-index:1}.squad-team-hero .eyebrow{color:rgba(255,255,255,.78)}.squad-team-hero p{color:rgba(255,255,255,.84)}@media(max-width:700px){.squad-team-hero{min-height:12rem;padding:1.35rem}}
+</style>
+<section class="page-intro team-hub-intro{% if my_team_hero %} squad-team-hero{% endif %}"{% if my_team_hero %} style="--squad-hero-image:url('{{ my_team_hero.image.url }}');--squad-hero-position:{{ my_team_hero.position }};"{% endif %}>
+  <div><div class="eyebrow">{% if my_team_hero %}{{ my_team_hero.label|upper }}{% else %}TEAM HUB{% endif %}</div><h1>My Team</h1>
   <p>Your family, upcoming team events, responses, and things that need attention.</p></div>
   <div class="actions"><a class="btn" href="{% url 'action_item_list' %}">Action items</a><a class="btn secondary" href="{% url 'calendar' %}">Calendar</a><a class="btn secondary" href="{% url 'my_account' %}">My Account</a></div>
 </section>
@@ -33,27 +38,9 @@
     <article class="card hub-event-card">
       <div class="datebox"><strong>{{ row.event.starts_at|date:"M" }}</strong><span>{{ row.event.starts_at|date:"j" }}</span></div>
       <div class="hub-event-main">
-        <small>{{ row.event.get_kind_display }}</small>
-        <h3>{{ row.event.title }}</h3>
+        <small>{{ row.event.get_kind_display }}</small><h3>{{ row.event.title }}</h3>
         <p>{% if row.event.all_day %}{{ row.event.starts_at|date:"l, F j" }}{% else %}{{ row.event.starts_at|date:"l, F j · g:i A" }}{% endif %}{% if row.event.location %} · {{ row.event.location }}{% endif %}</p>
-        {% if row.event.rsvp_requested %}
-          <div class="rsvp-block">
-            <strong>RSVP requested{% if row.event.rsvp_deadline %} by {{ row.event.rsvp_deadline|date:"M j, g:i A" }}{% endif %}</strong>
-            <div class="rsvp-riders">
-            {% for response in row.responses %}
-              <div class="rsvp-rider">
-                <span>{{ response.rider.display_name }}</span>
-                {% if response.rsvp %}
-                  <span class="status-pill status-{{ response.rsvp.status }}">{{ response.rsvp.get_status_display }}</span>
-                {% else %}
-                  <span class="status-pill">No response</span>
-                {% endif %}
-                <a class="text-link" href="{% url 'event_rsvp' row.event.pk response.rider.pk %}">Respond →</a>
-              </div>
-            {% endfor %}
-            </div>
-          </div>
-        {% endif %}
+        {% if row.event.rsvp_requested %}<div class="rsvp-block"><strong>RSVP requested{% if row.event.rsvp_deadline %} by {{ row.event.rsvp_deadline|date:"M j, g:i A" }}{% endif %}</strong><div class="rsvp-riders">{% for response in row.responses %}<div class="rsvp-rider"><span>{{ response.rider.display_name }}</span>{% if response.rsvp %}<span class="status-pill status-{{ response.rsvp.status }}">{{ response.rsvp.get_status_display }}</span>{% else %}<span class="status-pill">No response</span>{% endif %}<a class="text-link" href="{% url 'event_rsvp' row.event.pk response.rider.pk %}">Respond →</a></div>{% endfor %}</div></div>{% endif %}
       </div>
     </article>
   {% empty %}<div class="empty-state">Nothing upcoming right now.</div>{% endfor %}
@@ -63,16 +50,7 @@
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">ACTION ITEMS</div><h2>Things to do</h2></div><a class="text-link" href="{% url 'action_item_list' %}">All action items →</a></div>
   <div class="action-stack">
-  {% for item in action_items %}
-    <article class="card action-row">
-      <div><small>{{ item.get_category_display }}{% if item.due_at %} · Due {{ item.due_at|date:"M j, g:i A" }}{% endif %}</small><h3>{{ item.title }}</h3>
-      {% if item.rider %}<p>{{ item.rider.display_name }}</p>{% endif %}{% if item.details %}<p>{{ item.details }}</p>{% endif %}</div>
-      <div class="action-owner">
-        {% if item.owner %}<span>Owner: {{ item.owner.get_full_name|default:item.owner.username }}</span>
-        {% elif item.claimable %}<span class="muted">Available to claim</span>{% endif %}
-      </div>
-    </article>
-  {% empty %}<div class="empty-state">No open action items.</div>{% endfor %}
+  {% for item in action_items %}<article class="card action-row"><div><small>{{ item.get_category_display }}{% if item.due_at %} · Due {{ item.due_at|date:"M j, g:i A" }}{% endif %}</small><h3>{{ item.title }}</h3>{% if item.rider %}<p>{{ item.rider.display_name }}</p>{% endif %}{% if item.details %}<p>{{ item.details }}</p>{% endif %}</div><div class="action-owner">{% if item.owner %}<span>Owner: {{ item.owner.get_full_name|default:item.owner.username }}</span>{% elif item.claimable %}<span class="muted">Available to claim</span>{% endif %}</div></article>{% empty %}<div class="empty-state">No open action items.</div>{% endfor %}
   </div>
 </section>
 {% endblock %}

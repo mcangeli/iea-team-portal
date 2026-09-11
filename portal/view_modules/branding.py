@@ -12,7 +12,11 @@ from .common import _require_manage, _team
 class TeamBrandingForm(forms.ModelForm):
     class Meta:
         model = TeamBranding
-        fields = ["hero_image", "hero_image_position"]
+        fields = [
+            "hero_image", "hero_image_position",
+            "futures_hero_image", "futures_hero_image_position",
+            "upper_hero_image", "upper_hero_image_position",
+        ]
 
 
 @login_required
