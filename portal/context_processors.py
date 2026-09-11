@@ -1,4 +1,4 @@
-from .models import CommitteeAssignment, Season, Team
+from .models import ActionItem, CommitteeAssignment, Season, Team
 from django.conf import settings
 
 
@@ -8,6 +8,7 @@ def portal_context(request):
     can_manage = False
     unread_notifications = 0
     can_finance = False
+    assigned_actions = []
     if request.user.is_authenticated:
         can_manage = request.user.is_superuser
         if hasattr(request.user, "profile"):
@@ -21,6 +22,13 @@ def portal_context(request):
                 user=request.user, season=season, role=CommitteeAssignment.Role.TREASURER, active=True
             ).exists()
         unread_notifications = request.user.portal_notifications.filter(read_at__isnull=True).count() if hasattr(request.user, "portal_notifications") else 0
+        assigned_actions = list(
+            ActionItem.objects.filter(
+                team=team,
+                assigned_to=request.user,
+                completed=False,
+            ).select_related("show", "rider").order_by("due_at", "-created_at")[:8]
+        ) if team else []
     elif request.path.startswith("/accounts/login"):
         team = Team.objects.order_by("pk").first()
     return {
@@ -35,4 +43,5 @@ def portal_context(request):
             else settings.PORTAL_REPOSITORY_URL
         ),
         "unread_notifications": unread_notifications,
+        "portal_assigned_actions": assigned_actions,
     }
