@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from ..horse_forms import HorseCogginsForm, HorseForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
 from ..horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from ..models import AuditEvent, Season, Show
+from ..show_readiness_views import _can_manage_show_horses, _require_show_horse_manage
 from .common import _audit_event, _can_manage, _ensure_season_open, _team
 
 
@@ -120,13 +121,19 @@ def show_horses(request, show_pk):
         coggins = assignment.horse.latest_coggins
         rows.append({"assignment": assignment, "coggins": coggins, "coggins_status": coggins.status if coggins else "missing"})
     awards = show.horse_awards.select_related("assignment__horse").order_by("session")
-    return render(request, "portal/show_horses.html", {"show": show, "rows": rows, "awards": awards, "can_manage": _can_manage(request.user)})
+    return render(request, "portal/show_horses.html", {
+        "show": show,
+        "rows": rows,
+        "awards": awards,
+        "can_manage": _can_manage_show_horses(request.user, show),
+        "can_manage_registry": _can_manage(request.user),
+    })
 
 
 @login_required
 def show_horse_add(request, show_pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     form = HorseShowAssignmentForm(request.POST or None, show=show)
     if form.is_valid():
         assignment = form.save(commit=False); assignment.show = show; assignment.save(); form.save_m2m()
@@ -137,8 +144,8 @@ def show_horse_add(request, show_pk):
 
 @login_required
 def show_horse_edit(request, show_pk, pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     assignment = get_object_or_404(HorseShowAssignment, pk=pk, show=show)
     form = HorseShowAssignmentForm(request.POST or None, instance=assignment, show=show)
     if form.is_valid():
@@ -150,8 +157,8 @@ def show_horse_edit(request, show_pk, pk):
 @login_required
 @require_POST
 def show_horse_remove(request, show_pk, pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     assignment = get_object_or_404(HorseShowAssignment, pk=pk, show=show); label = assignment.horse.display_name
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=assignment, season=show.season, summary=f"Removed {label} from {show.name}")
     assignment.delete(); messages.success(request, f"{label} was removed from this show.")
@@ -160,8 +167,8 @@ def show_horse_remove(request, show_pk, pk):
 
 @login_required
 def show_horse_award_add(request, show_pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     form = HorseShowAwardForm(request.POST or None, show=show)
     if form.is_valid():
         award = form.save(commit=False); award.show = show; award.save()
@@ -173,8 +180,8 @@ def show_horse_award_add(request, show_pk):
 
 @login_required
 def show_horse_award_edit(request, show_pk, pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     award = get_object_or_404(HorseShowAward, pk=pk, show=show)
     form = HorseShowAwardForm(request.POST or None, instance=award, show=show)
     if form.is_valid():
@@ -188,8 +195,8 @@ def show_horse_award_edit(request, show_pk, pk):
 @login_required
 @require_POST
 def show_horse_award_remove(request, show_pk, pk):
-    _require_horse_manage(request.user); team = _team(request.user)
-    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _ensure_season_open(show.season)
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.get_session_display()} Horse of the Day — {award.horse.display_name}"
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {label}")
     award.delete(); messages.success(request, "Horse of the Day award removed.")
