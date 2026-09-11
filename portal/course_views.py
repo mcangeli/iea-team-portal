@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -46,6 +49,21 @@ def show_courses(request, show_pk):
         "can_manage_courses": _can_manage(request.user),
         "can_manage_course_media": _can_manage_course_media(request.user, show),
     })
+
+
+@login_required
+def show_course_document(request, show_pk, course_pk):
+    team = _team(request.user)
+    show = get_object_or_404(Show, pk=show_pk, team=team)
+    _require_course_view(request.user, show)
+    course = get_object_or_404(ShowCourse, pk=course_pk, show=show)
+    if not course.course_file:
+        raise Http404("No course file has been uploaded.")
+    file_obj = course.course_file.open("rb")
+    filename = Path(course.course_file.name).name
+    response = FileResponse(file_obj, as_attachment=False, filename=filename)
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @login_required
