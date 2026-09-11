@@ -192,16 +192,21 @@ git_update() {
     echo "No matching release tag was found." >&2
     exit 1
   fi
-  if ! git -C "$SCRIPT_DIR" rev-parse --verify --quiet "${target}^{commit}" >/dev/null; then
-    echo "Requested release/ref does not exist after fetch: $target" >&2
-    exit 1
+  local checkout_target="$target"
+  if ! git -C "$SCRIPT_DIR" rev-parse --verify --quiet "${checkout_target}^{commit}" >/dev/null; then
+    if git -C "$SCRIPT_DIR" rev-parse --verify --quiet "origin/${target}^{commit}" >/dev/null; then
+      checkout_target="origin/$target"
+    else
+      echo "Requested release/ref does not exist after fetch: $target" >&2
+      exit 1
+    fi
   fi
 
   local previous_commit previous_ref
   previous_commit="$(git -C "$SCRIPT_DIR" rev-parse HEAD)"
   previous_ref="$(current_git_ref)"
   echo "Target ref: $target"
-  if [[ "$(git -C "$SCRIPT_DIR" rev-parse "${target}^{commit}")" == "$previous_commit" ]]; then
+  if [[ "$(git -C "$SCRIPT_DIR" rev-parse "${checkout_target}^{commit}")" == "$previous_commit" ]]; then
     echo "Already at $target. Nothing to update."
     return
   fi
@@ -217,7 +222,7 @@ timestamp=$stamp
 EOF
 
   echo "Switching application checkout to $target..."
-  git -C "$SCRIPT_DIR" checkout --detach "$target"
+  git -C "$SCRIPT_DIR" checkout --detach "$checkout_target"
 
   echo "Building updated application..."
   compose build web

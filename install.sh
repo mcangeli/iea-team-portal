@@ -63,13 +63,18 @@ if [[ -z "$DEFAULT_REF" ]]; then
   echo "No stable release tag found. Supply --ref explicitly for a preview/test installation." >&2
   exit 1
 fi
-git -C "$APP_DIR" rev-parse --verify --quiet "${DEFAULT_REF}^{commit}" >/dev/null || {
-  echo "Requested install ref does not exist: $DEFAULT_REF" >&2
-  exit 1
-}
+INSTALL_TARGET="$DEFAULT_REF"
+if ! git -C "$APP_DIR" rev-parse --verify --quiet "${INSTALL_TARGET}^{commit}" >/dev/null; then
+  if git -C "$APP_DIR" rev-parse --verify --quiet "origin/${DEFAULT_REF}^{commit}" >/dev/null; then
+    INSTALL_TARGET="origin/$DEFAULT_REF"
+  else
+    echo "Requested install ref does not exist: $DEFAULT_REF" >&2
+    exit 1
+  fi
+fi
 
 echo "Checking out $DEFAULT_REF..."
-git -C "$APP_DIR" checkout --detach "$DEFAULT_REF"
+git -C "$APP_DIR" checkout --detach "$INSTALL_TARGET"
 chmod +x "$APP_DIR/portalctl" "$APP_DIR/install.sh"
 
 if [[ ! -f "$ENV_FILE" ]]; then
