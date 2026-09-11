@@ -19,55 +19,47 @@ The portal is evolving through four broad stages:
 
 ### 2.1.4 — Course & Show Operations
 
-**Status: release stabilization / live validation.** No additional major feature scope should be added unless live testing reveals a release-blocking workflow gap.
+**Status: released.**
 
-Completed scope includes:
+Completed scope includes Course Operations, horse season-eligibility enforcement, Show Horse List revisions, Hoofprint change/completeness checks, Horse of the Day history protection, protected show/course documents, and Show Day/presentation stabilization.
 
-- Course Operations workspace for Coach/Admin users.
-- Course status integrated into dashboards, Show Detail, and Show Day.
-- Assigned Show Leads can maintain course media without receiving private coaching access.
-- Protected, authenticated course-document delivery rather than raw media URLs.
-- Phone-friendly course image/PDF upload with file-type and size validation.
-- Horse season-eligibility enforcement with explicit Coach/Admin override and recorded reason.
-- Show Horse List documents stored per show as versioned revisions.
-- Phone-first Show Horse List upload for photos of printed lists, while retaining PDF/file support.
-- Authenticated access to uploaded horse-list documents rather than exposing raw media URLs.
-- Separate internal operational notes and **Coach Notes for Riders & Parents**.
-- Family-visible horse-list information available through Hoofprint and My Show Day.
-- Live-vs-finalized Hoofprint change detection.
-- Hoofprint completeness/readiness warnings.
-- Horse of the Day history protection when show-horse assignments change.
-- Branded 403, 404, and 500 error experiences.
-- Focused v2.1.4 permission, privacy, file-upload, Show Day, Hoofprint, and historical-data regression tests.
-- Dedicated `RELEASE_CHECKLIST_v2.1.4.md` for final live validation.
-
-Remaining release work is validation/polish only:
-
-- Complete Administrator/Coach/Show Lead/Rider/Parent live-role validation.
-- Verify mobile, light-mode, dark-mode, and ringside presentation.
-- Confirm migrations `0040` through `0042` on the live upgrade path.
-- Resolve only defects found during release validation.
-- Promote 2.1.4 after the release checklist passes.
-
-The narrow `ShowPlanningItem.owner_id` compatibility extension remains intentionally in 2.1.4 because the current behavior is live-tested and regression-covered. Its removal belongs in the planned 2.9.x architectural cleanup, where the oversized legacy Show Day module can be refactored safely rather than changed late in this release.
+The narrow `ShowPlanningItem.owner_id` compatibility extension remains intentionally in place and is deferred to the planned 2.9.x architectural cleanup.
 
 ### 2.1.5 — Post-Show Horse History
 
-Focus: preserve what actually happened after the show.
+**Status: release stabilization complete; ready for promotion after final release approval.**
 
-Planned direction:
+Completed scope includes:
 
-- Final horse contribution/history records.
-- Reconcile leased-horse planning placeholders with the actual horses used.
-- Preserve show-specific horse participation and operational history.
-- Make historical horse information useful when planning later shows.
-- Review how contributed horses, Horse of the Day, Hoofprints, and show assignments become a coherent historical record.
+- Show-level post-show horse history workspace.
+- Generate a draft from registry and leased/show-specific horse planning records.
+- Preserve horse identity, provider/ownership data, class coverage, and show-specific notes as historical snapshot data.
+- Record whether each horse was actually used.
+- Record whether each horse counted toward the team's contribution.
+- Reconcile leased/show-specific planning placeholders to the actual Horse Registry horse used.
+- Finalize and lock the post-show history record.
+- Preserve finalizer identity and timestamp.
+- Add Horse Legacy statistics to the Team Record Book.
+- Add Horse History to Season Review.
+- Include Horse of the Day totals with Full Day/Morning/Afternoon distinctions.
+- Prefer finalized post-show snapshots for historical horse participation while retaining fallback to older live assignment history.
+- Add focused regression coverage for draft generation, reconciliation, finalization, and permissions.
+
+Validation completed:
+
+- Django system check passes.
+- No migration drift is detected.
+- Focused v2.1.5 tests pass 4/4.
+- Full `portal.tests` regression suite passes on the test server.
+- Manual end-to-end live testing completed successfully.
 
 The 2.1.x progression is intentionally:
 
 > **2.1.3:** Are we ready for the show?  
 > **2.1.4:** Do we have everything needed to run the show?  
 > **2.1.5:** What actually happened, and what should we preserve historically?
+
+With 2.1.5 stabilized, the next planned feature family is **2.5.x Show Host Operations**.
 
 ---
 
