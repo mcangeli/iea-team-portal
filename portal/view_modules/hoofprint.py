@@ -17,6 +17,9 @@ def _pdf_response(show, payload, filename_suffix):
     response = HttpResponse(pdf, content_type="application/pdf")
     safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in show.name).strip("-") or "show"
     response["Content-Disposition"] = f'inline; filename="{safe_name}-hoofprint-{filename_suffix}.pdf"'
+    response["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response["Pragma"] = "no-cache"
+    response["Expires"] = "0"
     return response
 
 
