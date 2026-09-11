@@ -6,7 +6,7 @@ from django.test import SimpleTestCase
 class ThemeStabilizationTests(SimpleTestCase):
     def test_preview6_theme_tokens_exist(self):
         root = Path(__file__).resolve().parents[2]
-        css = (root / "static/css/app.css").read_text()
+        css = (root / "static/css/theme-v2.css").read_text()
         self.assertIn("v2.0 Preview 6 — unified light/dark design system", css)
         self.assertIn('html[data-theme="light"]', css)
         self.assertIn('html[data-theme="dark"]', css)
