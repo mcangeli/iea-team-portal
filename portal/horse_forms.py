@@ -8,7 +8,7 @@ class HorseForm(forms.ModelForm):
     class Meta:
         model = Horse
         fields = [
-            "name", "show_name", "breed", "size_type", "height_hands",
+            "name", "show_name", "breed", "sex", "size_type", "height_hands",
             "has_height_restriction", "height_restriction_notes",
             "has_weight_restriction", "weight_restriction_notes",
             "crop_preference", "spur_preference", "lead_change",
