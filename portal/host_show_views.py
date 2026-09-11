@@ -1,8 +1,11 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .host_show_forms import (
@@ -11,8 +14,14 @@ from .host_show_forms import (
     ShowManagerAssignmentForm,
 )
 from .host_show_models import HostShowOperations, HostShowStaffAssignment, ShowManagerAssignment
-from .models import Show
-from .view_modules.common import _can_manage, _is_show_lead, _team
+from .models import (
+    FinancialTransaction,
+    ReimbursementRequest,
+    Show,
+    ShowBudgetLine,
+    ShowTransactionAllocation,
+)
+from .view_modules.common import _can_finance, _can_manage, _is_show_lead, _team
 
 
 def _host_show(request, show_pk):
@@ -29,6 +38,76 @@ def _is_show_manager(user, show):
 
 def _can_manage_host_show(user, show):
     return _can_manage(user) or _is_show_manager(user, show)
+
+
+def _hosting_budget_summary(show):
+    lines = list(
+        ShowBudgetLine.objects.filter(
+            show=show,
+            scope=ShowBudgetLine.Scope.HOSTING,
+        ).select_related("category")
+    )
+    planned_expense = sum(
+        (line.amount for line in lines if line.kind == FinancialTransaction.Kind.EXPENSE),
+        Decimal("0"),
+    )
+    planned_income = sum(
+        (line.amount for line in lines if line.kind == FinancialTransaction.Kind.INCOME),
+        Decimal("0"),
+    )
+
+    allocations = ShowTransactionAllocation.objects.filter(
+        show=show,
+        scope=FinancialTransaction.ShowFinanceScope.HOSTING,
+        transaction__status=FinancialTransaction.Status.POSTED,
+    )
+    actual_expense = allocations.filter(
+        transaction__kind=FinancialTransaction.Kind.EXPENSE
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    actual_income = allocations.filter(
+        transaction__kind=FinancialTransaction.Kind.INCOME
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+
+    allocation_by_line = {
+        row["budget_line_id"]: row["total"] or Decimal("0")
+        for row in allocations.exclude(budget_line__isnull=True)
+        .values("budget_line_id")
+        .annotate(total=Sum("amount"))
+    }
+    budget_rows = []
+    for line in lines:
+        actual = allocation_by_line.get(line.pk, Decimal("0"))
+        budget_rows.append({
+            "line": line,
+            "actual": actual,
+            "remaining": line.amount - actual,
+            "over_budget": actual > line.amount,
+        })
+
+    pending_reimbursements = ReimbursementRequest.objects.filter(
+        show=show,
+        show_finance_scope=FinancialTransaction.ShowFinanceScope.HOSTING,
+        status__in=[
+            ReimbursementRequest.Status.SUBMITTED,
+            ReimbursementRequest.Status.APPROVED,
+        ],
+    )
+    pending_reimbursement_total = pending_reimbursements.aggregate(
+        total=Sum("amount")
+    )["total"] or Decimal("0")
+
+    return {
+        "planned_expense": planned_expense,
+        "actual_expense": actual_expense,
+        "remaining_expense": planned_expense - actual_expense,
+        "planned_income": planned_income,
+        "actual_income": actual_income,
+        "pending_reimbursement_total": pending_reimbursement_total,
+        "pending_reimbursement_count": pending_reimbursements.count(),
+        "over_budget": actual_expense > planned_expense,
+        "budget_rows": budget_rows,
+        "has_budget": bool(lines),
+    }
 
 
 @login_required
@@ -63,6 +142,48 @@ def host_show_list(request):
 
 
 @login_required
+def dashboard_show_manager(request):
+    team = _team(request.user)
+    today = timezone.localdate()
+    can_manage = _can_manage(request.user)
+    shows = Show.objects.filter(
+        team=team,
+        financial_role=Show.FinancialRole.HOSTING_ATTENDING,
+        show_date__gte=today,
+    ).select_related("season").order_by("show_date", "name")
+    if not can_manage:
+        shows = shows.filter(
+            manager_assignments__user=request.user,
+            manager_assignments__active=True,
+        ).distinct()
+        if not shows.exists() and not ShowManagerAssignment.objects.filter(
+            show__team=team, user=request.user, active=True
+        ).exists():
+            raise PermissionDenied
+
+    rows = []
+    for show in shows[:8]:
+        operations = HostShowOperations.objects.filter(show=show).first()
+        readiness_items = operations.readiness_items if operations else []
+        missing = [label for label, ready in readiness_items if not ready]
+        rows.append({
+            "show": show,
+            "operations": operations,
+            "readiness_percent": operations.readiness_percent if operations else 0,
+            "missing": missing,
+            "staff_count": operations.staff_assignments.filter(active=True).count() if operations else 0,
+            "budget": _hosting_budget_summary(show),
+        })
+
+    return render(request, "portal/dashboard_show_manager.html", {
+        "rows": rows,
+        "next_row": rows[0] if rows else None,
+        "can_manage": can_manage,
+        "can_finance": _can_finance(request.user, None),
+    })
+
+
+@login_required
 def host_show_workspace(request, show_pk):
     show = _host_show(request, show_pk)
     operations = HostShowOperations.objects.filter(show=show).first()
@@ -84,8 +205,10 @@ def host_show_workspace(request, show_pk):
             "readiness_items": readiness_items,
             "staff": staff,
             "managers": managers,
+            "hosting_budget": _hosting_budget_summary(show),
             "can_manage": can_manage,
             "can_manage_host_show": can_manage or is_show_manager,
+            "can_finance_show": _can_finance(request.user, show.season),
             "is_show_manager": is_show_manager,
             "is_show_lead": is_show_lead,
         },
