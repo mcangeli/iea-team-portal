@@ -31,7 +31,11 @@ class HorseRegistryTests(TestCase):
         UserProfile.objects.create(user=self.admin, team=self.team, role=UserProfile.Role.ADMIN)
         self.rider = User.objects.create_user("horserider", password="testpass123")
         UserProfile.objects.create(user=self.rider, team=self.team, role=UserProfile.Role.RIDER)
-        self.horse = Horse.objects.create(team=self.team, name="Biscuit", breed="Quarter Horse Cross")
+        self.horse = Horse.objects.create(team=self.team, name="Biscuit", breed="Quarter Horse Cross", sex=Horse.Sex.GELDING)
+
+    def test_horse_sex_display(self):
+        self.assertEqual(self.horse.sex, "gelding")
+        self.assertEqual(self.horse.get_sex_display(), "Gelding")
 
     def test_coggins_statuses(self):
         today = timezone.localdate()
@@ -64,6 +68,7 @@ class HorseRegistryTests(TestCase):
         response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Biscuit")
+        self.assertContains(response, "Gelding")
 
     def test_rider_cannot_create_horse(self):
         self.client.login(username="horserider", password="testpass123")
@@ -74,6 +79,7 @@ class HorseRegistryTests(TestCase):
         self.client.login(username="horseadmin", password="testpass123")
         response = self.client.post(reverse("horse_create"), {
             "name": "Scout",
+            "sex": "mare",
             "crop_preference": "optional",
             "spur_preference": "no",
             "lead_change": "simple",
@@ -81,7 +87,8 @@ class HorseRegistryTests(TestCase):
             "active": "on",
         })
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(Horse.objects.filter(team=self.team, name="Scout").exists())
+        horse = Horse.objects.get(team=self.team, name="Scout")
+        self.assertEqual(horse.sex, Horse.Sex.MARE)
 
     def test_horse_detail_is_team_scoped(self):
         other = Horse.objects.create(team=self.other_team, name="Not Ours")
