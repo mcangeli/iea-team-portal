@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v2.0.0 Release Candidate 1**
+**Current version: v2.0.0 Release Candidate 2**
 
 IEA Team Portal is a private, self-hosted operations system for an Interscholastic Equestrian Association team. It brings riders and families, seasons, classes, shows, points and qualification, lessons, calendars, communications, volunteers, show-day operations, history, and team finance into one portal.
 
@@ -10,11 +10,9 @@ For version-by-version changes, see `RELEASE_NOTES.md`. For the v2 code organiza
 
 ## Roles and dashboards
 
-The portal uses primary roles plus operational assignments.
-
 | Role / assignment | Primary use |
 | --- | --- |
-| Administrator | Full team administration; can open every operational dashboard |
+| Administrator | Full team administration; can review every operational dashboard |
 | Coach | Roster, classes, shows, results, qualification, lessons, availability and team operations |
 | Parent/Guardian | Linked riders, family-visible schedules, actions, volunteer activity and permitted family finance |
 | Rider | Own rider/team information; staff strategy and private information remain restricted |
@@ -23,23 +21,21 @@ The portal uses primary roles plus operational assignments.
 | Secretary / Points Secretary | Standings, missing results and qualification review |
 | Treasurer | Finance operations without requiring Administrator access |
 
-Administrators intentionally see buttons for all role workspaces. Users with multiple responsibilities can switch between the workspaces available to them.
+Administrators can open all role workspaces. Coaches receive the Coach workspace by role and only receive Team Parent, Show Lead, or Points Secretary dashboards when explicitly assigned that responsibility.
 
 ## Recommended first-time setup
 
-Use this order so records are created after the information they depend on:
-
 1. Install the portal and configure the persistent `.env`.
 2. Sign in as Administrator.
-3. Open **Manage → Branding** and configure the team presentation.
+3. Open **Manage → Branding** and configure the Program, Futures, and Upper imagery.
 4. Open **Manage → Season setup** and create/activate the current season.
 5. Create the season's Futures and Upper classes.
-6. Add Riders and assign season, team level, home barn and classes.
+6. Add Riders and assign season, team level, home barn, and classes.
 7. Add/link Parents and Guardians.
 8. Open **Manage → Users** and create logins linked to the appropriate Rider or Parent record.
-9. Assign committee responsibilities such as Team Parent, Treasurer and Secretary/Points Secretary.
-10. Add Shows, show classes, availability, entries and Show Lead assignments.
-11. Add Lessons, Calendar events, announcements, volunteer requirements and Action Items.
+9. Assign committee responsibilities such as Team Parent, Treasurer, and Secretary/Points Secretary.
+10. Add Shows, show classes, availability, entries, and Show Lead assignments.
+11. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
 12. If using Finance, configure its accounts/categories/rates before entering family activity.
 13. Add prior-season information through the historical-data tools when desired.
 
@@ -47,50 +43,59 @@ Use this order so records are created after the information they depend on:
 
 ### Dashboard
 
-The main Dashboard is the season overview. Operational dashboards emphasize the information needed for that responsibility:
+The main Dashboard is the season overview.
 
-- **Coach:** roster health, qualification, availability, volunteer approvals, action items, lessons and shows.
-- **Team Parent:** squad coordination, availability, volunteers and planning.
-- **Show Lead:** **Open Show Day**, **Planning & Volunteers**, and **Prize List / Schedule** for the assigned show.
-- **Secretary / Points:** missing results, standings, qualification and result review.
+- **Coach:** roster health, qualification, availability, assigned Action Items, volunteer approvals, lessons, and shows.
+- **Team Parent:** squad coordination, availability, volunteers, and planning.
+- **Show Lead:** **Open Show Day**, **Planning & Volunteers**, and **Prize List / Schedule** for assigned shows.
+- **Secretary / Points:** missing results, standings, qualification, and result review.
 
-### Riders, seasons and families
+### My Account
 
-A **Rider** is a permanent person record. A **Season Membership** places that rider on a particular season's Futures or Upper roster and stores season-specific classes, home barn and notes.
+Every signed-in user can open **My Team → My Account** to review their login information.
+
+Users can:
+- update first name, last name, and email address;
+- change their own password;
+- manage email-notification preferences.
+
+Username, portal role, team assignment, and Rider/Parent links remain administrator-managed.
+
+### Riders, seasons, and families
+
+A **Rider** is a permanent person record. A **Season Membership** places that rider on a specific season's Futures or Upper roster and stores season-specific classes, home barn, and notes.
 
 Do not delete a rider simply because they graduate or leave the team. Use the rider lifecycle controls so historical results and relationships remain intact.
 
 Parent/Guardian records are separate from Riders and one parent may be linked to multiple riders. User accounts are then linked to the appropriate Rider or Parent/Guardian record.
 
+A linked Parent/Guardian can open the permitted **Family Account** directly from **My Team** or from that Rider's profile. Rider accounts do not receive Finance access.
+
 ### Shows and Show Day
 
-Create the Show first, then configure its classes/schedule, rider availability and entries. Results are recorded against the appropriate rider and class.
+Create the Show first, then configure its classes/schedule, rider availability, and entries. Results are recorded against the appropriate rider and class.
 
-A show can include availability, entries, points-rider designation, results, Show Lead assignment, planning/checklists, volunteers, Show Week communication, Show Day status, Prize List/Schedule and show finance where enabled.
+A show can include availability, entries, points-rider designation, results, Show Lead assignment, planning/checklists, volunteers, Show Week communication, Show Day status, Prize List/Schedule, and show finance where enabled.
 
 **Points-rider designation is staff strategy and is intentionally hidden from Rider and Parent accounts.**
 
-Show Day is designed for phone use at the ring. Coaches and authorized Show Leads should use it for rider status/check-in, schedule context, open operational items and public show updates instead of moving among multiple administrative screens.
+Show Day is designed for phone use at the ring. Coaches and authorized Show Leads should use it for rider status/check-in, schedule context, open operational items, and show-day updates.
 
 ### Points and qualification
 
-Rider points are tracked **per class**, not as one combined rider total. The standard individual qualification threshold represented by the portal is **18 points in a class**.
+Rider points are tracked **per class**. The standard individual qualification threshold represented by the portal is **18 points in a class**.
 
 Team points use the coach-designated points rider for each eligible class/show. Walk/Trot classes **H8 and H14 do not count toward team points**.
 
-Use **Competition → Standings** for individual progress and team scoring. Postseason records support Regionals, Zones and Nationals, including individual and team results.
+Use **Competition → Standings** for individual progress and team scoring. Postseason records support Regionals, Zones, and Nationals, including individual and team results.
 
-### Calendar, communication and lessons
+### Calendar, communication, lessons, and volunteers
 
 Calendar supports Month and Agenda views, event-type filtering, RSVP-enabled events, and Futures/Upper filtering where the source record carries a squad.
 
-Announcements are for team communication. Action Items are for work needing an owner, response or completion state. Notifications surface relevant portal activity.
+Announcements are for team communication. Action Items are for work needing an owner, response, or completion state. Notifications surface relevant portal activity.
 
-Lessons support groups, scheduled lessons and rider attendance. Users see only information permitted by their role/linked riders.
-
-### Volunteers and committees
-
-Volunteer requirements/logs support service tracking and approval. Committee assignments delegate responsibilities without granting full Administrator access. Show Lead responsibility is assigned per show.
+Lessons support groups, scheduled lessons, and rider attendance. Volunteer requirements/logs support service tracking and approval. Committee assignments delegate operational responsibility without granting full Administrator access.
 
 ### Finance
 
@@ -101,31 +106,23 @@ Finance is intentionally restricted:
 - **Rider:** no Finance access.
 - **Coach alone:** does not automatically grant Finance access.
 
-Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising and reporting. Configure the season's finance structure before relying on its reports.
+Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising, and reporting.
 
 ### History and Record Book
 
 Use **Competition → Season history** for prior seasons and Season Review. Use **Competition → Record book** for the team's honors/archive presentation. Preserve historical Riders rather than recreating them as current Riders.
 
-## Privacy
-
-The portal deliberately separates team-visible, operational and private information.
-
-- Administrators and Coaches have broad management access.
-- Parents can access linked Riders.
-- Riders can access their own private information.
-- Teammates may see permitted profile information without private personal data.
-- Points-rider designation is staff-only.
-- Finance follows the restrictions above.
-- Former riders remain in history while normal roster views focus on active riders.
-
-Use the least-privileged role that matches a person's actual responsibility.
-
 ## Branding and appearance
 
-Under **Manage → Branding**, upload a wide team/show photograph used by the Dashboard and sign-in presentation and choose whether the crop favors the top, center or bottom. The existing team logo appears alongside the photographic treatment.
+Under **Manage → Branding**, configure three optional photographic identities:
 
-A landscape photo around 16:9 or slightly wider works best. Responsive cropping and readability overlays are automatic. Light/dark appearance can be switched from the top navigation.
+- **Program hero** — overall Dashboard/sign-in image.
+- **Futures Team hero** — used in Futures-specific family and Team Parent contexts.
+- **Upper Team hero** — used in Upper-specific family and Team Parent contexts.
+
+Each image has its own top/center/bottom crop preference. If a squad image is not configured, the Program hero is used as the fallback. A family spanning both squads uses the Program hero rather than arbitrarily selecting one squad.
+
+A landscape photo around 16:9 or slightly wider works best.
 
 ## Production installation
 
@@ -136,7 +133,7 @@ A landscape photo around 16:9 or slightly wider works best. Responsive cropping 
 - Git
 - DNS hostname and an existing reverse proxy/web server for public HTTPS access
 
-The supported Git deployment layout is:
+Supported layout:
 
 ```text
 /opt/iea-team-portal/
@@ -146,7 +143,7 @@ The supported Git deployment layout is:
 └── logs/
 ```
 
-The `.env` is outside the Git checkout so application updates do not replace production secrets/configuration.
+The `.env` lives outside the Git checkout so updates do not replace production secrets/configuration.
 
 ### Install from Git
 
@@ -156,7 +153,7 @@ cd /opt/iea-team-portal/app
 sudo ./install.sh
 ```
 
-Populate `/opt/iea-team-portal/.env`. A typical production configuration is:
+Populate `/opt/iea-team-portal/.env`. Typical production settings include:
 
 ```env
 APP_PORT=8088
@@ -175,21 +172,25 @@ SECURE_HSTS_SECONDS=31536000
 PORTAL_UPDATE_CHANNEL=stable
 ```
 
-The gateway normally binds to `127.0.0.1:8088`. Point the host reverse proxy at that address and terminate HTTPS at the host proxy.
+The application normally listens on `127.0.0.1:8088`.
 
 ## Reverse proxy and HTTPS
 
-The portal intentionally listens on localhost rather than exposing its application container directly to the Internet. Your existing web server should accept HTTPS traffic for the portal hostname and proxy it to `http://127.0.0.1:8088`.
+Your existing web server should accept HTTPS traffic for the portal hostname and proxy it to:
+
+```text
+http://127.0.0.1:8088
+```
 
 Before configuring the proxy:
 
-1. Create a DNS record for the portal hostname, for example `iea.example.com`, pointing to the server.
-2. Set `DJANGO_ALLOWED_HOSTS=iea.example.com`.
-3. Set `DJANGO_CSRF_TRUSTED_ORIGINS=https://iea.example.com`.
-4. Keep `APP_PORT=8088` unless another local service already uses that port.
-5. Obtain/configure a TLS certificate for the hostname. Let's Encrypt/Certbot is appropriate for Nginx or Apache; Caddy can normally manage HTTPS automatically.
+1. Point DNS for the portal hostname to the server.
+2. Set `DJANGO_ALLOWED_HOSTS` to that hostname.
+3. Set `DJANGO_CSRF_TRUSTED_ORIGINS` to the full `https://` origin.
+4. Keep `APP_PORT=8088` unless another local service already uses it.
+5. Configure a TLS certificate.
 
-### Nginx example
+### Nginx
 
 ```nginx
 server {
@@ -216,11 +217,9 @@ server {
 }
 ```
 
-Enable/reload Nginx using the normal method for your distribution. If Certbot manages the certificate, it may add or adjust the TLS directives itself.
+### Apache
 
-### Apache example
-
-Enable `proxy`, `proxy_http`, `ssl`, and `headers`, then configure a virtual host similar to:
+Enable `proxy`, `proxy_http`, `ssl`, and `headers`:
 
 ```apache
 <VirtualHost *:80>
@@ -242,9 +241,7 @@ Enable `proxy`, `proxy_http`, `ssl`, and `headers`, then configure a virtual hos
 </VirtualHost>
 ```
 
-### Caddy example
-
-When the hostname already resolves to the server:
+### Caddy
 
 ```caddy
 iea.example.com {
@@ -252,47 +249,45 @@ iea.example.com {
 }
 ```
 
-Caddy normally obtains and renews the HTTPS certificate automatically.
+Caddy normally obtains and renews HTTPS certificates automatically.
 
-### Existing web server
+You do **not** need to replace an existing web server. Add a separate virtual host/site for the portal hostname and leave other sites on ports 80/443 in place.
 
-You do **not** need to replace an existing Nginx, Apache, or Caddy installation. Add a separate virtual host/site for the portal hostname and leave other sites on ports 80/443 in place. The portal remains on the localhost-only application port.
-
-Verify the proxy with:
+Verify with:
 
 ```bash
 curl -I http://127.0.0.1:8088
 curl -I https://iea.example.com
 ```
 
-Then sign in through the HTTPS hostname and test a photo/file upload. If login POSTs return a CSRF error, first verify that `DJANGO_CSRF_TRUSTED_ORIGINS` exactly matches the public `https://` origin and that the proxy sends `X-Forwarded-Proto: https`.
+If login POSTs return a CSRF error, verify `DJANGO_CSRF_TRUSTED_ORIGINS` and that the proxy sends `X-Forwarded-Proto: https`.
 
-Do not expose PostgreSQL or the portal's internal Docker services through the firewall. Public traffic should reach only the host web server on HTTP/HTTPS.
+Do not expose PostgreSQL or internal Docker services publicly.
 
 ## Updating
 
-Check the current checkout:
+Check the checkout:
 
 ```bash
 cd /opt/iea-team-portal/app
 ./portalctl git-status
 ```
 
-Update the stable channel:
+Install RC2:
+
+```bash
+./portalctl update v2.0.0-rc2
+```
+
+For the stable channel after final release:
 
 ```bash
 ./portalctl update
 ```
 
-Install a specific tested ref:
+The updater requires a clean Git tree, creates a pre-update PostgreSQL backup, fetches the selected ref, performs preflight/schema checks, applies migrations, rebuilds, and restarts the application.
 
-```bash
-./portalctl update v2.0.0-rc1
-```
-
-The updater requires a clean Git tree, creates a pre-update PostgreSQL backup, fetches the selected ref, performs preflight/schema checks, applies required migrations, rebuilds and restarts the application.
-
-Verify after updating:
+Verify:
 
 ```bash
 ./portalctl ps
@@ -303,9 +298,7 @@ Verify after updating:
 
 `portalctl update` creates a database backup before changing the application. `portalctl rollback-code` can return application code to the previous recorded checkout.
 
-Code rollback does **not** automatically reverse an incompatible database migration. If a release changes schema and the database must also be rolled back, restore the matching pre-update database backup.
-
-Keep the persistent `.env`, PostgreSQL data, uploaded media and `/opt/iea-team-portal/backups/` in the server's normal backup plan.
+Code rollback does **not** automatically reverse an incompatible database migration. If the database must also be rolled back, restore the matching pre-update database backup.
 
 Useful commands:
 
@@ -319,13 +312,27 @@ Useful commands:
 
 ## v2 architecture
 
-The former monolithic `portal/views.py` is now a compatibility/re-export layer. Active implementations live in domain modules under `portal/view_modules/`. Specialized v2 URL/model modules isolate lifecycle, Calendar and branding additions. See `ARCHITECTURE.md`.
+The former monolithic `portal/views.py` is now a compatibility/re-export layer. Active implementations live under `portal/view_modules/`. Specialized v2 URL/model modules isolate lifecycle, Calendar, account, and branding additions. See `ARCHITECTURE.md`.
 
-## Release Candidate 1
+## Release Candidate 2
 
-RC1 freezes the v2 feature and visual scope. It contains the modular view architecture, Git deployment/update workflow, role dashboards, rider lifecycle/archive, redesigned Calendar, photographic branding, and the completed Preview 7–9 visual system.
+RC2 is the final v2.0 review candidate. It freezes the feature and visual scope established in RC1.
 
-No new database migration is introduced by RC1. `0031_v200_team_branding.py` remains the latest migration.
+RC2 includes:
+- corrected role-dashboard permissions and consistent role-dashboard spacing;
+- Coach-assigned Action Items on the Coach dashboard;
+- Parent Family Account access from the Rider profile;
+- user self-service **My Account**;
+- Program, Futures, and Upper hero photography;
+- complete reverse-proxy/HTTPS guidance.
+
+Latest migration:
+
+```text
+0032_v200_squad_hero_images.py
+```
+
+No additional feature work is planned before final `v2.0.0` unless RC2 exposes a release-blocking issue.
 
 ## Troubleshooting
 
