@@ -1,5 +1,51 @@
 # Release Notes
 
+## v2.1.4 — Course & Show Operations
+
+v2.1.4 expands the show-operations layer around courses, horse eligibility, Hoofprint readiness, and host-provided Show Horse Lists while hardening permissions and show-day history.
+
+### Course Operations
+- Added a Coach/Admin **Course Information** workspace for show-specific course details, including course type, ring, selected classes, course walk, designer, fence count, combinations, related distances, handy options, operational notes, private coach notes, uploaded media, and external links.
+- Integrated course readiness/status into Coach/Admin dashboards, Show Lead operations, Show Detail, and Show Day.
+- Assigned Show Leads can view Course Information and maintain posted course media without gaining access to private Coach/Admin notes or full course setup.
+- Course uploads support JPG/JPEG, PNG, WEBP, HEIC/HEIF, and PDF with a 20 MB limit and phone-camera-friendly upload controls.
+- Uploaded course files are served through an authenticated, role-authorized portal route instead of exposing raw media URLs.
+- Course create/edit/media/remove activity is recorded in the operational audit trail.
+
+### Horse season eligibility enforcement
+- Show Horse assignments now enforce the horse's `HorseSeasonProfile` class eligibility by default.
+- Coach/Admin users can make an intentional exception with an explicit eligibility override and required reason.
+- Assigned Show Leads cannot introduce new ineligible classes.
+- Eligibility overrides are visibly identified on the Show Horses workflow and retained in audit details.
+
+### Hoofprint stabilization
+- Added live-vs-finalized Hoofprint comparison so the portal can warn when the current horse plan differs from the latest immutable snapshot.
+- Added non-blocking completeness warnings for missing classes, rider-facing horse descriptions, missing/expired Coggins information, and missing equipment/lead-change data.
+- Preserved the existing ability to finalize when a coach intentionally needs a usable Hoofprint despite warnings.
+- Horse of the Day history is protected: a show-horse assignment with an attached award cannot be deleted. The horse can instead be marked unavailable while the historical award remains intact.
+
+### Show Horse List documents
+- Added versioned Show Horse List documents per show.
+- Upload is optimized for taking a photo of a printed list from a phone while still supporting electronic PDF/image files.
+- Each new upload becomes a retained revision instead of silently replacing earlier source documents.
+- Added separate internal operational notes and **Coach Notes for Riders & Parents**.
+- Family-visible horse-list notes are surfaced in the Hoofprint/show-horse workflow and on My Show Day for participating riders/parents.
+- Horse-list documents are delivered through authenticated portal routes and are not exposed as raw media URLs.
+
+### Show Day / presentation hardening
+- Added branded production 403, 404, and 500 error pages.
+- Course Operations uses the established premium equestrian page hierarchy and supports the existing light/dark/mobile presentation.
+- Added a focused regression test around the Show Day planning-item crash that previously surfaced when assigned planning items were present.
+- The narrow `ShowPlanningItem.owner_id` compatibility extension remains in v2.1.4 to avoid destabilizing the oversized legacy Show Day module late in the release cycle; architectural removal is deferred to the planned 2.9.x cleanup.
+
+### Data, migrations, and validation
+- `0040_v214_show_courses.py` adds show course records.
+- `0041_v214_horse_eligibility_override.py` adds persisted show-horse eligibility override data.
+- `0042_v214_show_horse_list_documents.py` adds versioned Show Horse List documents and family-visible coach notes.
+- Added v2.1.4 regression coverage for horse eligibility, Hoofprint comparison/completeness, Course Operations permissions/media, protected documents, Show Horse List privacy, Show Day planning items, and Horse of the Day history protection.
+- Added `RELEASE_CHECKLIST_v2.1.4.md` for upgrade, role, privacy, presentation, and live-server validation.
+- Added and maintained `ROADMAP.md` as a living release artifact for future development planning.
+
 ## v2.1.3 — Show Readiness Preview
 
 v2.1.3 extends Horse & Hoofprint Management into show-readiness planning and gives assigned Show Leads operational horse access for their shows.
