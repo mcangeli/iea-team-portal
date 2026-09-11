@@ -1,0 +1,80 @@
+from datetime import date
+
+from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from django.test import TestCase
+from django.urls import reverse
+
+from portal.host_show_models import HostShowOperations
+from portal.models import Season, Show, ShowLeadAssignment, Team, UserProfile
+
+
+class V250HostShowOperationsTests(TestCase):
+    def setUp(self):
+        self.team = Team.objects.create(name="Host Operations Team")
+        self.season = Season.objects.create(
+            team=self.team,
+            name="2026-2027",
+            start_date=date(2026, 8, 1),
+            end_date=date(2027, 6, 30),
+            is_active=True,
+        )
+        self.hosted_show = Show.objects.create(
+            team=self.team,
+            season=self.season,
+            name="Home Invitational",
+            show_date=date(2026, 11, 7),
+            financial_role=Show.FinancialRole.HOSTING_ATTENDING,
+        )
+        self.away_show = Show.objects.create(
+            team=self.team,
+            season=self.season,
+            name="Away Invitational",
+            show_date=date(2026, 12, 5),
+            financial_role=Show.FinancialRole.ATTENDING,
+        )
+        self.coach = self.make_user("coach250", UserProfile.Role.COACH)
+        self.lead = self.make_user("lead250", UserProfile.Role.PARENT)
+        self.parent = self.make_user("parent250", UserProfile.Role.PARENT)
+        ShowLeadAssignment.objects.create(show=self.hosted_show, user=self.lead, active=True)
+
+    def make_user(self, username, role):
+        user = User.objects.create_user(username=username, password="testpass")
+        user.profile.team = self.team
+        user.profile.role = role
+        user.profile.save(update_fields=["team", "role"])
+        return user
+
+    def test_coach_can_create_host_plan(self):
+        self.client.force_login(self.coach)
+        response = self.client.post(
+            reverse("host_show_edit", args=[self.hosted_show.pk]),
+            {
+                "show_manager_name": "Alex Morgan",
+                "arrival_instructions": "Enter through the north gate.",
+                "check_in_location": "Secretary booth",
+                "trailer_parking": "Grass lot B",
+                "warmup_schooling": "Main warm-up opens at 6:30 AM.",
+                "ring_operations": "Gate calls from Ring 1.",
+                "volunteer_check_in": "Hospitality tent",
+                "emergency_information": "EMT at main office.",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        operations = HostShowOperations.objects.get(show=self.hosted_show)
+        self.assertEqual(operations.show_manager_name, "Alex Morgan")
+        self.assertEqual(operations.readiness_percent, 100)
+
+    def test_assigned_show_lead_can_view_but_not_edit(self):
+        self.client.force_login(self.lead)
+        self.assertEqual(self.client.get(reverse("host_show_workspace", args=[self.hosted_show.pk])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("host_show_edit", args=[self.hosted_show.pk])).status_code, 403)
+
+    def test_unassigned_parent_cannot_open_host_workspace(self):
+        self.client.force_login(self.parent)
+        self.assertEqual(self.client.get(reverse("host_show_workspace", args=[self.hosted_show.pk])).status_code, 403)
+
+    def test_non_hosted_show_rejects_host_operations(self):
+        operations = HostShowOperations(show=self.away_show, show_manager_name="Manager")
+        with self.assertRaises(ValidationError):
+            operations.full_clean()
