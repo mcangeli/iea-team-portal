@@ -25,7 +25,7 @@ class ShowManagerAssignment(models.Model):
         super().clean()
         if self.show_id and self.show.financial_role != Show.FinancialRole.HOSTING_ATTENDING:
             raise ValidationError("A Show Manager can only be assigned to a hosted show.")
-        if self.user_id:
+        if self.user_id and self.show_id:
             profile = getattr(self.user, "profile", None)
             if profile and profile.team_id and profile.team_id != self.show.team_id:
                 raise ValidationError("The Show Manager must belong to the same team as the show.")
