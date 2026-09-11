@@ -10,13 +10,14 @@
     <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
   </div>
   <div class="actions">
-    {% if can_manage_host_show %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit host plan{% else %}Set up host plan{% endif %}</a>{% endif %}
+    <a class="btn" href="{% url 'host_command_center' show.pk %}">Show-Day Command Center</a>
+    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit host plan{% else %}Set up host plan{% endif %}</a>{% endif %}
     {% if can_manage %}<a class="btn secondary" href="{% url 'show_manager_add' show.pk %}">Assign Show Manager</a>{% endif %}
     {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_staff_add' show.pk %}">Add show personnel</a>{% endif %}
     <a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show planning</a>
     <a class="btn secondary" href="{% url 'show_courses' show.pk %}">Courses</a>
     <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
-    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Show Day</a>
+    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Team Show Day</a>
   </div>
 </section>
 
