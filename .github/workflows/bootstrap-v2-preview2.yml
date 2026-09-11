@@ -1,0 +1,71 @@
+name: Bootstrap v2 Preview 2 source
+
+on:
+  push:
+    branches:
+      - v2.0
+    paths:
+      - .github/workflows/bootstrap-v2-preview2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out v2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: v2.0
+          fetch-depth: 0
+
+      - name: Expand Preview 2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP="zip-archive/iea-team-portal-v2.0.0-preview2.zip"
+          test -f "$ZIP" || { echo "Missing $ZIP" >&2; exit 1; }
+          rm -rf /tmp/iea-preview2
+          mkdir -p /tmp/iea-preview2
+          unzip -q "$ZIP" -d /tmp/iea-preview2
+          SRC="/tmp/iea-preview2/iea-team-portal-v2.0.0-preview2"
+          test -f "$SRC/VERSION" || { echo "Preview source did not extract as expected" >&2; exit 1; }
+          test "$(cat "$SRC/VERSION")" = "2.0.0-preview2" || { echo "Unexpected VERSION" >&2; exit 1; }
+          rsync -a "$SRC/" ./ \
+            --exclude '.git/' \
+            --exclude 'zip-archive/'
+
+      - name: Remove archive from v2 tracked checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -r --cached --ignore-unmatch zip-archive
+          printf '%s\n' '.env' '__pycache__/' '*.py[cod]' 'staticfiles/' 'media/*' '!media/.gitkeep' '*.sqlite3' '' '# Release ZIPs remain available on main/history but are not part of the Git-backed v2 application checkout.' 'zip-archive/' > .gitignore
+          rm -f RELEASE_CHECKLIST_v1.9.9.md
+          rm -f .github/workflows/bootstrap-v2-preview2.yml
+
+      - name: Validate source shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f manage.py
+          test -f docker-compose.yml
+          test -f portalctl
+          test -f install.sh
+          test -d portal/view_modules
+          test "$(cat VERSION)" = "2.0.0-preview2"
+          bash -n portalctl
+          bash -n install.sh
+          python -m compileall -q portal config
+
+      - name: Commit Preview 2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish v2.0.0 Preview 2 source"
+          git push origin HEAD:v2.0
