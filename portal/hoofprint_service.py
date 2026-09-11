@@ -1,3 +1,4 @@
+import re
 from html import escape
 from io import BytesIO
 
@@ -21,12 +22,24 @@ def _p(value, style):
     return Paragraph(escape(str(value or "—")), style)
 
 
+def _short_class_code(value):
+    """Return a compact IEA class ID from legacy or canonical class text."""
+    text = (value or "").strip().upper()
+    if not text:
+        return ""
+    match = re.search(r"\b([A-Z]{1,3}\s*\d{1,3}[A-Z]?)\b", text)
+    if match:
+        return re.sub(r"\s+", "", match.group(1))
+    return text.split()[0]
+
+
 def _class_report_label(class_data):
-    """Prefer the short class ID (H1, H2, etc.) for Hoofprint output."""
-    number = (class_data.get("number") or "").strip()
-    if number:
-        return number.upper()
-    return (class_data.get("name") or "—").strip()
+    """Use only the short class ID (H1, H2, etc.) in Hoofprint output."""
+    for value in (class_data.get("number"), class_data.get("name")):
+        code = _short_class_code(value)
+        if code:
+            return code
+    return "—"
 
 
 def build_hoofprint_payload(show, cleaned_data=None):
@@ -62,11 +75,11 @@ def build_hoofprint_payload(show, cleaned_data=None):
             "coggins_expiration": coggins.expiration_date.isoformat() if coggins else "",
             "classes": [
                 {
-                    "number": (
+                    "number": _short_class_code((
                         (getattr(c.season_class, "class_code", "") or "").strip()
                         if c.season_class_id
                         else ""
-                    ) or c.class_number,
+                    ) or c.class_number),
                     "name": c.display_name,
                     "team_level": c.team_level,
                 }
