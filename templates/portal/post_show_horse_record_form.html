@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Review Horse History · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'post_show_horse_history' show.pk %}">← Back to Post-show Horse History</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">POST-SHOW HORSE HISTORY · RECONCILIATION</div><h1>{{ record.display_name }}</h1><p>Confirm what actually happened at the show. For leased/show-specific horses, match the record to the permanent Horse Registry when the actual horse is known.</p></div>
+</section>
+<form method="post" class="form-card">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save final horse record</button><a class="btn secondary" href="{% url 'post_show_horse_history' show.pk %}">Cancel</a></div></form>
+{% endblock %}
