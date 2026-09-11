@@ -17,12 +17,18 @@ def _display_change(value):
 
 def build_hoofprint_payload(show, cleaned_data=None):
     cleaned_data = cleaned_data or {}
-    assignments = show.horse_assignments.select_related("horse").prefetch_related("show_classes__season_class", "horse__coggins_records")
+    assignments = (
+        show.horse_assignments
+        .filter(available=True)
+        .select_related("horse")
+        .prefetch_related("show_classes__season_class", "horse__coggins_records")
+    )
     horses = []
     for assignment in assignments:
         horse = assignment.horse
         coggins = horse.latest_coggins
         horses.append({
+            "assignment_id": assignment.pk,
             "horse_id": horse.pk,
             "name": horse.display_name,
             "barn_name": horse.name,
@@ -59,7 +65,7 @@ def build_hoofprint_payload(show, cleaned_data=None):
         },
         "coach_name": cleaned_data.get("coach_name", ""),
         "coach_phone": cleaned_data.get("coach_phone", ""),
-        "horses_contributed": cleaned_data.get("horses_contributed") if cleaned_data.get("horses_contributed") is not None else sum(1 for h in horses if h["available"]),
+        "horses_contributed": cleaned_data.get("horses_contributed") if cleaned_data.get("horses_contributed") is not None else len(horses),
         "notes": cleaned_data.get("notes", ""),
         "horses": horses,
     }
