@@ -7,15 +7,8 @@ register = template.Library()
 
 
 def _horse_rows(team, season=None):
-    horses = Horse.objects.filter(team=team)
-    assignment_filter = {}
-    award_filter = {}
-    if season is not None:
-        assignment_filter["show_assignments__show__season"] = season
-        award_filter["show_assignments__awards__show__season"] = season
-
     rows = []
-    for horse in horses:
+    for horse in Horse.objects.filter(team=team):
         assignments = horse.show_assignments.all()
         awards = HorseShowAward.objects.filter(assignment__horse=horse)
         if season is not None:
@@ -44,27 +37,28 @@ def _horse_rows(team, season=None):
             "first_show": dates["first"],
             "last_show": dates["last"],
         })
-    rows.sort(key=lambda row: (row["hotd"], row["shows"], row["classes"], row["horse"].display_name.lower()), reverse=True)
+    rows.sort(
+        key=lambda row: (row["hotd"], row["shows"], row["classes"], row["horse"].display_name.lower()),
+        reverse=True,
+    )
     return rows
 
 
-@register.simple_tag
-def horse_record_book(team):
-    rows = _horse_rows(team)
+def _summary(rows):
     return {
         "rows": rows,
         "horse_count": len(rows),
         "hotd_total": sum(row["hotd"] for row in rows),
         "show_appearances": sum(row["shows"] for row in rows),
     }
+
+
+@register.simple_tag
+def horse_record_book_for_user(user):
+    team = getattr(getattr(user, "profile", None), "team", None)
+    return _summary(_horse_rows(team)) if team else _summary([])
 
 
 @register.simple_tag
 def season_horse_history(season):
-    rows = _horse_rows(season.team, season=season)
-    return {
-        "rows": rows,
-        "horse_count": len(rows),
-        "hotd_total": sum(row["hotd"] for row in rows),
-        "show_appearances": sum(row["shows"] for row in rows),
-    }
+    return _summary(_horse_rows(season.team, season=season))
