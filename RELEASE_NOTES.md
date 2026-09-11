@@ -102,7 +102,25 @@ Key RC1 work included:
 
 Preview 9 completed the planned v2 visual-design pass.
 
-- Formalized the “private riding club meets modern editorial design” direction.
+- Formalized the private-club palette: deep blue-green/charcoal, warm ivory, muted leather/brass, IEA blue, and restrained cyan.
+- Built a purpose-designed dark palette rather than a simple inversion.
+- Gave Shows, Riders, Standings, Record Book, Finance, and Calendar distinct but related presentation identities.
+- Unified semantic status badges and action hierarchy.
+- Polished tables, qualification progress, empty states, focus states, and restrained interaction motion.
+- Added a dedicated mobile/ringside treatment for Show Day.
+- No new migration was required.
+
+## v2.0.0 — Preview 8: Photographic Branding
+
+- Added a team-level hero/cover photograph.
+- Added top/center/bottom crop-position control.
+- Added **Manage → Branding** with live preview.
+- Applied photography to Dashboard, role dashboards, and signed-out presentation.
+- Added migration `0031_v200_team_branding.py`.
+
+## v2.0.0 — Preview 7: Presentation Polish
+
+- Established the “private riding club meets modern editorial design” direction.
 - Reworked dashboard heroes, summaries, navigation, Riders, Shows, Record Book, forms, and login presentation.
 - Preserved responsive behavior and light/dark theme support.
 
