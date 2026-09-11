@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'fundraising_campaign_detail' object.campaign.pk %}">← Back to Campaign</a></nav>
+<div class="form-card">
+  <div class="eyebrow">AUDIT-SAFE CORRECTION</div>
+  <h1>{{ title }}</h1>
+  <p>This retains the contribution, voids its linked ledger income, and cancels any family fundraising credit created from it.</p>
+  <form method="post">{% csrf_token %}
+    <p><label for="id_reason">Reason for void</label><textarea id="id_reason" name="reason" rows="4" required placeholder="Explain why this contribution is being voided."></textarea></p>
+    <button class="btn danger" type="submit">Void contribution</button>
+  </form>
+</div>
+{% endblock %}

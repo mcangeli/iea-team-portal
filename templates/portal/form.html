@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<div class="form-card"><div class="eyebrow">{{ eyebrow|default:"COACH TOOLS" }}</div><h1>{{ title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Save</button></form></div>{% endblock %}

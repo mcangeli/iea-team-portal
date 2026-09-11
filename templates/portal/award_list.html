@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Awards · {{ season.name }}{% endblock %}{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'season_review' season.pk %}">← Back to Season Review</a>
+</nav>
+<div class="page-title"><div><div class="eyebrow">RECOGNITION</div><h1>{{ season.name }} awards</h1><p>Team awards and rider recognition.</p></div>{% if can_manage %}<a class="btn" href="{% url 'award_add' season.pk %}">Add award</a>{% endif %}</div>
+<div class="award-grid">{% for a in awards %}<article class="card award-card"><small>{{ a.rider.display_name }}</small><h2>{{ a.title }}</h2>{% if a.description %}<p>{{ a.description }}</p>{% endif %}{% if a.presentation_date %}<p class="muted">Presented {{ a.presentation_date|date:"F j, Y" }}</p>{% endif %}{% if can_manage and not a.published %}<span class="status-pill">Draft</span>{% endif %}</article>{% empty %}<div class="empty-state">No awards have been recorded.</div>{% endfor %}</div>
+{% endblock %}

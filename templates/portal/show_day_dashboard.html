@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Show Day{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SHOW DAY</div>
+    <h1>{{ show.name }}</h1>
+    <p>{{ show.show_date|date:"F j, Y" }}</p>
+  </div>
+  <div class="actions">
+    {% if has_personal_riders %}<a class="btn secondary" href="{% url 'my_show_day' show.pk %}">My Show Day</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
+    <a class="btn secondary" href="{% url 'show_day_updates' show.pk %}">Updates</a>
+  </div>
+</section>
+
+{% if operational %}
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Expected</span><strong>{{ counts.expected }}</strong></article>
+  <article class="finance-stat"><span>Arrived</span><strong>{{ counts.arrived }}</strong></article>
+  <article class="finance-stat"><span>Running late</span><strong>{{ counts.running_late }}</strong></article>
+  <article class="finance-stat"><span>Finished / left</span><strong>{{ counts.finished }}</strong></article>
+</section>
+{% endif %}
+
+{% if needs_attention %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">NEEDS ATTENTION</div><h2>Show-day follow-up</h2></div></div>
+  <ul class="show-day-attention-list">
+    {% for item in needs_attention %}<li>{{ item }}</li>{% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">RIDER CHECK-IN</div><h2>{% if operational %}Team riders{% else %}My rider{% endif %}</h2></div>
+  </div>
+  <div class="show-day-rider-grid">
+  {% for row in rider_rows %}
+    <article class="show-day-rider-card">
+      <div>
+        <strong>{{ row.rider.display_name }}</strong>
+        {% if row.membership %}<span class="muted">{{ row.membership.get_team_level_display }}</span>{% endif %}
+      </div>
+      <span class="status-pill">{{ row.status_label }}</span>
+      {% if row.status_obj and row.status_obj.note %}<p class="muted">{{ row.status_obj.note }}</p>{% endif %}
+      {% if row.status_obj and row.status_obj.updated_by %}
+        <small class="muted">Updated {{ row.status_obj.updated_at|date:"g:i A" }} by {{ row.status_obj.updated_by.get_full_name|default:row.status_obj.updated_by.username }}</small>
+      {% endif %}
+      {% if row.can_edit %}
+      <form method="post" action="{% url 'show_day_rider_status_update' show.pk row.rider.pk %}" class="show-day-status-form">
+        {% csrf_token %}
+        <select name="status">
+          {% for value,label in status_choices %}
+            <option value="{{ value }}" {% if value == row.status %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="note" maxlength="180" value="{% if row.status_obj %}{{ row.status_obj.note }}{% endif %}" placeholder="Optional note">
+        <button class="btn secondary" type="submit">Update</button>
+      </form>
+      {% endif %}
+    </article>
+  {% empty %}
+    <p class="muted">No riders are entered for this show yet.</p>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">UPCOMING</div><h2>Class schedule</h2><p class="muted">Times are estimates; official show announcements remain authoritative.</p></div>
+    <a class="text-link" href="{% url 'show_schedule' show.pk %}">Full schedule →</a>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Time</th><th>Class</th><th>Riders</th>{% if can_manage_points %}<th>Results</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for row in schedule_rows %}
+        <tr>
+          <td>{% if row.class.schedule_time %}{{ row.class.schedule_time|time:"g:i A" }}{% else %}—{% endif %}</td>
+          <td><strong>{% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}</strong>{% if row.class.schedule_note %}<div class="muted">{{ row.class.schedule_note }}</div>{% endif %}</td>
+          <td>
+            {% for entry in row.entries %}
+              <div>{{ entry.rider.display_name }}{% if can_manage_points and entry.is_point_rider %} ★{% endif %}</div>
+            {% endfor %}
+          </td>
+          {% if can_manage_points %}
+          <td>
+            {% for entry in row.entries %}
+              <div><a href="{% url 'show_result_edit' entry.pk %}">Enter/edit {{ entry.rider.first_name }}</a></div>
+            {% endfor %}
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="muted">No scheduled classes with entries yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">OPERATIONS</div>
+      <h2>Checklist & volunteers</h2>
+      <p class="muted">{{ incomplete_checklist_count }} checklist open · {{ open_volunteer_count }} volunteer opening{{ open_volunteer_count|pluralize }}</p>
+    </div>
+    <a class="text-link" href="{% url 'show_planning' show.pk %}">Open coordination →</a>
+  </div>
+  {% if my_assignments %}
+    <h3>My assignments</h3>
+    <div class="planning-grid">
+      {% for item in my_assignments %}
+        <article class="card planning-card">
+          <small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small>
+          <h3>{{ item.title }}</h3>
+          {% if item.details %}<p>{{ item.details }}</p>{% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% elif planning_preview %}
+    <div class="planning-grid">
+      {% for item in planning_preview %}
+        <article class="card planning-card {% if item.completed %}complete{% endif %}">
+          <small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small>
+          <h3>{{ item.title }}</h3>
+          {% if item.owner %}<p class="muted">{{ item.owner.get_full_name|default:item.owner.username }}</p>{% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted">No checklist or volunteer items have been added yet.</p>
+  {% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">PUBLIC UPDATES</div><h2>Latest show-day information</h2></div>
+    <div class="actions">
+      <a class="text-link" href="{% url 'show_day_updates' show.pk %}">View all →</a>
+      {% if can_publish_update %}<a class="btn secondary" href="{% url 'show_day_update_add' show.pk %}">Post update</a>{% endif %}
+    </div>
+  </div>
+  {% for update in recent_updates %}
+    <article class="callout"><strong>{{ update.title }}</strong><span>{{ update.body }}</span></article>
+  {% empty %}
+    <p class="muted">No public show-day updates have been posted yet.</p>
+  {% endfor %}
+</section>
+{% endblock %}

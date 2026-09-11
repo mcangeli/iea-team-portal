@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}{{ membership.rider.display_name }} · Fundraising{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'family_account' membership.pk %}">← Back to Family Account</a></nav>
+
+<section class="page-intro finance-intro">
+  <div>
+    <div class="eyebrow">MY FAMILY · {{ membership.season.name }}</div>
+    <h1>Fundraising</h1>
+    <p>Fundraising activity attributed to {{ membership.rider.display_name }}'s family.</p>
+  </div>
+</section>
+
+{% if policy %}
+<div class="callout finance-policy-callout">
+  <strong>{{ policy.get_model_display }} fundraising</strong>
+  <span>
+    {% if policy.family_message %}
+      {{ policy.family_message }}
+    {% else %}
+      This season's default family credit is {{ policy.default_family_credit_percent|floatformat:0 }}% of attributed fundraising.
+    {% endif %}
+    Participation is {% if policy.participation_optional %}optional{% else %}expected{% endif %}.
+  </span>
+</div>
+{% endif %}
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Raised</span><strong>${{ total_raised|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Family credit</span><strong>${{ total_credit|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Team contribution</span><strong>${{ total_team|floatformat:2 }}</strong></article>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">FAMILY ACTIVITY</div><h2>Attributed fundraising</h2><p class="muted">Only your family's attributed amounts are shown here. Donor names and team financial details are not displayed.</p></div>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table finance-table">
+      <thead><tr><th>Date</th><th>Campaign</th><th>Raised</th><th>Family credit</th><th>Team contribution</th><th>Applied to</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.date|date:"M j, Y" }}</td>
+          <td>{{ row.campaign.name }}</td>
+          <td>${{ row.amount|floatformat:2 }}</td>
+          <td>${{ row.family_credit|floatformat:2 }}</td>
+          <td>${{ row.team_retained|floatformat:2 }}</td>
+          <td>{% if row.family_charge %}{{ row.family_charge.description }}{% else %}—{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">No fundraising has been attributed to this family yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

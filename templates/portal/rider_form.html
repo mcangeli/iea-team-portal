@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<div class="form-card">
+  <div class="eyebrow">{{ eyebrow|default:"ROSTER" }}</div>
+  <h1>{{ title }}</h1>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+
+    <h2>Rider profile</h2>
+    {% for field in form %}
+      {% if field.name != "season" and field.name != "team_level" and field.name != "classes" and field.name != "season_notes" %}
+        <p>
+          {{ field.label_tag }}
+          {{ field }}
+          {% if field.help_text %}<small class="helptext">{{ field.help_text }}</small>{% endif %}
+          {{ field.errors }}
+        </p>
+      {% endif %}
+    {% endfor %}
+
+    {% if creating %}
+      <div class="form-section season-onboarding">
+        <div class="eyebrow">SEASON ENROLLMENT</div>
+        <h2>Enroll this rider now</h2>
+        <p class="muted">The rider is created once. This section creates only the rider's membership for the selected season and can be changed each year.</p>
+
+        <p>
+          {{ form.season.label_tag }}
+          {{ form.season }}
+          {% if form.season.help_text %}<small class="helptext">{{ form.season.help_text }}</small>{% endif %}
+          {{ form.season.errors }}
+        </p>
+
+        <p>
+          {{ form.team_level.label_tag }}
+          {{ form.team_level }}
+          {{ form.team_level.errors }}
+        </p>
+
+        <div>
+          <label>{{ form.classes.label }}</label>
+          {% if form.classes.help_text %}<small class="helptext">{{ form.classes.help_text }}</small>{% endif %}
+          {{ form.classes.errors }}
+          <div id="season-class-options" class="season-class-options">
+            {% for sc in form.classes.field.queryset %}
+              <label class="class-option"
+                     data-season="{{ sc.season_id }}"
+                     data-level="{{ sc.team_level }}">
+                <input type="checkbox"
+                       name="classes"
+                       value="{{ sc.pk }}"
+                       {% if sc.pk|stringformat:"s" in form.classes.value %}checked{% endif %}>
+                <span>{{ sc.name }} <small>· {{ sc.get_team_level_display }}</small></span>
+              </label>
+            {% empty %}
+              <p class="muted">No active season classes are available.</p>
+            {% endfor %}
+          </div>
+          <p id="class-empty-message" class="muted" hidden>No classes are available for the selected season/team.</p>
+        </div>
+
+        <p>
+          {{ form.season_notes.label_tag }}
+          {{ form.season_notes }}
+          {{ form.season_notes.errors }}
+        </p>
+      </div>
+    {% endif %}
+
+    <button class="btn" type="submit">Save rider</button>
+  </form>
+</div>
+
+{% if creating %}
+<script>
+(() => {
+  const season = document.getElementById("id_season");
+  const level = document.getElementById("id_team_level");
+  const options = [...document.querySelectorAll(".class-option")];
+  const empty = document.getElementById("class-empty-message");
+
+  function syncSeasonClasses() {
+    const seasonId = season ? season.value : "";
+    const teamLevel = level ? level.value : "";
+    let visible = 0;
+
+    options.forEach((row) => {
+      const matchesSeason = !!seasonId && row.dataset.season === seasonId;
+      const matchesLevel = !teamLevel || row.dataset.level === teamLevel || row.dataset.level === "both";
+      const show = matchesSeason && matchesLevel;
+      row.hidden = !show;
+      if (show) visible += 1;
+
+      if (!matchesSeason) {
+        const box = row.querySelector('input[type="checkbox"]');
+        if (box) box.checked = false;
+      }
+    });
+
+    if (empty) empty.hidden = !seasonId || visible > 0;
+  }
+
+  if (season) season.addEventListener("change", syncSeasonClasses);
+  if (level) level.addEventListener("change", syncSeasonClasses);
+  syncSeasonClasses();
+})();
+</script>
+{% endif %}
+{% endblock %}

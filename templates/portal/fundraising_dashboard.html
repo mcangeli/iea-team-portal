@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Fundraising{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_dashboard' %}">← Back to Finance</a></nav>
+<section class="page-intro finance-intro">
+  <div><div class="eyebrow">TEAM FUNDRAISING</div><h1>Fundraising</h1><p>Track campaigns, contributions, team proceeds, and family fundraising credits without double-counting cash.</p></div>
+  <div class="actions"><a class="btn" href="{% url 'fundraising_campaign_create' %}">New campaign</a></div>
+</section>
+
+<form method="get" class="filter-panel finance-filter-panel">
+  <div class="filter-grid">
+    <label>Season<select name="season"><option value="all" {% if selected_season == 'all' %}selected{% endif %}>All seasons</option>{% for season in seasons %}<option value="{{ season.pk }}" {% if selected_season == season.pk|stringformat:"s" %}selected{% endif %}>{{ season.name }}</option>{% endfor %}</select></label>
+  </div>
+  <div class="actions"><button class="btn" type="submit">Apply</button><a class="btn secondary" href="{% url 'fundraising_dashboard' %}">Active season</a></div>
+</form>
+
+{% if policy %}
+<div class="callout finance-policy-callout">
+  <strong>{{ policy.get_model_display }} fundraising policy</strong>
+  <span>
+    Default family credit: {{ policy.default_family_credit_percent|floatformat:0 }}%.
+    Participation is {% if policy.participation_optional %}optional{% else %}expected{% endif %}.
+    {% if policy.family_message %}{{ policy.family_message }}{% endif %}
+  </span>
+  <a class="text-link" href="{% url 'fundraising_policy_edit' %}">Edit fundraising policy →</a>
+</div>
+{% endif %}
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Total raised</span><strong>${{ total_raised|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Family credits</span><strong>${{ total_family_credit|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Retained by team</span><strong>${{ total_retained|floatformat:2 }}</strong></article>
+</section>
+
+<section class="content-section">
+<div class="section-head"><div><div class="eyebrow">CAMPAIGNS</div><h2>Fundraising activity</h2></div></div>
+<div class="finance-account-grid">
+{% for row in campaign_rows %}
+  <article class="finance-account-card">
+    <small>{{ row.campaign.season.name }} · {{ row.campaign.get_status_display }}</small>
+    <h3><a href="{% url 'fundraising_campaign_detail' row.campaign.pk %}">{{ row.campaign.name }}</a></h3>
+    {% if row.campaign.description %}<p>{{ row.campaign.description|truncatechars:180 }}</p>{% endif %}
+    <strong>${{ row.raised|floatformat:2 }}</strong>
+    {% if row.campaign.goal_amount %}<p>{{ row.campaign.goal_percent }}% of ${{ row.campaign.goal_amount|floatformat:2 }} goal</p><div class="fundraising-progress"><span style="width:{{ row.campaign.goal_percent }}%"></span></div>{% endif %}
+    <p><small>${{ row.family_credit|floatformat:2 }} family credit · ${{ row.retained|floatformat:2 }} retained by team</small></p>
+    <div class="actions compact-actions"><a class="text-link" href="{% url 'fundraising_campaign_detail' row.campaign.pk %}">Open campaign →</a></div>
+  </article>
+{% empty %}
+  <div class="empty-state">No fundraising campaigns have been created for this season.</div>
+{% endfor %}
+</div>
+</section>
+{% endblock %}

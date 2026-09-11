@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="#" data-history-back>← Back</a></nav>
+<div class="form-card">
+  <div class="eyebrow">AUDIT-SAFE CORRECTION</div>
+  <h1>{{ title }}</h1>
+  <p>This will retain the payment record and void its linked ledger transaction. It will no longer reduce the family balance.</p>
+  <form method="post">{% csrf_token %}
+    <p><label for="id_reason">Reason for void</label><textarea id="id_reason" name="reason" rows="4" required placeholder="Explain why this payment is being voided."></textarea></p>
+    <button class="btn danger" type="submit">Void payment</button>
+  </form>
+</div>
+{% endblock %}

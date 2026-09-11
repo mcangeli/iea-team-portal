@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Delete Historical Result · {{ rider }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav">
+  <a href="{% url 'rider_history' rider.pk %}">← Back to {{ rider.display_name }} History</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HISTORICAL RESULT · {{ show.season.name }}</div>
+    <h1>Delete historical result?</h1>
+    <p>{{ rider }} · {{ show.name }} · {{ show.show_date|date:"M j, Y" }}</p>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>{{ entry.show_class.display_name }}</strong>
+  <span>
+    {% if result.place %}Place {{ result.place }} · {% endif %}
+    {{ result.points|default_if_none:"—" }} points
+    {% if show.competition_level != 'regular' %} · {{ entry.get_competition_track_display }}{% endif %}
+  </span>
+</div>
+
+<div class="card delete-warning-card">
+  <h2>This removes only this rider's record</h2>
+  {% if other_rider_results %}
+    <p>{{ other_rider_results }} other historical result{{ other_rider_results|pluralize }} remain on this show and will not be changed.</p>
+  {% else %}
+    <p>This is the last rider result attached to this imported historical show. The now-empty imported show record will also be removed automatically.</p>
+  {% endif %}
+  <p class="muted">The deletion is recorded in the audit log.</p>
+
+  <form method="post" class="actions">
+    {% csrf_token %}
+    <button class="btn danger" type="submit">Delete historical result</button>
+    <a class="btn secondary" href="{% url 'rider_history' rider.pk %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

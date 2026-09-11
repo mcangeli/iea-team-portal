@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Team Finance{% endblock %}
+{% block content %}
+<section class="page-intro finance-intro">
+  <div>
+    <div class="eyebrow">TEAM FINANCE · {{ season.name|default:"NO ACTIVE SEASON" }}</div>
+    <h1>Finance</h1>
+    <p>Season budget, cash activity, account balances, and recent team transactions.</p>
+  </div>
+  <div class="actions"><a class="btn secondary" href="{% url 'finance_audit_log' %}">Audit log</a>
+    <a class="btn secondary" href="{% url 'finance_receivables' %}">Family receivables</a>
+    <a class="btn secondary" href="{% url 'finance_dues_setup' %}">Dues setup</a>
+    <a class="btn secondary" href="{% url 'finance_accounts' %}">Accounts & categories</a>
+    <a class="btn secondary" href="{% url 'finance_budget' %}">Season budget</a>
+    <a class="btn secondary" href="{% url 'finance_reports' %}">Reports</a>
+    <a class="btn secondary" href="{% url 'fundraising_dashboard' %}">Fundraising</a>
+    <a class="btn secondary" href="{% url 'reimbursement_list' %}">Reimbursements</a>
+    <a class="btn" href="{% url 'finance_transaction_create' %}">Add transaction</a>
+  </div>
+</section>
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Season income</span><strong>${{ income|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Season expenses</span><strong>${{ expense|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Season net</span><strong>${{ net|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Budget entered</span><strong>${{ budget_total|floatformat:2 }}</strong></article>
+</section>
+
+<section class="finance-secondary-summary">
+  <a class="finance-summary-link" href="{% url 'finance_receivables' %}"><span>Family receivables</span><strong>${{ receivable_balance|floatformat:2 }}</strong><small>Outstanding active-season family responsibility →</small></a>
+  <a class="finance-summary-link" href="{% url 'finance_receivables' %}"><span>External assistance</span><strong>${{ active_award_remaining|floatformat:2 }}</strong><small>Unallocated active award eligibility →</small></a>
+</section>
+
+{% if season %}
+<section class="content-section finance-attention-section">
+  <div class="section-head">
+    <div><div class="eyebrow">TREASURER WORKLIST</div><h2>Needs attention</h2><p class="muted">Items worth reviewing before the next finance check-in.</p></div>
+    <a class="text-link" href="{% url 'finance_reports' %}?season={{ season.pk }}">Financial reports →</a>
+  </div>
+  <div class="attention-grid finance-attention-grid">
+    <a class="card attention-card {% if attention.overdue_families %}attention-card-alert{% endif %}" href="{% url 'finance_report_receivables' %}?season={{ season.pk }}&status=overdue">
+      <small>OVERDUE RECEIVABLES</small><strong>{{ attention.overdue_families }}</strong>
+      <span>${{ attention.overdue_balance|floatformat:2 }} overdue</span>
+    </a>
+    <a class="card attention-card {% if attention.draft_claims %}attention-card-alert{% endif %}" href="{% url 'finance_report_assistance' %}?season={{ season.pk }}">
+      <small>CLAIMS NOT SUBMITTED</small><strong>{{ attention.draft_claims }}</strong>
+      <span>Draft reimbursement claim{{ attention.draft_claims|pluralize }}</span>
+    </a>
+    <a class="card attention-card {% if attention.outstanding_claims %}attention-card-warn{% endif %}" href="{% url 'finance_report_assistance' %}?season={{ season.pk }}">
+      <small>AWAITING REIMBURSEMENT</small><strong>{{ attention.outstanding_claims }}</strong>
+      <span>Submitted or approved claim{{ attention.outstanding_claims|pluralize }}</span>
+    </a>
+    <a class="card attention-card {% if attention.missing_home_barn %}attention-card-warn{% endif %}" href="{% url 'finance_receivables' %}">
+      <small>MISSING HOME BARN</small><strong>{{ attention.missing_home_barn }}</strong>
+      <span>Active-season rider{{ attention.missing_home_barn|pluralize }}</span>
+    </a>
+    <a class="card attention-card {% if attention.missing_dues_rate %}attention-card-warn{% endif %}" href="{% url 'finance_dues_setup' %}">
+      <small>MISSING DUES RATE</small><strong>{{ attention.missing_dues_rate }}</strong>
+      <span>Rider barn{{ attention.missing_dues_rate|pluralize }} without a season rate</span>
+    </a>
+    <a class="card attention-card {% if attention.dues_not_generated %}attention-card-warn{% endif %}" href="{% url 'finance_dues_setup' %}">
+      <small>DUES NOT GENERATED</small><strong>{{ attention.dues_not_generated }}</strong>
+      <span>Membership{{ attention.dues_not_generated|pluralize }} without a dues charge</span>
+    </a>
+  </div>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">ACCOUNTS</div><h2>Current balances</h2></div>
+    <a class="text-link" href="{% url 'finance_accounts' %}">Manage accounts →</a>
+  </div>
+  <div class="finance-account-grid">
+    {% for row in account_rows %}
+      <article class="finance-account-card">
+        <small>{{ row.account.get_account_type_display }}</small>
+        <h3>{{ row.account.name }}</h3>
+        <strong>${{ row.balance|floatformat:2 }}</strong>
+        <p>Opening ${{ row.account.opening_balance|floatformat:2 }} · +${{ row.income|floatformat:2 }} · −${{ row.expense|floatformat:2 }}</p>
+      </article>
+    {% empty %}
+      <div class="empty-state">Add the team's first financial account to begin using the ledger.</div>
+    {% endfor %}
+  </div>
+</section>
+
+{% if season %}
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">BUDGET VS ACTUAL</div><h2>{{ season.name }}</h2></div>
+    <a class="text-link" href="{% url 'finance_budget' %}">Edit budget →</a>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table finance-table">
+      <thead><tr><th>Category</th><th>Budget</th><th>Actual</th><th>Variance</th></tr></thead>
+      <tbody>
+        {% for row in budget_rows %}
+        <tr>
+          <td><strong>{{ row.budget.category.name }}</strong><small>{{ row.budget.get_kind_display }}</small></td>
+          <td>${{ row.budget.amount|floatformat:2 }}</td>
+          <td>${{ row.actual|floatformat:2 }}</td>
+          <td class="{% if row.variance < 0 %}finance-negative{% endif %}">${{ row.variance|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="muted">No budget lines have been entered for this season.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">LEDGER</div><h2>Recent transactions</h2></div>
+    <div class="actions"><a class="text-link" href="{% url 'finance_transaction_export' %}">Export CSV</a><a class="text-link" href="{% url 'finance_transaction_list' %}">Full ledger →</a></div>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table finance-table">
+      <thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Account</th><th>Amount</th></tr></thead>
+      <tbody>
+      {% for tx in recent_transactions %}
+        <tr>
+          <td>{{ tx.transaction_date|date:"M j, Y" }}</td>
+          <td><a href="{% url 'finance_transaction_edit' tx.pk %}">{{ tx.description }}</a>{% if tx.payee %}<small>{{ tx.payee }}</small>{% endif %}</td>
+          <td>{{ tx.category.name }}</td><td>{{ tx.account.name }}</td>
+          <td class="finance-amount finance-{{ tx.kind }}">{% if tx.kind == 'expense' %}−{% else %}+{% endif %}${{ tx.amount|floatformat:2 }}</td>
+        </tr>
+      {% empty %}<tr><td colspan="5" class="muted">No financial transactions have been entered yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Assistance & Reimbursements{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_reports' %}{% if season %}?season={{ season.pk }}{% endif %}">← Back to Reports</a></nav>
+<form method="get" class="report-season-picker report-season-picker-inline"><label for="season">Season</label><select id="season" name="season" onchange="this.form.submit()">{% for item in seasons %}<option value="{{ item.pk }}" {% if season and item.pk == season.pk %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></form>
+<section class="page-intro finance-intro"><div><div class="eyebrow">FINANCIAL REPORT</div><h1>Assistance & Reimbursements</h1><p>{{ season.name|default:"No active season" }}</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_report_assistance_export' %}{% if season %}?season={{ season.pk }}{% endif %}">Export CSV</a></div></section>
+<section class="finance-stat-grid">
+<article class="finance-stat"><span>Award maximums</span><strong>${{ totals.approved_maximum|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Allocated</span><strong>${{ totals.allocated|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Reimbursed</span><strong>${{ totals.reimbursed|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Remaining eligibility</span><strong>${{ totals.remaining|default:0|floatformat:2 }}</strong></article>
+</section>
+<div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Rider</th><th>Provider / Program</th><th>Maximum</th><th>Allocated</th><th>Submitted</th><th>Approved</th><th>Reimbursed</th><th>Remaining</th><th>Needs action</th></tr></thead><tbody>
+{% for row in rows %}<tr><td><strong>{{ row.award.membership.rider }}</strong></td><td>{{ row.award.provider }}{% if row.award.program_name %}<small>{{ row.award.program_name }}</small>{% endif %}</td><td>${{ row.award.approved_maximum|floatformat:2 }}</td><td>${{ row.allocated|floatformat:2 }}</td><td>${{ row.submitted|floatformat:2 }}</td><td>${{ row.approved|floatformat:2 }}</td><td>${{ row.reimbursed|floatformat:2 }}</td><td>${{ row.remaining|floatformat:2 }}</td><td>{% if row.draft_count %}<span class="status-pill status-due_soon">{{ row.draft_count }} not submitted</span>{% endif %}{% if row.outstanding_count %}<span class="status-pill">{{ row.outstanding_count }} outstanding</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="9" class="muted">No financial-assistance awards are recorded for this season.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

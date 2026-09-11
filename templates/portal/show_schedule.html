@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Schedule{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">PRIZE LIST · SHOW DAY</div>
+    <h1>Class schedule</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'show_day_updates' show.pk %}">Show updates</a>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>Times are estimates.</strong>
+  <span>The prize-list time is the published baseline. The current estimate can be adjusted during the show without changing that original time. Follow official show announcements for actual timing.</span>
+</div>
+
+{% if can_edit_any %}
+<section class="content-section schedule-shift-panel">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">SHOW-DAY ADJUSTMENT</div>
+      <h2>Shift remaining classes</h2>
+      <p class="muted">Choose where the delay or acceleration begins, then move all editable scheduled classes from that point forward.</p>
+    </div>
+  </div>
+  <form method="post" class="schedule-shift-form">
+    {% csrf_token %}
+    <input type="hidden" name="schedule_action" value="shift">
+    <label>
+      Start with
+      <select name="start_class">
+        <option value="">First editable scheduled class</option>
+        {% for row in rows %}
+          {% if row.editable %}
+            <option value="{{ row.class.pk }}">
+              {% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}
+            </option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+    <div class="schedule-shift-buttons">
+      <button class="btn secondary" name="shift_minutes" value="-30" type="submit">−30 min</button>
+      <button class="btn secondary" name="shift_minutes" value="-15" type="submit">−15</button>
+      <button class="btn secondary" name="shift_minutes" value="-10" type="submit">−10</button>
+      <button class="btn secondary" name="shift_minutes" value="10" type="submit">+10</button>
+      <button class="btn secondary" name="shift_minutes" value="15" type="submit">+15</button>
+      <button class="btn secondary" name="shift_minutes" value="30" type="submit">+30 min</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">CLASS ORDER</div>
+      <h2>Prize-list schedule</h2>
+      <p class="muted">Enter only the timing information the prize list provides. Blank times are allowed.</p>
+    </div>
+    {% if can_edit_any %}
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="schedule_action" value="reset_estimates">
+      <button class="btn secondary" type="submit">Reset estimates to prize list</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="schedule_action" value="save">
+    <div class="entry-table-wrap">
+      <table class="entry-table schedule-table">
+        <thead>
+          <tr>
+            <th>Order</th>
+            <th>Class</th>
+            <th>Team</th>
+            <th>Prize list</th>
+            <th>Current estimate</th>
+            <th>Note</th>
+            <th>Entries</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr class="{% if row.my_class %}schedule-my-class{% endif %}">
+            <td>
+              {% if row.editable %}
+                <input class="schedule-order-input" type="number" min="0" name="order_{{ row.class.pk }}" value="{{ row.class.sort_order }}">
+              {% else %}
+                {{ row.class.sort_order }}
+              {% endif %}
+            </td>
+            <td>
+              <strong>{% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}</strong>
+              {% if row.my_class %}<span class="status-pill">My rider</span>{% endif %}
+            </td>
+            <td>{% if row.class.season_class %}{{ row.class.season_class.get_team_level_display }}{% else %}Both{% endif %}</td>
+            <td>
+              {% if row.editable %}
+                <input type="time" name="prize_{{ row.class.pk }}" value="{% if row.class.prize_list_time %}{{ row.class.prize_list_time|time:'H:i' }}{% endif %}">
+              {% else %}
+                {{ row.class.prize_list_time|time:"g:i A"|default:"—" }}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.editable %}
+                <input type="time" name="estimate_{{ row.class.pk }}" value="{% if row.class.estimated_time %}{{ row.class.estimated_time|time:'H:i' }}{% endif %}">
+                {% if not row.class.estimated_time and row.class.prize_list_time %}
+                  <small class="muted">Using {{ row.class.prize_list_time|time:"g:i A" }} baseline</small>
+                {% endif %}
+              {% else %}
+                {% if row.class.schedule_time %}{{ row.class.schedule_time|time:"g:i A" }}{% else %}—{% endif %}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.editable %}
+                <input type="text" maxlength="180" name="note_{{ row.class.pk }}" value="{{ row.class.schedule_note }}" placeholder="Ring 2, after lunch…">
+              {% else %}
+                {{ row.class.schedule_note|default:"—" }}
+              {% endif %}
+            </td>
+            <td>{{ row.entry_count }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="muted">No classes have been added to this show yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if can_edit_any %}
+      <div class="actions form-actions schedule-save-actions">
+        <button class="btn" type="submit">Save schedule</button>
+      </div>
+    {% endif %}
+  </form>
+</section>
+{% endblock %}

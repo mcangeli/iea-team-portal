@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}{{ season.name }} Review{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'season_archive' %}">← Back to Season History</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">{{ season.name }} · SEASON REVIEW</div>
+    <h1>Season performance</h1>
+    <p>
+      {% if season.is_closed %}
+        Archived season summary. Historical result entry remains available while normal operational edits are protected.
+      {% else %}
+        Rider progress, qualification, team performance and participation for this season.
+      {% endif %}
+    </p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'award_list' season.pk %}">Awards</a>
+    {% if can_manage %}
+      <a class="btn secondary" href="{% url 'season_history_entry' season.pk %}">Historical data</a>
+      {% if season.is_closed %}
+        {% if is_admin %}
+        <form method="post" action="{% url 'season_reopen' season.pk %}" class="inline-form">
+          {% csrf_token %}
+          <button class="btn secondary" type="submit">Reopen for corrections</button>
+        </form>
+        {% endif %}
+      {% else %}
+        {% if is_admin %}
+        <a class="btn secondary" href="{% url 'season_archive_readiness' season.pk %}">Review & archive</a>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+
+<section class="season-status-panel">
+  <div>
+    <div class="eyebrow">SEASON STATUS</div>
+    <strong>
+      {% if season.is_closed %}Archived{% elif season.is_active %}Active season{% else %}Open / inactive{% endif %}
+    </strong>
+  </div>
+  <p>
+    {% if season.is_closed %}
+      Historical corrections remain available; normal operational edits are protected.
+    {% elif season.is_active %}
+      This is the team's active operational season.
+    {% else %}
+      This season is open for corrections but is not the active operational season.
+    {% endif %}
+  </p>
+</section>
+
+{% if season.is_closed %}
+<div class="callout season-archive-callout">
+  <strong>Archived {{ season.closed_at|date:"M j, Y"|default:"season" }}</strong>
+  <span>Normal operational edits are blocked. An Administrator may reopen the season temporarily for corrections; reopening does not make it the active season.</span>
+</div>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">TEAM QUALIFICATION</div><h2>Team points</h2></div>
+    <p>Season team qualification totals.</p>
+  </div>
+  <div class="stat-grid">
+    {% for t in team_summary %}
+      <article class="stat-card">
+        <small>{{ t.team_label }}</small>
+        <strong>{{ t.points }}</strong>
+        <span>{% if t.qualified %}<span class="status-pill status-complete">Qualified</span>{% else %}{{ t.threshold }} needed{% endif %}</span>
+      </article>
+    {% empty %}
+      <div class="empty-state">No team scoring data for this season.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">INDIVIDUAL QUALIFICATION</div><h2>Rider class progress</h2></div>
+    <p>Qualification is tracked separately for each class.</p>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead>
+        <tr><th>Rider</th><th>Team</th><th>Class</th><th>Points</th><th>Progress</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for q in qualification_rows %}
+          <tr>
+            <td><a href="{% url 'rider_detail' q.rider.pk %}">{{ q.rider }}</a></td>
+            <td>{{ q.membership.get_team_level_display }}</td>
+            <td>{{ q.season_class.name }}</td>
+            <td><strong>{{ q.points }}</strong> / {{ q.threshold }}</td>
+            <td><progress max="{{ q.threshold }}" value="{{ q.points }}"></progress></td>
+            <td>{% if q.qualified %}<span class="status-pill status-complete">Qualified</span>{% else %}<span class="status-pill">In progress</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">No rider qualification data for this season.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">RIDERS</div><h2>Season snapshot</h2></div>
+    <p>Participation, class totals, lessons and volunteer activity.</p>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead>
+        <tr><th>Rider</th><th>Team</th><th>Shows</th><th>Class points</th><th>Wins</th><th>Lessons</th><th>Volunteer</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in rider_rows %}
+          <tr>
+            <td><a href="{% url 'rider_detail' r.rider.pk %}">{{ r.rider.display_name }}</a></td>
+            <td>{{ r.membership.get_team_level_display|default:"—" }}</td>
+            <td>{{ r.shows }}</td>
+            <td>
+              <div class="stacked-metrics">
+                {% for cp in r.class_points %}
+                  <div><strong>{{ cp.points }}</strong><span>{{ cp.season_class.name }}</span></div>
+                {% empty %}
+                  <span class="muted">No class points</span>
+                {% endfor %}
+              </div>
+            </td>
+            <td>{{ r.wins }}</td>
+            <td>{{ r.attendance }}</td>
+            <td>{{ r.volunteer_hours }}h</td>
+            <td>{% if r.can_history %}<a class="text-link" href="{% url 'rider_history' r.rider.pk %}">History</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="muted">No riders are enrolled in this season.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">POST-SEASON</div><h2>Finals results</h2></div>
+    <p>Region, Zone and National results are tracked separately from regular-season qualification points.</p>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead>
+        <tr><th>Final</th><th>Rider</th><th>Track</th><th>Class</th><th>Place</th><th>Points</th></tr>
+      </thead>
+      <tbody>
+        {% for result in postseason_results %}
+          <tr>
+            <td><a href="{% url 'show_detail' result.entry.show_class.show.pk %}">{{ result.entry.show_class.show.get_competition_level_display }}</a><br><small>{{ result.entry.show_class.show.name }} · {{ result.entry.show_class.show.show_date|date:"M j, Y" }}</small></td>
+            <td><a href="{% url 'rider_detail' result.entry.rider.pk %}">{{ result.entry.rider.display_name }}</a></td>
+            <td><span class="finals-track finals-track-{{ result.entry.competition_track }}">{{ result.entry.get_competition_track_display }}</span></td>
+            <td>{{ result.entry.show_class.display_name }}</td>
+            <td>{{ result.place|default:"—" }}</td>
+            <td>{{ result.points|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">No Region, Zone or National results have been recorded for this season.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

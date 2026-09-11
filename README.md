@@ -1,6 +1,23 @@
 # IEA Team Portal
 
-**Current version: v1.9.9**
+## v2.0.0 Preview 2 — Git Installation & Updates
+
+Preview 2 adds the Git-backed deployment workflow planned for v2. The application can now live permanently at `/opt/iea-team-portal/app` as a Git checkout while the shared `.env`, backups, logs, PostgreSQL volume, and media volume remain persistent outside the code checkout.
+
+The existing ZIP/release-folder workflow remains compatible during the transition, but a Git checkout adds:
+
+- `install.sh` for first-time Git-backed installation;
+- `./portalctl git-status` to identify the installed ref/commit and working-tree state;
+- `./portalctl update` to fetch tags, select the newest stable release, back up PostgreSQL, check out the release tag, rebuild, run deployment/schema checks, show the migration plan, and restart;
+- `./portalctl update <tag-or-ref>` for an explicitly selected preview or release;
+- `PORTAL_UPDATE_CHANNEL=stable` by default, with `preview` available when intentionally testing preview tags;
+- `./portalctl rollback-code` for a guarded application-code rollback to the commit recorded before the last Git update.
+
+Database rollback is deliberately **not automatic**. If an update applies a migration that is not backward-compatible, `rollback-code` identifies the matching backup and warns that the database must be restored as part of the rollback.
+
+Preview 1's domain-based view architecture remains in place. No database migration is required for Preview 2.
+
+**Current version: v2.0.0 Preview 2**
 
 v1.9.9 is the final pre-v2 stabilization release. It focuses on permission/archive consistency, graceful error handling, performance/data integrity, and production hardening rather than major new features.
 

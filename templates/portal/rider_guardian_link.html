@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Link Parent/Guardian{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<div class="page-title">
+  <div>
+    <div class="eyebrow">FAMILY RELATIONSHIP</div>
+    <h1>Link an existing parent/guardian</h1>
+    <p>Attach an existing guardian record to {{ rider.display_name }} without creating a duplicate contact.</p>
+  </div>
+</div>
+
+<div class="card">
+  {% if guardians %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-grid">
+      <label>
+        <span>Parent / Guardian</span>
+        <select name="guardian" required>
+          <option value="">Select an existing guardian…</option>
+          {% for guardian in guardians %}
+          <option value="{{ guardian.pk }}">{{ guardian }}{% if guardian.email %} · {{ guardian.email }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        <span>Relationship</span>
+        <input type="text" name="relationship" value="Parent/Guardian" maxlength="80">
+      </label>
+
+      <label class="check-row">
+        <input type="checkbox" name="primary_contact">
+        <span>Primary contact for this rider</span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn" type="submit">Link guardian</button>
+      <a class="btn secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty-state">
+    Every existing guardian on this team is already linked to this rider, or no guardian records exist yet.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

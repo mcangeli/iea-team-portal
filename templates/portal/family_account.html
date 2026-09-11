@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}{{ membership.rider.display_name }} · Family Account{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  {% if can_finance %}
+    <a href="{% url 'finance_receivables' %}">← Back to Family Receivables</a>
+  {% else %}
+    <a href="{% url 'my_team' %}">← Back to My Team</a>
+  {% endif %}
+</nav>
+<section class="page-intro finance-intro">
+  <div>
+    <div class="eyebrow">FAMILY ACCOUNT · {{ membership.season.name }}</div>
+    <h1>{{ membership.rider.display_name }}</h1>
+    <p>{{ membership.get_team_level_display }}{% if membership.home_barn %} · {{ membership.home_barn.name }}{% endif %}</p>
+  </div>
+  {% if can_finance %}
+  <div class="actions mobile-sticky-actions">
+    <a class="btn secondary" href="{% url 'family_charge_create' membership.pk %}">Add charge</a>
+    <a class="btn secondary" href="{% url 'family_payment_add' membership.pk %}">Record payment</a>
+    <a class="btn secondary" href="{% url 'assistance_award_add' membership.pk %}">Add assistance</a>
+    <a class="btn secondary" href="{% url 'service_agreement_add' membership.pk %}">Add service credit</a>
+    <form method="post" action="{% url 'membership_dues_generate' membership.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Generate membership dues</button></form>
+  </div>
+  {% endif %}
+</section>
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Charges</span><strong>${{ billed|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Credits & assistance</span><strong>${{ generic_credits|add:service_credits|add:assistance|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Payments</span><strong>${{ payments|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Balance due</span><strong>${{ balance|floatformat:2 }}</strong></article>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">FUNDRAISING</div><h2>Family fundraising</h2><p class="muted">Fundraising attributed to this rider's family for the current season.</p></div>
+    <a class="text-link" href="{% url 'family_fundraising' membership.pk %}">View fundraising →</a>
+  </div>
+  <div class="finance-stat-grid compact-stat-grid">
+    <article class="finance-stat"><span>Raised</span><strong>${{ fundraising_raised|floatformat:2 }}</strong></article>
+    <article class="finance-stat"><span>Family credit</span><strong>${{ fundraising_credit|floatformat:2 }}</strong></article>
+    <article class="finance-stat"><span>Team contribution</span><strong>${{ fundraising_team|floatformat:2 }}</strong></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">ACCOUNT LEDGER</div><h2>Charges</h2></div></div>
+  <div class="family-charge-stack">
+  {% for charge in charges %}
+    <article class="card family-charge-card">
+      <div class="family-charge-main">
+        <div><small>{{ charge.get_charge_type_display }} · {{ charge.get_status_display }}</small><h3>{{ charge.description }}</h3>
+          <p>Charged {{ charge.charge_date|date:"M j, Y" }}{% if charge.due_date %} · Due {{ charge.due_date|date:"M j, Y" }}{% endif %}{% if charge.show %} · {{ charge.show.name }}{% endif %}</p>
+        </div>
+        <div class="family-charge-money"><strong>${{ charge.amount|floatformat:2 }}</strong><span>Balance ${{ charge.balance|floatformat:2 }}</span></div>
+      </div>
+      {% if charge.credits.all or charge.service_credits.all or charge.assistance_claims.all or charge.payments.all %}
+      <div class="family-ledger-lines">
+        {% for credit in charge.credits.all %}<div><span>{{ credit.get_credit_type_display }}{% if credit.source %} · {{ credit.source }}{% endif %} <small>{{ credit.get_status_display }}</small>{% if can_finance %} · <a class="text-link" href="{% url 'family_credit_edit' credit.pk %}">Edit</a>{% endif %}</span><strong>{% if credit.status == 'applied' %}−{% endif %}${{ credit.amount|floatformat:2 }}</strong></div>{% endfor %}
+        {% for credit in charge.service_credits.all %}<div><span>Service agreement · {{ credit.description }} <small>{{ credit.get_status_display }}</small></span><strong>{% if credit.status == 'applied' %}−{% endif %}${{ credit.amount|floatformat:2 }}</strong></div>{% endfor %}
+        {% for claim in charge.assistance_claims.all %}<div><span>{{ claim.award.provider }} assistance <small>{{ claim.get_status_display }}</small></span><strong>{% if claim.status != 'draft' and claim.status != 'denied' and claim.status != 'cancelled' %}−{% endif %}${{ claim.family_relief_amount|floatformat:2 }}</strong></div>{% endfor %}
+        {% for payment in charge.payments.all %}<div class="{% if payment.status == 'void' %}muted{% endif %}"><span>Payment · {{ payment.received_date|date:"M j, Y" }}{% if payment.method %} · {{ payment.method }}{% endif %}{% if payment.status == 'void' %} · <strong>VOID</strong>{% if payment.void_reason %} · {{ payment.void_reason }}{% endif %}{% elif can_finance %} · <a class="text-link" href="{% url 'family_payment_edit' payment.pk %}">Edit</a> · <a class="text-link danger-link" href="{% url 'family_payment_delete' payment.pk %}">Void</a>{% endif %}</span><strong>{% if payment.status == 'void' %}<s>−${{ payment.amount|floatformat:2 }}</s>{% else %}−${{ payment.amount|floatformat:2 }}{% endif %}</strong></div>{% endfor %}
+      </div>
+      {% endif %}
+      {% if can_finance %}<div class="actions compact-actions"><a class="text-link" href="{% url 'family_charge_edit' charge.pk %}">Edit charge</a><a class="text-link" href="{% url 'family_credit_add' charge.pk %}">Add credit</a></div>{% endif %}
+    </article>
+  {% empty %}<div class="empty-state">No charges have been posted for this rider this season.</div>{% endfor %}
+  </div>
+</section>
+
+{% if awards %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">EXTERNAL ASSISTANCE</div><h2>Awards & reimbursement</h2></div></div>
+  <div class="finance-account-grid">
+  {% for award in awards %}
+    <article class="finance-account-card assistance-card">
+      <small>{{ award.get_status_display }}</small><h3>{{ award.program_name|default:award.provider }}</h3>
+      <strong>${{ award.remaining_eligibility|floatformat:2 }}</strong>
+      <p>remaining of ${{ award.approved_maximum|floatformat:2 }} approved · ${{ award.reimbursed_total|floatformat:2 }} reimbursed</p>
+      {% if can_finance %}
+      <div class="actions compact-actions"><a class="text-link" href="{% url 'assistance_award_edit' award.pk %}">Edit award</a><a class="text-link" href="{% url 'assistance_claim_add' award.pk %}">Add claim</a></div>
+      {% endif %}
+      {% for claim in award.claims.all %}
+      <div class="assistance-claim-line">
+        <span>{{ claim.charge.description }} · {{ claim.get_status_display }}</span>
+        <strong>${{ claim.amount_requested|floatformat:2 }}</strong>
+        {% if can_finance %}<a class="text-link" href="{% url 'assistance_claim_edit' claim.pk %}">Manage</a>{% endif %}
+      </div>
+      {% endfor %}
+    </article>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if service_agreements %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">SERVICE AGREEMENTS</div><h2>Conditional credits</h2></div></div>
+  <div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Agreement</th><th>Shows</th><th>Credit</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for item in service_agreements %}
+    <tr><td><strong>{{ item.description }}</strong><small>Applied to {{ item.charge.description }}</small></td>
+      <td>{% for show in item.required_shows.all %}{{ show.name }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
+      <td>${{ item.amount|floatformat:2 }}</td><td>{{ item.get_status_display }}</td>
+      <td>{% if can_finance %}<a class="text-link" href="{% url 'service_agreement_edit' item.pk %}">Manage →</a>{% endif %}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+
+<p class="muted finance-footnote">External assistance shown here reduces family responsibility only after a claim is submitted or approved. Reimbursement received by the team is recorded separately in Team Finance.</p>
+{% endblock %}

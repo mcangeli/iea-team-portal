@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+{% block title %}Archive Readiness · {{ season.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav">
+  <a href="{% url 'season_review' season.pk %}">← Back to {{ season.name }} Review</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SEASON MANAGEMENT · {{ season.name }}</div>
+    <h1>Archive readiness</h1>
+    <p>Review unresolved operational and finance items before protecting the season from normal edits.</p>
+  </div>
+</section>
+
+{% if readiness.ready %}
+<div class="callout season-readiness-good">
+  <strong>Ready to archive</strong>
+  <span>No unresolved readiness items were found.</span>
+</div>
+{% else %}
+<div class="callout">
+  <strong>{{ readiness.issue_count }} item{{ readiness.issue_count|pluralize }} need review</strong>
+  <span>These are warnings, not hard blockers. An Administrator can still archive after reviewing them.</span>
+</div>
+{% endif %}
+
+<div class="readiness-grid">
+  {% for check in readiness.checks %}
+  <article class="card readiness-card">
+    <small>{{ check.label }}</small>
+    <strong>{{ check.count }}</strong>
+    <p>{{ check.detail }}</p>
+  </article>
+  {% endfor %}
+</div>
+
+{% if readiness.incomplete_shows %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">SHOWS</div><h2>Incomplete shows</h2></div></div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Date</th><th>Show</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for show in readiness.incomplete_shows %}
+        <tr><td>{{ show.show_date|date:"M j, Y" }}</td><td><a href="{% url 'show_detail' show.pk %}">{{ show.name }}</a></td><td>{{ show.get_status_display }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if readiness.resultless_entries %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">RESULTS</div><h2>Entries without results</h2></div><p>Showing up to 50.</p></div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Show</th><th>Rider</th><th>Class</th></tr></thead>
+      <tbody>
+      {% for entry in readiness.resultless_entries %}
+        <tr>
+          <td>{{ entry.show_class.show.name }}</td>
+          <td>{{ entry.rider }}</td>
+          <td>{{ entry.show_class.display_name }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if readiness.memberships_without_classes %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">ROSTER</div><h2>Riders without classes</h2></div></div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Rider</th><th>Team</th></tr></thead>
+      <tbody>
+      {% for membership in readiness.memberships_without_classes %}
+        <tr><td>{{ membership.rider }}</td><td>{{ membership.get_team_level_display|default:"—" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if readiness.open_family_charges or readiness.unresolved_reimbursements %}
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">FINANCE</div><h2>Unresolved finance items</h2></div>
+    <p>Archiving does not erase these records, but reviewing them now helps avoid carrying unfinished season work forward.</p>
+  </div>
+  {% if readiness.open_family_charges %}
+  <h3>Open family charges</h3>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Rider</th><th>Description</th><th>Amount</th><th>Due</th></tr></thead>
+      <tbody>
+      {% for charge in readiness.open_family_charges %}
+        <tr><td>{{ charge.membership.rider }}</td><td>{{ charge.description }}</td><td>${{ charge.amount }}</td><td>{{ charge.due_date|date:"M j, Y"|default:"—" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  {% if readiness.unresolved_reimbursements %}
+  <h3>Reimbursements</h3>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Payee</th><th>Description</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for item in readiness.unresolved_reimbursements %}
+        <tr><td>{{ item.payee_name }}</td><td>{{ item.description }}</td><td>${{ item.amount }}</td><td>{{ item.get_status_display }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="archive-confirm-card card">
+  <h2>{% if readiness.ready %}Archive {{ season.name }}{% else %}Archive with warnings{% endif %}</h2>
+  <p>Archiving marks the season inactive and protects normal operational edits. Historical data entry and corrections remain available.</p>
+  <form method="post" action="{% url 'season_close' season.pk %}" class="actions">
+    {% csrf_token %}
+    <input type="hidden" name="confirm_archive" value="yes">
+    <button class="btn danger" type="submit">Archive season</button>
+    <a class="btn secondary" href="{% url 'season_review' season.pk %}">Cancel</a>
+  </form>
+</section>
+{% endblock %}

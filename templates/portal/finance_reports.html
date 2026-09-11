@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Financial Reports<section class="content-section"><div class="section-head"><div><div class="eyebrow">FUNDRAISING</div><h2>Campaign reporting</h2><p class="muted">Review fundraising income, family credits, team-retained proceeds, and campaign CSV exports.</p></div><a class="text-link" href="{% url 'fundraising_dashboard' %}">Open fundraising →</a></div></section>
+{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_dashboard' %}">← Back to Finance</a></nav>
+<section class="page-intro finance-intro">
+  <div><div class="eyebrow">TEAM FINANCE · REPORTING</div><h1>Financial reports</h1>
+  <p>Season-level reporting for budget performance, receivables, assistance, and category activity.</p></div>
+  <form method="get" class="report-season-picker"><label for="season">Season</label><select id="season" name="season" onchange="this.form.submit()">
+    {% for item in seasons %}<option value="{{ item.pk }}" {% if season and item.pk == season.pk %}selected{% endif %}>{{ item.name }}</option>{% endfor %}
+  </select></form>
+</section>
+
+<div class="report-card-grid">
+  <a class="card report-link-card" href="{% url 'finance_report_budget' %}{% if season %}?season={{ season.pk }}{% endif %}">
+    <small>BUDGET</small><h2>Budget vs Actual</h2>
+    <p>{{ budget_line_count }} budget line{{ budget_line_count|pluralize }} · Actual net ${{ budget_totals.actual_net|default:0|floatformat:2 }}</p><span>Open report →</span>
+  </a>
+  <a class="card report-link-card" href="{% url 'finance_report_receivables' %}{% if season %}?season={{ season.pk }}{% endif %}">
+    <small>FAMILIES</small><h2>Family Receivables</h2>
+    <p>Outstanding ${{ receivable_totals.balance|default:0|floatformat:2 }} · Overdue ${{ receivable_totals.overdue|default:0|floatformat:2 }}</p><span>Open report →</span>
+  </a>
+  <a class="card report-link-card" href="{% url 'finance_report_assistance' %}{% if season %}?season={{ season.pk }}{% endif %}">
+    <small>ASSISTANCE</small><h2>Awards & Reimbursements</h2>
+    <p>{{ assistance_count }} award{{ assistance_count|pluralize }} · ${{ assistance_totals.remaining|default:0|floatformat:2 }} remaining eligibility</p><span>Open report →</span>
+  </a>
+  <a class="card report-link-card" href="{% url 'finance_report_category' %}{% if season %}?season={{ season.pk }}{% endif %}">
+    <small>LEDGER</small><h2>Category Activity</h2>
+    <p>Drill into income or expense categories and the transactions behind them.</p><span>Open report →</span>
+  </a>
+</div>
+{% endblock %}

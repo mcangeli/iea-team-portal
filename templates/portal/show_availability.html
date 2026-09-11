@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Availability · {{ show.name }}{% endblock %}{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'show_detail' show.pk %}">← Back to Show</a>
+</nav>
+<div class="page-intro"><div><div class="eyebrow">SHOW AVAILABILITY</div><h1>{{ show.name }}</h1><p>{{ show.show_date|date:"l, F j, Y" }} · Let the coaching staff know whether each rider is available before entries are finalized.</p></div><a class="btn secondary" href="{% url 'show_detail' show.pk %}">Back to show</a></div>
+<div class="availability-grid">{% for response in responses %}<article class="availability-card card"><div><small>{{ response.rider }}</small><h3 class="availability-{{ response.status }}">{{ response.get_status_display }}</h3>{% if response.notes %}<p>{{ response.notes }}</p>{% endif %}{% if response.responded_at %}<span class="muted">Updated {{ response.responded_at|date:"M j · g:i A" }}</span>{% endif %}</div><a class="btn secondary" href="{% url 'show_availability_edit' show.pk response.rider.pk %}">{% if can_manage %}Update{% else %}Respond{% endif %}</a></article>{% empty %}<div class="empty-state">No riders are rostered for this season.</div>{% endfor %}</div>
+{% endblock %}

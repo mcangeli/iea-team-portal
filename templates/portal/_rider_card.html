@@ -1,0 +1,21 @@
+<a class="rider-card club-rider-card" href="{% url 'rider_detail' r.pk %}">
+  <div class="rider-card-portrait">
+    {% if r.photo %}<img src="{{ r.photo.url }}" alt="{{ r }}">
+    {% else %}<div class="avatar">{{ r.first_name|first }}{{ r.last_name|first }}</div>{% endif %}
+  </div>
+  <div class="rider-card-copy">
+    <div class="eyebrow">TEAM RIDER</div>
+    <h3>{{ r.display_name }}</h3>
+    {% with membership=r.memberships.all|first %}
+      {% if membership %}
+        <p class="rider-card-team">{{ membership.get_team_level_display }}{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
+        <div class="rider-card-classes">
+          {% for c in membership.classes.all|slice:":3" %}<span>{{ c.name }}</span>{% empty %}<span>Season roster</span>{% endfor %}
+        </div>
+      {% else %}
+        <p class="rider-card-team">Team profile{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
+      {% endif %}
+    {% endwith %}
+    <span class="rider-card-link">View rider <span aria-hidden="true">→</span></span>
+  </div>
+</a>

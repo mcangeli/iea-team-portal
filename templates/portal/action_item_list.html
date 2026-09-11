@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Action Items{% endblock %}
+{% block content %}
+<div class="section-head"><div><div class="eyebrow">TEAM HUB</div><h1>Action items</h1><p>Assignments, sign-ups, supplies, paperwork, and other things the team needs to get done.</p></div>
+{% if can_manage %}<a class="btn" href="{% url 'action_item_create' %}">Add action item</a>{% endif %}</div>
+
+<div class="filter-tabs"><a class="{% if not show_completed %}active{% endif %}" href="{% url 'action_item_list' %}">Open</a><a class="{% if show_completed %}active{% endif %}" href="?completed=1">Include completed</a></div>
+
+<div class="action-stack">
+{% for item in items %}
+<article class="card action-row {% if item.completed %}is-complete{% endif %}">
+  <div class="action-copy">
+    <small>{{ item.get_category_display }}{% if item.due_at %} · Due {{ item.due_at|date:"M j, Y · g:i A" }}{% endif %}</small>
+    <h3>{{ item.title }}</h3>
+    {% if item.details %}<p>{{ item.details }}</p>{% endif %}
+    <p class="muted">{% if item.rider %}For {{ item.rider.display_name }}{% endif %}{% if item.event %}{% if item.rider %} · {% endif %}{{ item.event.title }}{% endif %}{% if item.show %}{% if item.rider or item.event %} · {% endif %}{{ item.show.name }}{% endif %}</p>
+    {% if item.owner %}<p><strong>Owner:</strong> {{ item.owner.get_full_name|default:item.owner.username }}</p>{% elif item.claimable %}<p class="muted">Unclaimed</p>{% endif %}
+  </div>
+  <div class="actions action-row-actions">
+    {% if can_manage %}<a class="text-link" href="{% url 'action_item_edit' item.pk %}">Edit</a>{% endif %}
+    {% if item.claimable and not item.completed %}
+      <form method="post" action="{% url 'action_item_claim' item.pk %}">{% csrf_token %}
+        <button class="btn secondary" type="submit">{% if item.claimed_by_id == user.id %}Unclaim{% elif not item.claimed_by %}Claim{% else %}Claimed{% endif %}</button>
+      </form>
+    {% endif %}
+    {% if can_manage or item.assigned_to_id == user.id or item.claimed_by_id == user.id %}
+      <form method="post" action="{% url 'action_item_complete' item.pk %}">{% csrf_token %}
+        <button class="btn" type="submit">{% if item.completed %}Reopen{% else %}Complete{% endif %}</button>
+      </form>
+    {% endif %}
+  </div>
+</article>
+{% empty %}<div class="empty-state">No action items match this view.</div>{% endfor %}
+</div>
+{% endblock %}

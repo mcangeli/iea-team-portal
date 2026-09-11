@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'show_list' %}">← Back to Shows</a>
+</nav>
+<section class="show-hero">
+  <div class="show-hero-date"><span>{{ show.show_date|date:"M" }}</span><strong>{{ show.show_date|date:"j" }}</strong><small>{{ show.show_date|date:"Y" }}</small></div>
+  <div class="show-hero-copy"><div class="eyebrow light">{{ show.season.name }} · {{ show.get_competition_level_display|upper }}</div><h1>{{ show.name }}</h1><p>{% if show.venue %}{{ show.venue }}{% endif %}{% if show.start_time %} · {{ show.start_time|time:"g:i A" }}{% endif %}</p><div class="show-meta"><span class="status-pill status-{{ show.status }}">{{ show.get_status_display }}</span><span class="status-pill">{{ show.get_competition_level_display }}</span><span class="status-pill">{{ show.get_financial_role_display }}</span>{% if show.iea_zone %}<span>Zone {{ show.iea_zone }}</span>{% endif %}{% if show.iea_region %}<span>Region {{ show.iea_region }}</span>{% endif %}{% if show.entry_deadline %}<span>Entries due {{ show.entry_deadline|date:"M j" }}</span>{% endif %}</div></div>
+  {% if can_manage %}<div class="actions mobile-sticky-actions"><a class="btn light-btn" href="{% url 'show_entry_create' show.pk %}">Add entry</a><a class="btn ghost-btn" href="{% url 'show_class_create' show.pk %}">Add class</a>{% if can_finance_show %}<a class="btn ghost-btn" href="{% url 'show_finance' show.pk %}">Finance</a>{% endif %}<a class="btn ghost-btn" href="{% url 'show_edit' show.pk %}">Edit show</a><a class="btn ghost-btn" href="{% url 'show_delete' show.pk %}">Delete</a></div>{% endif %}
+</section>
+{% if show.competition_level != 'regular' and postseason_team_totals %}
+<section class="content-section finals-score-summary">
+  <div class="section-head">
+    <div><div class="eyebrow">TEAM FINALS</div><h2>Team result</h2></div>
+    <p>Team-track points are shown for reference; H8/H14 are excluded.</p>
+  </div>
+  <div class="stat-grid">
+    {% for team in postseason_team_totals %}
+      <article class="stat-card finals-team-card">
+        <small>{{ team.team_label }}</small>
+        <strong>{{ team.points }}</strong>
+        <span>{{ show.get_competition_level_display }} team points</span>
+        {% if team.place %}
+          <div class="finals-team-place">
+            <span>Overall place</span><b>{{ team.place }}</b>
+            {% if team.advances_to_zones %}<em>Advances to Zone Finals</em>{% endif %}
+          </div>
+        {% elif can_manage and show.competition_level == 'regional' %}
+          <div class="finals-team-place muted">Enter overall team placing in Edit show to determine Zone advancement.</div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% if show.address or show.host_team or show.notes %}<section class="detail-band">{% if show.host_team %}<div><small>Host team</small><strong>{{ show.host_team }}</strong></div>{% endif %}{% if show.address %}<div><small>Location</small><strong>{{ show.address }}</strong></div>{% endif %}{% if show.notes %}<div class="wide-detail"><small>Notes</small><p>{{ show.notes }}</p></div>{% endif %}</section>{% endif %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">SHOW WEEK</div><h2>Pre-show planning</h2><p class="muted">Availability, prize-list schedule, entries, and show-week communication.</p></div><div class="actions"><a class="btn" href="{% url 'show_day_dashboard' show.pk %}">Open Show Day</a>{% if user.profile.role == 'parent' or user.profile.role == 'rider' %}<a class="btn secondary" href="{% url 'my_show_day' show.pk %}">My Show Day</a>{% endif %}<a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Prize-list schedule</a><a class="btn secondary" href="{% url 'show_week_summary' show.pk %}">Show-week summary</a><a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show planning</a><a class="btn secondary" href="{% url 'show_availability' show.pk %}">View availability</a></div></div></section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">{% if show.competition_level == 'regular' %}SHOW ROSTER{% else %}FINALS ROSTER{% endif %}</div><h2>Classes & entries</h2>{% if show.competition_level != 'regular' %}<p class="muted">A rider may have separate Individual and Team entries in the same class. Each entry receives its own result.</p>{% endif %}</div></div>
+{% for class in classes %}<article class="class-card"><header><div><span class="class-number">{% if class.class_number %}#{{ class.class_number }}{% else %}CLASS{% endif %}</span><h3>{{ class.display_name }}</h3><p>{% if class.season_class %}{{ class.season_class.get_team_level_display }} · {% endif %}{{ class.get_discipline_display }}</p></div><div class="class-header-actions"><strong>{{ class.entries.count }} entr{{ class.entries.count|pluralize:"y,ies" }}</strong>{% if can_manage %}<a class="text-link" href="{% url 'show_class_edit' class.pk %}">Edit</a><a class="text-link danger-link" href="{% url 'show_class_delete' class.pk %}">Remove</a>{% endif %}</div></header>
+<div class="entry-table-wrap"><table class="entry-table">
+<thead><tr>
+  <th>Rider</th>
+  <th>{% if show.competition_level == 'regular' %}Entry{% else %}Track{% endif %}</th>
+  {% if can_manage and show.competition_level == 'regular' %}<th>Point rider</th>{% endif %}
+  <th>Status</th><th>Horse</th><th>Place</th><th>Points</th>
+  {% if show.competition_level == 'regional' %}<th>Advancement</th>{% endif %}
+  {% if can_manage %}<th>Actions</th>{% endif %}
+</tr></thead>
+<tbody>
+{% for entry in class.entries.all %}{% with result=entry.result_or_none %}
+<tr>
+  <td><a href="{% url 'rider_detail' entry.rider.pk %}">{{ entry.rider.display_name }}</a></td>
+  <td>{% if show.competition_level == 'regular' %}{{ entry.get_entry_type_display }}{% else %}<span class="finals-track finals-track-{{ entry.competition_track }}">{{ entry.get_competition_track_display }}</span>{% endif %}</td>
+  {% if can_manage and show.competition_level == 'regular' %}<td>{% if entry.is_point_rider %}<span class="point-badge">POINT · {{ entry.point_team_label }}</span>{% else %}—{% endif %}</td>{% endif %}
+  <td>{{ entry.get_status_display }}</td>
+  <td>{{ result.horse_name|default:"—" }}</td>
+  <td>{{ result.place|default:"—" }}</td>
+  <td>{{ result.points|default:"—" }}</td>
+  {% if show.competition_level == 'regional' %}
+    <td>
+      {% if entry.competition_track == 'individual' and entry.advances_to_zones %}
+        <span class="advancement-badge">Zone qualifier</span>
+      {% elif entry.competition_track == 'individual' and result.place %}
+        <span class="muted">Did not advance</span>
+      {% elif entry.competition_track == 'team' %}
+        <span class="muted">By overall team place</span>
+      {% else %}—{% endif %}
+    </td>
+  {% endif %}
+  {% if can_manage %}<td><span class="table-actions"><a class="text-link" href="{% url 'show_entry_edit' entry.pk %}">Edit</a><a class="text-link" href="{% url 'show_result_edit' entry.pk %}">Result</a>{% if show.competition_level == 'regular' %}<form class="inline-form" method="post" action="{% url 'point_rider_set' entry.pk %}">{% csrf_token %}{% if entry.is_point_rider %}<input type="hidden" name="clear" value="1"><button class="link-button" type="submit">Clear point</button>{% else %}<button class="link-button" type="submit">Make point rider</button>{% endif %}</form>{% endif %}<a class="text-link danger-link" href="{% url 'show_entry_delete' entry.pk %}">Remove</a></span></td>{% endif %}
+</tr>
+{% endwith %}{% empty %}
+<tr><td colspan="9" class="muted">No riders entered in this class.</td></tr>
+{% endfor %}
+</tbody></table></div></article>{% empty %}<div class="empty-state">No classes have been added to this show yet.{% if can_manage %} Add a class, then add rider entries.{% endif %}</div>{% endfor %}
+</section>
+{% endblock %}

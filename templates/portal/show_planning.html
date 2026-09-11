@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Show Planning · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'show_day_dashboard' show.pk %}">← Back to Show Day</a>
+</nav>
+
+<div class="page-title">
+  <div>
+    <div class="eyebrow">SHOW-DAY OPERATIONS</div>
+    <h1>{{ show.name }}</h1>
+    <p>{{ show.show_date|date:"l, F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Show Day</a>
+    {% if can_plan %}<a class="btn" href="{% url 'show_planning_item_add' show.pk %}">Add item</a>{% endif %}
+    {% if can_manage %}<a class="btn secondary" href="{% url 'show_lead_add' show.pk %}">Assign show lead</a>{% endif %}
+  </div>
+</div>
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Checklist open</span><strong>{{ incomplete_checklist_count }}</strong></article>
+  <article class="finance-stat"><span>Volunteer openings</span><strong>{{ open_volunteer_count }}</strong></article>
+  <article class="finance-stat"><span>Mode</span><strong>{% if show.financial_role == 'hosting_attending' %}Hosted{% else %}Attending{% endif %}</strong></article>
+</section>
+
+{% if can_manage %}
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">STARTER PLAN</div>
+      <h2>{% if show.financial_role == 'hosting_attending' %}Hosted-show operations{% else %}Attending-show operations{% endif %}</h2>
+      <p class="muted">Generate useful starter items once, then edit or remove what your team does not need.</p>
+    </div>
+    <form method="post" action="{% url 'show_planning_seed_defaults' show.pk %}">
+      {% csrf_token %}
+      <button class="btn secondary" type="submit">Add starter plan</button>
+    </form>
+  </div>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">LEADERSHIP</div><h2>Show lead</h2></div></div>
+  <div class="class-chip-list">
+    {% for lead in leads %}
+      <span class="class-chip">{{ lead.user.get_full_name|default:lead.user.username }}</span>
+    {% empty %}
+      <span class="muted">No show lead assigned yet.</span>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">CHECKLIST · VOLUNTEERS · SUPPLIES</div>
+      <h2>Show-day coordination</h2>
+      <p class="muted">Team Parents can manage their designated team items. Families can claim visible volunteer and supply items.</p>
+    </div>
+  </div>
+  <div class="planning-grid">
+    {% for item in items %}
+    <article class="card planning-card {% if item.completed %}complete{% endif %}">
+      <div class="planning-head">
+        <div>
+          <small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }} · {{ item.get_category_display }}</small>
+          <h3>{{ item.title }}</h3>
+        </div>
+        {% if item.completed %}<span class="status-pill">Done</span>{% endif %}
+      </div>
+      {% if item.quantity %}<p><strong>Quantity:</strong> {{ item.quantity }}</p>{% endif %}
+      {% if item.details %}<p>{{ item.details }}</p>{% endif %}
+      <div class="planning-owner">
+        {% if item.owner %}
+          <strong>{{ item.owner.get_full_name|default:item.owner.username }}</strong>
+        {% elif item.item_type == 'volunteer' %}
+          <span class="muted">Volunteer still needed</span>
+        {% elif item.assigned_to %}
+          <strong>{{ item.assigned_to.get_full_name|default:item.assigned_to.username }}</strong>
+        {% else %}
+          <span class="muted">Unassigned</span>
+        {% endif %}
+      </div>
+      <div class="actions">
+        {% if item.family_visible %}
+          <form method="post" action="{% url 'show_planning_item_claim' item.pk %}">
+            {% csrf_token %}
+            {% if item.claimed_by_id == user.id %}
+              <input type="hidden" name="clear" value="1">
+              <button class="btn secondary" type="submit">Release</button>
+            {% elif not item.claimed_by and item.item_type != 'checklist' %}
+              <button class="btn secondary" type="submit">I'll take this</button>
+            {% endif %}
+          </form>
+        {% endif %}
+        {% if item.is_my_item or item.can_manage_item %}
+          <form method="post" action="{% url 'show_planning_item_complete' item.pk %}">
+            {% csrf_token %}
+            <button class="btn secondary" type="submit">{% if item.completed %}Reopen{% else %}Mark done{% endif %}</button>
+          </form>
+        {% endif %}
+        {% if item.can_manage_item %}<a class="text-link" href="{% url 'show_planning_item_edit' item.pk %}">Edit</a>{% endif %}
+      </div>
+    </article>
+    {% empty %}
+      <div class="empty-state">No show-day coordination items have been added yet.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

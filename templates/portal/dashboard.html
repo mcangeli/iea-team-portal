@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="hero dashboard-hero club-hero">
+  <div class="hero-copy">
+    <div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div>
+    <div class="eyebrow light">{% if season %}{{ season.name }}{% else %}TEAM PORTAL{% endif %}</div>
+    <h1>{% if portal_team %}{{ portal_team.name }}{% else %}Equestrian Team Portal{% endif %}</h1>
+    <p>Your team at a glance—what’s next, what needs attention, and where the season stands.</p>
+  </div>
+  {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
+</section>
+
+<section class="club-summary" aria-label="Season at a glance">
+  <article>
+    <span class="club-summary-label">Next show</span>
+    {% if next_show %}
+      <strong>{{ next_show.show_date|date:"M j" }}</strong>
+      <small>{{ next_show.name }}</small>
+    {% else %}
+      <strong>—</strong><small>No upcoming show</small>
+    {% endif %}
+  </article>
+  <article>
+    <span class="club-summary-label">Team</span>
+    <strong>{{ roster_count }}</strong>
+    <small>active riders</small>
+  </article>
+  <article>
+    <span class="club-summary-label">Qualified</span>
+    <strong>{{ qualifier_count }}</strong>
+    <small>rider / class combinations</small>
+  </article>
+  <article>
+    <span class="club-summary-label">My attention</span>
+    <strong>{{ attention_count }}</strong>
+    <small>open items & responses</small>
+  </article>
+</section>
+
+<section class="metric-row">
+  <article><span class="metric-label">Futures</span><strong>{{ futures_count }}</strong><small>grades 4–8</small></article>
+  <article><span class="metric-label">Upper School</span><strong>{{ upper_count }}</strong><small>grades 9–12</small></article>
+  <article><span class="metric-label">Lessons</span><strong>{{ lesson_count }}</strong><small>coming up</small></article>
+  <article><span class="metric-label">Volunteer</span><strong>{{ volunteer_due }}</strong><small>riders with hours remaining</small></article>
+</section>
+
+{% if shows %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">NEXT IN THE RING</div><h2>Upcoming shows</h2></div><a class="text-link" href="{% url 'show_list' %}">All shows →</a></div>
+  <div class="show-strip">
+    {% for show in shows %}<a class="show-mini" href="{% url 'show_detail' show.pk %}"><div class="show-date"><span>{{ show.show_date|date:"M" }}</span><strong>{{ show.show_date|date:"j" }}</strong></div><div><span class="status-pill status-{{ show.status }}">{{ show.get_status_display }}</span><h3>{{ show.name }}</h3><p>{{ show.venue|default:"Venue TBD" }}</p></div></a>{% endfor %}
+  </div>
+</section>
+{% endif %}
+
+
+{% if upcoming_lessons %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">TRAINING</div><h2>Upcoming lessons</h2></div><a class="text-link" href="{% url 'lesson_list' %}">All lessons →</a></div><div class="ops-list">{% for lesson in upcoming_lessons %}<a class="ops-row card" href="{% url 'lesson_detail' lesson.pk %}"><div class="datebox"><strong>{{ lesson.starts_at|date:"M" }}</strong><span>{{ lesson.starts_at|date:"j" }}</span></div><div class="ops-main"><small>{{ lesson.group.name|default:"Team lesson" }}</small><h3>{{ lesson.title }}</h3><p>{{ lesson.starts_at|date:"g:i A" }}{% if lesson.location %} · {{ lesson.location }}{% endif %}</p></div></a>{% endfor %}</div></section>
+{% endif %}
+
+{% if pending_event_rsvps or my_action_items %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">MY WEEK</div><h2>Needs your attention</h2></div><a class="text-link" href="{% url 'my_team' %}">Open My Team →</a></div>
+  <div class="attention-grid">
+    {% if pending_event_rsvps %}
+      <a class="card attention-card" href="{% url 'my_team' %}"><strong>{{ pending_event_rsvps }}</strong><span>event RSVP{{ pending_event_rsvps|pluralize }} waiting for a response</span></a>
+    {% endif %}
+    {% for item in my_action_items %}
+      <a class="card attention-card attention-item" href="{% url 'action_item_list' %}">
+        <small>{{ item.get_category_display }}{% if item.due_at %} · {{ item.due_at|date:"M j" }}{% endif %}</small>
+        <h3>{{ item.title }}</h3>
+        {% if item.rider %}<span>{{ item.rider.display_name }}</span>{% endif %}
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if can_manage %}{% if unclaimed_actions or overdue_actions or pending_volunteer or pending_availability %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COACH VIEW</div><h2>Needs attention</h2></div></div>
+  <div class="ops-alerts">
+    {% if overdue_actions %}<a class="card" href="{% url 'action_item_list' %}"><strong>{{ overdue_actions }}</strong><span>overdue action item{{ overdue_actions|pluralize }}</span></a>{% endif %}
+    {% if unclaimed_actions %}<a class="card" href="{% url 'action_item_list' %}"><strong>{{ unclaimed_actions }}</strong><span>unclaimed team task{{ unclaimed_actions|pluralize }}</span></a>{% endif %}
+    {% if pending_volunteer %}<a class="card" href="{% url 'volunteer_dashboard' %}"><strong>{{ pending_volunteer }}</strong><span>volunteer entr{{ pending_volunteer|pluralize:"y,ies" }} awaiting approval</span></a>{% endif %}
+    {% if pending_availability %}<a class="card" href="{% url 'show_list' %}"><strong>{{ pending_availability }}</strong><span>show availability response{{ pending_availability|pluralize }} outstanding</span></a>{% endif %}
+  </div>
+</section>
+{% endif %}{% endif %}
+
+<div class="grid2 content-section">
+  <section><div class="section-head"><div><div class="eyebrow">TEAM NOTES</div><h2>Announcements</h2></div></div>{% for a in announcements %}<article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>{% empty %}<div class="empty-state">No current announcements.</div>{% endfor %}</section>
+  <section><div class="section-head"><div><div class="eyebrow">SCHEDULE</div><h2>Coming up</h2></div><a class="text-link" href="{% url 'calendar' %}">Calendar →</a></div>{% for e in events %}<article class="event-row"><div class="datebox"><strong>{{ e.starts_at|date:"M" }}</strong><span>{{ e.starts_at|date:"j" }}</span></div><div><small>{{ e.get_kind_display }}</small><h3>{{ e.title }}</h3><p>{% if e.all_day %}{{ e.starts_at|date:"D, M j" }}{% else %}{{ e.starts_at|date:"D, M j · g:i A" }}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</p></div></article>{% empty %}<div class="empty-state">No upcoming events.</div>{% endfor %}</section>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+:8080 {
+    encode zstd gzip
+
+    # Finance files, including legacy and new receipts, are never served as public media.
+    # They are downloaded only through Django permission-checked views.
+    handle /media/finance/* {
+        respond "Not Found" 404
+    }
+
+    handle_path /media/* {
+        root * /srv/media
+        file_server
+    }
+
+    reverse_proxy web:8000 {
+        # Preserve the HTTPS scheme supplied by the host web server.
+        # Django uses this for secure cookies and CSRF validation.
+        header_up X-Forwarded-Proto {header.X-Forwarded-Proto}
+        header_up X-Forwarded-Host {header.Host}
+    }
+}

@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Finance Audit Log{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url audit_back_url %}">← Back</a></nav>
+<section class="page-intro finance-intro">
+  <div><div class="eyebrow">{{ audit_eyebrow }}</div><h1>{{ audit_title }}</h1><p>{{ audit_intro }}</p></div>
+</section>
+
+<form method="get" class="filter-panel finance-filter-panel">
+  <div class="filter-grid">
+    <label>Search<input type="search" name="q" value="{{ q }}" placeholder="Description, person, record…"></label>
+    <label>Season<select name="season"><option value="">All permitted seasons</option>{% for season in seasons %}<option value="{{ season.pk }}" {% if selected_season == season.pk|stringformat:"s" %}selected{% endif %}>{{ season.name }}</option>{% endfor %}</select></label>
+    <label>Action<select name="action"><option value="">All actions</option>{% for value,label in actions %}<option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label>Record type<select name="entity_type"><option value="">All record types</option>{% for value in entity_types %}<option value="{{ value }}" {% if selected_entity == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
+  </div>
+  <div class="actions"><button class="btn" type="submit">Apply filters</button><a class="btn secondary" href="{% url 'finance_audit_log' %}">Clear</a></div>
+</form>
+
+<div class="entry-table-wrap">
+<table class="entry-table finance-table">
+<thead><tr><th>When</th><th>Who</th><th>Action</th><th>Record</th><th>Summary</th><th>Details</th></tr></thead>
+<tbody>
+{% for event in events %}
+<tr>
+  <td>{{ event.created_at|date:"M j, Y g:i A" }}</td>
+  <td>{{ event.actor.get_full_name|default:event.actor.username|default:"System" }}</td>
+  <td><span class="status-pill">{{ event.get_action_display }}</span></td>
+  <td>{{ event.entity_type }}{% if event.entity_id %} #{{ event.entity_id }}{% endif %}<small>{{ event.entity_label }}</small></td>
+  <td>{{ event.summary }}</td>
+  <td>{% if event.details %}{% for key,value in event.details.items %}<small><strong>{{ key|title }}:</strong> {{ value }}</small>{% endfor %}{% else %}—{% endif %}</td>
+</tr>
+{% empty %}<tr><td colspan="6" class="muted">No audit events match these filters.</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+
+{% if page_obj and page_obj.paginator.num_pages > 1 %}
+<nav class="pagination-bar" aria-label="Audit log pages">
+  {% if page_obj.has_previous %}<a href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>{% endif %}
+  <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} · {{ page_obj.paginator.count }} events</span>
+  {% if page_obj.has_next %}<a href="?{% if filter_query %}{{ filter_query }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

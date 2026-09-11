@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Add Historical Results · {{ rider.display_name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<div class="page-title">
+  <div>
+    <div class="eyebrow">RIDER HISTORY</div>
+    <h1>Add historical results</h1>
+    <p>Add prior-season Regular Season, Region Finals, Zone Finals, or National Finals results for {{ rider.display_name }} without rebuilding the normal show-entry workflow.</p>
+  </div>
+  <a class="btn secondary" href="{% url 'rider_history' rider.pk %}">Back to history</a>
+</div>
+
+<form method="post" class="historical-results-form">{% csrf_token %}
+  <section class="card form-card">
+    <div class="section-head"><div><div class="eyebrow">SHOW</div><h2>Historical show</h2></div></div>
+    {{ header.non_field_errors }}
+    {% for field in header %}
+      <div class="field-row field-{{ field.name }}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="content-section">
+    <div class="section-head">
+      <div><div class="eyebrow">RESULTS</div><h2>Class results</h2><p>Enter up to 12 results from this show. Finals use separate Individual and Team tracks; the same rider/class can be entered once on each track.</p></div>
+    </div>
+    {{ lines.management_form }}
+    {{ lines.non_form_errors }}
+    <div class="historical-result-grid">
+      {% for form in lines %}
+      <article class="card historical-result-row">
+        <div class="historical-row-number">{{ forloop.counter }}</div>
+        {% for field in form %}
+          <div class="field-row field-{{ field.name }}">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}{{ field.errors }}
+          </div>
+        {% endfor %}
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="actions">
+    <button class="btn" type="submit">Save historical results</button>
+    <a class="btn secondary" href="{% url 'rider_history' rider.pk %}">Cancel</a>
+  </div>
+</form>
+
+<script>
+(function(){
+  const season=document.getElementById('id_season');
+  {% if not selected_season %}
+  if(season){
+    season.addEventListener('change', function(){
+      if(this.value){
+        const target="{% url 'historical_results_add_season' rider.pk 999999 %}";
+        window.location.href=target.replace("999999", this.value);
+      }
+    });
+  }
+  {% endif %}
+
+  const level=document.getElementById('id_competition_level');
+  const trackRows=[...document.querySelectorAll('.field-competition_track')];
+  const teamPlaceRows=[
+    ...document.querySelectorAll('.field-futures_team_place, .field-upper_team_place')
+  ];
+
+  function updateTrackVisibility(){
+    const isFinals=level && level.value !== 'regular';
+    trackRows.forEach(function(row){
+      row.hidden=!isFinals;
+      const select=row.querySelector('select');
+      if(select){
+        select.disabled=!isFinals;
+        if(!isFinals){ select.value=''; }
+      }
+    });
+    teamPlaceRows.forEach(function(row){
+      row.hidden=!isFinals;
+      const input=row.querySelector('input');
+      if(input){
+        input.disabled=!isFinals;
+        if(!isFinals){ input.value=''; }
+      }
+    });
+  }
+
+  if(level){
+    level.addEventListener('change', updateTrackVisibility);
+    updateTrackVisibility();
+  }
+})();
+</script>
+{% endblock %}

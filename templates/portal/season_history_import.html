@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Import Historical Results · {{ season.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav">
+  <a href="{% url 'season_history_entry' season.pk %}">← Back to Historical Data</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HISTORICAL IMPORT · {{ season.name }}</div>
+    <h1>Import historical results</h1>
+    <p>Upload an AccessIEA Rider Performance export or the portal CSV format. Preview results and any proposed historical roster/class setup before anything is written to the database.</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'season_history_import_template' season.pk %}">Download CSV template</a>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>Safe import rules</strong>
+  <span>AccessIEA exports are detected automatically. Riders are matched by #IEA first, then exact name. With historical bootstrap enabled, missing riders, season memberships, season classes, and class assignments are proposed in the preview—not silently created.</span>
+</div>
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">STEP 1</div>
+      <h2>Upload CSV</h2>
+      <p class="muted">UTF-8 CSV only, up to 2 MB. You can upload the Rider Performance CSV directly from AccessIEA or use the portal template.</p>
+    </div>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="form-card historical-import-upload">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="preview">
+    {{ upload_form.as_p }}
+    <button class="btn" type="submit">Preview import</button>
+  </form>
+</section>
+
+{% if preview_ready %}
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">STEP 2</div>
+      <h2>Review preview</h2>
+      <p class="muted">{{ ready_count }} ready · {{ duplicate_count }} duplicate{{ duplicate_count|pluralize }} · {{ error_count }} error{{ error_count|pluralize }}</p>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="clear">
+      <button class="btn secondary" type="submit">Clear preview</button>
+    </form>
+  </div>
+
+  {% if bootstrap_counts.riders or bootstrap_counts.memberships or bootstrap_counts.classes or bootstrap_counts.assignments or bootstrap_counts.iea_numbers %}
+  <div class="historical-bootstrap-summary">
+    <div class="eyebrow">PROPOSED HISTORICAL SETUP</div>
+    <div class="season-history-stats">
+      <span><strong>{{ bootstrap_counts.riders }}</strong><small>New riders</small></span>
+      <span><strong>{{ bootstrap_counts.memberships }}</strong><small>Season memberships</small></span>
+      <span><strong>{{ bootstrap_counts.classes }}</strong><small>Season classes</small></span>
+      <span><strong>{{ bootstrap_counts.assignments }}</strong><small>Class assignments</small></span>
+      <span><strong>{{ bootstrap_counts.iea_numbers }}</strong><small>IEA numbers added</small></span>
+    </div>
+    <p class="muted">These setup changes are created only if you commit the import. They are part of the same database transaction as the results.</p>
+  </div>
+  {% endif %}
+
+  <div class="entry-table-wrap">
+    <table class="entry-table historical-import-table">
+      <thead>
+        <tr>
+          <th>Row</th>
+          <th>Status</th>
+          <th>Rider</th>
+          <th>Show</th>
+          <th>Level</th>
+          <th>Class</th>
+          <th>Track</th>
+          <th>Place</th>
+          <th>Points</th>
+          <th>Setup</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in preview_rows %}
+        <tr class="{% if row.errors %}import-row-error{% elif row.duplicate %}import-row-duplicate{% else %}import-row-ready{% endif %}">
+          <td>{{ row.row_number }}</td>
+          <td>
+            {% if row.errors %}
+              <span class="status-pill">Error</span>
+            {% elif row.duplicate %}
+              <span class="status-pill">Duplicate</span>
+            {% else %}
+              <span class="status-pill status-complete">Ready</span>
+            {% endif %}
+          </td>
+          <td>{{ row.rider_name|default:"—" }}</td>
+          <td>
+            <strong>{{ row.show_name|default:"—" }}</strong>
+            {% if row.show_date %}<small>{{ row.show_date }}</small>{% endif %}
+          </td>
+          <td>{{ row.competition_level|default:"—"|title }}</td>
+          <td>{{ row.season_class_name|default:"—" }}</td>
+          <td>{{ row.competition_track|default:"—"|title }}</td>
+          <td>{{ row.place|default:"—" }}</td>
+          <td>{{ row.points|default:"—" }}</td>
+          <td>
+            {% for action in row.bootstrap_actions %}
+              <div class="import-message import-setup">{{ action }}</div>
+            {% empty %}
+              <span class="muted">No setup changes</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% for error in row.errors %}
+              <div class="import-message import-error">{{ error }}</div>
+            {% endfor %}
+            {% for warning in row.warnings %}
+              <div class="import-message import-warning">{{ warning }}</div>
+            {% endfor %}
+            {% if not row.errors and not row.warnings %}
+              <span class="muted">Ready to import</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section historical-import-commit">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">STEP 3</div>
+      <h2>Commit import</h2>
+      {% if error_count %}
+        <p class="muted">The CSV must be corrected and previewed again before it can be imported.</p>
+      {% else %}
+        <p class="muted">
+          This will create {{ ready_count }} new result{{ ready_count|pluralize }} and the proposed historical setup shown above.
+          {{ duplicate_count }} existing result{{ duplicate_count|pluralize }} will be skipped.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="commit">
+    <button class="btn" type="submit" {% if error_count %}disabled{% endif %}>Import {{ ready_count }} result{{ ready_count|pluralize }}</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">CSV FORMAT</div><h2>Supported columns</h2></div>
+  </div>
+  <div class="callout compact-callout">
+    <strong>AccessIEA bootstrap</strong>
+    <span>Varsity / Junior Varsity / JV classes are treated as Upper School; class names containing Future/Futures are treated as Futures. If team level cannot be determined safely, the row is blocked for manual review instead of guessed.</span>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Column</th><th>Required</th><th>Example / behavior</th></tr></thead>
+      <tbody>
+        <tr><td>rider_first_name</td><td>Yes</td><td>Emma</td></tr>
+        <tr><td>rider_last_name</td><td>Yes</td><td>Brown</td></tr>
+        <tr><td>show_name</td><td>Yes</td><td>Fall Invitational</td></tr>
+        <tr><td>show_date</td><td>Yes</td><td>2025-10-12 or 10/12/2025</td></tr>
+        <tr><td>competition_level</td><td>Yes</td><td>regular, regional, zone, national</td></tr>
+        <tr><td>class_name</td><td>Yes</td><td>Must match a class assigned to that rider for this season</td></tr>
+        <tr><td>competition_track</td><td>Finals only</td><td>individual or team</td></tr>
+        <tr><td>place</td><td>Place or points</td><td>1–999</td></tr>
+        <tr><td>points</td><td>Place or points</td><td>If supplied, stored as manual points</td></tr>
+        <tr><td>horse_name</td><td>No</td><td>Historical horse name</td></tr>
+        <tr><td>venue</td><td>No</td><td>Used when creating a new historical show</td></tr>
+        <tr><td>notes</td><td>No</td><td>Source/reference note for the result</td></tr>
+        <tr><td>futures_team_place</td><td>No</td><td>Finals overall team place</td></tr>
+        <tr><td>upper_team_place</td><td>No</td><td>Finals overall team place</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

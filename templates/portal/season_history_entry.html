@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Historical Data · {{ season.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav">
+  <a href="{% url 'season_review' season.pk %}">← Back to {{ season.name }}</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HISTORICAL DATA · {{ season.name }}</div>
+    <h1>Historical season entry</h1>
+    <p>Enter prior show results rider-by-rider or import a prepared CSV without reopening normal show-day workflows.</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'season_history_import' season.pk %}">Import CSV</a>
+  </div>
+</section>
+
+{% if import_reconciliation %}
+<section class="historical-reconciliation card">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">IMPORT RECONCILIATION</div>
+      <h2>Historical import completed</h2>
+    </div>
+    {% if import_reconciliation.warnings %}
+      <span class="status-pill">{{ import_reconciliation.warnings }} warning{{ import_reconciliation.warnings|pluralize }}</span>
+    {% else %}
+      <span class="status-pill status-complete">No warnings</span>
+    {% endif %}
+  </div>
+  <div class="season-history-stats reconciliation-stats">
+    <span><strong>{{ import_reconciliation.results_created }}</strong><small>Results created</small></span>
+    <span><strong>{{ import_reconciliation.duplicates_skipped }}</strong><small>Duplicates skipped</small></span>
+    <span><strong>{{ import_reconciliation.shows_touched }}</strong><small>Shows touched</small></span>
+    <span><strong>{{ import_reconciliation.riders_created }}</strong><small>Riders created</small></span>
+    <span><strong>{{ import_reconciliation.memberships_created }}</strong><small>Memberships created</small></span>
+    <span><strong>{{ import_reconciliation.classes_created }}</strong><small>Classes created</small></span>
+    <span><strong>{{ import_reconciliation.class_assignments_created }}</strong><small>Class assignments</small></span>
+    <span><strong>{{ import_reconciliation.iea_numbers_added }}</strong><small>IEA numbers added</small></span>
+  </div>
+  <p class="muted">This summary is shown once after a successful import. Imported records are now available below and on each rider's History page.</p>
+</section>
+{% endif %}
+
+<div class="callout">
+  <strong>{% if season.is_closed %}Archived season{% elif season.is_active %}Active season{% else %}Open / inactive season{% endif %}</strong>
+  <span>
+    Historical result entry is intentionally available for prior-season recordkeeping.
+    {% if season.is_closed %}Normal operational edits remain protected while this season is archived.{% endif %}
+  </span>
+</div>
+
+<section class="finance-stat-grid season-history-summary">
+  <article class="finance-stat"><span>Riders</span><strong>{{ rider_rows|length }}</strong></article>
+  <article class="finance-stat"><span>Shows</span><strong>{{ show_count }}</strong></article>
+  <article class="finance-stat"><span>Results</span><strong>{{ result_count }}</strong></article>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">ROSTER</div>
+      <h2>Enter prior results</h2>
+      <p class="muted">Choose a rider to add historical regular-season or postseason results for this season.</p>
+    </div>
+  </div>
+
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead>
+        <tr><th>Rider</th><th>Team</th><th>Season classes</th><th>Shows recorded</th><th>Results</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for row in rider_rows %}
+        <tr>
+          <td><strong>{{ row.rider }}</strong></td>
+          <td>{{ row.membership.get_team_level_display|default:"—" }}</td>
+          <td>
+            {% for class in row.membership.classes.all %}
+              <span class="class-chip compact">{{ class.name }}</span>
+            {% empty %}
+              <span class="muted">No classes assigned</span>
+            {% endfor %}
+          </td>
+          <td>{{ row.show_count }}</td>
+          <td>{{ row.result_count }}</td>
+          <td>
+            <a class="btn secondary" href="{% url 'historical_results_add_season' row.rider.pk season.pk %}">
+              Add results
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">No riders are enrolled in this season yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>Historical recordkeeping</strong>
+  <span>AccessIEA imports, manual historical entry, and rider-level corrections all use the same season/rider/class/result records.</span>
+</div>
+{% endblock %}

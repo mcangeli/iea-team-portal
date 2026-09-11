@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Family Receivables Report{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_reports' %}{% if season %}?season={{ season.pk }}{% endif %}">← Back to Reports</a></nav>
+<form method="get" class="report-season-picker report-season-picker-inline"><label for="season">Season</label><select id="season" name="season" onchange="this.form.submit()">{% for item in seasons %}<option value="{{ item.pk }}" {% if season and item.pk == season.pk %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></form>
+<section class="page-intro finance-intro"><div><div class="eyebrow">FINANCIAL REPORT</div><h1>Family Receivables</h1><p>{{ season.name|default:"No active season" }}</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_report_receivables_export' %}{% if season %}?season={{ season.pk }}{% endif %}">Export CSV</a></div></section>
+<section class="finance-stat-grid">
+<article class="finance-stat"><span>Billed</span><strong>${{ totals.billed|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Outstanding</span><strong>${{ totals.balance|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Overdue</span><strong>${{ totals.overdue|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Due in 14 days</span><strong>${{ totals.due_soon|default:0|floatformat:2 }}</strong></article>
+</section>
+<nav class="filter-tabs"><a class="{% if not selected_status %}active{% endif %}" href="?{% if season %}season={{ season.pk }}{% endif %}">All</a><a class="{% if selected_status == 'overdue' %}active{% endif %}" href="?season={{ season.pk }}&status=overdue">Overdue</a><a class="{% if selected_status == 'due_soon' %}active{% endif %}" href="?season={{ season.pk }}&status=due_soon">Due soon</a><a class="{% if selected_status == 'current' %}active{% endif %}" href="?season={{ season.pk }}&status=current">Current</a><a class="{% if selected_status == 'paid' %}active{% endif %}" href="?season={{ season.pk }}&status=paid">Paid</a></nav>
+<div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Rider</th><th>Home barn</th><th>Billed</th><th>Credits</th><th>Assistance</th><th>Payments</th><th>Balance</th><th>Overdue</th><th>Status</th><th></th></tr></thead><tbody>
+{% for row in rows %}<tr><td><strong>{{ row.membership.rider }}</strong></td><td>{{ row.membership.home_barn|default:"—" }}</td><td>${{ row.billed|floatformat:2 }}</td><td>${{ row.credits|floatformat:2 }}</td><td>${{ row.assistance|floatformat:2 }}</td><td>${{ row.payments|floatformat:2 }}</td><td>${{ row.balance|floatformat:2 }}</td><td>${{ row.overdue|floatformat:2 }}</td><td><span class="status-pill status-{{ row.status }}">{{ row.status|title }}</span></td><td><a class="text-link" href="{% url 'family_account' row.membership.pk %}">Account →</a></td></tr>
+{% empty %}<tr><td colspan="10" class="muted">No family accounts match this view.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

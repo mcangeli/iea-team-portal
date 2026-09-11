@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Show Updates · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'show_week_summary' show.pk %}">← Back to Show Week</a>
+</nav>
+<div class="page-title">
+  <div>
+    <div class="eyebrow">SHOW DAY · PUBLIC INFORMATION</div>
+    <h1>{{ show.name }}</h1>
+    <p>{{ show.show_date|date:"l, F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    {% if can_publish %}<a class="btn" href="{% url 'show_day_update_add' show.pk %}">Post update</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_week_summary' show.pk %}">Show Week</a>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>Show times are estimates.</strong>
+  <span>Follow official show announcements and ring instructions. This feed is for team operational updates, schedule movement, arrival information, and other public show-day communication.</span>
+</div>
+
+<nav class="page-back-nav" aria-label="Show-day navigation">
+  <a href="{% url 'show_detail' show.pk %}">← Show</a>
+  <span> · </span>
+  <a href="{% url 'show_schedule' show.pk %}">Schedule</a>
+</nav>
+<section class="content-section notification-list">
+  <div class="section-head"><div><div class="eyebrow">LATEST</div><h2>Show-day updates</h2></div></div>
+  {% for update in updates %}
+    <article class="card notification-card">
+      <div>
+        <small>{{ update.created_at|date:"M j, Y · g:i A" }} · {{ update.get_audience_display }}</small>
+        <h3>{{ update.title }}</h3>
+        <p>{{ update.body|linebreaksbr }}</p>
+        <p class="muted">Posted by {{ update.created_by.get_full_name|default:update.created_by.username }}{% if update.updated_at != update.created_at %} · last updated {{ update.updated_at|date:"g:i A" }}{% endif %}</p>
+      </div>
+      {% if update.audience in allowed_audiences %}
+        <div class="actions compact-actions">
+          <a class="btn secondary" href="{% url 'show_day_update_edit' update.pk %}">Edit</a>
+          <form method="post" action="{% url 'show_day_update_retract' update.pk %}">{% csrf_token %}<button class="btn secondary" type="submit">Retract</button></form>
+        </div>
+      {% endif %}
+    </article>
+  {% empty %}
+    <div class="empty-state">No public show-day updates have been posted yet.</div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Season Budget{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'finance_dashboard' %}">← Back to Finance</a>
+</nav>
+<div class="page-title">
+  <div><div class="eyebrow">TEAM FINANCE · {{ season.name }}</div><h1>Season budget</h1><p>Set planned income and spending by category for the active season.</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'finance_dashboard' %}">Finance dashboard</a><a class="btn" href="{% url 'finance_budget_create' %}">Add budget line</a></div>
+</div>
+<div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Category</th><th>Type</th><th>Budget</th><th>Notes</th><th>Updated</th><th></th></tr></thead><tbody>
+{% for b in budgets %}
+<tr><td><strong>{{ b.category.name }}</strong></td><td>{{ b.get_kind_display }}</td><td>${{ b.amount|floatformat:2 }}</td><td>{{ b.notes|default:"—" }}</td><td><small>{{ b.updated_at|date:"M j, Y" }}{% if b.updated_by %} · {{ b.updated_by.get_full_name|default:b.updated_by.username }}{% endif %}</small></td><td><a class="text-link" href="{% url 'finance_budget_edit' b.pk %}">Edit →</a></td></tr>
+{% empty %}<tr><td colspan="6" class="muted">No budget lines have been entered for {{ season.name }}.</td></tr>{% endfor %}
+</tbody></table></div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-title"><div><div class="eyebrow">COMMUNICATIONS</div><h1>Notifications</h1><p>Announcements and team updates that were sent to you.</p></div><div class="actions"><a class="btn secondary" href="{% url 'notification_preferences' %}">Email preferences</a>{% if unread_notifications %}<form method="post" action="{% url 'notification_read_all' %}">{% csrf_token %}<button class="btn" type="submit">Mark all read</button></form>{% endif %}</div></div>
+<section class="content-section notification-list">
+{% for n in notifications %}<article class="card notification-card {% if not n.read_at %}unread{% endif %}"><div><small>{{ n.created_at|date:"M j, Y · g:i A" }}</small><h3>{{ n.title }}</h3><p>{{ n.body|linebreaksbr }}</p></div>{% if not n.read_at %}<form method="post" action="{% url 'notification_read' n.pk %}">{% csrf_token %}<button class="btn secondary" type="submit">Mark read</button></form>{% else %}<span class="muted">Read</span>{% endif %}</article>{% empty %}<div class="empty-state">No notifications yet.</div>{% endfor %}
+</section>
+{% endblock %}

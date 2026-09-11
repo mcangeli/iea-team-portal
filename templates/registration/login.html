@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Sign in · Team Portal{% endblock %}
+{% block content %}
+<section class="login-layout">
+  <div class="login-intro">
+    <div class="eyebrow light">PRIVATE TEAM ACCESS</div>
+    <h1>One place for the season.</h1>
+    <p>Rosters, show entries, results, schedules, announcements, and rider information—organized for the whole team.</p>
+    <div class="rail-line" aria-hidden="true"></div>
+  </div>
+  <div class="auth-card">
+    <div class="eyebrow">WELCOME BACK</div>
+    <h2>Sign in</h2>
+    <p class="muted">Use the account provided by your team administrator.</p>
+    <form method="post" class="stack-form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        <div class="field-wrap"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}</div>
+      {% endfor %}
+      <button class="btn wide" type="submit">Enter team portal</button>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    </form>
+  </div>
+</section>
+{% endblock %}

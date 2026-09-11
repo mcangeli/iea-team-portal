@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Void Transaction{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_transaction_list' %}">← Back to Ledger</a></nav>
+<section class="page-intro"><div><div class="eyebrow">TEAM FINANCE</div><h1>Void transaction</h1><p>This keeps the original ledger record and audit details instead of permanently deleting it.</p></div></section>
+<form method="post" class="card form-card">{% csrf_token %}
+  <p><strong>{{ object.transaction_date|date:"M j, Y" }} · {{ object.description }}</strong><br>${{ object.amount|floatformat:2 }} · {{ object.get_kind_display }} · {{ object.account.name }}</p>
+  <label>Reason<input type="text" name="reason" required placeholder="Why is this transaction being voided?"></label>
+  <label class="check-row"><input type="checkbox" name="create_reversal" value="1"> Create an opposite-direction reversal entry for audit/reference purposes</label>
+  <p class="muted">The voided transaction will be excluded from balances and reports. Its receipt and history remain retained.</p>
+  <div class="actions"><button class="btn danger" type="submit">Void transaction</button><a class="btn secondary" href="{% url 'finance_transaction_list' %}">Cancel</a></div>
+</form>
+{% endblock %}

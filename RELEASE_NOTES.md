@@ -1,3 +1,71 @@
+## v2.0.0 — Preview 2: Git Installation & Updates
+
+Preview 2 introduces a Git-backed production deployment workflow while retaining compatibility with the existing Docker Compose project, persistent `.env`, database volume, media volume, backups, and logs.
+
+### Git deployment
+- Added `install.sh` for creating a permanent Git checkout at `/opt/iea-team-portal/app`.
+- Existing `/opt/iea-team-portal/.env` is reused during migration from the ZIP/release-folder layout.
+- Added `.env.example` for new installations; the installer never invents production secrets.
+- Added `./portalctl git-status` to report repository, installed tag/ref, commit, update channel, and working-tree cleanliness.
+- Added `./portalctl update`:
+  - requires a clean Git working tree;
+  - fetches repository changes and tags;
+  - defaults to the newest stable version tag instead of following `main`;
+  - supports an explicit tag/ref argument for preview testing;
+  - creates a PostgreSQL backup before changing application code;
+  - records previous commit/ref and backup metadata;
+  - checks out the selected release in detached-tag mode;
+  - rebuilds the application;
+  - runs Django deployment checks;
+  - runs migration/schema preflight;
+  - prints the migration plan;
+  - restarts the application;
+  - writes a persistent update log.
+- Added `PORTAL_UPDATE_CHANNEL=stable` with an optional `preview` channel.
+- Added guarded `./portalctl rollback-code` using the previous commit recorded before the last update.
+- Database rollback is intentionally not automatic; the command identifies the associated backup and warns when database restoration may be required.
+- Git updates stop when local source changes are present rather than overwriting them.
+
+### Compatibility
+- Existing `./portalctl preflight`, `upgrade`, Compose commands, shared `.env`, backup path, logging path, and named Docker volumes remain supported.
+- Existing ZIP installations can continue to run during the transition.
+- Preview 1's modular view architecture remains unchanged.
+- No database migration is required for Preview 2.
+
+## v2.0.0 — Preview 1: View Architecture Refactor
+
+Preview 1 starts the v2 branch with a behavior-preserving refactor of the portal view layer.
+
+### Architecture
+- Replaced the former ~354 KB monolithic `portal/views.py` implementation with a thin compatibility namespace.
+- Moved public view implementations into domain modules under `portal/view_modules/`:
+  - roster;
+  - communications;
+  - competitions;
+  - show day;
+  - scoring;
+  - show planning;
+  - lessons;
+  - history;
+  - administration;
+  - core finance;
+  - family finance;
+  - fundraising;
+  - finance reports;
+  - show finance.
+- Moved domain-specific private helpers beside their corresponding view modules.
+- Retained genuinely cross-domain permissions, audit, and query helpers in `portal/view_modules/common.py`.
+- Preserved all existing `portal.views.<name>` symbols so `portal/urls.py` does not need a routing rewrite in the same preview.
+- Preserved all 180 URL-referenced view callables from v1.9.9.
+- Added regression coverage that verifies representative compatibility exports and their new implementation modules.
+
+### Scope
+- No intended user-facing behavior changes.
+- No database migration is required.
+- Git-based installation/update tooling remains planned for Preview 2.
+- Role-specific dashboards, rider lifecycle cleanup, and calendar redesign remain later v2.0 previews.
+- Horse/Hoofprint management remains targeted for the v2.1 workstream after the v2.0 foundation is stable.
+
 # Release Notes
 
 Version-by-version changes for IEA Team Portal. For installation, configuration, and day-to-day usage, see `README.md`.

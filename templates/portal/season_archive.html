@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Season Archive{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">TEAM HISTORY</div>
+    <h1>Season archive</h1>
+    <p>Review current and past seasons, historical results, and season status.</p>
+  </div>
+</section>
+
+<div class="archive-grid">
+{% for season in seasons %}
+  <article class="card archive-card season-history-card">
+    <div>
+      <small>{{ season.start_date|date:"Y" }}–{{ season.end_date|date:"Y" }}</small>
+      <h2>{{ season.name }}</h2>
+      <p>
+        {% if season.is_closed %}
+          <span class="status-pill">Archived</span>
+        {% elif season.is_active %}
+          <span class="status-pill status-complete">Active</span>
+        {% else %}
+          <span class="status-pill">Open / inactive</span>
+        {% endif %}
+      </p>
+      <div class="season-history-stats">
+        <span><strong>{{ season.history_rider_count }}</strong><small>Riders</small></span>
+        <span><strong>{{ season.history_show_count }}</strong><small>Shows</small></span>
+        <span><strong>{{ season.history_result_count }}</strong><small>Results</small></span>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn secondary" href="{% url 'season_review' season.pk %}">Season review</a>
+      {% if can_manage %}
+        <a class="btn secondary" href="{% url 'season_history_entry' season.pk %}">Historical data</a>
+      {% endif %}
+    </div>
+  </article>
+{% empty %}
+  <div class="empty-state">No seasons yet.</div>
+{% endfor %}
+</div>
+{% endblock %}

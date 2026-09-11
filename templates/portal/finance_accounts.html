@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Finance Setup{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'finance_dashboard' %}">← Back to Finance</a>
+</nav>
+<div class="page-title">
+  <div><div class="eyebrow">TEAM FINANCE · SETUP</div><h1>Accounts & categories</h1><p>Configure where team money is held and how transactions are classified.</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'finance_dashboard' %}">Finance dashboard</a><a class="btn" href="{% url 'finance_account_create' %}">Add account</a></div>
+</div>
+<section class="content-section">
+<div class="section-head"><div><div class="eyebrow">ACCOUNTS</div><h2>Financial accounts</h2></div></div>
+<div class="finance-account-grid">
+{% for row in account_rows %}
+<article class="finance-account-card"><small>{{ row.account.get_account_type_display }}{% if not row.account.active %} · INACTIVE{% endif %}</small><h3>{{ row.account.name }}</h3><strong>${{ row.balance|floatformat:2 }}</strong><p>{{ row.account.notes|default:"No account notes." }}</p><a class="text-link" href="{% url 'finance_account_edit' row.account.pk %}">Edit account →</a></article>
+{% empty %}<div class="empty-state">No financial accounts have been configured.</div>{% endfor %}
+</div>
+</section>
+<section class="content-section">
+<div class="section-head"><div><div class="eyebrow">CATEGORIES</div><h2>Ledger categories</h2></div><a class="btn secondary" href="{% url 'finance_category_create' %}">Add category</a></div>
+<div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Category</th><th>Type</th><th>Status</th><th></th></tr></thead><tbody>
+{% for c in categories %}<tr><td><strong>{{ c.name }}</strong></td><td>{{ c.get_kind_display }}</td><td>{% if c.active %}Active{% else %}Inactive{% endif %}</td><td><a class="text-link" href="{% url 'finance_category_edit' c.pk %}">Edit →</a></td></tr>
+{% empty %}<tr><td colspan="4" class="muted">No categories configured.</td></tr>{% endfor %}
+</tbody></table></div>
+</section>
+{% endblock %}

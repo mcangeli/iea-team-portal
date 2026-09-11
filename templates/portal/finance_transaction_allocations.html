@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Show Allocations{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_transaction_list' %}">← Back to Ledger</a></nav>
+<section class="page-intro finance-intro">
+  <div>
+    <div class="eyebrow">SHOW ALLOCATIONS</div>
+    <h1>{{ transaction.description }}</h1>
+    <p>{{ transaction.transaction_date|date:"F j, Y" }} · {{ transaction.get_kind_display }} · {{ transaction.account.name }}</p>
+  </div>
+  {% if transaction.status == 'posted' %}<div class="actions"><a class="btn" href="{% url 'finance_transaction_allocation_add' transaction.pk %}">Add allocation</a></div>{% endif %}
+</section>
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Transaction total</span><strong>${{ transaction.amount|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Allocated</span><strong>${{ allocated|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Unallocated</span><strong>${{ remaining|floatformat:2 }}</strong></article>
+</section>
+
+{% if remaining > 0 %}
+<div class="callout finance-policy-callout"><strong>${{ remaining|floatformat:2 }} remains unallocated.</strong><span>That amount still belongs to the ledger transaction but is not currently assigned to any show.</span></div>
+{% endif %}
+
+<div class="entry-table-wrap">
+<table class="entry-table finance-table">
+<thead><tr><th>Show</th><th>Scope</th><th>Budget item</th><th>Amount</th><th>Notes</th><th></th></tr></thead>
+<tbody>
+{% for allocation in allocations %}
+<tr>
+  <td><a href="{% url 'show_finance' allocation.show.pk %}">{{ allocation.show.name }}</a><small>{{ allocation.show.show_date|date:"M j, Y" }}</small></td>
+  <td>{{ allocation.get_scope_display }}</td>
+  <td>{{ allocation.budget_line.description|default:"Unassigned" }}</td>
+  <td>${{ allocation.amount|floatformat:2 }}</td>
+  <td>{{ allocation.notes|default:"—" }}</td>
+  <td>{% if transaction.status == 'posted' %}<span class="table-actions"><a class="text-link" href="{% url 'finance_transaction_allocation_edit' allocation.pk %}">Edit</a><a class="text-link danger-link" href="{% url 'finance_transaction_allocation_delete' allocation.pk %}">Remove</a></span>{% endif %}</td>
+</tr>
+{% empty %}
+<tr><td colspan="6" class="muted">This payment has not been allocated to a show yet.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+<p class="muted finance-footnote">Allocations affect show-level reporting only. They do not create additional bank or ledger transactions.</p>
+{% endblock %}

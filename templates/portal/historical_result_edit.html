@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Edit Historical Result · {{ rider }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav">
+  <a href="{% url 'rider_history' rider.pk %}">← Back to {{ rider.display_name }} History</a>
+</nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HISTORICAL RESULT · {{ show.season.name }}</div>
+    <h1>Edit {{ rider.display_name }}'s result</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"M j, Y" }}</p>
+  </div>
+</section>
+
+<div class="callout">
+  <strong>Rider-specific correction</strong>
+  <span>This changes only {{ rider.display_name }}'s class/result for this historical show. Other riders recorded at {{ show.name }} are not changed.</span>
+</div>
+
+<form method="post" class="form-card historical-result-edit-form">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <div class="actions">
+    <button class="btn" type="submit">Save historical result</button>
+    <a class="btn secondary" href="{% url 'rider_history' rider.pk %}">Cancel</a>
+    <a class="btn secondary danger" href="{% url 'historical_result_delete' result.pk %}">Delete result</a>
+  </div>
+</form>
+{% endblock %}

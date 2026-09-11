@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<div class="page-title"><div><div class="eyebrow">{{ eyebrow }}</div><h1>{{ title }}</h1>{% if default_password_configured %}<p>A server default temporary password is configured. Leave the temporary-password field blank to use it.</p>{% endif %}</div>{% if target_user %}<a class="btn secondary" href="{% url 'user_reset_password' target_user.pk %}">Reset temporary password</a>{% endif %}</div>
+<form method="post" class="card form-card" id="user-onboarding-form">{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="field-row field-{{ field.name }}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
+  <div class="actions"><button class="btn" type="submit" id="save-user-button">Save user</button><a class="btn secondary" href="{% url 'user_list' %}">Cancel</a></div>
+</form>
+<script>
+(function(){
+  const role=document.getElementById('id_role');
+  const rider=document.querySelector('.field-rider');
+  const guardian=document.querySelector('.field-guardian');
+  if(role && rider && guardian){
+    function sync(){
+      rider.hidden = role.value !== 'rider';
+      guardian.hidden = role.value === 'rider';
+    }
+    role.addEventListener('change',sync); sync();
+  }
+
+  const form=document.getElementById('user-onboarding-form');
+  const button=document.getElementById('save-user-button');
+  if(form && button){
+    form.addEventListener('submit', function(){
+      if(button.disabled) return;
+      button.disabled = true;
+      button.textContent = 'Creating user…';
+      button.setAttribute('aria-busy','true');
+    });
+  }
+})();
+</script>
+{% endblock %}

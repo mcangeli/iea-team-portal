@@ -1,0 +1,344 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="${PORTAL_ROOT_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+RELEASE_VERSION="$(cat "$SCRIPT_DIR/VERSION" 2>/dev/null || echo unknown)"
+SHARED_ENV="${PORTAL_ENV_FILE:-$ROOT_DIR/.env}"
+PORTAL_REPOSITORY_URL="${PORTAL_REPOSITORY_URL:-https://github.com/mcangeli/iea-team-portal.git}"
+PORTAL_UPDATE_CHANNEL="${PORTAL_UPDATE_CHANNEL:-}"
+if [[ -z "$PORTAL_UPDATE_CHANNEL" && -f "$SHARED_ENV" ]]; then
+  PORTAL_UPDATE_CHANNEL="$(awk -F= '/^[[:space:]]*PORTAL_UPDATE_CHANNEL[[:space:]]*=/ {sub(/^[^=]*=/, "", $0); gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0); print; exit}' "$SHARED_ENV")"
+fi
+PORTAL_UPDATE_CHANNEL="${PORTAL_UPDATE_CHANNEL:-stable}"
+
+if [[ ! -f "$SHARED_ENV" ]]; then
+  echo "Environment file not found: $SHARED_ENV" >&2
+  echo "Keep the shared environment file one level above each release, e.g. /opt/iea-team-portal/.env" >&2
+  exit 1
+fi
+
+export PORTAL_ENV_FILE="$SHARED_ENV"
+cd "$SCRIPT_DIR"
+
+
+env_value() {
+  local key="$1"
+  awk -F= -v key="$key" '
+    $0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+      sub(/^[^=]*=/, "", $0)
+      gsub(/\r$/, "", $0)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0)
+      if (($0 ~ /^".*"$/) || ($0 ~ /^\047.*\047$/)) {
+        $0 = substr($0, 2, length($0)-2)
+      }
+      print $0
+      exit
+    }
+  ' "$SHARED_ENV"
+}
+
+validate_host_environment() {
+  local failed=0
+  local secret password hosts
+
+  command -v docker >/dev/null 2>&1 || {
+    echo "Docker is not installed or is not in PATH." >&2
+    failed=1
+  }
+  if command -v docker >/dev/null 2>&1 && ! docker compose version >/dev/null 2>&1; then
+    echo "Docker Compose v2 is not available (expected: docker compose)." >&2
+    failed=1
+  fi
+
+  secret="$(env_value DJANGO_SECRET_KEY)"
+  password="$(env_value POSTGRES_PASSWORD)"
+  hosts="$(env_value DJANGO_ALLOWED_HOSTS)"
+
+  if [[ -z "$secret" || "$secret" == "unsafe-dev-key-change-me" || ${#secret} -lt 32 ]]; then
+    echo "DJANGO_SECRET_KEY must be set to a strong value of at least 32 characters." >&2
+    failed=1
+  fi
+  if [[ -z "$password" || "$password" == "change-me" ]]; then
+    echo "POSTGRES_PASSWORD must be set and may not use the default placeholder." >&2
+    failed=1
+  fi
+  if [[ -z "$hosts" ]]; then
+    echo "DJANGO_ALLOWED_HOSTS must contain at least one hostname." >&2
+    failed=1
+  fi
+
+  if [[ "$failed" -ne 0 ]]; then
+    echo "Environment validation failed: $SHARED_ENV" >&2
+    exit 1
+  fi
+}
+
+start_upgrade_log() {
+  mkdir -p "$ROOT_DIR/logs"
+  local stamp
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  UPGRADE_LOG="$ROOT_DIR/logs/upgrade-v${RELEASE_VERSION}-$stamp.log"
+  exec > >(tee -a "$UPGRADE_LOG") 2>&1
+  echo "IEA Team Portal upgrade log"
+  echo "Release: v${RELEASE_VERSION}"
+  echo "Started: $(date --iso-8601=seconds 2>/dev/null || date)"
+  echo "Environment: $SHARED_ENV"
+  echo "Docker: $(docker --version 2>/dev/null || echo unavailable)"
+  echo "Compose: $(docker compose version 2>/dev/null || echo unavailable)"
+  echo
+}
+
+compose() {
+  docker compose --env-file "$SHARED_ENV" "$@"
+}
+
+
+require_git_repo() {
+  command -v git >/dev/null 2>&1 || {
+    echo "Git is not installed or is not in PATH." >&2
+    exit 1
+  }
+  git -C "$SCRIPT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
+    echo "This installation is not a Git checkout: $SCRIPT_DIR" >&2
+    echo "Use the v2 Git migration/install instructions once, then future updates can use ./portalctl update." >&2
+    exit 1
+  }
+}
+
+require_clean_git_tree() {
+  if [[ -n "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=normal)" ]]; then
+    echo "The application Git checkout has local changes. Update stopped to avoid overwriting them." >&2
+    echo "Run 'git status' in $SCRIPT_DIR and commit, stash, or remove the changes before updating." >&2
+    exit 1
+  fi
+}
+
+current_git_ref() {
+  git -C "$SCRIPT_DIR" describe --tags --exact-match 2>/dev/null \
+    || git -C "$SCRIPT_DIR" rev-parse --short HEAD
+}
+
+latest_version_tag() {
+  local include_preview="${1:-0}"
+  if [[ "$include_preview" == "1" ]]; then
+    git -C "$SCRIPT_DIR" tag -l 'v[0-9]*' --sort=-v:refname | sed -n '1p'
+  else
+    git -C "$SCRIPT_DIR" tag -l 'v[0-9]*' --sort=-v:refname \
+      | awk '!/-(preview|rc|alpha|beta)/ { print; exit }'
+  fi
+}
+
+resolve_update_target() {
+  local requested="${1:-}"
+  if [[ -n "$requested" ]]; then
+    printf '%s\n' "$requested"
+    return
+  fi
+
+  case "$PORTAL_UPDATE_CHANNEL" in
+    stable)
+      latest_version_tag 0
+      ;;
+    preview)
+      latest_version_tag 1
+      ;;
+    *)
+      echo "Unsupported PORTAL_UPDATE_CHANNEL '$PORTAL_UPDATE_CHANNEL'. Use stable or preview." >&2
+      exit 1
+      ;;
+  esac
+}
+
+git_backup_database() {
+  mkdir -p "$ROOT_DIR/backups"
+  local stamp="$1"
+  GIT_UPDATE_BACKUP="$ROOT_DIR/backups/pre-git-update-$stamp.sql"
+  echo "Starting database for backup..."
+  compose up -d db
+  echo "Creating PostgreSQL backup: $GIT_UPDATE_BACKUP"
+  compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$GIT_UPDATE_BACKUP"
+  test -s "$GIT_UPDATE_BACKUP" || {
+    echo "Backup failed or is empty: $GIT_UPDATE_BACKUP" >&2
+    exit 1
+  }
+}
+
+git_update() {
+  validate_host_environment
+  require_git_repo
+  require_clean_git_tree
+
+  local requested="${1:-}"
+  local stamp
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  mkdir -p "$ROOT_DIR/logs"
+  GIT_UPDATE_LOG="$ROOT_DIR/logs/git-update-$stamp.log"
+  exec > >(tee -a "$GIT_UPDATE_LOG") 2>&1
+
+  echo "IEA Team Portal Git update"
+  echo "Started: $(date --iso-8601=seconds 2>/dev/null || date)"
+  echo "Repository: $(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo unknown)"
+  echo "Current ref: $(current_git_ref)"
+  echo "Channel: $PORTAL_UPDATE_CHANNEL"
+  echo
+
+  echo "Fetching tags and repository updates..."
+  git -C "$SCRIPT_DIR" fetch --tags --prune origin
+
+  local target
+  target="$(resolve_update_target "$requested")"
+  if [[ -z "$target" ]]; then
+    echo "No matching release tag was found." >&2
+    exit 1
+  fi
+  if ! git -C "$SCRIPT_DIR" rev-parse --verify --quiet "${target}^{commit}" >/dev/null; then
+    echo "Requested release/ref does not exist after fetch: $target" >&2
+    exit 1
+  fi
+
+  local previous_commit previous_ref
+  previous_commit="$(git -C "$SCRIPT_DIR" rev-parse HEAD)"
+  previous_ref="$(current_git_ref)"
+  echo "Target ref: $target"
+  if [[ "$(git -C "$SCRIPT_DIR" rev-parse "${target}^{commit}")" == "$previous_commit" ]]; then
+    echo "Already at $target. Nothing to update."
+    return
+  fi
+
+  git_backup_database "$stamp"
+
+  cat > "$ROOT_DIR/.portal-last-update" <<EOF
+previous_ref=$previous_ref
+previous_commit=$previous_commit
+target_ref=$target
+backup=$GIT_UPDATE_BACKUP
+timestamp=$stamp
+EOF
+
+  echo "Switching application checkout to $target..."
+  git -C "$SCRIPT_DIR" checkout --detach "$target"
+
+  echo "Building updated application..."
+  compose build web
+  echo "Running deployment checks..."
+  compose run --rm web python manage.py check --deploy
+  echo "Running migration/schema preflight..."
+  compose run --rm web python manage.py portal_preflight
+  echo "Migration plan:"
+  compose run --rm web python manage.py showmigrations --plan
+  echo "Starting $target..."
+  compose up -d --build
+
+  echo
+  echo "Git update complete."
+  echo "Previous ref: $previous_ref"
+  echo "Installed ref: $(current_git_ref)"
+  echo "Database backup: $GIT_UPDATE_BACKUP"
+  echo "Update log: $GIT_UPDATE_LOG"
+  echo "Rollback metadata: $ROOT_DIR/.portal-last-update"
+}
+
+git_status_report() {
+  require_git_repo
+  echo "Installation: $SCRIPT_DIR"
+  echo "Repository: $(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo unknown)"
+  echo "Installed ref: $(current_git_ref)"
+  echo "Commit: $(git -C "$SCRIPT_DIR" rev-parse --short HEAD)"
+  echo "Update channel: $PORTAL_UPDATE_CHANNEL"
+  if [[ -n "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=normal)" ]]; then
+    echo "Working tree: LOCAL CHANGES PRESENT"
+  else
+    echo "Working tree: clean"
+  fi
+}
+
+git_rollback() {
+  validate_host_environment
+  require_git_repo
+  require_clean_git_tree
+
+  local metadata="$ROOT_DIR/.portal-last-update"
+  if [[ ! -f "$metadata" ]]; then
+    echo "No Git update rollback metadata found at $metadata" >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1090
+  source "$metadata"
+  if [[ -z "${previous_commit:-}" ]]; then
+    echo "Rollback metadata does not contain a previous commit." >&2
+    exit 1
+  fi
+
+  echo "This command rolls application CODE back to ${previous_ref:-$previous_commit}."
+  echo "It does not automatically restore the database."
+  if [[ -n "${backup:-}" ]]; then
+    echo "Database backup associated with the update: $backup"
+  fi
+  echo
+  echo "If the update applied schema/data migrations that are not backward-compatible,"
+  echo "restore the matching database backup before running the older application."
+  echo
+  read -r -p "Type ROLLBACK to continue: " confirmation
+  [[ "$confirmation" == "ROLLBACK" ]] || {
+    echo "Rollback cancelled."
+    exit 1
+  }
+
+  git -C "$SCRIPT_DIR" checkout --detach "$previous_commit"
+  compose build web
+  compose up -d --build
+  echo "Application code rolled back to $(current_git_ref)."
+}
+
+case "${1:-}" in
+  git-status)
+    git_status_report
+    ;;
+  update)
+    git_update "${2:-}"
+    ;;
+  rollback-code)
+    git_rollback
+    ;;
+  preflight)
+    validate_host_environment
+    compose up -d db
+    compose build web
+    compose run --rm web python manage.py check --deploy
+    compose run --rm web python manage.py portal_preflight
+    compose run --rm web python manage.py showmigrations --plan
+    ;;
+  reminders)
+    compose exec web python manage.py send_portal_reminders
+    ;;
+  upgrade)
+    validate_host_environment
+    start_upgrade_log
+    mkdir -p "$ROOT_DIR/backups"
+    stamp="$(date +%Y%m%d-%H%M%S)"
+    backup="$ROOT_DIR/backups/pre-v${RELEASE_VERSION}-$stamp.sql"
+    echo "Starting database for backup..."
+    compose up -d db
+    echo "Creating PostgreSQL backup: $backup"
+    compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$backup"
+    test -s "$backup" || { echo "Backup failed or is empty: $backup" >&2; exit 1; }
+    echo "Building web image..."
+    compose build web
+    echo "Running application/environment checks..."
+    compose run --rm web python manage.py check --deploy
+    echo "Running migration/schema preflight..."
+    compose run --rm web python manage.py portal_preflight
+    echo "Migration plan:"
+    compose run --rm web python manage.py showmigrations --plan
+    echo "Starting v${RELEASE_VERSION}..."
+    compose up -d --build
+    echo "Upgrade started. Check status with: ./portalctl ps"
+    echo "Backup saved at: $backup"
+    echo "Upgrade log saved at: $UPGRADE_LOG"
+    ;;
+  *)
+    exec docker compose --env-file "$SHARED_ENV" "$@"
+    ;;
+esac

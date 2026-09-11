@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}{{ campaign.name }} · Fundraising{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'fundraising_dashboard' %}">← Back to Fundraising</a></nav>
+<section class="page-intro finance-intro">
+  <div><div class="eyebrow">{{ campaign.season.name }} · {{ campaign.get_status_display|upper }}</div><h1>{{ campaign.name }}</h1><p>{{ campaign.description|default:"Team fundraising campaign." }}</p></div>
+  <div class="actions">
+    {% if campaign.status != 'closed' %}<a class="btn" href="{% url 'fundraising_contribution_add' campaign.pk %}">Add contribution</a>{% endif %}
+    <a class="btn secondary" href="{% url 'fundraising_campaign_edit' campaign.pk %}">Edit campaign</a>
+    <a class="btn secondary" href="{% url 'fundraising_campaign_export' campaign.pk %}">Export CSV</a>
+  </div>
+</section>
+
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Raised</span><strong>${{ raised|floatformat:2 }}</strong>{% if campaign.goal_amount %}<small>{{ campaign.goal_percent }}% of ${{ campaign.goal_amount|floatformat:2 }} goal</small>{% endif %}</article>
+  <article class="finance-stat"><span>Family credits</span><strong>${{ family_credit|floatformat:2 }}</strong><small>Applied to rider/family receivables</small></article>
+  <article class="finance-stat"><span>Team retained</span><strong>${{ retained|floatformat:2 }}</strong><small>Raised less family credits</small></article>
+</section>
+
+{% if campaign.goal_amount %}<div class="fundraising-progress fundraising-progress-large"><span style="width:{{ campaign.goal_percent }}%"></span></div>{% endif %}
+
+<div class="callout finance-policy-callout"><strong>Accounting treatment</strong><span>Each contribution posts to the team ledger once as income. A family fundraising credit is a separate receivable adjustment and does not create a second cash transaction.</span></div>
+
+<section class="content-section">
+<div class="section-head"><div><div class="eyebrow">CONTRIBUTIONS</div><h2>Campaign activity</h2></div></div>
+<div class="entry-table-wrap">
+<table class="entry-table finance-table">
+<thead><tr><th>Date</th><th>Donor</th><th>Amount</th><th>Rider / Family</th><th>Family credit</th><th>Team retained</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody>
+{% for item in contributions %}
+<tr class="{% if item.status == 'void' %}muted{% endif %}">
+  <td>{{ item.received_date|date:"M j, Y" }}</td>
+  <td>{{ item.donor_name|default:"Anonymous" }}{% if item.method %}<small>{{ item.method }}</small>{% endif %}</td>
+  <td>{% if item.status == 'void' %}<s>${{ item.amount|floatformat:2 }}</s>{% else %}${{ item.amount|floatformat:2 }}{% endif %}</td>
+  <td>{% if item.beneficiary_membership %}{{ item.beneficiary_membership.rider }}{% else %}Team-wide{% endif %}</td>
+  <td>${{ item.family_credit_amount|floatformat:2 }}{% if item.family_charge %}<small>{{ item.family_charge.description }}</small>{% endif %}</td>
+  <td>${{ item.team_retained_amount|floatformat:2 }}</td>
+  <td><span class="status-pill">{{ item.get_status_display }}</span>{% if item.void_reason %}<small>{{ item.void_reason }}</small>{% endif %}</td>
+  <td>{% if item.status == 'posted' %}<span class="table-actions"><a class="text-link" href="{% url 'fundraising_contribution_edit' item.pk %}">Edit</a><a class="text-link danger-link" href="{% url 'fundraising_contribution_void' item.pk %}">Void</a></span>{% else %}—{% endif %}</td>
+</tr>
+{% empty %}<tr><td colspan="8" class="muted">No contributions have been recorded yet.</td></tr>{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+{% endblock %}

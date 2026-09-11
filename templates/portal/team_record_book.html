@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Team Record Book{% endblock %}
+{% block content %}
+<section class="page-intro record-book-intro">
+  <div>
+    <div class="eyebrow">TEAM LEGACY · COMPETITION</div>
+    <h1>Record book</h1>
+    <p class="record-book-deck">Excellence in the arena, preserved season by season.</p>
+  </div>
+</section>
+
+<section class="honors-board" aria-label="Post-season honors">
+  <article><strong>{{ finals_counts.regional }}</strong><span>Regional finalists</span></article>
+  <article><strong>{{ finals_counts.zone }}</strong><span>Zone finalists</span></article>
+  <article><strong>{{ finals_counts.national }}</strong><span>National finalists</span></article>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">PERFORMANCE</div><h2>Top rider/class season totals</h2></div>
+    <p>Individual points are ranked by class within each season.</p>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table record-book-table">
+      <thead>
+        <tr><th>#</th><th>Rider</th><th>Season</th><th>Class</th><th>Points</th><th>Wins</th></tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+          <tr>
+            <td><span class="record-rank">{{ forloop.counter }}</span></td>
+            <td><a href="{% url 'rider_detail' r.rider.pk %}">{{ r.rider.display_name }}</a></td>
+            <td>{{ r.season.name }}</td>
+            <td>{{ r.season_class.name }}</td>
+            <td><strong class="record-points">{{ r.points }}</strong></td>
+            <td>{{ r.wins }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">No historical results have been recorded yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">HONORS</div><h2>Awards archive</h2></div>
+    <p>Published recognition from all recorded seasons.</p>
+  </div>
+  <div class="record-award-grid">
+    {% for a in awards %}
+      <article class="stat-card record-award-card">
+        <small>{{ a.season.name }} · {{ a.rider.display_name }}</small>
+        <h3>{{ a.title }}</h3>
+        {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+      </article>
+    {% empty %}
+      <div class="empty-state">No published awards yet.</div>
+    {% endfor %}
+  </div>
+</section>
+
+<p class="muted record-book-note">These are team-maintained records and are not official IEA records.</p>
+{% endblock %}

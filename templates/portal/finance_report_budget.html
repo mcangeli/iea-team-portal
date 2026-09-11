@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Budget vs Actual{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_reports' %}{% if season %}?season={{ season.pk }}{% endif %}">← Back to Reports</a></nav>
+<form method="get" class="report-season-picker report-season-picker-inline"><label for="season">Season</label><select id="season" name="season" onchange="this.form.submit()">{% for item in seasons %}<option value="{{ item.pk }}" {% if season and item.pk == season.pk %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></form>
+<section class="page-intro finance-intro"><div><div class="eyebrow">FINANCIAL REPORT</div><h1>Budget vs Actual</h1><p>{{ season.name|default:"No active season" }}</p></div>
+<div class="actions"><a class="btn secondary" href="{% url 'finance_report_budget_export' %}{% if season %}?season={{ season.pk }}{% endif %}">Export CSV</a></div></section>
+<section class="finance-stat-grid">
+<article class="finance-stat"><span>Budget income</span><strong>${{ totals.income_budget|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Actual income</span><strong>${{ totals.income_actual|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Budget expenses</span><strong>${{ totals.expense_budget|default:0|floatformat:2 }}</strong></article>
+<article class="finance-stat"><span>Actual expenses</span><strong>${{ totals.expense_actual|default:0|floatformat:2 }}</strong></article>
+</section>
+<div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Type</th><th>Category</th><th>Budget</th><th>Actual</th><th>Used/Achieved</th><th>Variance</th></tr></thead><tbody>
+{% for row in rows %}<tr><td>{{ row.budget.get_kind_display }}</td><td><strong>{{ row.budget.category.name }}</strong></td><td>${{ row.budget.amount|floatformat:2 }}</td><td>${{ row.actual|floatformat:2 }}</td><td>{% if row.percent != None %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}</td><td class="{% if row.favorable %}finance-positive{% else %}finance-negative{% endif %}">${{ row.variance|floatformat:2 }} <small>{% if row.favorable %}favorable{% else %}unfavorable{% endif %}</small></td></tr>
+{% empty %}<tr><td colspan="6" class="muted">No budget lines have been entered for this season.</td></tr>{% endfor %}
+</tbody></table></div>
+<section class="report-net-summary"><div><span>Budget net</span><strong>${{ totals.budget_net|default:0|floatformat:2 }}</strong></div><div><span>Actual net</span><strong>${{ totals.actual_net|default:0|floatformat:2 }}</strong></div><div><span>Net variance</span><strong>${{ totals.net_variance|default:0|floatformat:2 }}</strong></div></section>
+{% endblock %}

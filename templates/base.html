@@ -1,0 +1,228 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#063f52">
+  <title>{% block title %}Team Portal{% endblock %}</title>
+  <script>
+    (function(){
+      try {
+        const saved = localStorage.getItem('iea-theme');
+        if (saved === 'dark' || saved === 'light') {
+          document.documentElement.dataset.theme = saved;
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% if not user.is_authenticated %}auth-shell{% endif %}">
+<header class="topbar">
+  <a class="brand" href="/">
+    {% if portal_team and portal_team.logo %}<img src="{{ portal_team.logo.url }}" alt="{{ portal_team.name }} logo">{% else %}<span class="brand-mark" aria-hidden="true">E</span>{% endif %}
+    <span class="brand-copy">
+      <strong>{% if portal_team %}{{ portal_team.short_name|default:portal_team.name }}{% else %}Equestrian Team Portal{% endif %}</strong>
+      {% if user.is_authenticated %}<small>Team operations</small>{% endif %}
+    </span>
+  </a>
+  {% if user.is_authenticated and not user.profile.must_change_password %}
+  <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button"
+          aria-controls="primary-nav" aria-expanded="false">
+    <span class="mobile-nav-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span>Menu</span>
+  </button>
+  <nav class="main-nav" id="primary-nav" aria-label="Primary navigation">
+    <div class="nav-primary">
+      <a href="/" class="{% if request.resolver_match.url_name == 'dashboard' %}is-active{% endif %}">Dashboard</a>
+      <a href="{% url 'my_team' %}" class="{% if request.resolver_match.url_name == 'my_team' %}is-active{% endif %}">My Team</a>
+      <a href="{% url 'rider_list' %}" class="{% if request.resolver_match.url_name|slice:':6' == 'rider_' %}is-active{% endif %}">Riders</a>
+      <a href="{% url 'show_list' %}" class="{% if request.resolver_match.url_name|slice:':5' == 'show_' %}is-active{% endif %}">Shows</a>
+      <a href="{% url 'calendar' %}" class="{% if request.resolver_match.url_name == 'calendar' %}is-active{% endif %}">Calendar</a>
+
+      <details class="nav-menu {% if request.resolver_match.url_name == 'standings' or request.resolver_match.url_name == 'season_archive' or request.resolver_match.url_name == 'season_review' or request.resolver_match.url_name == 'team_record_book' or request.resolver_match.url_name == 'award_list' %}has-active{% endif %}">
+        <summary>Competition</summary>
+        <div class="nav-menu-panel">
+          <span class="nav-menu-label">Competition</span>
+          <a href="{% url 'standings' %}" class="{% if request.resolver_match.url_name == 'standings' %}is-active{% endif %}">Standings</a>
+          <a href="{% url 'season_archive' %}" class="{% if request.resolver_match.url_name == 'season_archive' or request.resolver_match.url_name == 'season_review' or request.resolver_match.url_name == 'award_list' %}is-active{% endif %}">Season history</a>
+          <a href="{% url 'team_record_book' %}" class="{% if request.resolver_match.url_name == 'team_record_book' %}is-active{% endif %}">Record book</a>
+        </div>
+      </details>
+
+      <details class="nav-menu {% if request.resolver_match.url_name == 'action_item_list' or request.resolver_match.url_name|slice:':7' == 'lesson_' or request.resolver_match.url_name|slice:':10' == 'volunteer_' or request.resolver_match.url_name|slice:':10' == 'committee_' or request.resolver_match.url_name|slice:':8' == 'finance_' or request.resolver_match.url_name|slice:':7' == 'family_' or request.resolver_match.url_name|slice:':11' == 'assistance_' or request.resolver_match.url_name|slice:':8' == 'service_' or request.resolver_match.url_name|slice:':5' == 'dues_' or request.resolver_match.url_name|slice:':10' == 'home_barn_' or request.resolver_match.url_name|slice:':11' == 'membership_' %}has-active{% endif %}">
+        <summary>Team</summary>
+        <div class="nav-menu-panel">
+          <span class="nav-menu-label">Team operations</span>
+          <a href="{% url 'action_item_list' %}" class="{% if request.resolver_match.url_name == 'action_item_list' %}is-active{% endif %}">Action items</a>
+          <a href="{% url 'lesson_list' %}" class="{% if request.resolver_match.url_name|slice:':7' == 'lesson_' %}is-active{% endif %}">Lessons</a>
+          <a href="{% url 'volunteer_dashboard' %}" class="{% if request.resolver_match.url_name|slice:':10' == 'volunteer_' %}is-active{% endif %}">Volunteer</a>
+          <a href="{% url 'committee_list' %}" class="{% if request.resolver_match.url_name|slice:':10' == 'committee_' %}is-active{% endif %}">Committees</a>
+          {% if portal_can_finance %}<a href="{% url 'finance_dashboard' %}" class="{% if request.resolver_match.url_name|slice:':8' == 'finance_' or request.resolver_match.url_name|slice:':7' == 'family_' or request.resolver_match.url_name|slice:':11' == 'assistance_' or request.resolver_match.url_name|slice:':8' == 'service_' or request.resolver_match.url_name|slice:':5' == 'dues_' or request.resolver_match.url_name|slice:':10' == 'home_barn_' or request.resolver_match.url_name|slice:':11' == 'membership_' %}is-active{% endif %}">Finance</a>{% endif %}
+        </div>
+      </details>
+    </div>
+
+    <div class="nav-utility">
+      <a class="notification-nav" href="{% url 'notification_list' %}"><span>Notifications</span>{% if unread_notifications %}<span class="notification-count">{{ unread_notifications }}</span>{% endif %}</a>
+
+      {% if user.is_staff or portal_role == 'admin' or portal_role == 'coach' %}
+      <details class="nav-menu nav-manage {% if request.resolver_match.url_name|slice:':7' == 'parent_' or request.resolver_match.url_name|slice:':5' == 'user_' or request.resolver_match.url_name == 'season_setup' %}has-active{% endif %}">
+        <summary>Manage</summary>
+        <div class="nav-menu-panel nav-menu-panel-right">
+          <span class="nav-menu-label">Administration</span>
+          <a href="{% url 'parent_list' %}" class="{% if request.resolver_match.url_name|slice:':7' == 'parent_' %}is-active{% endif %}">Parents</a>
+          <a href="{% url 'user_list' %}" class="{% if request.resolver_match.url_name|slice:':5' == 'user_' %}is-active{% endif %}">Users</a>
+          <a href="{% url 'season_setup' %}" class="{% if request.resolver_match.url_name == 'season_setup' %}is-active{% endif %}">Season setup</a>
+          <a href="{% url 'audit_log' %}" class="{% if request.resolver_match.url_name == 'audit_log' %}is-active{% endif %}">Audit log</a>
+          {% if user.is_staff %}<a href="/admin/">Django admin</a>{% endif %}
+        </div>
+      </details>
+      {% elif user.is_staff %}
+      <a href="/admin/">Admin</a>
+      {% endif %}
+
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark theme" title="Toggle light/dark theme">
+        <span class="theme-toggle-icon" aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span>
+      </button>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-signout" type="submit">Sign out</button></form>
+    </div>
+  </nav>
+  {% endif %}
+</header>
+<main class="container">
+  {% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer><span>Private team portal</span><span class="footer-dot">•</span><span>Not an official IEA website</span><span class="footer-dot">•</span>{% if site_version_docs_url %}<a class="site-version site-version-link" href="{{ site_version_docs_url }}" target="_blank" rel="noopener" title="Open documentation for v{{ site_version }}">v{{ site_version }}</a>{% else %}<span class="site-version">v{{ site_version }}</span>{% endif %}</footer>
+<script>
+(function(){
+  const button=document.getElementById('theme-toggle');
+  if(!button) return;
+
+  function effectiveTheme(){
+    return document.documentElement.dataset.theme || 'light';
+  }
+
+  function sync(){
+    const dark=effectiveTheme()==='dark';
+    button.setAttribute('aria-pressed', dark ? 'true' : 'false');
+    button.querySelector('.theme-toggle-label').textContent = dark ? 'Light' : 'Dark';
+    const meta=document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute('content', dark ? '#101a1d' : '#063f52');
+  }
+
+  button.addEventListener('click', function(){
+    const next=effectiveTheme()==='dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme=next;
+    try { localStorage.setItem('iea-theme', next); } catch(e) {}
+    sync();
+  });
+
+  sync();
+})();
+(function(){
+  const nav = document.getElementById('primary-nav');
+  const toggle = document.getElementById('mobile-nav-toggle');
+  if (!nav) return;
+
+  const menus = Array.from(nav.querySelectorAll('details.nav-menu'));
+
+  function closeMenus(except){
+    menus.forEach(function(menu){
+      if (menu !== except) menu.removeAttribute('open');
+    });
+  }
+
+  menus.forEach(function(menu){
+    menu.addEventListener('toggle', function(){
+      if (menu.open) closeMenus(menu);
+    });
+  });
+
+  document.addEventListener('click', function(event){
+    if (!nav.contains(event.target) && (!toggle || !toggle.contains(event.target))) {
+      closeMenus();
+    }
+  });
+
+  document.addEventListener('keydown', function(event){
+    if (event.key !== 'Escape') return;
+    const openMenu = nav.querySelector('details.nav-menu[open]');
+    if (openMenu) {
+      const summary = openMenu.querySelector('summary');
+      openMenu.removeAttribute('open');
+      if (summary) summary.focus();
+      return;
+    }
+    if (nav.classList.contains('is-open')) {
+      nav.classList.remove('is-open');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
+      }
+    }
+  });
+
+  if (toggle) {
+    toggle.addEventListener('click', function(){
+      const open = !nav.classList.contains('is-open');
+      nav.classList.toggle('is-open', open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) closeMenus();
+    });
+
+    nav.addEventListener('click', function(event){
+      const link = event.target.closest('a');
+      if (!link) return;
+      if (window.matchMedia('(max-width: 760px)').matches) {
+        nav.classList.remove('is-open');
+        toggle.setAttribute('aria-expanded', 'false');
+        closeMenus();
+      }
+    });
+  }
+
+  window.addEventListener('resize', function(){
+    if (!window.matchMedia('(max-width: 760px)').matches) {
+      nav.classList.remove('is-open');
+      if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+})();
+
+(function(){
+  const forms = Array.from(document.querySelectorAll('main form')).filter(function(form){
+    return form.method && form.method.toLowerCase() === 'post' && !form.classList.contains('inline-form');
+  });
+  if (!forms.length) return;
+
+  let dirty = false;
+  let submitting = false;
+
+  forms.forEach(function(form){
+    form.addEventListener('input', function(){ dirty = true; });
+    form.addEventListener('change', function(){ dirty = true; });
+    form.addEventListener('submit', function(){ submitting = true; dirty = false; });
+  });
+
+  window.addEventListener('beforeunload', function(event){
+    if (!dirty || submitting) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+})();
+
+document.addEventListener('click', function(event){
+  const back = event.target.closest('[data-history-back]');
+  if (!back) return;
+  event.preventDefault();
+  if (window.history.length > 1) {
+    window.history.back();
+  } else {
+    window.location.href = '/';
+  }
+});
+</script>
+</body>
+</html>
