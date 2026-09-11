@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
-from .models import Season, SeasonClass, Team
+from .models import Season, SeasonClass, Show, ShowClass, Team
 
 
 class Horse(models.Model):
@@ -38,32 +38,26 @@ class Horse(models.Model):
     sex = models.CharField(max_length=12, choices=Sex.choices, blank=True)
     size_type = models.CharField(max_length=80, blank=True, help_text="Example: horse, large pony, medium pony.")
     height_hands = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
-
     has_height_restriction = models.BooleanField(default=False)
     height_restriction_notes = models.CharField(max_length=255, blank=True)
     has_weight_restriction = models.BooleanField(default=False)
     weight_restriction_notes = models.CharField(max_length=255, blank=True)
-
     crop_preference = models.CharField(max_length=12, choices=Preference.choices, default=Preference.OPTIONAL)
     spur_preference = models.CharField(max_length=12, choices=Preference.choices, default=Preference.OPTIONAL)
     lead_change = models.CharField(max_length=12, choices=LeadChange.choices, default=LeadChange.EITHER)
     riding_description = models.TextField(blank=True, help_text="Short description for riders and Hoofprint paperwork.")
-
     ownership_type = models.CharField(max_length=12, choices=OwnershipType.choices, default=OwnershipType.PRIVATE)
     owner_name = models.CharField(max_length=160, blank=True)
     home_barn = models.CharField(max_length=160, blank=True)
     notes = models.TextField(blank=True)
     photo = models.ImageField(upload_to="horses/", blank=True, null=True)
     active = models.BooleanField(default=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["team", "name"], name="unique_horse_name_per_team"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["team", "name"], name="unique_horse_name_per_team")]
 
     @property
     def display_name(self):
@@ -110,11 +104,7 @@ class HorseCogginsRecord(models.Model):
 
     @property
     def status_label(self):
-        return {
-            "expired": "Expired",
-            "expiring": "Expiring soon",
-            "current": "Current",
-        }[self.status]
+        return {"expired": "Expired", "expiring": "Expiring soon", "current": "Current"}[self.status]
 
     def __str__(self):
         return f"{self.horse.display_name} — Coggins through {self.expiration_date:%b %d, %Y}"
@@ -131,9 +121,7 @@ class HorseSeasonProfile(models.Model):
 
     class Meta:
         ordering = ["-season__start_date", "horse__name"]
-        constraints = [
-            models.UniqueConstraint(fields=["horse", "season"], name="unique_horse_season_profile"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["horse", "season"], name="unique_horse_season_profile")]
 
     def clean(self):
         super().clean()
@@ -146,3 +134,44 @@ class HorseSeasonProfile(models.Model):
 
     def __str__(self):
         return f"{self.horse.display_name} — {self.season.name}"
+
+
+class HorseShowAssignment(models.Model):
+    horse = models.ForeignKey(Horse, on_delete=models.PROTECT, related_name="show_assignments")
+    show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="horse_assignments")
+    show_classes = models.ManyToManyField(ShowClass, blank=True, related_name="horse_assignments")
+    available = models.BooleanField(default=True)
+    crop_preference = models.CharField(max_length=12, choices=Horse.Preference.choices, blank=True, help_text="Leave blank to use the horse registry default.")
+    spur_preference = models.CharField(max_length=12, choices=Horse.Preference.choices, blank=True, help_text="Leave blank to use the horse registry default.")
+    lead_change = models.CharField(max_length=12, choices=Horse.LeadChange.choices, blank=True, help_text="Leave blank to use the horse registry default.")
+    notes = models.TextField(blank=True, help_text="Show-specific notes for this horse.")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["horse__name", "id"]
+        constraints = [models.UniqueConstraint(fields=["show", "horse"], name="unique_horse_per_show")]
+
+    def clean(self):
+        super().clean()
+        if self.horse_id and self.show_id and self.horse.team_id != self.show.team_id:
+            raise ValidationError("Horse and show must belong to the same team.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean(exclude=["show_classes"])
+        return super().save(*args, **kwargs)
+
+    @property
+    def effective_crop_preference(self):
+        return self.crop_preference or self.horse.crop_preference
+
+    @property
+    def effective_spur_preference(self):
+        return self.spur_preference or self.horse.spur_preference
+
+    @property
+    def effective_lead_change(self):
+        return self.lead_change or self.horse.lead_change
+
+    def __str__(self):
+        return f"{self.show.name} — {self.horse.display_name}"
