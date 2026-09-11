@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}My Account{% endblock %}
+{% block content %}
+<section class="page-intro account-intro">
+  <div>
+    <div class="eyebrow">MY ACCOUNT</div>
+    <h1>{{ user.get_full_name|default:user.username }}</h1>
+    <p>Manage your login information, password, and communication preferences.</p>
+  </div>
+</section>
+
+<section class="account-summary-grid">
+  <article class="card account-summary-card">
+    <small>LOGIN</small>
+    <h2>{{ user.username }}</h2>
+    <dl class="account-details">
+      <div><dt>Email</dt><dd>{{ user.email|default:"Not set" }}</dd></div>
+      <div><dt>Name</dt><dd>{{ user.get_full_name|default:"Not set" }}</dd></div>
+      {% if team %}<div><dt>Team</dt><dd>{{ team.name }}</dd></div>{% endif %}
+      {% if profile %}<div><dt>Role</dt><dd>{{ profile.get_role_display }}</dd></div>{% endif %}
+    </dl>
+    <a class="btn" href="{% url 'my_account_edit' %}">Edit account information</a>
+  </article>
+
+  <article class="card account-summary-card">
+    <small>SECURITY</small>
+    <h2>Password</h2>
+    <p>Change your password at any time. You will remain signed in after a successful change.</p>
+    <a class="btn secondary" href="{% url 'my_password_change' %}">Change password</a>
+  </article>
+
+  <article class="card account-summary-card">
+    <small>COMMUNICATIONS</small>
+    <h2>Notifications</h2>
+    {% if profile %}
+      <p>Choose which portal announcements, show updates, and reminders should also be sent by email.</p>
+      <a class="btn secondary" href="{% url 'my_notification_preferences' %}">Notification preferences</a>
+    {% else %}
+      <p class="muted">Notification preferences are unavailable for this account.</p>
+    {% endif %}
+  </article>
+</section>
+
+{% if linked_rider or linked_guardian %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">LINKED PROFILE</div><h2>Your team record</h2></div></div>
+  <div class="ops-list">
+    {% if linked_rider %}
+      <a class="ops-row card" href="{% url 'rider_detail' linked_rider.pk %}">
+        <div class="ops-main"><small>RIDER</small><h3>{{ linked_rider.display_name }}</h3><p>Open your rider profile →</p></div>
+      </a>
+    {% endif %}
+    {% if linked_guardian %}
+      <article class="ops-row card">
+        <div class="ops-main"><small>PARENT / GUARDIAN</small><h3>{{ linked_guardian.display_name }}</h3><p>Your login is linked to this family contact record.</p></div>
+      </article>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="content-section account-security-note">
+  <div class="callout">
+    <strong>Account role and team assignment</strong>
+    <span>These are managed by a portal administrator. Contact your team administrator if your role, team, or linked rider/family record is incorrect.</span>
+  </div>
+</section>
+{% endblock %}
