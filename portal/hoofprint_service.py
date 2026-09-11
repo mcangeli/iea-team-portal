@@ -22,7 +22,7 @@ def _p(value, style):
 
 
 def _class_report_label(class_data):
-    """Prefer the short show class ID (H1, H2, etc.) for Hoofprint output."""
+    """Prefer the short class ID (H1, H2, etc.) for Hoofprint output."""
     number = (class_data.get("number") or "").strip()
     if number:
         return number.upper()
@@ -61,7 +61,15 @@ def build_hoofprint_payload(show, cleaned_data=None):
             "coggins_status": coggins.status_label if coggins else "Missing",
             "coggins_expiration": coggins.expiration_date.isoformat() if coggins else "",
             "classes": [
-                {"number": c.class_number, "name": c.display_name, "team_level": c.team_level}
+                {
+                    "number": (
+                        (getattr(c.season_class, "class_code", "") or "").strip()
+                        if c.season_class_id
+                        else ""
+                    ) or c.class_number,
+                    "name": c.display_name,
+                    "team_level": c.team_level,
+                }
                 for c in assignment.show_classes.all()
             ],
         })
