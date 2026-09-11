@@ -1,10 +1,12 @@
+from html import escape
 from io import BytesIO
 
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from reportlab.lib.pagesizes import letter, landscape
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import inch
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
 def _display_pref(value):
@@ -13,6 +15,10 @@ def _display_pref(value):
 
 def _display_change(value):
     return {"flying": "Flying", "simple": "Simple", "either": "Either", "none": "None"}.get(value, value or "—")
+
+
+def _p(value, style):
+    return Paragraph(escape(str(value or "—")), style)
 
 
 def build_hoofprint_payload(show, cleaned_data=None):
@@ -72,46 +78,177 @@ def build_hoofprint_payload(show, cleaned_data=None):
 
 
 def render_hoofprint_pdf(payload):
+    """Render a compact Hoofprint designed for US Letter landscape printing."""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=0.35*inch, leftMargin=0.35*inch, topMargin=0.35*inch, bottomMargin=0.35*inch)
+    page_width, page_height = landscape(letter)
+    margin = 0.28 * inch
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=(page_width, page_height),
+        rightMargin=margin,
+        leftMargin=margin,
+        topMargin=0.24 * inch,
+        bottomMargin=0.24 * inch,
+        title="IEA Hoofprint",
+        author="IEA Team Portal",
+    )
+
     styles = getSampleStyleSheet()
-    story = [Paragraph("IEA HOOFPRINT", styles["Title"])]
-    show = payload["show"]
-    story.append(Paragraph(f"<b>Show:</b> {show['name']} &nbsp;&nbsp; <b>Date:</b> {show['date']} &nbsp;&nbsp; <b>Team:</b> {show['team_name']}", styles["BodyText"]))
-    story.append(Paragraph(f"<b>Coach:</b> {payload.get('coach_name') or '—'} &nbsp;&nbsp; <b>Phone:</b> {payload.get('coach_phone') or '—'} &nbsp;&nbsp; <b>Horses contributed:</b> {payload.get('horses_contributed', 0)}", styles["BodyText"]))
-    story.append(Spacer(1, 0.12*inch))
-    data = [["Horse", "Breed / Size", "Ht", "Classes", "Crop", "Spurs", "Changes", "Restrictions", "Riding description"]]
-    for horse in payload.get("horses", []):
-        classes = ", ".join((f"#{c['number']} " if c.get("number") else "") + c["name"] for c in horse.get("classes", [])) or "—"
-        restrictions = "; ".join(filter(None, [horse.get("height_restriction"), horse.get("weight_restriction")])) or "—"
-        data.append([
-            horse["name"],
-            " / ".join(filter(None, [horse.get("breed"), horse.get("size_type")])) or "—",
-            horse.get("height_hands") or "—",
-            classes,
-            horse.get("crop") or "—",
-            horse.get("spurs") or "—",
-            horse.get("lead_change") or "—",
-            restrictions,
-            horse.get("riding_description") or "—",
-        ])
-    table = Table(data, repeatRows=1, colWidths=[0.9*inch, 1.0*inch, 0.45*inch, 2.15*inch, 0.55*inch, 0.55*inch, 0.65*inch, 1.2*inch, 2.0*inch])
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#222222")),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 7),
-        ("VALIGN", (0,0), (-1,-1), "TOP"),
-        ("GRID", (0,0), (-1,-1), 0.35, colors.HexColor("#999999")),
+    title = ParagraphStyle(
+        "HoofprintTitle",
+        parent=styles["Title"],
+        fontName="Helvetica-Bold",
+        fontSize=14,
+        leading=15,
+        alignment=TA_CENTER,
+        spaceAfter=4,
+    )
+    label = ParagraphStyle(
+        "HoofprintLabel",
+        parent=styles["BodyText"],
+        fontName="Helvetica-Bold",
+        fontSize=7.2,
+        leading=8.2,
+    )
+    body = ParagraphStyle(
+        "HoofprintBody",
+        parent=styles["BodyText"],
+        fontName="Helvetica",
+        fontSize=7.2,
+        leading=8.4,
+        alignment=TA_LEFT,
+    )
+    small = ParagraphStyle(
+        "HoofprintSmall",
+        parent=body,
+        fontSize=6.4,
+        leading=7.3,
+    )
+    header_cell = ParagraphStyle(
+        "HoofprintHeaderCell",
+        parent=body,
+        fontName="Helvetica-Bold",
+        textColor=colors.white,
+        fontSize=6.7,
+        leading=7.4,
+        alignment=TA_CENTER,
+    )
+
+    show = payload.get("show", {})
+    story = [Paragraph("IEA HOOFPRINT", title)]
+
+    zone_region = " / ".join(
+        part for part in [
+            f"Zone {show.get('zone')}" if show.get("zone") else "",
+            f"Region {show.get('region')}" if show.get("region") else "",
+        ] if part
+    ) or "—"
+
+    header_data = [
+        [_p("Show", label), _p(show.get("name"), body), _p("Date", label), _p(show.get("date"), body), _p("Season", label), _p(show.get("season"), body)],
+        [_p("Team", label), _p(show.get("team_name"), body), _p("Venue", label), _p(show.get("venue"), body), _p("Zone / Region", label), _p(zone_region, body)],
+        [_p("Coach", label), _p(payload.get("coach_name"), body), _p("Phone", label), _p(payload.get("coach_phone"), body), _p("Horses contributed", label), _p(payload.get("horses_contributed", 0), body)],
+    ]
+    header = Table(
+        header_data,
+        colWidths=[0.55*inch, 2.45*inch, 0.48*inch, 1.45*inch, 0.78*inch, 2.93*inch],
+        hAlign="LEFT",
+    )
+    header.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.35, colors.HexColor("#9a9a9a")),
+        ("BACKGROUND", (0,0), (0,-1), colors.HexColor("#eeeeee")),
+        ("BACKGROUND", (2,0), (2,-1), colors.HexColor("#eeeeee")),
+        ("BACKGROUND", (4,0), (4,-1), colors.HexColor("#eeeeee")),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ("LEFTPADDING", (0,0), (-1,-1), 3),
         ("RIGHTPADDING", (0,0), (-1,-1), 3),
-        ("TOPPADDING", (0,0), (-1,-1), 4),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
+        ("TOPPADDING", (0,0), (-1,-1), 2.5),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 2.5),
     ]))
-    story.append(table)
+    story.extend([header, Spacer(1, 0.10*inch)])
+
+    table_rows = [[
+        Paragraph("Horse", header_cell),
+        Paragraph("Breed / Size", header_cell),
+        Paragraph("Ht", header_cell),
+        Paragraph("Classes", header_cell),
+        Paragraph("Crop", header_cell),
+        Paragraph("Spurs", header_cell),
+        Paragraph("Changes", header_cell),
+        Paragraph("Restrictions / Show notes", header_cell),
+        Paragraph("Riding description", header_cell),
+    ]]
+
+    for horse in payload.get("horses", []):
+        classes = "<br/>".join(
+            escape(((f"#{c['number']} " if c.get("number") else "") + c.get("name", "")).strip())
+            for c in horse.get("classes", [])
+        ) or "—"
+        restrictions_parts = []
+        if horse.get("height_restriction"):
+            restrictions_parts.append(f"Height: {horse['height_restriction']}")
+        if horse.get("weight_restriction"):
+            restrictions_parts.append(f"Weight: {horse['weight_restriction']}")
+        if horse.get("show_notes"):
+            restrictions_parts.append(f"Show: {horse['show_notes']}")
+        restrictions = "<br/>".join(escape(x) for x in restrictions_parts) or "—"
+
+        horse_label_parts = [horse.get("name") or "—"]
+        if horse.get("sex"):
+            horse_label_parts.append(horse["sex"])
+        horse_label = "<b>" + escape(horse_label_parts[0]) + "</b>"
+        if len(horse_label_parts) > 1:
+            horse_label += "<br/>" + escape(horse_label_parts[1])
+
+        breed_size = " / ".join(x for x in [horse.get("breed"), horse.get("size_type")] if x) or "—"
+        table_rows.append([
+            Paragraph(horse_label, small),
+            _p(breed_size, small),
+            _p(horse.get("height_hands"), small),
+            Paragraph(classes, small),
+            _p(horse.get("crop"), small),
+            _p(horse.get("spurs"), small),
+            _p(horse.get("lead_change"), small),
+            Paragraph(restrictions, small),
+            _p(horse.get("riding_description"), small),
+        ])
+
+    available_width = page_width - (2 * margin)
+    col_widths = [
+        0.86*inch,
+        0.94*inch,
+        0.38*inch,
+        1.72*inch,
+        0.48*inch,
+        0.48*inch,
+        0.60*inch,
+        1.43*inch,
+        available_width - (0.86+0.94+0.38+1.72+0.48+0.48+0.60+1.43)*inch,
+    ]
+
+    horse_table = Table(table_rows, repeatRows=1, colWidths=col_widths, hAlign="LEFT")
+    horse_table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#2f342f")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
+        ("GRID", (0,0), (-1,-1), 0.35, colors.HexColor("#9a9a9a")),
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("LEFTPADDING", (0,0), (-1,-1), 2.5),
+        ("RIGHTPADDING", (0,0), (-1,-1), 2.5),
+        ("TOPPADDING", (0,0), (-1,-1), 2.7),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 2.7),
+        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#f7f7f5")]),
+    ]))
+    story.append(horse_table)
+
+    footer_parts = []
     if payload.get("notes"):
-        story.append(Spacer(1, 0.12*inch))
-        story.append(Paragraph(f"<b>Notes:</b> {payload['notes']}", styles["BodyText"]))
+        footer_parts.append(Paragraph(f"<b>Submission notes:</b> {escape(str(payload['notes']))}", body))
+    footer_parts.append(Paragraph(
+        "Horse information reflects the finalized show roster. Verify class assignments, restrictions, crop/spur preferences, lead changes, and riding descriptions before submission.",
+        small,
+    ))
+    story.extend([Spacer(1, 0.08*inch), KeepTogether(footer_parts)])
+
     doc.build(story)
     buffer.seek(0)
     return buffer.getvalue()
