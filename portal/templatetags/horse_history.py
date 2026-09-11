@@ -1,5 +1,5 @@
 from django import template
-from django.db.models import Count, Min, Max
+from django.db.models import Count
 
 from portal.horse_models import Horse, HorseShowAward
 from portal.post_show_horse_models import ShowHorseHistory
@@ -36,7 +36,7 @@ def _horse_rows(team, season=None):
             for item in record.class_snapshot or []:
                 class_keys.add(item.get("id") or f"{item.get('class_number', '')}:{item.get('name', '')}")
         class_keys.update(
-            assignments.values_list("show_classes_id", flat=True).exclude(show_classes_id__isnull=True)
+            assignments.values_list("show_classes", flat=True).exclude(show_classes__isnull=True)
         )
 
         show_count = len(final_show_ids | assignment_show_ids)
