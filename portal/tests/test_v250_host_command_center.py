@@ -50,7 +50,8 @@ class V250HostCommandCenterTests(TestCase):
         response = self.client.get(reverse("host_command_center", args=[self.show.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Show-Day Command Center")
-        self.assertContains(response, "does not count toward, satisfy, or change season volunteer-hour requirements")
+        self.assertContains(response, "Operational staffing only")
+        self.assertContains(response, "They do not count toward, satisfy, or change season volunteer-hour requirements.")
 
     def test_show_lead_can_view_but_not_add_host_duty(self):
         self.client.force_login(self.lead)
