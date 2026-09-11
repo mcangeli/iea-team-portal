@@ -17,7 +17,7 @@ def build_show_readiness(show):
     registry_assignments = list(
         show.horse_assignments.filter(available=True)
         .select_related("horse")
-        .prefetch_related("show_classes")
+        .prefetch_related("show_classes", "horse__coggins_records")
     )
     leased_horses = list(
         show.leased_horses.filter(available=True).prefetch_related("show_classes")
@@ -37,6 +37,19 @@ def build_show_readiness(show):
         .order_by("sort_order", "class_number", "name")
     )
 
+    coggins_warnings = []
+    for assignment in registry_assignments:
+        record = assignment.horse.latest_coggins
+        status = record.status if record else "missing"
+        if status != "current":
+            coggins_warnings.append({
+                "assignment": assignment,
+                "horse": assignment.horse,
+                "record": record,
+                "status": status,
+                "label": record.status_label if record else "Missing",
+            })
+
     horse_shortage = max(required_horses - available_horses, 0)
     count_ready = available_horses >= required_horses
     coverage_ready = not uncovered
@@ -53,5 +66,7 @@ def build_show_readiness(show):
         "coverage_ready": coverage_ready,
         "uncovered_classes": uncovered,
         "uncovered_class_count": len(uncovered),
+        "coggins_warnings": coggins_warnings,
+        "coggins_warning_count": len(coggins_warnings),
         "ready": count_ready and coverage_ready,
     }
