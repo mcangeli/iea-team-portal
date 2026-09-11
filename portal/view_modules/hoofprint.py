@@ -1,11 +1,13 @@
+import logging
 from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
+from django.db.models import Max
 from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.db.models import Max
 
 from ..hoofprint_checks import hoofprint_warnings, live_differs_from_snapshot
 from ..hoofprint_forms import HoofprintFinalizeForm, ShowHorseListDocumentForm
@@ -14,6 +16,8 @@ from ..hoofprint_service import build_hoofprint_payload, render_hoofprint_pdf
 from ..models import AuditEvent, Show
 from ..show_readiness_views import _can_manage_show_horses
 from .common import _audit_event, _ensure_season_open, _team
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _pdf_response(show, payload, filename_suffix):
@@ -63,16 +67,31 @@ def show_horse_list_upload(request, show_pk):
     _ensure_season_open(show.season)
     form = ShowHorseListDocumentForm(request.POST or None, request.FILES or None)
     if form.is_valid():
-        max_revision = show.horse_list_documents.aggregate(value=Max("revision"))["value"] or 0
         document = form.save(commit=False)
         document.show = show
-        document.revision = max_revision + 1
         document.uploaded_by = request.user
-        document.full_clean()
-        document.save()
-        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=document, season=show.season, summary=f"Uploaded show horse list revision {document.revision} for {show.name}")
-        messages.success(request, f"Horse list revision {document.revision} uploaded.")
-        return redirect("show_hoofprint", show_pk=show.pk)
+        try:
+            with transaction.atomic():
+                # Lock the show row so two near-simultaneous phone uploads cannot
+                # choose the same revision number.
+                Show.objects.select_for_update().get(pk=show.pk)
+                max_revision = show.horse_list_documents.aggregate(value=Max("revision"))["value"] or 0
+                document.revision = max_revision + 1
+                document.save()
+                _audit_event(
+                    team=team,
+                    actor=request.user,
+                    action=AuditEvent.Action.CREATED,
+                    obj=document,
+                    season=show.season,
+                    summary=f"Uploaded show horse list revision {document.revision} for {show.name}",
+                )
+        except (ValidationError, IntegrityError, OSError) as exc:
+            LOGGER.exception("Horse list upload failed for show %s", show.pk)
+            form.add_error("document", "The horse list could not be saved. Please try the photo again or upload a PDF/image file.")
+        else:
+            messages.success(request, f"Horse list revision {document.revision} uploaded.")
+            return redirect("show_hoofprint", show_pk=show.pk)
     return render(request, "portal/show_horse_list_upload.html", {"show": show, "form": form, "title": "Upload show horse list"})
 
 
