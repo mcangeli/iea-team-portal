@@ -82,12 +82,28 @@ class HorseSeasonProfileForm(forms.ModelForm):
 class HorseShowAssignmentForm(forms.ModelForm):
     class Meta:
         model = HorseShowAssignment
-        fields = ["horse", "available", "show_classes", "crop_preference", "spur_preference", "lead_change", "notes"]
-        widgets = {"show_classes": forms.CheckboxSelectMultiple(), "notes": forms.Textarea(attrs={"rows": 3})}
+        fields = [
+            "horse", "available", "show_classes", "crop_preference", "spur_preference",
+            "lead_change", "eligibility_override", "eligibility_override_reason", "notes",
+        ]
+        labels = {
+            "eligibility_override": "Coach/Admin eligibility override",
+            "eligibility_override_reason": "Override reason",
+        }
+        widgets = {
+            "show_classes": forms.CheckboxSelectMultiple(),
+            "eligibility_override_reason": forms.TextInput(attrs={"placeholder": "Reason for this season-eligibility exception"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        help_texts = {
+            "show_classes": "Classes normally must match this horse's season eligibility profile.",
+            "eligibility_override": "Use only when a Coach/Admin intentionally approves an exception.",
+        }
 
-    def __init__(self, *args, show=None, **kwargs):
+    def __init__(self, *args, show=None, allow_eligibility_override=False, **kwargs):
         super().__init__(*args, **kwargs)
         self.show = show
+        self.allow_eligibility_override = allow_eligibility_override
         if show:
             assigned_ids = HorseShowAssignment.objects.filter(show=show).exclude(pk=self.instance.pk).values_list("horse_id", flat=True)
             self.fields["horse"].queryset = Horse.objects.filter(team=show.team, active=True).exclude(pk__in=assigned_ids).order_by("name")
@@ -95,6 +111,9 @@ class HorseShowAssignmentForm(forms.ModelForm):
         self.fields["crop_preference"].choices = [("", "Use registry default")] + list(Horse.Preference.choices)
         self.fields["spur_preference"].choices = [("", "Use registry default")] + list(Horse.Preference.choices)
         self.fields["lead_change"].choices = [("", "Use registry default")] + list(Horse.LeadChange.choices)
+        if not allow_eligibility_override:
+            self.fields.pop("eligibility_override", None)
+            self.fields.pop("eligibility_override_reason", None)
 
     def clean_horse(self):
         horse = self.cleaned_data["horse"]
@@ -103,8 +122,49 @@ class HorseShowAssignmentForm(forms.ModelForm):
 
     def clean_show_classes(self):
         classes = self.cleaned_data["show_classes"]
-        if self.show and any(item.show_id != self.show.id for item in classes): raise forms.ValidationError("Classes must belong to this show.")
+        if self.show and any(item.show_id != self.show.id for item in classes):
+            raise forms.ValidationError("Classes must belong to this show.")
         return classes
+
+    def clean(self):
+        cleaned = super().clean()
+        horse = cleaned.get("horse")
+        classes = cleaned.get("show_classes")
+        if not self.show or not horse or classes is None:
+            return cleaned
+
+        profile = HorseSeasonProfile.objects.filter(
+            horse=horse, season=self.show.season, active_for_season=True,
+        ).prefetch_related("eligible_classes").first()
+        eligible_ids = set(profile.eligible_classes.values_list("id", flat=True)) if profile else set()
+        selected_ineligible = [item for item in classes if not item.season_class_id or item.season_class_id not in eligible_ids]
+
+        if not selected_ineligible:
+            if self.allow_eligibility_override:
+                cleaned["eligibility_override"] = False
+                cleaned["eligibility_override_reason"] = ""
+                self.instance.eligibility_override = False
+                self.instance.eligibility_override_reason = ""
+            return cleaned
+
+        if self.allow_eligibility_override:
+            if not cleaned.get("eligibility_override"):
+                labels = ", ".join(item.display_name for item in selected_ineligible[:4])
+                self.add_error("show_classes", f"Outside this horse's season eligibility: {labels}. Use the Coach/Admin override to continue.")
+            elif not (cleaned.get("eligibility_override_reason") or "").strip():
+                self.add_error("eligibility_override_reason", "Add a reason for the eligibility override.")
+            return cleaned
+
+        existing_ineligible_ids = set()
+        if self.instance and self.instance.pk:
+            for item in self.instance.show_classes.select_related("season_class"):
+                if not item.season_class_id or item.season_class_id not in eligible_ids:
+                    existing_ineligible_ids.add(item.pk)
+        newly_ineligible = [item for item in selected_ineligible if item.pk not in existing_ineligible_ids]
+        if newly_ineligible:
+            labels = ", ".join(item.display_name for item in newly_ineligible[:4])
+            self.add_error("show_classes", f"{labels} is outside this horse's season eligibility. A Coach/Admin must approve that exception.")
+        return cleaned
 
 
 class HorseShowAwardForm(forms.ModelForm):

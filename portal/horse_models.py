@@ -144,6 +144,8 @@ class HorseShowAssignment(models.Model):
     crop_preference = models.CharField(max_length=12, choices=Horse.Preference.choices, blank=True, help_text="Leave blank to use the horse registry default.")
     spur_preference = models.CharField(max_length=12, choices=Horse.Preference.choices, blank=True, help_text="Leave blank to use the horse registry default.")
     lead_change = models.CharField(max_length=12, choices=Horse.LeadChange.choices, blank=True, help_text="Leave blank to use the horse registry default.")
+    eligibility_override = models.BooleanField(default=False, help_text="Coach/Admin approved use outside the horse's season eligibility.")
+    eligibility_override_reason = models.CharField(max_length=255, blank=True)
     notes = models.TextField(blank=True, help_text="Show-specific notes for this horse.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -156,6 +158,8 @@ class HorseShowAssignment(models.Model):
         super().clean()
         if self.horse_id and self.show_id and self.horse.team_id != self.show.team_id:
             raise ValidationError("Horse and show must belong to the same team.")
+        if self.eligibility_override and not self.eligibility_override_reason.strip():
+            raise ValidationError({"eligibility_override_reason": "Add a reason for the eligibility override."})
 
     def save(self, *args, **kwargs):
         self.full_clean(exclude=["show_classes"])

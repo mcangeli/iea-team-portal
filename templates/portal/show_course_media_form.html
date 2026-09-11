@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_courses' show.pk %}">← Back to Course Information</a></nav>
+<section class="page-intro course-module-intro"><div><div class="eyebrow">COURSE OPERATIONS</div><h1>Update course image</h1><p>{{ show.name }} · {{ course.title }}</p></div></section>
+<section class="content-section compact-section">
+  <div class="card course-privacy-note"><strong>Show Lead media access</strong><p class="muted">You can upload, replace, or clear the posted course image/PDF and update its external link. Course details and private coaching notes remain Coach/Admin controlled.</p></div>
+  <form method="post" enctype="multipart/form-data" class="card form-card course-form-card">
+    {% csrf_token %}{{ form.non_field_errors }}
+    <div class="form-grid">{% for field in form %}<div class="form-field form-span-2"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div>
+    <div class="actions form-actions"><button class="btn" type="submit">Save course media</button><a class="btn secondary" href="{% url 'show_courses' show.pk %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

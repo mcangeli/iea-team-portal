@@ -121,25 +121,20 @@ def show_horses(request, show_pk):
         coggins = assignment.horse.latest_coggins
         rows.append({"assignment": assignment, "coggins": coggins, "coggins_status": coggins.status if coggins else "missing"})
     awards = show.horse_awards.select_related("assignment__horse").order_by("session")
-    return render(request, "portal/show_horses.html", {
-        "show": show,
-        "rows": rows,
-        "awards": awards,
-        "can_manage": _can_manage_show_horses(request.user, show),
-        "can_manage_registry": _can_manage(request.user),
-    })
+    return render(request, "portal/show_horses.html", {"show": show, "rows": rows, "awards": awards, "can_manage": _can_manage_show_horses(request.user, show), "can_manage_registry": _can_manage(request.user)})
 
 
 @login_required
 def show_horse_add(request, show_pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
-    form = HorseShowAssignmentForm(request.POST or None, show=show)
+    allow_override = _can_manage(request.user)
+    form = HorseShowAssignmentForm(request.POST or None, show=show, allow_eligibility_override=allow_override)
     if form.is_valid():
         assignment = form.save(commit=False); assignment.show = show; assignment.save(); form.save_m2m()
-        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=assignment, season=show.season, summary=f"Assigned {assignment.horse.display_name} to {show.name}")
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=assignment, season=show.season, summary=f"Assigned {assignment.horse.display_name} to {show.name}", details={"eligibility_override": assignment.eligibility_override, "override_reason": assignment.eligibility_override_reason})
         messages.success(request, f"{assignment.horse.display_name} was added to this show."); return redirect("show_horses", show_pk=show.pk)
-    return render(request, "portal/show_horse_form.html", {"form": form, "show": show, "title": "Add horse to show"})
+    return render(request, "portal/show_horse_form.html", {"form": form, "show": show, "title": "Add horse to show", "can_override_eligibility": allow_override})
 
 
 @login_required
@@ -147,11 +142,13 @@ def show_horse_edit(request, show_pk, pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     assignment = get_object_or_404(HorseShowAssignment, pk=pk, show=show)
-    form = HorseShowAssignmentForm(request.POST or None, instance=assignment, show=show)
+    allow_override = _can_manage(request.user)
+    form = HorseShowAssignmentForm(request.POST or None, instance=assignment, show=show, allow_eligibility_override=allow_override)
     if form.is_valid():
-        assignment = form.save(); _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, season=show.season, summary=f"Updated show assignment for {assignment.horse.display_name}")
+        assignment = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, season=show.season, summary=f"Updated show assignment for {assignment.horse.display_name}", details={"eligibility_override": assignment.eligibility_override, "override_reason": assignment.eligibility_override_reason})
         messages.success(request, "Show horse assignment updated."); return redirect("show_horses", show_pk=show.pk)
-    return render(request, "portal/show_horse_form.html", {"form": form, "show": show, "assignment": assignment, "title": f"Edit {assignment.horse.display_name}"})
+    return render(request, "portal/show_horse_form.html", {"form": form, "show": show, "assignment": assignment, "title": f"Edit {assignment.horse.display_name}", "can_override_eligibility": allow_override})
 
 
 @login_required
@@ -160,6 +157,9 @@ def show_horse_remove(request, show_pk, pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
     assignment = get_object_or_404(HorseShowAssignment, pk=pk, show=show); label = assignment.horse.display_name
+    if assignment.awards.exists():
+        messages.error(request, f"{label} cannot be removed because a Horse of the Day award is attached to this show assignment. Keep the assignment for historical accuracy; mark the horse unavailable instead if it is no longer part of the active roster.")
+        return redirect("show_horses", show_pk=show.pk)
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=assignment, season=show.season, summary=f"Removed {label} from {show.name}")
     assignment.delete(); messages.success(request, f"{label} was removed from this show.")
     return redirect("show_horses", show_pk=show.pk)
