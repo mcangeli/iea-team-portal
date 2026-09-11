@@ -93,7 +93,6 @@ compose() {
   docker compose --env-file "$SHARED_ENV" "$@"
 }
 
-
 require_git_repo() {
   command -v git >/dev/null 2>&1 || {
     echo "Git is not installed or is not in PATH." >&2
@@ -186,16 +185,24 @@ git_update() {
   echo "Fetching tags and repository updates..."
   git -C "$SCRIPT_DIR" fetch --tags --prune origin
 
+  if [[ -n "$requested" ]]; then
+    echo "Fetching requested ref directly: $requested"
+    git -C "$SCRIPT_DIR" fetch origin "$requested" || true
+  fi
+
   local target
   target="$(resolve_update_target "$requested")"
   if [[ -z "$target" ]]; then
     echo "No matching release tag was found." >&2
     exit 1
   fi
+
   local checkout_target="$target"
   if ! git -C "$SCRIPT_DIR" rev-parse --verify --quiet "${checkout_target}^{commit}" >/dev/null; then
     if git -C "$SCRIPT_DIR" rev-parse --verify --quiet "origin/${target}^{commit}" >/dev/null; then
       checkout_target="origin/$target"
+    elif [[ -n "$requested" ]] && git -C "$SCRIPT_DIR" rev-parse --verify --quiet "FETCH_HEAD^{commit}" >/dev/null; then
+      checkout_target="FETCH_HEAD"
     else
       echo "Requested release/ref does not exist after fetch: $target" >&2
       exit 1
@@ -269,7 +276,6 @@ git_rollback() {
     exit 1
   fi
 
-  # shellcheck disable=SC1090
   source "$metadata"
   if [[ -z "${previous_commit:-}" ]]; then
     echo "Rollback metadata does not contain a previous commit." >&2
