@@ -11,6 +11,7 @@ class PortalConfig(AppConfig):
         from . import branding_models  # noqa: F401
         from . import horse_models  # noqa: F401
         from . import hoofprint_models  # noqa: F401
+        from . import season_class_code  # noqa: F401
 
     def ready(self):
         import portal.signals  # noqa: F401
