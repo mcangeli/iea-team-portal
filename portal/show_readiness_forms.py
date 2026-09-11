@@ -21,19 +21,33 @@ class SeasonHorseRequirementForm(forms.ModelForm):
 
 
 class ShowLeasedHorseForm(forms.ModelForm):
+    """Planning form for horses the team expects to lease for one show.
+
+    At readiness-planning time the team may only know a temporary label/provider
+    and the classes the leased horse is expected to cover. Detailed horse data is
+    intentionally not required because leased horses are not part of the submitted
+    Hoofprint until/unless they are later added to the normal registry/show roster.
+    """
+
     class Meta:
         model = ShowLeasedHorse
-        fields = [
-            "barn_name", "show_name", "provider", "available", "show_classes",
-            "breed", "sex", "size_type", "height_hands",
-            "crop_preference", "spur_preference", "lead_change",
-            "riding_description", "restriction_notes", "coggins_status", "notes",
-        ]
+        fields = ["barn_name", "provider", "available", "show_classes", "notes"]
+        labels = {
+            "barn_name": "Planning name",
+            "provider": "Lease source / provider",
+            "available": "Count this horse as available",
+            "show_classes": "Expected class coverage",
+            "notes": "Planning notes",
+        }
+        help_texts = {
+            "barn_name": "Use the horse name if known, or a temporary label such as 'Lease Horse 1'.",
+            "provider": "Optional barn, owner, or organization expected to provide the horse.",
+            "show_classes": "Select the classes this leased horse is expected to cover for readiness planning.",
+            "notes": "Optional planning details. This information is not included on the Hoofprint.",
+        }
         widgets = {
             "show_classes": forms.CheckboxSelectMultiple(),
-            "riding_description": forms.Textarea(attrs={"rows": 3}),
             "notes": forms.Textarea(attrs={"rows": 3}),
-            "height_hands": forms.NumberInput(attrs={"step": "0.01", "min": "0"}),
         }
 
     def __init__(self, *args, show=None, **kwargs):
