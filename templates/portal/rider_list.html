@@ -3,7 +3,7 @@
 {% block content %}
 <div class="page-title">
   <div><div class="eyebrow">ROSTER · {{ season.name|default:"NO ACTIVE SEASON" }}</div><h1>Team riders</h1><p>Season assignments determine each rider's Futures or Upper School team and classes.</p></div>
-  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'rider_export' %}?team={{ selected_team }}">Export CSV</a><a class="btn secondary" href="{% url 'season_setup' %}">Season setup</a><a class="btn" href="{% url 'rider_create' %}">Add rider</a></div>{% endif %}
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'former_rider_list' %}">Alumni / Former Riders</a><a class="btn secondary" href="{% url 'rider_export' %}?team={{ selected_team }}">Export CSV</a><a class="btn secondary" href="{% url 'season_setup' %}">Season setup</a><a class="btn" href="{% url 'rider_create' %}">Add rider</a></div>{% endif %}
 </div>
 <nav class="filter-tabs" aria-label="Roster filters"><a class="{% if selected_team == 'all' %}active{% endif %}" href="?team=all">All</a><a class="{% if selected_team == 'futures' %}active{% endif %}" href="?team=futures">Futures</a><a class="{% if selected_team == 'upper' %}active{% endif %}" href="?team=upper">Upper School</a><a class="{% if selected_team == 'unassigned' %}active{% endif %}" href="?team=unassigned">Unassigned</a></nav>
 

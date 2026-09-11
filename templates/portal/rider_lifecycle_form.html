@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Rider Lifecycle{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'rider_detail' rider.pk %}">← Back to {{ rider.display_name }}</a>
+</nav>
+
+<div class="page-title">
+  <div>
+    <div class="eyebrow">RIDER LIFECYCLE</div>
+    <h1>{{ title }}</h1>
+    <p>Move a rider off the current roster without deleting their history. Returning the status to Active restores normal current-team availability.</p>
+  </div>
+</div>
+
+<form method="post" class="card form-card">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    <div class="field">
+      {{ field.label_tag }}
+      {{ field }}
+      {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+      {% for error in field.errors %}<div class="error">{{ error }}</div>{% endfor %}
+    </div>
+  {% endfor %}
+  <div class="actions">
+    <button class="btn" type="submit">Save lifecycle</button>
+    <a class="btn secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

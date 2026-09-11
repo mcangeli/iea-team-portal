@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Alumni / Former Riders{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'rider_list' %}">← Back to current riders</a>
+</nav>
+
+<div class="page-title">
+  <div>
+    <div class="eyebrow">ROSTER ARCHIVE</div>
+    <h1>Alumni / Former Riders</h1>
+    <p>Former riders stay connected to their season history, results, awards, photos, and Record Book contributions without appearing in current team operations.</p>
+  </div>
+</div>
+
+<nav class="filter-tabs" aria-label="Former rider filters">
+  <a class="{% if selected_status == 'all' %}active{% endif %}" href="?status=all">All · {{ status_counts.all }}</a>
+  <a class="{% if selected_status == 'graduated' %}active{% endif %}" href="?status=graduated">Graduated · {{ status_counts.graduated }}</a>
+  <a class="{% if selected_status == 'left_team' %}active{% endif %}" href="?status=left_team">Left Team · {{ status_counts.left_team }}</a>
+  <a class="{% if selected_status == 'inactive' %}active{% endif %}" href="?status=inactive">Inactive · {{ status_counts.inactive }}</a>
+</nav>
+
+<section class="roster-section">
+  <div class="section-head">
+    <div><div class="eyebrow">HISTORICAL ROSTER</div><h2>Former team riders</h2></div>
+    <span class="roster-count">{{ former_riders|length }} riders</span>
+  </div>
+  <div class="rider-grid">
+    {% for r in former_riders %}
+      <a class="rider-card card" href="{% url 'rider_detail' r.pk %}">
+        <div class="rider-card-photo">
+          {% if r.photo %}<img src="{{ r.photo.url }}" alt="{{ r }}">{% else %}<div class="profile-photo avatar">{{ r.first_name|first }}{{ r.last_name|first }}</div>{% endif %}
+        </div>
+        <div class="rider-card-copy">
+          <div class="eyebrow">{{ r.lifecycle.get_status_display }}</div>
+          <h3>{{ r.display_name }} {{ r.last_name }}</h3>
+          <p>
+            {% if r.lifecycle.status == 'graduated' and r.lifecycle.graduation_year %}Class of {{ r.lifecycle.graduation_year }}
+            {% elif r.lifecycle.ended_on %}Ended {{ r.lifecycle.ended_on|date:"M j, Y" }}
+            {% else %}Historical rider record{% endif %}
+          </p>
+          {% with latest=r.memberships.all|first %}
+            {% if latest %}<small>Most recent season: {{ latest.season.name }}</small>{% endif %}
+          {% endwith %}
+        </div>
+      </a>
+    {% empty %}
+      <div class="empty-state">No former riders have been archived yet.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

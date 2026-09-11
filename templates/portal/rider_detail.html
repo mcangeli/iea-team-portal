@@ -5,6 +5,17 @@
   <a href="{% url 'rider_list' %}">← Back to Riders</a>
 </nav>
 {% if private_view %}<div class="history-shortcut"><a class="btn secondary" href="{% url 'rider_history' rider.pk %}">Development history</a></div>{% endif %}
+{% if rider.lifecycle.status != 'active' %}
+<div class="card lifecycle-banner">
+  <div>
+    <div class="eyebrow">FORMER RIDER</div>
+    <strong>{{ rider.lifecycle.get_status_display }}</strong>
+    {% if rider.lifecycle.status == 'graduated' and rider.lifecycle.graduation_year %}<span> · Class of {{ rider.lifecycle.graduation_year }}</span>{% endif %}
+    {% if rider.lifecycle.ended_on %}<span> · {{ rider.lifecycle.ended_on|date:"M j, Y" }}</span>{% endif %}
+  </div>
+  {% if can_manage %}<a class="text-link" href="{% url 'rider_lifecycle_edit' rider.pk %}">Change lifecycle status →</a>{% endif %}
+</div>
+{% endif %}
 <article class="profile card">
   <div>{% if rider.photo %}<img class="profile-photo" src="{{ rider.photo.url }}" alt="{{ rider }}">{% else %}<div class="profile-photo avatar">{{ rider.first_name|first }}{{ rider.last_name|first }}</div>{% endif %}</div>
   <div class="profile-copy"><div class="eyebrow">RIDER PROFILE</div><h1>{{ rider.display_name }} {{ rider.last_name }}</h1>
@@ -12,7 +23,7 @@
     <div class="contact-strip">{% if rider.email %}<span><small>Email</small><a href="mailto:{{ rider.email }}">{{ rider.email }}</a></span>{% endif %}{% if rider.iea_member_number %}<span><small>IEA member</small><strong>#{{ rider.iea_member_number }}</strong></span>{% endif %}</div>
     {% if rider.bio %}<h3>About</h3><p>{{ rider.bio|linebreaksbr }}</p>{% endif %}
     {% else %}<p class="lead privacy-note">Team profile · Personal contact and family information is private.</p>{% endif %}
-    {% if can_manage %}<div class="actions mobile-sticky-actions"><a class="btn" href="{% url 'rider_edit' rider.pk %}">Edit profile</a>{% if active_season %}<a class="btn secondary" href="{% url 'rider_membership_edit' rider.pk %}">Season assignment</a>{% endif %}<a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create new parent</a><a class="btn secondary" href="{% url 'rider_guardian_link' rider.pk %}">Link existing parent</a>{% if rider.user %}<a class="btn secondary" href="{% url 'user_edit' rider.user.pk %}">Manage login</a>{% else %}<a class="btn secondary" href="{% url 'user_create_rider' rider.pk %}">Create login</a>{% endif %}</div>{% endif %}
+    {% if can_manage %}<div class="actions mobile-sticky-actions"><a class="btn" href="{% url 'rider_edit' rider.pk %}">Edit profile</a><a class="btn secondary" href="{% url 'rider_lifecycle_edit' rider.pk %}">Lifecycle</a>{% if active_season %}<a class="btn secondary" href="{% url 'rider_membership_edit' rider.pk %}">Season assignment</a>{% endif %}<a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create new parent</a><a class="btn secondary" href="{% url 'rider_guardian_link' rider.pk %}">Link existing parent</a>{% if rider.user %}<a class="btn secondary" href="{% url 'user_edit' rider.user.pk %}">Manage login</a>{% else %}<a class="btn secondary" href="{% url 'user_create_rider' rider.pk %}">Create login</a>{% endif %}</div>{% endif %}
   </div>
 </article>
 
