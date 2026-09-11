@@ -25,10 +25,17 @@ class Horse(models.Model):
         LEASED = "leased", "Leased"
         OTHER = "other", "Other"
 
+    class Sex(models.TextChoices):
+        MARE = "mare", "Mare"
+        GELDING = "gelding", "Gelding"
+        STALLION = "stallion", "Stallion"
+        OTHER = "other", "Other / not specified"
+
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="horses")
     name = models.CharField(max_length=120)
     show_name = models.CharField(max_length=120, blank=True, help_text="Optional show name if different from barn name.")
     breed = models.CharField(max_length=120, blank=True)
+    sex = models.CharField(max_length=12, choices=Sex.choices, blank=True)
     size_type = models.CharField(max_length=80, blank=True, help_text="Example: horse, large pony, medium pony.")
     height_hands = models.DecimalField(max_digits=4, decimal_places=2, null=True, blank=True)
 
