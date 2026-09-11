@@ -7,7 +7,7 @@
   <div class="actions">
     <a class="btn" href="{% url 'show_readiness' show.pk %}">Horse Readiness</a>
     <a class="btn secondary" href="{% url 'show_hoofprint' show.pk %}">Hoofprint Builder</a>
-    {% if can_manage %}<a class="btn secondary" href="{% url 'show_horse_add' show.pk %}">Add horse</a><a class="btn secondary" href="{% url 'show_horse_award_add' show.pk %}">Horse of the Day</a>{% endif %}
+    {% if can_manage %}<a class="btn secondary" href="{% url 'post_show_horse_history' show.pk %}">Post-show History</a><a class="btn secondary" href="{% url 'show_horse_add' show.pk %}">Add horse</a><a class="btn secondary" href="{% url 'show_horse_award_add' show.pk %}">Horse of the Day</a>{% endif %}
     <a class="btn secondary" href="{% url 'show_detail' show.pk %}">Show details</a>
   </div>
 </section>
