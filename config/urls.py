@@ -12,6 +12,7 @@ urlpatterns = [
     path("", include("portal.calendar_urls")),
     path("", include("portal.horse_urls")),
     path("", include("portal.season_class_code_urls")),
+    path("", include("portal.show_readiness_urls")),
     path("", include("portal.urls")),
 ]
 
