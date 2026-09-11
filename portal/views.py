@@ -59,8 +59,16 @@ from .view_modules.roster_helpers import (
     _visible_announcements,
 )
 
-from .view_modules.roster import (
+from .view_modules.dashboards import (
     dashboard,
+    dashboard_general,
+    dashboard_coach,
+    dashboard_team_parent,
+    dashboard_show_lead,
+    dashboard_secretary,
+)
+
+from .view_modules.roster import (
     my_team,
     rider_list,
     rider_export,
