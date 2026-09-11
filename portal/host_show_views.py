@@ -18,6 +18,30 @@ def _host_show(request, show_pk):
 
 
 @login_required
+def host_show_list(request):
+    team = _team(request.user)
+    shows = Show.objects.filter(
+        team=team,
+        financial_role=Show.FinancialRole.HOSTING_ATTENDING,
+    ).select_related("season").order_by("show_date", "name")
+
+    can_manage = _can_manage(request.user)
+    if not can_manage:
+        shows = shows.filter(show_leads__user=request.user, show_leads__active=True).distinct()
+
+    rows = []
+    for show in shows:
+        operations = HostShowOperations.objects.filter(show=show).first()
+        rows.append({"show": show, "operations": operations})
+
+    return render(
+        request,
+        "portal/host_show_list.html",
+        {"rows": rows, "can_manage": can_manage},
+    )
+
+
+@login_required
 def host_show_workspace(request, show_pk):
     show = _host_show(request, show_pk)
     operations = HostShowOperations.objects.filter(show=show).first()
@@ -46,14 +70,12 @@ def host_show_edit(request, show_pk):
     if not _can_manage(request.user):
         raise PermissionDenied
 
-    operations, created = HostShowOperations.objects.get_or_create(
-        show=show,
-        defaults={"created_by": request.user, "updated_by": request.user},
-    )
+    operations = HostShowOperations.objects.filter(show=show).first()
     form = HostShowOperationsForm(request.POST or None, instance=operations)
     if request.method == "POST" and form.is_valid():
         obj = form.save(commit=False)
-        if created and not obj.created_by_id:
+        obj.show = show
+        if not obj.pk:
             obj.created_by = request.user
         obj.updated_by = request.user
         obj.save()
