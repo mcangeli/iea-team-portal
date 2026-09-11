@@ -12,7 +12,7 @@
 
 {% if next_row %}
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">NEXT HOSTED SHOW</div><h2>{{ next_row.show.name }}</h2><p>{{ next_row.show.show_date|date:"F j, Y" }}{% if next_row.show.venue %} · {{ next_row.show.venue }}{% endif %}</p></div><div class="actions"><a class="btn" href="{% url 'host_show_workspace' next_row.show.pk %}">Open Host Workspace</a></div></div>
+  <div class="section-head"><div><div class="eyebrow">NEXT HOSTED SHOW</div><h2>{{ next_row.show.name }}</h2><p>{{ next_row.show.show_date|date:"F j, Y" }}{% if next_row.show.venue %} · {{ next_row.show.venue }}{% endif %}</p></div><div class="actions"><a class="btn" href="{% url 'host_command_center' next_row.show.pk %}">Open Command Center</a><a class="btn secondary" href="{% url 'host_show_workspace' next_row.show.pk %}">Host Workspace</a></div></div>
   <div class="stat-grid">
     <article class="stat-card"><small>Host readiness</small><strong>{{ next_row.readiness_percent }}%</strong><span>{% if next_row.missing %}{{ next_row.missing|length }} readiness item{{ next_row.missing|length|pluralize }} remaining{% else %}Core host plan ready{% endif %}</span></article>
     <article class="stat-card"><small>Show personnel</small><strong>{{ next_row.staff_count }}</strong><span>Officials / operations contacts</span></article>
@@ -37,7 +37,7 @@
         <div><small>Pending reimbursement</small><strong>${{ row.budget.pending_reimbursement_total|floatformat:2 }}</strong></div>
       </div>
       {% if row.missing %}<p><strong>Needs attention:</strong> {{ row.missing|join:", " }}</p>{% endif %}
-      <div class="actions"><a class="btn secondary" href="{% url 'host_show_workspace' row.show.pk %}">Host Workspace</a><a class="btn secondary" href="{% url 'show_day_dashboard' row.show.pk %}">Show Day</a>{% if can_finance %}<a class="btn secondary" href="{% url 'show_finance' row.show.pk %}">Finance</a>{% endif %}</div>
+      <div class="actions"><a class="btn" href="{% url 'host_command_center' row.show.pk %}">Command Center</a><a class="btn secondary" href="{% url 'host_show_workspace' row.show.pk %}">Host Workspace</a><a class="btn secondary" href="{% url 'show_day_dashboard' row.show.pk %}">Team Show Day</a>{% if can_finance %}<a class="btn secondary" href="{% url 'show_finance' row.show.pk %}">Finance</a>{% endif %}</div>
     </div></article>
     {% empty %}<div class="empty-state">No upcoming hosted shows are assigned to you.</div>{% endfor %}
   </div>
