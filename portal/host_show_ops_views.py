@@ -149,6 +149,7 @@ def host_duty_add(request, show_pk):
     if not _can_manage_host_show(request.user, show):
         raise PermissionDenied
     form = HostShowDutyAssignmentForm(request.POST or None, team=show.team)
+    form.instance.operations = operations
     if request.method == "POST" and form.is_valid():
         duty = form.save(commit=False)
         duty.operations = operations
