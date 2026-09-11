@@ -139,6 +139,29 @@ class V214StabilizationTests(TestCase):
             403,
         )
 
+    def test_horse_list_image_upload_saves_revision_and_redirects(self):
+        self.client.force_login(self.coach)
+        upload = SimpleUploadedFile(
+            "show-horse-list.jpg",
+            b"fake horse list image data",
+            content_type="image/jpeg",
+        )
+        response = self.client.post(
+            reverse("show_horse_list_upload", args=[self.show.pk]),
+            {
+                "document": upload,
+                "source_name": "Host Show Office",
+                "notes": "Internal note",
+                "family_notes": "Review horse descriptions before the draw.",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("show_hoofprint", args=[self.show.pk]))
+        document = ShowHorseListDocument.objects.get(show=self.show)
+        self.assertEqual(document.revision, 1)
+        self.assertEqual(document.source_name, "Host Show Office")
+        self.assertEqual(document.uploaded_by, self.coach)
+
     def test_horse_list_document_is_team_authenticated_and_upload_is_restricted(self):
         document = ShowHorseListDocument.objects.create(
             show=self.show,
