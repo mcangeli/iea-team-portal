@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}{{ show.name }} · Hoofprint{% endblock %}
 {% block content %}
+{% now "U" as pdf_cache_key %}
 <nav class="page-back-nav" aria-label="Back navigation">
   <a href="{% url 'show_horses' show.pk %}">← Back to Show Horses</a>
 </nav>
@@ -12,7 +13,7 @@
     <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p>
   </div>
   <div class="actions">
-    <a class="btn" href="{% url 'show_hoofprint_preview_pdf' show.pk %}" target="_blank" rel="noopener">Preview PDF</a>
+    <a class="btn" href="{% url 'show_hoofprint_preview_pdf' show.pk %}?v={{ pdf_cache_key }}" target="_blank" rel="noopener">Preview PDF</a>
     {% if can_manage %}
       <a class="btn secondary" href="{% url 'show_horses' show.pk %}">Manage horses</a>
       <a class="btn secondary" href="{% url 'show_horse_add' show.pk %}">Add horse</a>
@@ -29,7 +30,7 @@
       <p class="muted">This is the working show-day list. Changes to horse assignments appear here immediately; finalized versions below never change.</p>
     </div>
     <div class="actions">
-      <a class="btn" href="{% url 'show_hoofprint_preview_pdf' show.pk %}" target="_blank" rel="noopener">Preview PDF</a>
+      <a class="btn" href="{% url 'show_hoofprint_preview_pdf' show.pk %}?v={{ pdf_cache_key }}" target="_blank" rel="noopener">Preview PDF</a>
       {% if can_manage %}<a class="btn secondary" href="{% url 'show_horses' show.pk %}">Manage horse list</a>{% endif %}
     </div>
   </div>
@@ -85,7 +86,7 @@
       {% endfor %}
     </div>
     <div class="actions form-actions">
-      <a class="btn secondary" href="{% url 'show_hoofprint_preview_pdf' show.pk %}" target="_blank" rel="noopener">Preview PDF</a>
+      <a class="btn secondary" href="{% url 'show_hoofprint_preview_pdf' show.pk %}?v={{ pdf_cache_key }}" target="_blank" rel="noopener">Preview PDF</a>
       <button class="btn" type="submit"{% if not payload.horses %} disabled{% endif %}>Finalize &amp; Open PDF</button>
     </div>
   </form>
