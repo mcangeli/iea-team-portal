@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Horse Readiness · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_horses' show.pk %}">← Back to Show Horses</a></nav>
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HORSE & HOOFPRINT MANAGEMENT</div>
+    <h1>Horse readiness</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'show_hoofprint' show.pk %}">Hoofprint Builder</a>
+    {% if can_manage_show_horses %}<a class="btn secondary" href="{% url 'show_leased_horse_add' show.pk %}">Add leased horse</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_horses' show.pk %}">Show horses</a>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">READINESS</div><h2>{% if readiness.ready %}Horse plan ready{% else %}Horse plan needs attention{% endif %}</h2></div></div>
+  <div class="stat-grid">
+    <article class="card"><div class="eyebrow">RIDES</div><h3>{{ readiness.total_rides }}</h3><p class="muted">Active rider class entries</p></article>
+    <article class="card"><div class="eyebrow">RULE</div><h3>1 : {{ readiness.rides_per_horse }}</h3><p class="muted">One contributed horse per {{ readiness.rides_per_horse }} rides</p></article>
+    <article class="card"><div class="eyebrow">REQUIRED</div><h3>{{ readiness.required_horses }}</h3><p class="muted">Horses required for this show</p></article>
+    <article class="card"><div class="eyebrow">AVAILABLE</div><h3>{{ readiness.available_horses }}</h3><p class="muted">{{ readiness.registry_horses }} team/contributed · {{ readiness.leased_horses }} leased</p></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">CLASS COVERAGE</div><h2>{% if readiness.coverage_ready %}Every entered class has a horse{% else %}{{ readiness.uncovered_class_count }} class{{ readiness.uncovered_class_count|pluralize }} need horse coverage{% endif %}</h2><p class="muted">Each class with at least one active rider entry must have at least one available team/contributed or leased horse assigned to it.</p></div></div>
+  {% if readiness.uncovered_classes %}
+  <div class="stack-list">
+    {% for class in readiness.uncovered_classes %}
+      <div class="stack-item"><div><strong>{% if class.class_number %}{{ class.class_number }} · {% endif %}{{ class.display_name }}</strong><div class="muted">No available horse is assigned to this entered class.</div></div></div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="card"><strong>Class coverage complete.</strong> Every entered class has at least one available horse.</div>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">LEASED HORSES</div><h2>Show-specific leased horses</h2><p class="muted">Leased horses count toward the total contribution requirement and toward class coverage, but do not become permanent Horse Registry records.</p></div>{% if can_manage_show_horses %}<div class="actions"><a class="btn" href="{% url 'show_leased_horse_add' show.pk %}">Add leased horse</a></div>{% endif %}</div>
+  <div class="stack-list">
+    {% for horse in leased_horses %}
+      <div class="stack-item">
+        <div><strong>{{ horse.barn_name }}</strong>{% if horse.show_name and horse.show_name != horse.barn_name %}<div class="muted">Show: {{ horse.show_name }}</div>{% endif %}<div class="muted">{% if horse.provider %}Provided by {{ horse.provider }} · {% endif %}{% if horse.available %}Available{% else %}Unavailable{% endif %}</div><div class="class-chip-list">{% for class in horse.show_classes.all %}<span class="class-chip">{% if class.class_number %}{{ class.class_number }}{% else %}{{ class.display_name }}{% endif %}</span>{% empty %}<span class="muted">No classes assigned</span>{% endfor %}</div></div>
+        {% if can_manage_show_horses %}<div class="actions"><a class="btn secondary" href="{% url 'show_leased_horse_edit' show.pk horse.pk %}">Edit</a><form method="post" action="{% url 'show_leased_horse_remove' show.pk horse.pk %}">{% csrf_token %}<button class="btn secondary" type="submit">Remove</button></form></div>{% endif %}
+      </div>
+    {% empty %}<div class="empty-state">No leased horses have been added for this show.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}
