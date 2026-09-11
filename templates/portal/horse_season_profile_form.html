@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Horses{% endblock %}
+{% block content %}
+<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1><p class="muted">Choose the season and classes this horse is eligible to be used for.</p></div><a class="button secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
+<form method="post" class="card form-card">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="form-grid">
+    {% for field in form %}
+    <div class="form-field{% if field.name == 'eligible_classes' or field.name == 'notes' %} form-span-2{% endif %}">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+      {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="help-text">If you change the season, save once and reopen the eligibility screen to load that season’s class list.</p>
+  <button class="button" type="submit">Save season eligibility</button>
+</form>
+{% endblock %}
