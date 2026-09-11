@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .view_modules import horses
+from .view_modules import hoofprint, horses
 
 urlpatterns = [
     path("horses/", horses.horse_list, name="horse_list"),
@@ -18,4 +18,7 @@ urlpatterns = [
     path("shows/<int:show_pk>/horses/awards/add/", horses.show_horse_award_add, name="show_horse_award_add"),
     path("shows/<int:show_pk>/horses/awards/<int:pk>/edit/", horses.show_horse_award_edit, name="show_horse_award_edit"),
     path("shows/<int:show_pk>/horses/awards/<int:pk>/remove/", horses.show_horse_award_remove, name="show_horse_award_remove"),
+    path("shows/<int:show_pk>/hoofprint/", hoofprint.show_hoofprint, name="show_hoofprint"),
+    path("shows/<int:show_pk>/hoofprint/finalize/", hoofprint.show_hoofprint_finalize, name="show_hoofprint_finalize"),
+    path("shows/<int:show_pk>/hoofprint/<int:snapshot_pk>.pdf", hoofprint.show_hoofprint_pdf, name="show_hoofprint_pdf"),
 ]
