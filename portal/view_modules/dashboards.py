@@ -26,6 +26,7 @@ from .common import (
     _active_season,
     _can_manage,
     _can_manage_points,
+    _is_admin,
     _is_show_lead,
     _qualification_rows,
     _team,
@@ -38,26 +39,31 @@ from .roster_helpers import _visible_announcements
 
 
 def _workspace_links(user, team, season):
-    """Return dashboards the current user may open.
+    """Return only dashboards the current user is explicitly authorized to open.
 
-    A user can legitimately hold more than one operational responsibility, so
-    Preview 3 exposes each authorized workspace instead of collapsing roles.
+    Administrators may review every operational workspace. Coaches receive the
+    Coach workspace by role, and additional workspaces only when they hold the
+    corresponding committee/show assignment.
     """
-    links = [{"label": "Team overview", "url": reverse("dashboard_general")}]
+    links = []
     profile_role = getattr(getattr(user, "profile", None), "role", None)
     roles = _active_committee_roles(user, season)
+    admin = _is_admin(user)
 
-    if _can_manage(user):
+    if admin:
+        links.append({"label": "Team overview", "url": reverse("dashboard_general")})
+
+    if admin or profile_role == UserProfile.Role.COACH:
         links.append({"label": "Coach", "url": reverse("dashboard_coach")})
 
     parent_roles = {
         CommitteeAssignment.Role.FUTURES_PARENT,
         CommitteeAssignment.Role.UPPER_PARENT,
     }
-    if _can_manage(user) or roles.intersection(parent_roles):
+    if admin or roles.intersection(parent_roles):
         links.append({"label": "Team Parent", "url": reverse("dashboard_team_parent")})
 
-    if _can_manage_points(user, season):
+    if admin or CommitteeAssignment.Role.POINTS_SECRETARY in roles:
         links.append({"label": "Points Secretary", "url": reverse("dashboard_secretary")})
 
     has_lead_assignment = False
@@ -66,7 +72,7 @@ def _workspace_links(user, team, season):
             lead_assignments__user=user,
             lead_assignments__active=True,
         ).exists()
-    if _can_manage(user) or has_lead_assignment:
+    if admin or has_lead_assignment:
         links.append({"label": "Show Lead", "url": reverse("dashboard_show_lead")})
 
     return links
@@ -314,10 +320,10 @@ def _team_parent_levels(user, season):
 
 def _render_team_parent(request, team, season):
     if not season:
-        if not _can_manage(request.user):
+        if not _is_admin(request.user):
             raise PermissionDenied
         levels = []
-    elif _can_manage(request.user):
+    elif _is_admin(request.user):
         levels = [
             SeasonMembership.TeamLevel.FUTURES,
             SeasonMembership.TeamLevel.UPPER,
@@ -389,14 +395,14 @@ def _show_lead_queryset(user, season):
     if not season:
         return Show.objects.none()
     qs = season.shows.filter(show_date__gte=timezone.localdate())
-    if not _can_manage(user):
+    if not _is_admin(user):
         qs = qs.filter(lead_assignments__user=user, lead_assignments__active=True)
     return qs.distinct().order_by("show_date", "name")
 
 
 def _render_show_lead(request, team, season):
     lead_shows = _show_lead_queryset(request.user, season)
-    if not _can_manage(request.user):
+    if not _is_admin(request.user):
         any_assignment = bool(
             season and season.shows.filter(
                 lead_assignments__user=request.user,
@@ -441,7 +447,8 @@ def _render_show_lead(request, team, season):
 
 
 def _render_secretary(request, team, season):
-    if not _can_manage_points(request.user, season):
+    roles = _active_committee_roles(request.user, season)
+    if not (_is_admin(request.user) or CommitteeAssignment.Role.POINTS_SECRETARY in roles):
         raise PermissionDenied
 
     context = _dashboard_shell(
