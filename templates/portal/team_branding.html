@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Team Branding{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <div class="eyebrow">APPEARANCE</div>
+    <h1>Team branding</h1>
+    <p>Control the photographic cover treatment used on the dashboard and sign-in screen.</p>
+  </div>
+</div>
+
+<div class="branding-layout">
+  <section class="form-card branding-form-card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="field-wrap">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}
+          {% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}
+        </div>
+      {% endfor %}
+      <div class="actions"><button class="btn" type="submit">Save branding</button></div>
+    </form>
+  </section>
+
+  <aside class="branding-preview-card">
+    <div class="eyebrow">LIVE PREVIEW</div>
+    <div class="branding-preview{% if branding.hero_image %} has-team-photo{% endif %}"{% if branding.hero_image %} style="--team-hero-image:url('{{ branding.hero_image.url }}');--team-hero-position:{{ branding.hero_image_position }};"{% endif %}>
+      <div>
+        <small>{% if team.short_name %}{{ team.short_name }}{% else %}{{ team.name }}{% endif %}</small>
+        <h2>Ride together.<br>Compete together.</h2>
+      </div>
+    </div>
+    <p class="muted">For best results, use a wide landscape photo with the main subject away from the left-side text area. The image is cropped responsively.</p>
+  </aside>
+</div>
+{% endblock %}

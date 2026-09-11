@@ -1,0 +1,132 @@
+/* v2.0 Preview 8 — photographic branding layer */
+body[style*="--team-hero-image"] .dashboard-hero{
+  background-image:
+    linear-gradient(90deg,rgba(4,28,36,.84) 0%,rgba(4,32,41,.67) 38%,rgba(4,32,41,.34) 70%,rgba(4,32,41,.20) 100%),
+    linear-gradient(180deg,rgba(3,22,29,.08),rgba(3,22,29,.28)),
+    var(--team-hero-image);
+  background-size:cover;
+  background-position:center var(--team-hero-position,50%);
+}
+body[style*="--team-hero-image"] .dashboard-hero::before{
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.10),transparent 62%),
+    repeating-linear-gradient(90deg,transparent 0,transparent 79px,rgba(255,255,255,.022) 80px);
+}
+body[style*="--team-hero-image"] .dashboard-hero .hero-copy{
+  text-shadow:0 2px 22px rgba(0,0,0,.18);
+}
+body[style*="--team-hero-image"] .dashboard-hero .hero-mark{
+  padding:10px;
+  border-radius:12px;
+  background:rgba(255,255,255,.08);
+  backdrop-filter:blur(6px);
+}
+
+body[style*="--team-hero-image"] .login-intro{
+  background-image:
+    linear-gradient(90deg,rgba(5,31,39,.88),rgba(5,31,39,.58) 58%,rgba(5,31,39,.30)),
+    linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.26)),
+    var(--team-hero-image);
+  background-size:cover;
+  background-position:center var(--team-hero-position,50%);
+}
+body[style*="--team-hero-image"] .login-intro::before{
+  color:rgba(255,255,255,.045);
+}
+html[data-theme="dark"] body[style*="--team-hero-image"] .dashboard-hero{
+  background-image:
+    linear-gradient(90deg,rgba(4,20,25,.90) 0%,rgba(5,28,34,.72) 40%,rgba(5,28,34,.38) 72%,rgba(5,28,34,.24) 100%),
+    linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.28)),
+    var(--team-hero-image);
+}
+html[data-theme="dark"] body[style*="--team-hero-image"] .login-intro{
+  background-image:
+    linear-gradient(90deg,rgba(3,19,24,.92),rgba(3,23,28,.66) 58%,rgba(3,23,28,.34)),
+    linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.30)),
+    var(--team-hero-image);
+}
+
+.branding-layout{
+  display:grid;
+  grid-template-columns:minmax(0,.9fr) minmax(360px,1.1fr);
+  gap:24px;
+  align-items:start;
+}
+.branding-form-card{
+  max-width:none;
+  margin:0;
+}
+.branding-preview-card{
+  position:sticky;
+  top:96px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+}
+.branding-preview{
+  min-height:330px;
+  display:flex;
+  align-items:flex-end;
+  margin-top:12px;
+  padding:28px;
+  border-radius:14px;
+  overflow:hidden;
+  background:linear-gradient(135deg,var(--hero-start),var(--hero-end));
+  color:#fff;
+}
+.branding-preview.has-team-photo{
+  background-image:
+    linear-gradient(90deg,rgba(4,30,38,.84),rgba(4,30,38,.34)),
+    var(--team-hero-image);
+  background-size:cover;
+  background-position:center var(--team-hero-position,50%);
+}
+.branding-preview small{
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.branding-preview h2{
+  margin:.2em 0 0;
+  color:#fff;
+  font-family:var(--display-serif);
+  font-size:clamp(2.4rem,5vw,4.3rem);
+  font-weight:500;
+  letter-spacing:-.055em;
+  line-height:.88;
+}
+.branding-preview-card>p{
+  margin:14px 2px 0;
+  font-size:.82rem;
+  line-height:1.45;
+}
+.branding-form-card input[type="file"]{
+  width:100%;
+  padding:9px;
+  border:1px dashed var(--control-border);
+  border-radius:10px;
+  background:var(--surface-soft);
+}
+@media(max-width:900px){
+  .branding-layout{
+    grid-template-columns:1fr;
+  }
+  .branding-preview-card{
+    position:static;
+  }
+}
+@media(max-width:760px){
+  body[style*="--team-hero-image"] .dashboard-hero{
+    background-position:58% var(--team-hero-position,50%);
+  }
+  body[style*="--team-hero-image"] .login-intro{
+    background-position:60% var(--team-hero-position,50%);
+  }
+  .branding-preview{
+    min-height:250px;
+    padding:22px;
+  }
+}

@@ -1,4 +1,4 @@
-from .models import CommitteeAssignment, Season
+from .models import CommitteeAssignment, Season, Team
 from django.conf import settings
 
 
@@ -21,6 +21,8 @@ def portal_context(request):
                 user=request.user, season=season, role=CommitteeAssignment.Role.TREASURER, active=True
             ).exists()
         unread_notifications = request.user.portal_notifications.filter(read_at__isnull=True).count() if hasattr(request.user, "portal_notifications") else 0
+    elif request.path.startswith("/accounts/login"):
+        team = Team.objects.order_by("pk").first()
     return {
         "portal_team": team,
         "portal_role": role,
