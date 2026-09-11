@@ -6,9 +6,9 @@
   <a href="{% url 'show_horses' show.pk %}">← Back to Show Horses</a>
 </nav>
 
-<section class="page-intro">
+<section class="page-intro horse-module-intro">
   <div>
-    <div class="eyebrow">HORSE & HOOFPRINT MANAGEMENT</div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
     <h1>Hoofprint Builder</h1>
     <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p>
   </div>
@@ -27,32 +27,34 @@
     <div>
       <div class="eyebrow">LIVE REVIEW</div>
       <h2>{{ payload.horses|length }} horse{{ payload.horses|length|pluralize }} in the current Hoofprint plan</h2>
-      <p class="muted">This is the working show-day list. Changes to horse assignments appear here immediately; finalized versions below never change.</p>
+      <p class="muted">This working list updates immediately when show-horse assignments change. Finalized versions below remain permanent snapshots.</p>
     </div>
     <div class="actions">
       <a class="btn" href="{% url 'show_hoofprint_preview_pdf' show.pk %}?v={{ pdf_cache_key }}" target="_blank" rel="noopener">Preview PDF</a>
       {% if can_manage %}<a class="btn secondary" href="{% url 'show_horses' show.pk %}">Manage horse list</a>{% endif %}
     </div>
   </div>
+  <div class="hoofprint-live-list">
   {% for horse in payload.horses %}
-  <article class="card season-membership-card">
+  <article class="card season-membership-card hoofprint-horse-card">
     <div>
       <div class="eyebrow">{{ horse.sex|default:"HORSE" }}</div>
-      <h3>{{ horse.name }}</h3>
-      <p>{{ horse.breed|default:"Breed not entered" }}{% if horse.size_type %} · {{ horse.size_type }}{% endif %}{% if horse.height_hands %} · {{ horse.height_hands }}h{% endif %}</p>
-      <p><strong>Coggins:</strong> {{ horse.coggins_status }}{% if horse.coggins_expiration %} · {{ horse.coggins_expiration }}{% endif %}</p>
+      <h3>{{ horse.barn_name|default:horse.name }}</h3>
+      {% if horse.name and horse.name != horse.barn_name %}<p class="horse-show-name">Show: {{ horse.name }}</p>{% endif %}
+      <p class="muted">{{ horse.breed|default:"Breed not entered" }}{% if horse.size_type %} · {{ horse.size_type }}{% endif %}{% if horse.height_hands %} · {{ horse.height_hands }}h{% endif %}</p>
+      <p><strong>Coggins:</strong> <span class="{% if horse.coggins_status == 'Current' %}status-good{% elif horse.coggins_status == 'Expiring soon' %}status-warn{% else %}status-bad{% endif %}">{{ horse.coggins_status }}</span>{% if horse.coggins_expiration %} · {{ horse.coggins_expiration }}{% endif %}</p>
       {% if can_manage %}
-      <div class="actions">
+      <div class="actions horse-card-actions">
         <a class="text-link" href="{% url 'show_horse_edit' show.pk horse.assignment_id %}">Edit assignment →</a>
-        <a class="text-link" href="{% url 'horse_detail' horse.horse_id %}">Horse profile →</a>
+        <a class="text-link" href="{% url 'horse_detail' horse.horse_id %}">Registry profile →</a>
       </div>
       {% endif %}
     </div>
     <div>
       <strong>Classes</strong>
-      <div class="class-chip-list">{% for class in horse.classes %}<span class="class-chip">{% if class.number %}#{{ class.number }} · {% endif %}{{ class.name }}</span>{% empty %}<span class="muted">No show classes selected</span>{% endfor %}</div>
-      <p class="muted">Crop: {{ horse.crop }} · Spurs: {{ horse.spurs }} · Changes: {{ horse.lead_change }}</p>
-      {% if horse.riding_description %}<p>{{ horse.riding_description }}</p>{% endif %}
+      <div class="class-chip-list hoofprint-class-list">{% for class in horse.classes %}<span class="class-chip">{{ class.number|default:class.name }}</span>{% empty %}<span class="muted">No show classes selected</span>{% endfor %}</div>
+      <p class="muted horse-preference-line">Crop: {{ horse.crop }} · Spurs: {{ horse.spurs }} · Changes: {{ horse.lead_change }}</p>
+      {% if horse.riding_description %}<p class="hoofprint-riding-note">{{ horse.riding_description }}</p>{% endif %}
     </div>
   </article>
   {% empty %}
@@ -62,6 +64,7 @@
     {% if can_manage %}<div class="actions"><a class="btn" href="{% url 'show_horse_add' show.pk %}">Add first horse</a><a class="btn secondary" href="{% url 'show_horses' show.pk %}">Manage horses</a></div>{% endif %}
   </div>
   {% endfor %}
+  </div>
 </section>
 
 {% if can_manage %}
@@ -70,10 +73,10 @@
     <div>
       <div class="eyebrow">FINALIZE</div>
       <h2>Generate the official Hoofprint</h2>
-      <p class="muted">Preview as often as needed. Finalize when you want to save an official version; the PDF opens immediately and that version stays unchanged.</p>
+      <p class="muted">Preview as often as needed. Finalize when the roster is ready; the saved PDF version stays unchanged even if horse records are edited later.</p>
     </div>
   </div>
-  <form method="post" action="{% url 'show_hoofprint_finalize' show.pk %}" class="card form-card">
+  <form method="post" action="{% url 'show_hoofprint_finalize' show.pk %}" class="card form-card horse-form-card">
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div class="form-grid">
@@ -81,6 +84,7 @@
       <div class="form-field{% if field.name == 'notes' %} form-span-2{% endif %}">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
+        {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
         {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
       </div>
       {% endfor %}
@@ -98,10 +102,10 @@
     <div>
       <div class="eyebrow">HISTORY</div>
       <h2>Finalized Hoofprints</h2>
-      <p class="muted">Every version is a permanent record of the horse list at the time it was finalized.</p>
+      <p class="muted">Each version is a permanent record of the horse plan at the moment it was finalized.</p>
     </div>
   </div>
-  <div class="stack-list">
+  <div class="stack-list hoofprint-history-list">
     {% for snapshot in snapshots %}
     <div class="stack-item">
       <div><strong>Version {{ snapshot.version }}</strong><div class="muted">Finalized {{ snapshot.finalized_at|date:"M j, Y g:i A" }}{% if snapshot.finalized_by %} by {{ snapshot.finalized_by.get_full_name|default:snapshot.finalized_by.username }}{% endif %}</div></div>
