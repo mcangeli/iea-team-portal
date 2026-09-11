@@ -10,6 +10,7 @@ urlpatterns = [
     path("", include("portal.account_urls")),
     path("", include("portal.lifecycle_urls")),
     path("", include("portal.calendar_urls")),
+    path("", include("portal.horse_urls")),
     path("", include("portal.urls")),
 ]
 
