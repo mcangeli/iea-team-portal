@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ horse.display_name }} · Horses{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <p class="eyebrow">Horse Registry</p>
+    <h1>{{ horse.display_name }}</h1>
+    {% if horse.show_name and horse.show_name != horse.name %}<p class="muted">Barn name: {{ horse.name }}</p>{% endif %}
+  </div>
+  <div class="button-row">
+    <a class="button secondary" href="{% url 'horse_list' %}">All horses</a>
+    {% if can_manage %}<a class="button" href="{% url 'horse_edit' horse.pk %}">Edit horse</a>{% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <section class="card">
+    {% if horse.photo %}<img class="horse-profile-photo" src="{{ horse.photo.url }}" alt="{{ horse.display_name }}">{% endif %}
+    <h2>Profile</h2>
+    <dl class="detail-list">
+      <dt>Breed / size</dt><dd>{{ horse.breed|default:"—" }}{% if horse.size_type %} · {{ horse.size_type }}{% endif %}</dd>
+      <dt>Height</dt><dd>{% if horse.height_hands %}{{ horse.height_hands }} hands{% else %}—{% endif %}</dd>
+      <dt>Ownership</dt><dd>{{ horse.get_ownership_type_display }}{% if horse.owner_name %} · {{ horse.owner_name }}{% endif %}</dd>
+      <dt>Home barn</dt><dd>{{ horse.home_barn|default:"—" }}</dd>
+      <dt>Crop</dt><dd>{{ horse.get_crop_preference_display }}</dd>
+      <dt>Spurs</dt><dd>{{ horse.get_spur_preference_display }}</dd>
+      <dt>Lead change</dt><dd>{{ horse.get_lead_change_display }}</dd>
+      <dt>Height restriction</dt><dd>{% if horse.has_height_restriction %}Yes{% if horse.height_restriction_notes %} — {{ horse.height_restriction_notes }}{% endif %}{% else %}No{% endif %}</dd>
+      <dt>Weight restriction</dt><dd>{% if horse.has_weight_restriction %}Yes{% if horse.weight_restriction_notes %} — {{ horse.weight_restriction_notes }}{% endif %}{% else %}No{% endif %}</dd>
+    </dl>
+    {% if horse.riding_description %}<h3>Riding description</h3><p>{{ horse.riding_description|linebreaksbr }}</p>{% endif %}
+    {% if horse.notes and can_manage %}<h3>Internal notes</h3><p>{{ horse.notes|linebreaksbr }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-heading-row"><h2>Coggins</h2>{% if can_manage %}<a class="button small" href="{% url 'horse_coggins_add' horse.pk %}">Add record</a>{% endif %}</div>
+    {% if latest_coggins %}
+      <p><strong>Status:</strong> <span class="status-{{ latest_coggins.status }}">{{ latest_coggins.status_label }}</span></p>
+      <p>Latest expiration: {{ latest_coggins.expiration_date|date:"M j, Y" }}</p>
+    {% else %}<p class="status-bad">No Coggins record on file.</p>{% endif %}
+    <div class="stack-list">
+      {% for record in coggins_records %}
+      <div class="stack-item">
+        <div><strong>{{ record.test_date|date:"M j, Y" }}</strong> · expires {{ record.expiration_date|date:"M j, Y" }} · {{ record.status_label }}</div>
+        {% if can_manage %}<div class="button-row"><a href="{% url 'horse_coggins_edit' horse.pk record.pk %}">Edit</a>{% if record.document %}<a href="{{ record.document.url }}" target="_blank" rel="noopener">Document</a>{% endif %}</div>{% endif %}
+      </div>
+      {% empty %}<p class="muted">No Coggins history yet.</p>{% endfor %}
+    </div>
+  </section>
+
+  <section class="card detail-span-2">
+    <div class="card-heading-row"><div><h2>Season eligibility</h2><p class="muted">Eligible classes are stored by season so future class changes do not overwrite history.</p></div>{% if can_manage %}<a class="button small" href="{% url 'horse_season_profile' horse.pk %}">Manage eligibility</a>{% endif %}</div>
+    <div class="stack-list">
+      {% for profile in season_profiles %}
+      <div class="stack-item">
+        <div>
+          <strong>{{ profile.season.name }}</strong>{% if not profile.active_for_season %} · Inactive for season{% endif %}
+          <div class="muted">{% for class in profile.eligible_classes.all %}{{ class.name }}{% if not forloop.last %}, {% endif %}{% empty %}No eligible classes selected{% endfor %}</div>
+        </div>
+        {% if can_manage %}<a href="{% url 'horse_season_profile_season' horse.pk profile.season.pk %}">Edit</a>{% endif %}
+      </div>
+      {% empty %}<p class="muted">No season eligibility has been set yet.</p>{% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}
