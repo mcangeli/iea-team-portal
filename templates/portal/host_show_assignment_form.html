@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'host_show_workspace' show.pk %}">← Back to Host Show Workspace</a></nav>
+<section class="page-intro"><div><div class="eyebrow">{{ eyebrow }}</div><h1>{{ title }}</h1><p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p></div></section>
+<form method="post" class="content-section form-card">{% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}<div class="form-row"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
+  <div class="actions"><button class="btn" type="submit">Save</button><a class="btn secondary" href="{% url 'host_show_workspace' show.pk %}">Cancel</a></div>
+</form>
+{% endblock %}
