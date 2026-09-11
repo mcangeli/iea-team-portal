@@ -2,6 +2,7 @@ from django import template
 from django.db.models import Count, Min, Max
 
 from portal.horse_models import Horse, HorseShowAward
+from portal.post_show_horse_models import ShowHorseHistory
 
 register = template.Library()
 
@@ -9,33 +10,55 @@ register = template.Library()
 def _horse_rows(team, season=None):
     rows = []
     for horse in Horse.objects.filter(team=team):
+        final_records = horse.show_history_records.filter(
+            history__status=ShowHorseHistory.Status.FINAL,
+            actually_used=True,
+        ).select_related("history__show")
         assignments = horse.show_assignments.all()
         awards = HorseShowAward.objects.filter(assignment__horse=horse)
+
         if season is not None:
+            final_records = final_records.filter(history__show__season=season)
             assignments = assignments.filter(show__season=season)
             awards = awards.filter(show__season=season)
 
-        show_count = assignments.values("show_id").distinct().count()
+        final_show_ids = set(final_records.values_list("history__show_id", flat=True))
+        if final_show_ids:
+            assignments = assignments.exclude(show_id__in=final_show_ids)
+
+        assignment_show_ids = set(assignments.values_list("show_id", flat=True))
+        final_dates = list(final_records.values_list("history__show__show_date", flat=True))
+        assignment_dates = list(assignments.values_list("show__show_date", flat=True))
+        dates = [date for date in final_dates + assignment_dates if date]
+
+        class_keys = set()
+        for record in final_records:
+            for item in record.class_snapshot or []:
+                class_keys.add(item.get("id") or f"{item.get('class_number', '')}:{item.get('name', '')}")
+        class_keys.update(
+            assignments.values_list("show_classes_id", flat=True).exclude(show_classes_id__isnull=True)
+        )
+
+        show_count = len(final_show_ids | assignment_show_ids)
         award_count = awards.count()
         if not show_count and not award_count:
             continue
 
-        dates = assignments.aggregate(first=Min("show__show_date"), last=Max("show__show_date"))
         sessions = {
             row["session"]: row["count"]
             for row in awards.values("session").annotate(count=Count("id"))
         }
-        class_count = assignments.values("show_classes").exclude(show_classes__isnull=True).distinct().count()
         rows.append({
             "horse": horse,
             "shows": show_count,
-            "classes": class_count,
+            "classes": len(class_keys),
             "hotd": award_count,
             "full_day": sessions.get(HorseShowAward.Session.FULL_DAY, 0),
             "morning": sessions.get(HorseShowAward.Session.MORNING, 0),
             "afternoon": sessions.get(HorseShowAward.Session.AFTERNOON, 0),
-            "first_show": dates["first"],
-            "last_show": dates["last"],
+            "first_show": min(dates) if dates else None,
+            "last_show": max(dates) if dates else None,
+            "finalized_shows": len(final_show_ids),
         })
     rows.sort(
         key=lambda row: (row["hotd"], row["shows"], row["classes"], row["horse"].display_name.lower()),
@@ -50,6 +73,7 @@ def _summary(rows):
         "horse_count": len(rows),
         "hotd_total": sum(row["hotd"] for row in rows),
         "show_appearances": sum(row["shows"] for row in rows),
+        "finalized_appearances": sum(row["finalized_shows"] for row in rows),
     }
 
 
