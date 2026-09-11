@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Host Command Center{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'host_show_workspace' show.pk %}">← Back to Host Show Workspace</a></nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SHOW HOST OPERATIONS</div>
+    <h1>Show-Day Command Center</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    {% if can_manage_host_show %}<a class="btn" href="{% url 'host_duty_add' show.pk %}">Assign duty</a><a class="btn secondary" href="{% url 'host_checkpoint_add' show.pk %}">Add checkpoint</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Team Show Day</a>
+  </div>
+</section>
+
+<div class="callout"><strong>Operational staffing only</strong><span>Assignments on this page coordinate show-host coverage and handoffs. They do not count toward, satisfy, or change season volunteer-hour requirements.</span></div>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COMMAND STATUS</div><h2>Coverage at a glance</h2></div><p>Readiness and staffing status for the hosted event.</p></div>
+  <div class="stat-grid">
+    <article class="stat-card"><small>Open checkpoints</small><strong>{{ open_checkpoint_count }}</strong><span>Host-prep items still open</span></article>
+    <article class="stat-card"><small>Overdue</small><strong>{{ overdue_checkpoint_count }}</strong><span>Readiness deadlines passed</span></article>
+    <article class="stat-card"><small>Active coverage</small><strong>{{ active_duty_count }}</strong><span>Checked in or on duty</span></article>
+    <article class="stat-card"><small>Handoffs</small><strong>{{ handoff_count }}</strong><span>Duties handed to relief</span></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOST READINESS</div><h2>Checkpoints & deadlines</h2></div>{% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_checkpoint_add' show.pk %}">Add checkpoint</a>{% endif %}</div>
+  <div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Checkpoint</th><th>Owner</th><th>Due</th><th>Status</th><th>Notes</th>{% if can_manage_host_show %}<th>Actions</th>{% endif %}</tr></thead><tbody>
+    {% for checkpoint in checkpoints %}
+    <tr>
+      <td><strong>{{ checkpoint.title }}</strong></td>
+      <td>{% if checkpoint.owner %}{{ checkpoint.owner.get_full_name|default:checkpoint.owner.username }}{% else %}—{% endif %}</td>
+      <td>{% if checkpoint.due_at %}{{ checkpoint.due_at|date:"M j, g:i A" }}{% else %}—{% endif %}</td>
+      <td><span class="status-pill status-{{ checkpoint.status }}">{{ checkpoint.get_status_display }}</span></td>
+      <td>{{ checkpoint.notes|default:"—" }}</td>
+      {% if can_manage_host_show %}<td><span class="table-actions"><a class="text-link" href="{% url 'host_checkpoint_edit' show.pk checkpoint.pk %}">Edit</a>{% if not checkpoint.is_done %}<form class="inline-form" method="post" action="{% url 'host_checkpoint_complete' show.pk checkpoint.pk %}">{% csrf_token %}<button class="link-button" type="submit">Complete</button></form>{% endif %}</span></td>{% endif %}
+    </tr>
+    {% empty %}<tr><td colspan="6" class="muted">No readiness checkpoints have been added yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">SHOW-DAY COVERAGE</div><h2>Duty board</h2><p class="muted">Gate, rings, warm-up, parking, hospitality, horse operations, runners, setup, and other host duties.</p></div>{% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_duty_add' show.pk %}">Assign duty</a>{% endif %}</div>
+  <div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Area</th><th>Duty</th><th>Assigned</th><th>Location</th><th>Shift</th><th>Status</th><th>Handoff</th>{% if can_manage_host_show %}<th>Actions</th>{% endif %}</tr></thead><tbody>
+    {% for duty in duties %}
+    <tr>
+      <td>{{ duty.get_area_display }}</td>
+      <td><strong>{{ duty.title }}</strong>{% if duty.instructions %}<div class="muted">{{ duty.instructions|truncatechars:90 }}</div>{% endif %}</td>
+      <td>{{ duty.assignee_name }}</td>
+      <td>{{ duty.location|default:"—" }}</td>
+      <td>{% if duty.starts_at %}{{ duty.starts_at|date:"g:i A" }}{% else %}—{% endif %}{% if duty.ends_at %}–{{ duty.ends_at|date:"g:i A" }}{% endif %}</td>
+      <td><span class="status-pill status-{{ duty.status }}">{{ duty.get_status_display }}</span></td>
+      <td>{% if duty.handoff_notes %}{{ duty.handoff_notes }}{% else %}—{% endif %}</td>
+      {% if can_manage_host_show %}<td><span class="table-actions"><a class="text-link" href="{% url 'host_duty_edit' show.pk duty.pk %}">Edit</a><form class="inline-form" method="post" action="{% url 'host_duty_status' show.pk duty.pk %}">{% csrf_token %}<input type="hidden" name="status" value="checked_in"><button class="link-button" type="submit">Check in</button></form><form class="inline-form" method="post" action="{% url 'host_duty_status' show.pk duty.pk %}">{% csrf_token %}<input type="hidden" name="status" value="active"><button class="link-button" type="submit">On duty</button></form><form class="inline-form" method="post" action="{% url 'host_duty_status' show.pk duty.pk %}">{% csrf_token %}<input type="hidden" name="status" value="handed_off"><button class="link-button" type="submit">Hand off</button></form><form class="inline-form" method="post" action="{% url 'host_duty_status' show.pk duty.pk %}">{% csrf_token %}<input type="hidden" name="status" value="complete"><button class="link-button" type="submit">Complete</button></form></span></td>{% endif %}
+    </tr>
+    {% empty %}<tr><td colspan="8" class="muted">No show-day duties have been assigned yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}
