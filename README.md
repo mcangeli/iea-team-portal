@@ -1,6 +1,6 @@
 # IEA Team Portal
 
-**Current version: v2.0.0 Release Candidate 2**
+**Current version: v2.0.0**
 
 IEA Team Portal is a private, self-hosted operations system for an Interscholastic Equestrian Association team. It brings riders and families, seasons, classes, shows, points and qualification, lessons, calendars, communications, volunteers, show-day operations, history, and team finance into one portal.
 
@@ -273,10 +273,10 @@ cd /opt/iea-team-portal/app
 ./portalctl git-status
 ```
 
-Install RC2:
+Install the v2.0.0 release explicitly:
 
 ```bash
-./portalctl update v2.0.0-rc2
+./portalctl update v2.0.0
 ```
 
 For the stable channel after final release:
@@ -314,9 +314,9 @@ Useful commands:
 
 The former monolithic `portal/views.py` is now a compatibility/re-export layer. Active implementations live under `portal/view_modules/`. Specialized v2 URL/model modules isolate lifecycle, Calendar, account, and branding additions. See `ARCHITECTURE.md`.
 
-## Release Candidate 2
+## v2.0.0 Release
 
-RC2 is the final v2.0 review candidate. It freezes the feature and visual scope established in RC1.
+v2.0.0 is the production release validated through the Preview and RC series.
 
 RC2 includes:
 - corrected role-dashboard permissions and consistent role-dashboard spacing;
@@ -332,7 +332,7 @@ Latest migration:
 0032_v200_squad_hero_images.py
 ```
 
-No additional feature work is planned before final `v2.0.0` unless RC2 exposes a release-blocking issue.
+Future feature development moves to the v2.1 roadmap; v2.0.x is reserved for maintenance and release-critical fixes.
 
 ## Troubleshooting
 

@@ -1,5 +1,26 @@
 # Release Notes
 
+## v2.0.0 — Production Release
+
+v2.0.0 is the first production release of the redesigned IEA Team Portal after the Preview 1–9 and RC1–RC2 validation cycle.
+
+### Release status
+- Promoted from RC2 with no feature changes.
+- Validated by live role testing as Administrator, Coach, Rider, Parent/Guardian, and Show Lead.
+- Latest migration: `0032_v200_squad_hero_images.py`.
+- Future feature development moves to v2.1; v2.0.x is reserved for maintenance fixes.
+
+### Highlights
+- Role-aware dashboards for Coach, Team Parent, Show Lead, and Points Secretary.
+- Rider lifecycle and historical season preservation.
+- Redesigned Calendar, Show Day, Standings, Record Book, and Finance presentation.
+- Parent/Guardian Family Account access with privacy-aware permissions.
+- Self-service My Account for name/email, password, and notification preferences.
+- Program, Futures, and Upper photographic hero branding.
+- Git-based installation/update workflow with pre-update backups and rollback support.
+- Production reverse-proxy/HTTPS guidance for Nginx, Apache, and Caddy.
+- Polished light/dark “private riding club meets modern editorial design” presentation.
+
 ## v2.0.0 — Release Candidate 2
 
 RC2 is the final review candidate for v2.0. It freezes the feature and visual scope and incorporates the usability fixes verified during RC1 testing.
