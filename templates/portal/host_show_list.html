@@ -3,10 +3,10 @@
 {% block content %}
 <section class="page-intro">
   <div><div class="eyebrow">SHOW HOST OPERATIONS</div><h1>Host Shows</h1><p>Shows where our team is operating the event as well as participating.</p></div>
-  <div class="actions"><a class="btn secondary" href="{% url 'show_list' %}">All shows</a></div>
+  <div class="actions"><a class="btn" href="{% url 'dashboard_show_manager' %}">Show Manager Dashboard</a><a class="btn secondary" href="{% url 'show_list' %}">All shows</a></div>
 </section>
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HOST WORKSPACES</div><h2>{{ rows|length }} hosted show{{ rows|length|pluralize }}</h2></div><p>Open a workspace to coordinate venue, arrival, parking, rings, volunteers, hospitality, safety, and documents.</p></div>
+  <div class="section-head"><div><div class="eyebrow">HOST WORKSPACES</div><h2>{{ rows|length }} hosted show{{ rows|length|pluralize }}</h2></div><p>Open a workspace to coordinate venue, arrival, parking, rings, volunteers, hospitality, safety, documents, and hosting budget.</p></div>
   <div class="card-grid">
     {% for row in rows %}
     <article class="card"><div class="card-body">
