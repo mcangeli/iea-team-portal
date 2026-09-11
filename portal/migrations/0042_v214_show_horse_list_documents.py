@@ -18,6 +18,7 @@ class Migration(migrations.Migration):
                 ("document", models.FileField(upload_to="show_horse_lists/%Y/%m/")),
                 ("source_name", models.CharField(blank=True, help_text="Optional source, host team, or label for this horse list.", max_length=160)),
                 ("notes", models.CharField(blank=True, max_length=255)),
+                ("family_notes", models.TextField(blank=True, help_text="Coach notes intentionally shared with riders and parents for this show horse list.")),
                 ("uploaded_at", models.DateTimeField(auto_now_add=True)),
                 ("show", models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name="horse_list_documents", to="portal.show")),
                 ("uploaded_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="uploaded_show_horse_lists", to=settings.AUTH_USER_MODEL)),
