@@ -228,12 +228,14 @@ def render_hoofprint_pdf(payload):
             restrictions_parts.append(f"Show: {horse['show_notes']}")
         restrictions = "<br/>".join(escape(x) for x in restrictions_parts) or "—"
 
-        horse_label_parts = [horse.get("name") or "—"]
+        show_name = (horse.get("name") or "").strip()
+        barn_name = (horse.get("barn_name") or "").strip()
+        primary_name = barn_name or show_name or "—"
+        horse_label = "<b>" + escape(primary_name) + "</b>"
+        if show_name and show_name.casefold() != primary_name.casefold():
+            horse_label += "<br/><font size='5.6'>Show: " + escape(show_name) + "</font>"
         if horse.get("sex"):
-            horse_label_parts.append(horse["sex"])
-        horse_label = "<b>" + escape(horse_label_parts[0]) + "</b>"
-        if len(horse_label_parts) > 1:
-            horse_label += "<br/>" + escape(horse_label_parts[1])
+            horse_label += "<br/>" + escape(horse["sex"])
 
         breed_size = " / ".join(x for x in [horse.get("breed"), horse.get("size_type")] if x) or "—"
         table_rows.append([
