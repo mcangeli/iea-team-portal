@@ -25,12 +25,33 @@ def _operations_for(request, show_pk, *, create=False):
 
 @login_required
 def host_command_center(request, show_pk):
-    show, operations = _operations_for(request, show_pk)
+    show = _host_show(request, show_pk)
     can_manage = _can_manage(request.user)
     is_manager = _is_show_manager(request.user, show)
     is_lead = _is_show_lead(request.user, show)
     if not (can_manage or is_manager or is_lead):
         raise PermissionDenied
+
+    operations = HostShowOperations.objects.filter(show=show).first()
+    if not operations and (can_manage or is_manager):
+        operations = HostShowOperations.objects.create(
+            show=show,
+            created_by=request.user,
+            updated_by=request.user,
+        )
+    if not operations:
+        return render(request, "portal/host_show_command_center.html", {
+            "show": show,
+            "operations": None,
+            "duties": HostShowDutyAssignment.objects.none(),
+            "checkpoints": HostShowReadinessCheckpoint.objects.none(),
+            "open_checkpoint_count": 0,
+            "overdue_checkpoint_count": 0,
+            "active_duty_count": 0,
+            "handoff_count": 0,
+            "can_manage_host_show": False,
+            "is_show_lead": is_lead,
+        })
 
     now = timezone.now()
     duties = operations.duty_assignments.select_related("assigned_user", "relieved_by").all()
