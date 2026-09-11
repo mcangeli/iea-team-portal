@@ -2,14 +2,21 @@
 {% block title %}{{ title }} · {{ show.name }}{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_readiness' show.pk %}">← Back to Horse Readiness</a></nav>
-<section class="page-intro"><div><div class="eyebrow">HORSE & HOOFPRINT MANAGEMENT</div><h1>{{ title }}</h1><p>{{ show.name }} · Show-specific leased horse</p></div></section>
+<section class="page-intro horse-module-intro">
+  <div><div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div><h1>{{ title }}</h1><p>{{ show.name }} · Readiness planning</p></div>
+</section>
 <section class="content-section">
-  <form method="post" class="card form-card">
+  <div class="card horse-readiness-note">
+    <div class="eyebrow">PLANNING ONLY</div>
+    <h2>Reserve leased capacity before the horse details are known</h2>
+    <p class="muted">A leased horse counts toward the show's horse requirement and class coverage. It does not appear on the Hoofprint. Use a temporary name such as “Lease Horse 1” if the actual horse has not been assigned yet.</p>
+  </div>
+  <form method="post" class="card form-card horse-form-card">
     {% csrf_token %}
     {{ form.non_field_errors }}
     <div class="form-grid">
       {% for field in form %}
-      <div class="form-field{% if field.name == 'show_classes' or field.name == 'riding_description' or field.name == 'notes' %} form-span-2{% endif %}">
+      <div class="form-field{% if field.name == 'show_classes' or field.name == 'notes' %} form-span-2{% endif %}">
         <label for="{{ field.id_for_label }}">{{ field.label }}</label>
         {{ field }}
         {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
@@ -17,7 +24,7 @@
       </div>
       {% endfor %}
     </div>
-    <div class="actions form-actions"><button class="btn" type="submit">Save leased horse</button><a class="btn secondary" href="{% url 'show_readiness' show.pk %}">Cancel</a></div>
+    <div class="actions form-actions"><button class="btn" type="submit">Save leased horse plan</button><a class="btn secondary" href="{% url 'show_readiness' show.pk %}">Cancel</a></div>
   </form>
 </section>
 {% endblock %}
