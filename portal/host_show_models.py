@@ -159,3 +159,121 @@ class HostShowStaffAssignment(models.Model):
 
     def __str__(self):
         return f"{self.get_role_display()} — {self.name}"
+
+
+class HostShowReadinessCheckpoint(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        COMPLETE = "complete", "Complete"
+        WAIVED = "waived", "Waived"
+
+    operations = models.ForeignKey(
+        HostShowOperations,
+        on_delete=models.CASCADE,
+        related_name="readiness_checkpoints",
+    )
+    title = models.CharField(max_length=180)
+    due_at = models.DateTimeField(null=True, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="host_show_readiness_checkpoints",
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    notes = models.CharField(max_length=255, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["status", "due_at", "sort_order", "title"]
+
+    @property
+    def is_done(self):
+        return self.status in {self.Status.COMPLETE, self.Status.WAIVED}
+
+    def __str__(self):
+        return f"{self.operations.show.name} — {self.title}"
+
+
+class HostShowDutyAssignment(models.Model):
+    class Area(models.TextChoices):
+        GATE = "gate", "Gate / in-gate"
+        RING = "ring", "Ring operations"
+        WARMUP = "warmup", "Warm-up / schooling"
+        CHECKIN = "checkin", "Check-in / secretary"
+        PARKING = "parking", "Parking / traffic"
+        HOSPITALITY = "hospitality", "Hospitality"
+        HORSES = "horses", "Horse operations"
+        RUNNER = "runner", "Runner / communications"
+        SETUP = "setup", "Setup / teardown"
+        OTHER = "other", "Other"
+
+    class Status(models.TextChoices):
+        PLANNED = "planned", "Planned"
+        CHECKED_IN = "checked_in", "Checked in"
+        ACTIVE = "active", "On duty"
+        HANDED_OFF = "handed_off", "Handed off"
+        COMPLETE = "complete", "Complete"
+
+    operations = models.ForeignKey(
+        HostShowOperations,
+        on_delete=models.CASCADE,
+        related_name="duty_assignments",
+    )
+    area = models.CharField(max_length=20, choices=Area.choices, default=Area.OTHER)
+    title = models.CharField(max_length=180)
+    assigned_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="host_show_duties",
+    )
+    assigned_name = models.CharField(
+        max_length=160,
+        blank=True,
+        help_text="Use for a volunteer or staff member without a portal login.",
+    )
+    location = models.CharField(max_length=160, blank=True)
+    starts_at = models.DateTimeField(null=True, blank=True)
+    ends_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PLANNED)
+    instructions = models.TextField(blank=True)
+    handoff_notes = models.TextField(blank=True)
+    relieved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="host_show_duty_handoffs",
+    )
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["starts_at", "sort_order", "area", "title"]
+
+    def clean(self):
+        super().clean()
+        if not self.assigned_user_id and not self.assigned_name.strip():
+            raise ValidationError("Assign a team user or enter the volunteer/staff member's name.")
+        if self.starts_at and self.ends_at and self.ends_at < self.starts_at:
+            raise ValidationError("Duty end time cannot be before its start time.")
+        if self.assigned_user_id:
+            profile = getattr(self.assigned_user, "profile", None)
+            if profile and profile.team_id and profile.team_id != self.operations.show.team_id:
+                raise ValidationError("Assigned team user must belong to the same team as the show.")
+
+    @property
+    def assignee_name(self):
+        if self.assigned_user_id:
+            return self.assigned_user.get_full_name() or self.assigned_user.username
+        return self.assigned_name
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.operations.show.name} — {self.title} — {self.assignee_name}"
