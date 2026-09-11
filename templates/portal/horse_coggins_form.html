@@ -1,20 +1,31 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · Horses{% endblock %}
 {% block content %}
-<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1></div><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
-<form method="post" enctype="multipart/form-data" class="card form-card">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div class="form-grid">
-    {% for field in form %}
-    <div class="form-field{% if field.name == 'notes' %} form-span-2{% endif %}">
-      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-      {{ field }}
-      {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
-      {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
-    </div>
-    {% endfor %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'horse_detail' horse.pk %}">← Back to {{ horse.name }}</a></nav>
+<section class="page-intro horse-module-intro">
+  <div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
+    <h1>{{ title }}</h1>
+    <p>{{ horse.name }} · Show-readiness paperwork</p>
   </div>
-  <button class="btn" type="submit">Save Coggins record</button>
-</form>
+  <div class="actions"><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
+</section>
+<section class="content-section compact-section">
+  <div class="section-head"><div><div class="eyebrow">COGGINS RECORD</div><h2>Health document details</h2><p class="muted">Keep the test and expiration dates current so show-day readiness is obvious at a glance.</p></div></div>
+  <form method="post" enctype="multipart/form-data" class="card form-card horse-form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="form-field{% if field.name == 'notes' %} form-span-2{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions form-actions"><button class="btn" type="submit">Save Coggins record</button><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
+  </form>
+</section>
 {% endblock %}
