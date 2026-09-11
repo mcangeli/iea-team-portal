@@ -175,3 +175,37 @@ class HorseShowAssignment(models.Model):
 
     def __str__(self):
         return f"{self.show.name} — {self.horse.display_name}"
+
+
+class HorseShowAward(models.Model):
+    class Session(models.TextChoices):
+        FULL_DAY = "full_day", "Full Day"
+        MORNING = "morning", "Morning"
+        AFTERNOON = "afternoon", "Afternoon"
+
+    show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="horse_awards")
+    assignment = models.ForeignKey(HorseShowAssignment, on_delete=models.CASCADE, related_name="awards")
+    session = models.CharField(max_length=12, choices=Session.choices)
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["show__show_date", "session"]
+        constraints = [models.UniqueConstraint(fields=["show", "session"], name="unique_horse_award_session_per_show")]
+
+    def clean(self):
+        super().clean()
+        if self.assignment_id and self.show_id and self.assignment.show_id != self.show_id:
+            raise ValidationError("Horse of the Day winner must be assigned to this show.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    @property
+    def horse(self):
+        return self.assignment.horse
+
+    def __str__(self):
+        return f"{self.show.name} — {self.get_session_display()} Horse of the Day — {self.horse.display_name}"
