@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Post-show Horse History · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT · POST-SHOW HISTORY</div>
+    <h1>{{ show.name }}</h1>
+    <p>Preserve the final horse contribution and usage record after the show. Drafts can be reconciled; finalized history is locked.</p>
+  </div>
+  <div class="actions">
+    {% if not history %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="generate"><button class="btn" type="submit">Generate draft</button></form>
+    {% elif not history.is_final %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="generate"><button class="btn secondary" type="submit">Rebuild from current plan</button></form>
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="finalize"><button class="btn" type="submit">Finalize history</button></form>
+    {% endif %}
+  </div>
+</section>
+
+{% if history %}
+<section class="season-status-panel">
+  <div><div class="eyebrow">HISTORY STATUS</div><strong>{% if history.is_final %}Finalized{% else %}Draft{% endif %}</strong></div>
+  <p>{% if history.is_final %}Finalized {{ history.finalized_at|date:"M j, Y g:i A" }}. This snapshot is locked.{% else %}Review actual usage, contribution status, and leased-horse reconciliation before finalizing.{% endif %}</p>
+</section>
+
+<div class="stat-grid">
+  <article class="stat-card"><small>Actually used</small><strong>{{ history.used_count }}</strong><span>final horse records</span></article>
+  <article class="stat-card"><small>Contributions</small><strong>{{ history.contributed_count }}</strong><span>counted toward team requirement</span></article>
+  <article class="stat-card"><small>Status</small><strong>{% if history.is_final %}FINAL{% else %}DRAFT{% endif %}</strong><span>post-show snapshot</span></article>
+</div>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">FINAL ROSTER</div><h2>Horse usage</h2></div><p>Leased/show-specific placeholders can be linked to the actual registry horse used.</p></div>
+  <div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Horse</th><th>Source</th><th>Used</th><th>Contribution</th><th>Classes</th><th>Reconciliation</th><th></th></tr></thead><tbody>
+  {% for record in records %}
+    <tr>
+      <td><strong>{{ record.display_name }}</strong>{% if record.show_name and record.show_name != record.barn_name %}<br><small>{{ record.show_name }}</small>{% endif %}{% if record.provider %}<br><small>{{ record.provider }}</small>{% endif %}</td>
+      <td>{{ record.get_source_type_display }}</td>
+      <td>{% if record.actually_used %}<span class="status-pill status-complete">Used</span>{% else %}<span class="status-pill">Not used</span>{% endif %}</td>
+      <td>{% if record.counted_as_contribution %}Yes{% else %}No{% endif %}</td>
+      <td>{% for c in record.class_snapshot %}<span class="status-pill">{% if c.class_number %}{{ c.class_number }} · {% endif %}{{ c.name }}</span> {% empty %}<span class="muted">—</span>{% endfor %}</td>
+      <td>{% if record.reconciled_from_leased %}<strong>{{ record.horse.display_name }}</strong><br><small>matched to registry</small>{% elif record.horse %}{{ record.horse.display_name }}{% elif record.source_type == 'leased' %}<span class="muted">Unreconciled leased horse</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td>{% if not history.is_final %}<a class="text-link" href="{% url 'post_show_horse_record_edit' show.pk record.pk %}">Review</a>{% endif %}</td>
+    </tr>
+  {% empty %}<tr><td colspan="7" class="muted">No horse records are in this draft yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">POST-SHOW NOTES</div><h2>Historical notes</h2></div></div>
+  {% if history.is_final %}<p>{{ history.notes|default:"No post-show notes recorded."|linebreaksbr }}</p>{% else %}
+    <form method="post" class="form-card">{% csrf_token %}<input type="hidden" name="action" value="save_notes">{{ history_form.as_p }}<button class="btn" type="submit">Save notes</button></form>
+  {% endif %}
+</section>
+{% else %}
+<div class="empty-state">Generate a draft after the show to capture the current registry and leased-horse plan as the starting point for the permanent record.</div>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
+{% load horse_history %}
 {% block title %}{{ season.name }} Review{% endblock %}
 {% block content %}
+{% season_horse_history season as horse_history %}
 <nav class="page-back-nav" aria-label="Back navigation">
   <a href="{% url 'season_archive' %}">← Back to Season History</a>
 </nav>
@@ -140,6 +142,30 @@
           </tr>
         {% empty %}
           <tr><td colspan="8" class="muted">No riders are enrolled in this season.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div><h2>Season horse history</h2></div>
+    <p>Horse participation and Horse of the Day honors preserved with the season.</p>
+  </div>
+  <div class="stat-grid">
+    <article class="stat-card"><small>Horses</small><strong>{{ horse_history.horse_count }}</strong><span>recorded this season</span></article>
+    <article class="stat-card"><small>Horse of the Day</small><strong>{{ horse_history.hotd_total }}</strong><span>season honors</span></article>
+    <article class="stat-card"><small>Show appearances</small><strong>{{ horse_history.show_appearances }}</strong><span>horse/show combinations</span></article>
+  </div>
+  <div class="entry-table-wrap">
+    <table class="entry-table">
+      <thead><tr><th>Horse</th><th>HOTD</th><th>Full Day</th><th>AM</th><th>PM</th><th>Shows</th><th>Classes</th><th>First / latest</th></tr></thead>
+      <tbody>
+        {% for r in horse_history.rows %}
+          <tr><td><strong>{{ r.horse.display_name }}</strong>{% if r.horse.show_name and r.horse.show_name != r.horse.name %}<br><small>{{ r.horse.name }}</small>{% endif %}</td><td><strong>{{ r.hotd }}</strong></td><td>{{ r.full_day }}</td><td>{{ r.morning }}</td><td>{{ r.afternoon }}</td><td>{{ r.shows }}</td><td>{{ r.classes }}</td><td><small>{% if r.first_show %}{{ r.first_show|date:"M j, Y" }}{% else %}—{% endif %}{% if r.last_show and r.last_show != r.first_show %}<br>{{ r.last_show|date:"M j, Y" }}{% endif %}</small></td></tr>
+        {% empty %}
+          <tr><td colspan="8" class="muted">No horse participation has been recorded for this season yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>

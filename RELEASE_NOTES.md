@@ -1,5 +1,38 @@
 # Release Notes
 
+## v2.1.5 — Post-Show Horse History
+
+v2.1.5 completes the 2.1.x horse-operations progression by preserving what actually happened after each show and carrying that history into season summaries and the Team Record Book.
+
+### Post-show horse history
+- Added a dedicated **Post-show Horse History** workspace for each show.
+- A Coach/Admin can generate a draft history from the current registry-horse assignments and leased/show-specific horse planning records.
+- Each history record preserves a snapshot of the horse identity, provider/ownership information, show-class coverage, and show-specific notes at the time the history is created.
+- Draft records can be reviewed to distinguish horses that were actually used from horses that were only part of the plan.
+- Draft records can separately identify which horses counted toward the team's horse contribution.
+- Leased/show-specific planning placeholders can be reconciled after the show to the actual Horse Registry horse used without changing the original planning record.
+- Finalized history is immutable through the normal workflow and retains the finalization user/timestamp.
+- Post-show notes can be retained with the show-level history record.
+
+### Record Book and season history
+- Added a **Horse Legacy** section to the Team Record Book.
+- Horse history includes Horse of the Day totals with Full Day, Morning, and Afternoon breakdowns, show appearances, class coverage, and first/latest recorded appearances.
+- Added **Season Horse History** to Season Review so archived seasons preserve horse participation alongside rider/team performance.
+- Record Book and Season Review prefer finalized post-show snapshots when available, while retaining fallback to existing show assignments for older shows that have not yet been finalized.
+- Reconciled leased/show-specific horses contribute historical participation to the linked Horse Registry record once the post-show snapshot is finalized.
+
+### Data and migration
+- Added `ShowHorseHistory` and `ShowHorseHistoryRecord` models.
+- Added migration `0044_v215_post_show_horse_history.py`.
+- Added focused regression coverage for draft generation, leased-horse reconciliation, finalization locking, and management permissions.
+
+### Validation
+- `python manage.py check` passes with no issues.
+- `python manage.py makemigrations portal --check --dry-run` reports no pending model changes.
+- Focused v2.1.5 tests pass 4/4.
+- The complete `portal.tests` regression suite was run successfully on the test server.
+- Manual live testing of draft generation, usage/contribution editing, leased-horse reconciliation, finalization, Record Book, and Season Review completed successfully.
+
 ## v2.1.4 — Course & Show Operations
 
 v2.1.4 expands the show-operations layer around courses, horse eligibility, Hoofprint readiness, and host-provided Show Horse Lists while hardening permissions and show-day history.
@@ -42,6 +75,7 @@ v2.1.4 expands the show-operations layer around courses, horse eligibility, Hoof
 - `0040_v214_show_courses.py` adds show course records.
 - `0041_v214_horse_eligibility_override.py` adds persisted show-horse eligibility override data.
 - `0042_v214_show_horse_list_documents.py` adds versioned Show Horse List documents and family-visible coach notes.
+- `0043_alter_showbudgetline_options_alter_showentry_options_and_more.py` captures previously outstanding model-state changes for budget/show-entry ordering and reimbursement/show-day defaults.
 - Added v2.1.4 regression coverage for horse eligibility, Hoofprint comparison/completeness, Course Operations permissions/media, protected documents, Show Horse List privacy, Show Day planning items, and Horse of the Day history protection.
 - Added `RELEASE_CHECKLIST_v2.1.4.md` for upgrade, role, privacy, presentation, and live-server validation.
 - Added and maintained `ROADMAP.md` as a living release artifact for future development planning.
