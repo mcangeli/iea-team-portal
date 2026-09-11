@@ -39,3 +39,17 @@ class ShowCourseForm(forms.ModelForm):
         if self.show and any(show_class.show_id != self.show.id for show_class in classes):
             raise forms.ValidationError("Every selected class must belong to this show.")
         return classes
+
+
+class ShowCourseMediaForm(forms.ModelForm):
+    class Meta:
+        model = ShowCourse
+        fields = ["course_file", "external_link"]
+        labels = {
+            "course_file": "Course image or PDF",
+            "external_link": "External course link",
+        }
+        help_texts = {
+            "course_file": "Upload or replace the posted course image/PDF for this course.",
+            "external_link": "Optional link to a hosted course image or document.",
+        }
