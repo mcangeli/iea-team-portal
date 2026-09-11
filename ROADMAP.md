@@ -27,7 +27,7 @@ The narrow `ShowPlanningItem.owner_id` compatibility extension remains intention
 
 ### 2.1.5 — Post-Show Horse History
 
-**Status: release stabilization complete; ready for promotion after final release approval.**
+**Status: released.**
 
 Completed scope includes:
 
@@ -45,43 +45,54 @@ Completed scope includes:
 - Prefer finalized post-show snapshots for historical horse participation while retaining fallback to older live assignment history.
 - Add focused regression coverage for draft generation, reconciliation, finalization, and permissions.
 
-Validation completed:
-
-- Django system check passes.
-- No migration drift is detected.
-- Focused v2.1.5 tests pass 4/4.
-- Full `portal.tests` regression suite passes on the test server.
-- Manual end-to-end live testing completed successfully.
-
 The 2.1.x progression is intentionally:
 
 > **2.1.3:** Are we ready for the show?  
 > **2.1.4:** Do we have everything needed to run the show?  
 > **2.1.5:** What actually happened, and what should we preserve historically?
 
-With 2.1.5 stabilized, the next planned feature family is **2.5.x Show Host Operations**.
-
 ---
 
 ## 2.5.x — Show Host Operations
 
-Focus: build significantly more around the portal's existing show-host functionality.
+### 2.5.0 — Host Show Workspace
 
-The goal is a **Host Show Workspace** that distinguishes between attending somebody else's show and operating a show our team is hosting.
+**Status: Preview 1 development.**
 
-Areas to explore include:
+The Host Show Workspace is intentionally separate from the normal attending-team workflow and is available only to shows marked **Hosting & attending**.
 
-- Host contacts, responsibilities, and key show personnel.
-- Venue, ring, warm-up, schooling, parking, arrival, check-in, and hospitality information.
-- Prize lists, schedules, course documents, and host-provided horse lists.
-- Host preparation and readiness checklists.
-- Show-day instructions and announcements.
-- Document collection and distribution.
-- Course and ring operations.
-- Volunteer and staffing coordination where appropriate.
-- Clear host-specific dashboards and navigation rather than overloading the attending-team workflow.
+Preview 1 scope:
 
-Exact 2.5.x point releases will be designed after the 2.1.x show-operations work is stable and the existing host workflow has been reviewed in detail.
+- Dedicated Host Shows index and per-show Host Show Workspace.
+- New show-scoped **Show Manager** assignment, separate from Show Lead.
+- Coach/Admin users assign or remove Show Managers.
+- Assigned Show Managers can maintain the Host Show operational plan and show-personnel roster for their hosted show.
+- Show Leads retain their existing team/show-day responsibilities and can view Host Show Operations without receiving Show Manager administration rights.
+- Host readiness summary based on critical leadership, personnel, and operating information.
+- Track venue contact, arrival, rider/team check-in, trailer parking, spectator parking, warm-up/schooling, ring operations, volunteer check-in, hospitality, emergency information, prize-list link, schedule link, family-facing notes, and private host-team notes.
+- Flexible Show Personnel roster supporting multiple people where appropriate.
+- Initial core personnel roles:
+  - Show Secretary
+  - Judge
+  - Steward
+  - Gate
+  - Show Announcer
+  - EMS
+  - Other
+- Host Show Workspace links into existing Show Planning, Courses, Schedule, and Show Day rather than duplicating those systems.
+- Host Operations entry point on hosted Show Detail pages.
+- Migration `0045_v250_host_show_operations.py`.
+- Focused permission/readiness tests for Coach/Admin, Show Manager, Show Lead, and unrelated team users.
+
+Planned follow-on work in the 2.5.x family:
+
+- Deeper host readiness/checklist workflow and deadlines.
+- Host-specific volunteer/staff assignment coordination.
+- Prize-list, schedule, course, horse-list, and other document collection/distribution.
+- Show-day announcements and host command-center presentation.
+- Ring/gate operational tools and staffing handoffs.
+- Review of host finance/reporting needs without duplicating the existing Finance system.
+- Mobile-first host-show presentation and role dashboards.
 
 ---
 
