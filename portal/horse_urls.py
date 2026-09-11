@@ -15,4 +15,7 @@ urlpatterns = [
     path("shows/<int:show_pk>/horses/add/", horses.show_horse_add, name="show_horse_add"),
     path("shows/<int:show_pk>/horses/<int:pk>/edit/", horses.show_horse_edit, name="show_horse_edit"),
     path("shows/<int:show_pk>/horses/<int:pk>/remove/", horses.show_horse_remove, name="show_horse_remove"),
+    path("shows/<int:show_pk>/horses/awards/add/", horses.show_horse_award_add, name="show_horse_award_add"),
+    path("shows/<int:show_pk>/horses/awards/<int:pk>/edit/", horses.show_horse_award_edit, name="show_horse_award_edit"),
+    path("shows/<int:show_pk>/horses/awards/<int:pk>/remove/", horses.show_horse_award_remove, name="show_horse_award_remove"),
 ]
