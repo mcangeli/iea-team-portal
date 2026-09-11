@@ -1,7 +1,14 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 
-from .host_show_models import HostShowOperations, HostShowStaffAssignment, ShowManagerAssignment
+from .host_show_models import (
+    HostShowDutyAssignment,
+    HostShowOperations,
+    HostShowReadinessCheckpoint,
+    HostShowStaffAssignment,
+    ShowManagerAssignment,
+)
 
 
 class HostShowOperationsForm(forms.ModelForm):
@@ -69,3 +76,58 @@ class HostShowStaffAssignmentForm(forms.ModelForm):
     class Meta:
         model = HostShowStaffAssignment
         fields = ["role", "name", "organization", "phone", "email", "notes", "active", "sort_order"]
+
+
+class HostShowReadinessCheckpointForm(forms.ModelForm):
+    class Meta:
+        model = HostShowReadinessCheckpoint
+        fields = ["title", "due_at", "owner", "status", "notes", "sort_order"]
+        widgets = {
+            "due_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+        }
+
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if team:
+            self.fields["owner"].queryset = User.objects.filter(
+                profile__team=team,
+                is_active=True,
+            ).order_by("last_name", "first_name", "username")
+
+
+class HostShowDutyAssignmentForm(forms.ModelForm):
+    class Meta:
+        model = HostShowDutyAssignment
+        fields = [
+            "area", "title", "assigned_user", "assigned_name", "location",
+            "starts_at", "ends_at", "status", "instructions", "handoff_notes",
+            "relieved_by", "sort_order",
+        ]
+        widgets = {
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "instructions": forms.Textarea(attrs={"rows": 3}),
+            "handoff_notes": forms.Textarea(attrs={"rows": 3}),
+        }
+        help_texts = {
+            "assigned_user": "Choose a portal user when available.",
+            "assigned_name": "Use this for a staff member or volunteer without a portal login.",
+            "status": "This tracks show-day operational coverage only. It does not count toward season volunteer hours.",
+        }
+
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if team:
+            users = User.objects.filter(profile__team=team, is_active=True).order_by(
+                "last_name", "first_name", "username"
+            )
+            self.fields["assigned_user"].queryset = users
+            self.fields["relieved_by"].queryset = users
+
+    def clean(self):
+        cleaned = super().clean()
+        assigned_user = cleaned.get("assigned_user")
+        assigned_name = (cleaned.get("assigned_name") or "").strip()
+        if not assigned_user and not assigned_name:
+            raise forms.ValidationError("Assign a team user or enter the staff/volunteer name.")
+        return cleaned
