@@ -92,7 +92,7 @@ class HorseShowAssignmentForm(forms.ModelForm):
         }
         widgets = {
             "show_classes": forms.CheckboxSelectMultiple(),
-            "eligibility_override_reason": forms.TextInput(attrs={"placeholder": "Why is this horse being used outside normal season eligibility?"}),
+            "eligibility_override_reason": forms.TextInput(attrs={"placeholder": "Reason for this season-eligibility exception"}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
         help_texts = {
@@ -124,28 +124,36 @@ class HorseShowAssignmentForm(forms.ModelForm):
         classes = self.cleaned_data["show_classes"]
         if self.show and any(item.show_id != self.show.id for item in classes):
             raise forms.ValidationError("Classes must belong to this show.")
-        horse = self.cleaned_data.get("horse")
-        if not self.show or not horse:
-            return classes
+        return classes
+
+    def clean(self):
+        cleaned = super().clean()
+        horse = cleaned.get("horse")
+        classes = cleaned.get("show_classes")
+        if not self.show or not horse or classes is None:
+            return cleaned
 
         profile = HorseSeasonProfile.objects.filter(
-            horse=horse,
-            season=self.show.season,
-            active_for_season=True,
+            horse=horse, season=self.show.season, active_for_season=True,
         ).prefetch_related("eligible_classes").first()
         eligible_ids = set(profile.eligible_classes.values_list("id", flat=True)) if profile else set()
-        selected_ineligible = [
-            item for item in classes
-            if not item.season_class_id or item.season_class_id not in eligible_ids
-        ]
+        selected_ineligible = [item for item in classes if not item.season_class_id or item.season_class_id not in eligible_ids]
+
         if not selected_ineligible:
-            return classes
+            if self.allow_eligibility_override:
+                cleaned["eligibility_override"] = False
+                cleaned["eligibility_override_reason"] = ""
+                self.instance.eligibility_override = False
+                self.instance.eligibility_override_reason = ""
+            return cleaned
 
         if self.allow_eligibility_override:
-            if not self.cleaned_data.get("eligibility_override"):
+            if not cleaned.get("eligibility_override"):
                 labels = ", ".join(item.display_name for item in selected_ineligible[:4])
-                raise forms.ValidationError(f"Outside this horse's season eligibility: {labels}. Use the Coach/Admin override to continue.")
-            return classes
+                self.add_error("show_classes", f"Outside this horse's season eligibility: {labels}. Use the Coach/Admin override to continue.")
+            elif not (cleaned.get("eligibility_override_reason") or "").strip():
+                self.add_error("eligibility_override_reason", "Add a reason for the eligibility override.")
+            return cleaned
 
         existing_ineligible_ids = set()
         if self.instance and self.instance.pk:
@@ -155,16 +163,7 @@ class HorseShowAssignmentForm(forms.ModelForm):
         newly_ineligible = [item for item in selected_ineligible if item.pk not in existing_ineligible_ids]
         if newly_ineligible:
             labels = ", ".join(item.display_name for item in newly_ineligible[:4])
-            raise forms.ValidationError(f"{labels} is outside this horse's season eligibility. A Coach/Admin must approve that exception.")
-        return classes
-
-    def clean(self):
-        cleaned = super().clean()
-        if self.allow_eligibility_override:
-            override = bool(cleaned.get("eligibility_override"))
-            reason = (cleaned.get("eligibility_override_reason") or "").strip()
-            if override and not reason:
-                self.add_error("eligibility_override_reason", "Add a reason for the eligibility override.")
+            self.add_error("show_classes", f"{labels} is outside this horse's season eligibility. A Coach/Admin must approve that exception.")
         return cleaned
 
 
