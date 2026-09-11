@@ -1,6 +1,6 @@
 from django import forms
 
-from .horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment
+from .horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from .models import Season, SeasonClass, ShowClass
 
 
@@ -105,3 +105,23 @@ class HorseShowAssignmentForm(forms.ModelForm):
         classes = self.cleaned_data["show_classes"]
         if self.show and any(item.show_id != self.show.id for item in classes): raise forms.ValidationError("Classes must belong to this show.")
         return classes
+
+
+class HorseShowAwardForm(forms.ModelForm):
+    class Meta:
+        model = HorseShowAward
+        fields = ["session", "assignment", "notes"]
+
+    def __init__(self, *args, show=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.show = show
+        if show:
+            self.fields["assignment"].queryset = HorseShowAssignment.objects.filter(show=show, available=True).select_related("horse").order_by("horse__name")
+            used_sessions = HorseShowAward.objects.filter(show=show).exclude(pk=self.instance.pk).values_list("session", flat=True)
+            self.fields["session"].choices = [choice for choice in HorseShowAward.Session.choices if choice[0] not in set(used_sessions)]
+
+    def clean_assignment(self):
+        assignment = self.cleaned_data["assignment"]
+        if self.show and assignment.show_id != self.show.id:
+            raise forms.ValidationError("Choose a horse assigned to this show.")
+        return assignment
