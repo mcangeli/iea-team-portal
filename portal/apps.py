@@ -15,6 +15,7 @@ class PortalConfig(AppConfig):
         from . import show_readiness_models  # noqa: F401
         from . import course_models  # noqa: F401
         from . import post_show_horse_models  # noqa: F401
+        from . import host_show_models  # noqa: F401
         from . import show_planning_extensions  # noqa: F401
 
     def ready(self):
