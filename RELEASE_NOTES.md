@@ -1,5 +1,36 @@
 # Release Notes
 
+## v2.1.0 — Horse Registry Foundation
+
+v2.1.0 begins the Horse & Hoofprint Management work planned for the v2.1.x line.
+
+### Horse registry
+- Added a team-scoped Horse Registry with horse name/show name, breed/size, height, ownership/contributor information, home barn, photo, restrictions, crop/spur preferences, lead-change type, riding description, notes, and active/inactive status.
+- Administrators and Coaches can add and edit horses; authenticated team members can view active horse profiles.
+- Horse records are team-scoped so records from another team cannot be accessed through portal routes.
+
+### Coggins tracking
+- Added Coggins history as separate records instead of overwriting a single date/document.
+- Each record stores test date, expiration date, optional document upload, and notes.
+- The portal derives Current, Expiring Soon (within 30 days), and Expired status.
+- Coggins documents and internal horse notes are only linked from the management view shown to Administrators and Coaches.
+
+### Season class eligibility
+- Added per-season Horse Season Profiles linked to existing `SeasonClass` records.
+- Coaches can define which classes a horse is eligible for in each season without hard-coding class numbers into the horse record.
+- Historical season eligibility remains intact when classes change in future seasons.
+
+### Presentation and architecture
+- Added Horses to the primary navigation.
+- Added dedicated horse list, horse profile, Coggins, and season-eligibility screens with light/dark theme support.
+- Horse models are isolated in `portal/horse_models.py` and loaded through `PortalConfig`, following the v2 modular architecture.
+- Added migration `0033_v210_horse_registry.py` and focused v2.1.0 horse-registry tests.
+
+### Next in v2.1.x
+- v2.1.1: assign horses to shows and support show-specific availability/eligibility overrides.
+- v2.1.2: build Hoofprint output from the show horse roster.
+- v2.1.3: add show-readiness checks including horse-count guidance and Coggins warnings.
+
 ## v2.0.0 — Production Release
 
 v2.0.0 is the first production release of the redesigned IEA Team Portal after the Preview 1–9 and RC1–RC2 validation cycle.
@@ -71,25 +102,7 @@ Key RC1 work included:
 
 Preview 9 completed the planned v2 visual-design pass.
 
-- Formalized the private-club palette: deep blue-green/charcoal, warm ivory, muted leather/brass, IEA blue, and restrained cyan.
-- Built a purpose-designed dark palette rather than a simple inversion.
-- Gave Shows, Riders, Standings, Record Book, Finance, and Calendar distinct but related presentation identities.
-- Unified semantic status badges and action hierarchy.
-- Polished tables, qualification progress, empty states, focus states, and restrained interaction motion.
-- Added a dedicated mobile/ringside treatment for Show Day.
-- No new migration was required.
-
-## v2.0.0 — Preview 8: Photographic Branding
-
-- Added a team-level hero/cover photograph.
-- Added top/center/bottom crop-position control.
-- Added **Manage → Branding** with live preview.
-- Applied photography to Dashboard, role dashboards, and signed-out presentation.
-- Added migration `0031_v200_team_branding.py`.
-
-## v2.0.0 — Preview 7: Presentation Polish
-
-- Established the “private riding club meets modern editorial design” direction.
+- Formalized the “private riding club meets modern editorial design” direction.
 - Reworked dashboard heroes, summaries, navigation, Riders, Shows, Record Book, forms, and login presentation.
 - Preserved responsive behavior and light/dark theme support.
 
