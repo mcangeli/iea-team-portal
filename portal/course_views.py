@@ -9,8 +9,8 @@ from django.views.decorators.http import require_POST
 
 from .course_forms import ShowCourseForm, ShowCourseMediaForm
 from .course_models import ShowCourse
-from .models import Show
-from .view_modules.common import _can_manage, _ensure_season_open, _is_show_lead, _team
+from .models import AuditEvent, Show
+from .view_modules.common import _audit_event, _can_manage, _ensure_season_open, _is_show_lead, _team
 
 
 def _can_view_courses(user, show):
@@ -80,6 +80,14 @@ def show_course_add(request, show_pk):
         course.updated_by = request.user
         course.save()
         form.save_m2m()
+        _audit_event(
+            team=team,
+            actor=request.user,
+            action=AuditEvent.Action.CREATED,
+            obj=course,
+            season=show.season,
+            summary=f"Added course information for {course.title} at {show.name}",
+        )
         messages.success(request, "Course information added.")
         return redirect("show_courses", show_pk=show.pk)
     return render(request, "portal/show_course_form.html", {"show": show, "form": form, "title": "Add course information"})
@@ -98,6 +106,14 @@ def show_course_edit(request, show_pk, course_pk):
         course.updated_by = request.user
         course.save()
         form.save_m2m()
+        _audit_event(
+            team=team,
+            actor=request.user,
+            action=AuditEvent.Action.UPDATED,
+            obj=course,
+            season=show.season,
+            summary=f"Updated course information for {course.title} at {show.name}",
+        )
         messages.success(request, "Course information updated.")
         return redirect("show_courses", show_pk=show.pk)
     return render(request, "portal/show_course_form.html", {"show": show, "course": course, "form": form, "title": "Edit course information"})
@@ -115,6 +131,18 @@ def show_course_media(request, show_pk, course_pk):
         course = form.save(commit=False)
         course.updated_by = request.user
         course.save()
+        _audit_event(
+            team=team,
+            actor=request.user,
+            action=AuditEvent.Action.UPDATED,
+            obj=course,
+            season=show.season,
+            summary=f"Updated course media for {course.title} at {show.name}",
+            details={
+                "has_course_file": bool(course.course_file),
+                "has_external_link": bool(course.external_link),
+            },
+        )
         messages.success(request, "Course image/document updated.")
         return redirect("show_courses", show_pk=show.pk)
     return render(request, "portal/show_course_media_form.html", {
@@ -133,6 +161,14 @@ def show_course_remove(request, show_pk, course_pk):
     show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team)
     _ensure_season_open(show.season)
     course = get_object_or_404(ShowCourse, pk=course_pk, show=show)
+    _audit_event(
+        team=team,
+        actor=request.user,
+        action=AuditEvent.Action.REMOVED,
+        obj=course,
+        season=show.season,
+        summary=f"Removed course information for {course.title} at {show.name}",
+    )
     course.delete()
     messages.success(request, "Course information removed.")
     return redirect("show_courses", show_pk=show.pk)
