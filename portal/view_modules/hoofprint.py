@@ -12,6 +12,14 @@ from ..models import AuditEvent, Show
 from .common import _audit_event, _can_manage, _ensure_season_open, _team
 
 
+def _pdf_response(show, payload, filename_suffix):
+    pdf = render_hoofprint_pdf(payload)
+    response = HttpResponse(pdf, content_type="application/pdf")
+    safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in show.name).strip("-") or "show"
+    response["Content-Disposition"] = f'inline; filename="{safe_name}-hoofprint-{filename_suffix}.pdf"'
+    return response
+
+
 @login_required
 def show_hoofprint(request, show_pk):
     team = _team(request.user)
@@ -27,6 +35,14 @@ def show_hoofprint(request, show_pk):
         "snapshots": show.hoofprint_snapshots.all()[:10],
         "can_manage": _can_manage(request.user),
     })
+
+
+@login_required
+def show_hoofprint_preview_pdf(request, show_pk):
+    team = _team(request.user)
+    show = get_object_or_404(Show.objects.select_related("season", "team"), pk=show_pk, team=team)
+    payload = build_hoofprint_payload(show)
+    return _pdf_response(show, payload, "preview")
 
 
 @login_required
@@ -57,7 +73,7 @@ def show_hoofprint_finalize(request, show_pk):
         summary=f"Finalized Hoofprint v{snapshot.version} for {show.name}",
     )
     messages.success(request, f"Hoofprint v{snapshot.version} finalized. The saved snapshot will not change if horse records are edited later.")
-    return redirect("show_hoofprint", show_pk=show.pk)
+    return redirect("show_hoofprint_pdf", show_pk=show.pk, snapshot_pk=snapshot.pk)
 
 
 @login_required
@@ -65,8 +81,4 @@ def show_hoofprint_pdf(request, show_pk, snapshot_pk):
     team = _team(request.user)
     show = get_object_or_404(Show, pk=show_pk, team=team)
     snapshot = get_object_or_404(HoofprintSnapshot, pk=snapshot_pk, show=show)
-    pdf = render_hoofprint_pdf(snapshot.payload)
-    response = HttpResponse(pdf, content_type="application/pdf")
-    safe_name = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in show.name).strip("-") or "show"
-    response["Content-Disposition"] = f'inline; filename="{safe_name}-hoofprint-v{snapshot.version}.pdf"'
-    return response
+    return _pdf_response(show, snapshot.payload, f"v{snapshot.version}")
