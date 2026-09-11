@@ -21,6 +21,14 @@ def _p(value, style):
     return Paragraph(escape(str(value or "—")), style)
 
 
+def _class_report_label(class_data):
+    """Prefer the short show class ID (H1, H2, etc.) for Hoofprint output."""
+    number = (class_data.get("number") or "").strip()
+    if number:
+        return number.upper()
+    return (class_data.get("name") or "—").strip()
+
+
 def build_hoofprint_payload(show, cleaned_data=None):
     cleaned_data = cleaned_data or {}
     assignments = (
@@ -124,6 +132,14 @@ def render_hoofprint_pdf(payload):
         fontSize=6.4,
         leading=7.3,
     )
+    class_code = ParagraphStyle(
+        "HoofprintClassCode",
+        parent=small,
+        fontName="Helvetica-Bold",
+        fontSize=7.0,
+        leading=8.0,
+        alignment=TA_CENTER,
+    )
     header_cell = ParagraphStyle(
         "HoofprintHeaderCell",
         parent=body,
@@ -171,7 +187,7 @@ def render_hoofprint_pdf(payload):
         Paragraph("Horse", header_cell),
         Paragraph("Breed / Size", header_cell),
         Paragraph("Ht", header_cell),
-        Paragraph("Classes", header_cell),
+        Paragraph("Class ID", header_cell),
         Paragraph("Crop", header_cell),
         Paragraph("Spurs", header_cell),
         Paragraph("Changes", header_cell),
@@ -180,10 +196,8 @@ def render_hoofprint_pdf(payload):
     ]]
 
     for horse in payload.get("horses", []):
-        classes = "<br/>".join(
-            escape(((f"#{c['number']} " if c.get("number") else "") + c.get("name", "")).strip())
-            for c in horse.get("classes", [])
-        ) or "—"
+        class_labels = [_class_report_label(c) for c in horse.get("classes", [])]
+        classes = "<br/>".join(escape(label) for label in class_labels) or "—"
         restrictions_parts = []
         if horse.get("height_restriction"):
             restrictions_parts.append(f"Height: {horse['height_restriction']}")
@@ -205,7 +219,7 @@ def render_hoofprint_pdf(payload):
             Paragraph(horse_label, small),
             _p(breed_size, small),
             _p(horse.get("height_hands"), small),
-            Paragraph(classes, small),
+            Paragraph(classes, class_code),
             _p(horse.get("crop"), small),
             _p(horse.get("spurs"), small),
             _p(horse.get("lead_change"), small),
@@ -214,16 +228,17 @@ def render_hoofprint_pdf(payload):
         ])
 
     available_width = page_width - (2 * margin)
+    fixed_width = (0.90 + 0.95 + 0.38 + 0.62 + 0.48 + 0.48 + 0.60 + 1.55) * inch
     col_widths = [
-        0.86*inch,
-        0.94*inch,
+        0.90*inch,
+        0.95*inch,
         0.38*inch,
-        1.72*inch,
+        0.62*inch,
         0.48*inch,
         0.48*inch,
         0.60*inch,
-        1.43*inch,
-        available_width - (0.86+0.94+0.38+1.72+0.48+0.48+0.60+1.43)*inch,
+        1.55*inch,
+        available_width - fixed_width,
     ]
 
     horse_table = Table(table_rows, repeatRows=1, colWidths=col_widths, hAlign="LEFT")
