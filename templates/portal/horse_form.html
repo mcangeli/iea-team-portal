@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · Horses{% endblock %}
 {% block content %}
-<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1></div>{% if horse %}<a class="button secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a>{% else %}<a class="button secondary" href="{% url 'horse_list' %}">Cancel</a>{% endif %}</div>
+<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1></div>{% if horse %}<a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'horse_list' %}">Cancel</a>{% endif %}</div>
 <form method="post" enctype="multipart/form-data" class="card form-card">
   {% csrf_token %}
   {{ form.non_field_errors }}
@@ -15,6 +15,6 @@
     </div>
     {% endfor %}
   </div>
-  <div class="button-row"><button class="button" type="submit">Save horse</button></div>
+  <div class="actions"><button class="btn" type="submit">Save horse</button></div>
 </form>
 {% endblock %}
