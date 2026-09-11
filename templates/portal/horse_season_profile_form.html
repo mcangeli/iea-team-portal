@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · Horses{% endblock %}
 {% block content %}
-<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1><p class="muted">Choose the season and classes this horse is eligible to be used for.</p></div><a class="button secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
+<div class="page-header"><div><p class="eyebrow">Horse Registry</p><h1>{{ title }}</h1><p class="muted">Choose the season and classes this horse is eligible to be used for.</p></div><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
 <form method="post" class="card form-card">
   {% csrf_token %}
   {{ form.non_field_errors }}
@@ -16,6 +16,6 @@
     {% endfor %}
   </div>
   <p class="help-text">If you change the season, save once and reopen the eligibility screen to load that season’s class list.</p>
-  <button class="button" type="submit">Save season eligibility</button>
+  <button class="btn" type="submit">Save season eligibility</button>
 </form>
 {% endblock %}
