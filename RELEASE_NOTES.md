@@ -1,5 +1,42 @@
 # Release Notes
 
+## v2.1.2 — Hoofprint Builder & Presentation Polish
+
+v2.1.2 completes the first Horse & Hoofprint Management workflow from horse registry through show assignment and finalized Hoofprint output.
+
+### Hoofprint Builder
+- Added a live Hoofprint review driven by available horses assigned to the show.
+- Added PDF preview plus immutable finalized Hoofprint snapshots with version history.
+- Hoofprint PDFs render on US Letter landscape, repeat table headers across pages, and prioritize compact Class IDs such as `H1`, `H2`, `H8`, and `H14`.
+- Barn names are the primary horse identity on Hoofprint output, with show names displayed secondarily when different.
+- PDF responses disable caching and Preview links use cache-busting parameters so current output is shown reliably on mobile and desktop.
+
+### Season class IDs
+- Added a canonical Season Class ID used by linked Show Classes and Hoofprint output.
+- Existing show-level class numbers are retained for compatibility and historical data.
+- Season Setup exposes the Class ID for direct management and linked Show Classes inherit updates.
+
+### Presentation polish
+- Unified Horse Registry, Horse Detail, Coggins, season eligibility, Show Horses, Horse of the Day, and Hoofprint Builder around the v2 private-club/editorial design language.
+- Standardized `page-intro` headers, eyebrow labels, action hierarchy, class chips, status treatments, forms, and empty states.
+- Made barn names the primary ringside identity throughout the horse-management UI while preserving formal show names.
+- Added dedicated Horse & Hoofprint light/dark styling and a compact mobile treatment for ringside use.
+
+### Data and migrations
+- Added immutable `HoofprintSnapshot` storage.
+- Added canonical season-class code support and migration/backfill behavior.
+- Latest v2.1.2 migrations: `0037_v212_hoofprint_snapshots.py` and `0038_v212_season_class_codes.py`.
+
+## v2.1.1 — Show Horses
+
+v2.1.1 connected the Horse Registry to individual shows.
+
+- Added show horse assignments with per-show class selection, availability, notes, and equipment/lead-change overrides.
+- Added Horse of the Day tracking for Full Day, Morning, and Afternoon sessions.
+- Added Show Horses management and award history on horse profiles.
+- Preserved registry defaults while allowing event-specific overrides.
+- Added migrations `0035_v211_show_horse_assignments.py` and `0036_v211_horse_show_awards.py`.
+
 ## v2.1.0 — Horse Registry Foundation
 
 v2.1.0 begins the Horse & Hoofprint Management work planned for the v2.1.x line.
