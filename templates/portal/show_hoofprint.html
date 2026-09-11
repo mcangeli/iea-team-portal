@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Hoofprint{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
+<section class="show-hero compact-show-hero">
+  <div class="show-hero-date"><span>{{ show.show_date|date:"M" }}</span><strong>{{ show.show_date|date:"j" }}</strong><small>{{ show.show_date|date:"Y" }}</small></div>
+  <div class="show-hero-copy"><div class="eyebrow light">{{ show.season.name }} · HOOFPRINT</div><h1>{{ show.name }}</h1><p>Review the live horse plan, then finalize an immutable Hoofprint snapshot.</p></div>
+</section>
+<nav class="subnav show-subnav" aria-label="Show navigation">
+  <a href="{% url 'show_detail' show.pk %}#entries">Entries</a><a href="{% url 'show_availability' show.pk %}">Riders</a><a href="{% url 'show_detail' show.pk %}#entries">Points Riders</a><a href="{% url 'show_horses' show.pk %}">Horses</a><a class="active" href="{% url 'show_hoofprint' show.pk %}">Hoofprint</a><a href="{% url 'show_detail' show.pk %}#entries">Results</a>
+</nav>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">LIVE REVIEW</div><h2>{{ payload.horses|length }} horse{{ payload.horses|length|pluralize }} in the current Hoofprint plan</h2><p class="muted">This review follows the current show assignments. Finalizing stores a permanent copy.</p></div></div>
+  {% for horse in payload.horses %}
+  <article class="card season-membership-card">
+    <div><div class="eyebrow">{{ horse.sex|default:"HORSE" }}</div><h3>{{ horse.name }}</h3><p>{{ horse.breed|default:"Breed not entered" }}{% if horse.size_type %} · {{ horse.size_type }}{% endif %}{% if horse.height_hands %} · {{ horse.height_hands }}h{% endif %}</p><p><strong>Coggins:</strong> {{ horse.coggins_status }}{% if horse.coggins_expiration %} · {{ horse.coggins_expiration }}{% endif %}</p></div>
+    <div><strong>Classes</strong><div class="class-chip-list">{% for class in horse.classes %}<span class="class-chip">{% if class.number %}#{{ class.number }} · {% endif %}{{ class.name }}</span>{% empty %}<span class="muted">No show classes selected</span>{% endfor %}</div><p class="muted">Crop: {{ horse.crop }} · Spurs: {{ horse.spurs }} · Changes: {{ horse.lead_change }}</p>{% if horse.riding_description %}<p>{{ horse.riding_description }}</p>{% endif %}</div>
+  </article>
+  {% empty %}<div class="empty-state"><h2>No available show horses</h2><p>Assign horses on the Horses tab before finalizing the Hoofprint.</p><a class="btn" href="{% url 'show_horses' show.pk %}">Manage horses</a></div>{% endfor %}
+</section>
+{% if can_manage %}<section class="content-section"><div class="section-head"><div><div class="eyebrow">FINALIZE</div><h2>Create a submission snapshot</h2><p class="muted">Finalized versions remain unchanged even if registry or assignment details change later.</p></div></div><form method="post" action="{% url 'show_hoofprint_finalize' show.pk %}" class="card form-card">{% csrf_token %}{{ form.non_field_errors }}<div class="form-grid">{% for field in form %}<div class="form-field{% if field.name == 'notes' %} form-span-2{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div><div class="actions"><button class="btn" type="submit"{% if not payload.horses %} disabled{% endif %}>Finalize Hoofprint</button></div></form></section>{% endif %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Finalized Hoofprints</h2></div></div><div class="stack-list">{% for snapshot in snapshots %}<div class="stack-item"><div><strong>Version {{ snapshot.version }}</strong><div class="muted">Finalized {{ snapshot.finalized_at|date:"M j, Y g:i A" }}{% if snapshot.finalized_by %} by {{ snapshot.finalized_by.get_full_name|default:snapshot.finalized_by.username }}{% endif %}</div></div><div class="actions"><a class="btn secondary" href="{% url 'show_hoofprint_pdf' show.pk snapshot.pk %}" target="_blank" rel="noopener">Open PDF</a></div></div>{% empty %}<div class="empty-state">No finalized Hoofprint yet.</div>{% endfor %}</div></section>
+{% endblock %}
