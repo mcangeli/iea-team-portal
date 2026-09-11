@@ -45,6 +45,17 @@
 </section>
 
 <section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COGGINS CHECK</div><h2>{% if readiness.coggins_warning_count %}{{ readiness.coggins_warning_count }} registry horse{{ readiness.coggins_warning_count|pluralize }} need document attention{% else %}Registry horse documents look current{% endif %}</h2><p class="muted">This is an operational warning only; it does not change the horse-count or class-coverage calculation.</p></div></div>
+  {% if readiness.coggins_warnings %}
+  <div class="stack-list readiness-document-list">
+    {% for item in readiness.coggins_warnings %}
+      <div class="stack-item readiness-document-item"><div><strong>{{ item.horse.name }}</strong>{% if item.horse.show_name and item.horse.show_name != item.horse.name %}<div class="muted">Show: {{ item.horse.show_name }}</div>{% endif %}<div class="{% if item.status == 'expiring' %}status-warn{% else %}status-bad{% endif %}">{% if item.status == 'missing' %}No Coggins on file{% elif item.status == 'expired' %}Expired {{ item.record.expiration_date|date:"M j, Y" }}{% else %}Expires {{ item.record.expiration_date|date:"M j, Y" }}{% endif %}</div></div>{% if can_manage_registry %}<div class="actions"><a class="btn secondary" href="{% url 'horse_detail' item.horse.pk %}">Horse profile</a></div>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="card readiness-success-card"><strong>No Coggins warnings for available registry horses.</strong></div>{% endif %}
+</section>
+
+<section class="content-section">
   <div class="section-head">
     <div><div class="eyebrow">LEASED HORSE PLANNING</div><h2>Show-specific leased capacity</h2><p class="muted">Leased horses count toward the horse requirement and expected class coverage. They are planning records only and do not appear on the Hoofprint.</p></div>
     {% if can_manage_show_horses %}<div class="actions"><a class="btn" href="{% url 'show_leased_horse_add' show.pk %}">Plan leased horse</a></div>{% endif %}
