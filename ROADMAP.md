@@ -19,29 +19,37 @@ The portal is evolving through four broad stages:
 
 ### 2.1.4 — Course & Show Operations
 
-Current development and validation release.
+**Status: release stabilization / live validation.** No additional major feature scope should be added unless live testing reveals a release-blocking workflow gap.
 
-Major work includes:
+Completed scope includes:
 
 - Course Operations workspace for Coach/Admin users.
 - Course status integrated into dashboards, Show Detail, and Show Day.
 - Assigned Show Leads can maintain course media without receiving private coaching access.
+- Protected, authenticated course-document delivery rather than raw media URLs.
+- Phone-friendly course image/PDF upload with file-type and size validation.
 - Horse season-eligibility enforcement with explicit Coach/Admin override and recorded reason.
 - Show Horse List documents stored per show as versioned revisions.
 - Phone-first Show Horse List upload for photos of printed lists, while retaining PDF/file support.
 - Authenticated access to uploaded horse-list documents rather than exposing raw media URLs.
 - Separate internal operational notes and **Coach Notes for Riders & Parents**.
-- Family-visible horse-list information available to riders and parents through the authenticated portal.
-- Branded 403, 404, and 500 error experiences.
-
-Before final release, planned hardening includes:
-
+- Family-visible horse-list information available through Hoofprint and My Show Day.
 - Live-vs-finalized Hoofprint change detection.
 - Hoofprint completeness/readiness warnings.
 - Horse of the Day history protection when show-horse assignments change.
-- Role/permission regression testing.
-- Mobile, light-mode, dark-mode, and presentation polish.
-- Release notes and final production validation.
+- Branded 403, 404, and 500 error experiences.
+- Focused v2.1.4 permission, privacy, file-upload, Show Day, Hoofprint, and historical-data regression tests.
+- Dedicated `RELEASE_CHECKLIST_v2.1.4.md` for final live validation.
+
+Remaining release work is validation/polish only:
+
+- Complete Administrator/Coach/Show Lead/Rider/Parent live-role validation.
+- Verify mobile, light-mode, dark-mode, and ringside presentation.
+- Confirm migrations `0040` through `0042` on the live upgrade path.
+- Resolve only defects found during release validation.
+- Promote 2.1.4 after the release checklist passes.
+
+The narrow `ShowPlanningItem.owner_id` compatibility extension remains intentionally in 2.1.4 because the current behavior is live-tested and regression-covered. Its removal belongs in the planned 2.9.x architectural cleanup, where the oversized legacy Show Day module can be refactored safely rather than changed late in this release.
 
 ### 2.1.5 — Post-Show Horse History
 
@@ -94,7 +102,7 @@ Planned work includes:
 - Complete modularization of remaining oversized view modules.
 - Normalize feature boundaries and URL modules.
 - Move temporary/dynamic model additions into clean model declarations, including `SeasonClass.class_code` and `Season.rides_per_contributed_horse`.
-- Remove temporary compatibility extensions and accumulated technical debt.
+- Remove temporary compatibility extensions and accumulated technical debt, including the v2.1.4 Show Planning `owner_id` compatibility property.
 - Consolidate shared templates, page structures, navigation patterns, and reusable UI components.
 - Consolidate and simplify CSS while preserving the premium equestrian visual direction.
 - Review mobile navigation and role-specific navigation holistically.
