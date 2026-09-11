@@ -23,7 +23,8 @@ class HorseForm(forms.ModelForm):
 
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.team = team or getattr(self.instance, "team", None)
+        instance_team = self.instance.team if getattr(self.instance, "team_id", None) else None
+        self.team = team or instance_team
 
     def clean_name(self):
         name = self.cleaned_data["name"].strip()
@@ -59,7 +60,8 @@ class HorseSeasonProfileForm(forms.ModelForm):
     def __init__(self, *args, team=None, horse=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.team = team
-        self.horse = horse or getattr(self.instance, "horse", None)
+        instance_horse = self.instance.horse if getattr(self.instance, "horse_id", None) else None
+        self.horse = horse or instance_horse
         if team:
             self.fields["season"].queryset = Season.objects.filter(team=team).order_by("-start_date")
         self.fields["eligible_classes"].queryset = SeasonClass.objects.none()
