@@ -1,5 +1,41 @@
 # Release Notes
 
+## v2.1.3 — Show Readiness Preview
+
+v2.1.3 extends Horse & Hoofprint Management into show-readiness planning and gives assigned Show Leads operational horse access for their shows.
+
+### Horse contribution requirement
+- Added a season-level **Rides per contributed horse** setting, defaulting to 5.
+- Required horses are calculated from active planned/entered rider-class rides, not rider count.
+- Fractional requirements always round up to the next whole horse (for example, 11 rides at 5 rides per horse requires 3 horses).
+- Scratched rider entries do not count toward the required-horse total.
+
+### Class coverage readiness
+- A show is only horse-ready when both the total horse-count requirement is met and every class with an active rider entry has at least one available horse assigned.
+- Readiness can therefore flag an uncovered class even when the team has enough horses overall.
+- Canonical Season Class IDs are used in readiness displays when available.
+
+### Leased horse planning
+- Added show-specific leased-horse planning records.
+- Leased horses count toward the total contribution requirement and expected class coverage.
+- The leased-horse workflow intentionally allows temporary planning names such as `Lease Horse 1` when the actual horse is not yet known.
+- Leased horses remain readiness-planning records and are **not automatically included on the Hoofprint**.
+
+### Show Lead horse operations
+- An actively assigned Show Lead can manage show-specific horse assignments for that show, including availability, class coverage, show overrides, and Horse of the Day.
+- Show Leads can manage leased-horse readiness plans and finalize Hoofprint snapshots for their assigned show.
+- Permanent Horse Registry records, Coggins records, and season horse eligibility remain Administrator/Coach responsibilities.
+- The Show Lead dashboard links directly into Horse Readiness and Show Horses for the assigned show.
+
+### Presentation and navigation
+- Added a branded Horse Readiness workspace using the established Horse & Hoofprint page-intro, action hierarchy, class chips, readiness states, dark-mode treatment, and mobile layout.
+- Show Horses now links directly to Horse Readiness and distinguishes registry/contributed horses from leased planning capacity.
+- Season Setup surfaces the current rides-per-horse rule and links to its dedicated editor.
+
+### Data and tests
+- Added migration `0039_v213_show_readiness.py` for the season horse requirement and show-specific leased-horse records.
+- Added focused readiness tests for round-up behavior, leased-horse contribution, class-coverage failure, and scratched-entry exclusion.
+
 ## v2.1.2 — Hoofprint Builder & Presentation Polish
 
 v2.1.2 completes the first Horse & Hoofprint Management workflow from horse registry through show assignment and finalized Hoofprint output.
@@ -91,49 +127,15 @@ v2.0.0 is the first production release of the redesigned IEA Team Portal after t
 
 ## v2.0.0 — Release Candidate 2
 
-RC2 is the final review candidate for v2.0. It freezes the feature and visual scope and incorporates the usability fixes verified during RC1 testing.
+RC2 is the final review candidate for v2.0 and freezes the feature and visual scope after Preview testing.
 
-### Dashboard permissions and role behavior
-- Coach accounts no longer receive Administrator-only dashboard switchers simply because Coaches can manage team operations.
-- Team Parent, Show Lead, and Points Secretary dashboards require the corresponding explicit assignment for non-Administrators.
-- Administrators retain access to all operational dashboards for review and support.
-- Dashboard summary spacing no longer depends on whether a workspace switcher is rendered.
-- Action Items assigned directly to a Coach are surfaced on the Coach dashboard.
-
-### Family and account access
-- Authorized Parents/Guardians can open Family Account information directly from the Rider profile as well as My Team.
-- Added a self-service **My Account** area.
-- Users can update first/last name and email, change their own password, and manage notification preferences.
-- Username, role, team assignment, and linked Rider/Parent records remain Administrator-controlled.
-
-### Squad photographic branding
-- Added optional Futures Team and Upper Team hero photographs in addition to the overall Program hero.
-- Each hero has an independent crop-position preference.
-- Single-squad family and Team Parent contexts use the corresponding squad photograph.
-- Mixed-squad families and unconfigured squad images fall back to the Program hero.
-- Latest migration: `0032_v200_squad_hero_images.py`.
-
-### Documentation and deployment
-- README is the primary installation and operating guide.
-- Added Nginx, Apache, and Caddy reverse-proxy/HTTPS examples.
-- Clarified role access, My Account, Family Account, squad branding, updates, backups, and rollback.
-
-### RC2 scope
-- No new feature development is planned between RC2 and final v2.0.0 unless a release-blocking issue is found.
-- RC2 itself adds no schema change beyond the squad-branding migration introduced at the end of RC1.
+Key RC2 work included role-aware dashboard permissions, Coach action-item visibility, Parent Family Account navigation, account self-service, reverse-proxy documentation, and Program/Futures/Upper photographic branding.
 
 ## v2.0.0 — Release Candidate 1
 
 RC1 froze the v2 feature and visual scope after the Preview series and moved development into production-readiness testing.
 
-Key RC1 work included:
-- role-oriented dashboard testing and permission cleanup;
-- Show Lead action styling and all-role dashboard spacing;
-- Coach-assigned Action Item visibility;
-- Parent Family Account navigation from Rider profiles;
-- user self-service account management;
-- reverse-proxy deployment documentation;
-- final Program/Futures/Upper photographic branding.
+Key RC1 work included role-oriented dashboard testing and permission cleanup, Show Lead action styling, Coach-assigned Action Item visibility, Parent Family Account navigation, user self-service account management, reverse-proxy deployment documentation, and final photographic branding.
 
 ## v2.0.0 — Preview 9: Final Presentation Polish
 
@@ -173,7 +175,7 @@ Preview 9 completed the planned v2 visual-design pass.
 - Added previous/next/Today navigation and type filtering.
 - Added Futures/Upper filtering where the event source carries squad information.
 - Added Calendar detail and RSVP-oriented behavior.
-- No migration was required.
+- No new migration was required.
 
 ## v2.0.0 — Preview 4: Rider Lifecycle
 
