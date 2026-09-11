@@ -45,6 +45,10 @@ class ShowHorseListDocument(models.Model):
         help_text="Optional source, host team, or label for this horse list.",
     )
     notes = models.CharField(max_length=255, blank=True)
+    family_notes = models.TextField(
+        blank=True,
+        help_text="Coach notes intentionally shared with riders and parents for this show horse list.",
+    )
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
