@@ -177,6 +177,98 @@ PORTAL_UPDATE_CHANNEL=stable
 
 The gateway normally binds to `127.0.0.1:8088`. Point the host reverse proxy at that address and terminate HTTPS at the host proxy.
 
+## Reverse proxy and HTTPS
+
+The portal intentionally listens on localhost rather than exposing its application container directly to the Internet. Your existing web server should accept HTTPS traffic for the portal hostname and proxy it to `http://127.0.0.1:8088`.
+
+Before configuring the proxy:
+
+1. Create a DNS record for the portal hostname, for example `iea.example.com`, pointing to the server.
+2. Set `DJANGO_ALLOWED_HOSTS=iea.example.com`.
+3. Set `DJANGO_CSRF_TRUSTED_ORIGINS=https://iea.example.com`.
+4. Keep `APP_PORT=8088` unless another local service already uses that port.
+5. Obtain/configure a TLS certificate for the hostname. Let's Encrypt/Certbot is appropriate for Nginx or Apache; Caddy can normally manage HTTPS automatically.
+
+### Nginx example
+
+```nginx
+server {
+    listen 80;
+    server_name iea.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name iea.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/iea.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/iea.example.com/privkey.pem;
+    client_max_body_size 25M;
+
+    location / {
+        proxy_pass http://127.0.0.1:8088;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+```
+
+Enable/reload Nginx using the normal method for your distribution. If Certbot manages the certificate, it may add or adjust the TLS directives itself.
+
+### Apache example
+
+Enable `proxy`, `proxy_http`, `ssl`, and `headers`, then configure a virtual host similar to:
+
+```apache
+<VirtualHost *:80>
+    ServerName iea.example.com
+    Redirect permanent / https://iea.example.com/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName iea.example.com
+
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/iea.example.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/iea.example.com/privkey.pem
+
+    ProxyPreserveHost On
+    ProxyPass / http://127.0.0.1:8088/
+    ProxyPassReverse / http://127.0.0.1:8088/
+    RequestHeader set X-Forwarded-Proto "https"
+</VirtualHost>
+```
+
+### Caddy example
+
+When the hostname already resolves to the server:
+
+```caddy
+iea.example.com {
+    reverse_proxy 127.0.0.1:8088
+}
+```
+
+Caddy normally obtains and renews the HTTPS certificate automatically.
+
+### Existing web server
+
+You do **not** need to replace an existing Nginx, Apache, or Caddy installation. Add a separate virtual host/site for the portal hostname and leave other sites on ports 80/443 in place. The portal remains on the localhost-only application port.
+
+Verify the proxy with:
+
+```bash
+curl -I http://127.0.0.1:8088
+curl -I https://iea.example.com
+```
+
+Then sign in through the HTTPS hostname and test a photo/file upload. If login POSTs return a CSRF error, first verify that `DJANGO_CSRF_TRUSTED_ORIGINS` exactly matches the public `https://` origin and that the proxy sends `X-Forwarded-Proto: https`.
+
+Do not expose PostgreSQL or the portal's internal Docker services through the firewall. Public traffic should reach only the host web server on HTTP/HTTPS.
+
 ## Updating
 
 Check the current checkout:
