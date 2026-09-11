@@ -72,12 +72,27 @@ def show_horse_list_upload(request, show_pk):
         document.uploaded_by = request.user
         try:
             with transaction.atomic():
-                # Lock the show row so two near-simultaneous phone uploads cannot
-                # choose the same revision number.
                 Show.objects.select_for_update().get(pk=show.pk)
-                max_revision = show.horse_list_documents.aggregate(value=Max("revision"))["value"] or 0
+                max_revision = (
+                    ShowHorseListDocument.objects.filter(show=show)
+                    .aggregate(value=Max("revision"))["value"]
+                    or 0
+                )
                 document.revision = max_revision + 1
                 document.save()
+        except Exception:
+            # Upload failures should return to the form with a useful message rather
+            # than falling through to the production 500 page. The exception is still
+            # logged with its full traceback for diagnosis.
+            LOGGER.exception("Horse list document save failed for show %s", show.pk)
+            form.add_error(
+                "document",
+                "The horse list could not be saved. Please try the photo again or upload a PDF/image file.",
+            )
+        else:
+            # Audit logging must never turn an otherwise successful horse-list upload
+            # into a server error. The uploaded document is the source of truth.
+            try:
                 _audit_event(
                     team=team,
                     actor=request.user,
@@ -86,10 +101,11 @@ def show_horse_list_upload(request, show_pk):
                     season=show.season,
                     summary=f"Uploaded show horse list revision {document.revision} for {show.name}",
                 )
-        except (ValidationError, IntegrityError, OSError) as exc:
-            LOGGER.exception("Horse list upload failed for show %s", show.pk)
-            form.add_error("document", "The horse list could not be saved. Please try the photo again or upload a PDF/image file.")
-        else:
+            except Exception:
+                LOGGER.exception(
+                    "Horse list upload succeeded but audit logging failed for document %s",
+                    document.pk,
+                )
             messages.success(request, f"Horse list revision {document.revision} uploaded.")
             return redirect("show_hoofprint", show_pk=show.pk)
     return render(request, "portal/show_horse_list_upload.html", {"show": show, "form": form, "title": "Upload show horse list"})
