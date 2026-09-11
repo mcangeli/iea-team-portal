@@ -241,6 +241,26 @@ def _preferred_dashboard(user, team, season):
     return "general"
 
 
+def _course_summary(show):
+    if not show:
+        return {"course_count": 0, "course_media_count": 0, "course_walk_count": 0, "course_status": "No upcoming show"}
+    courses = list(show.courses.filter(active=True))
+    media_count = sum(1 for course in courses if course.course_file or course.external_link)
+    walk_count = sum(1 for course in courses if course.course_walk_at)
+    if not courses:
+        status = "Course information pending"
+    elif media_count:
+        status = "Course posted"
+    else:
+        status = "Course details added · media pending"
+    return {
+        "course_count": len(courses),
+        "course_media_count": media_count,
+        "course_walk_count": walk_count,
+        "course_status": status,
+    }
+
+
 def _render_coach(request, team, season):
     if not _can_manage(request.user):
         raise PermissionDenied
@@ -255,8 +275,10 @@ def _render_coach(request, team, season):
     )
     today = timezone.localdate()
     now = timezone.now()
+    next_show = None
 
     if season:
+        next_show = season.shows.filter(show_date__gte=today).order_by("show_date", "name").first()
         active_riders = season.memberships.filter(rider__active=True).values_list("rider_id", flat=True)
         qualification = _qualification_rows(season)
         context.update({
@@ -293,6 +315,8 @@ def _render_coach(request, team, season):
                 starts_at__gte=now,
                 cancelled=False,
             ).select_related("group").order_by("starts_at")[:5],
+            "course_show": next_show,
+            **_course_summary(next_show),
         })
     else:
         context.update({
@@ -304,6 +328,8 @@ def _render_coach(request, team, season):
             "qualified_count": 0,
             "near_qualification": [],
             "upcoming_lessons": Lesson.objects.none(),
+            "course_show": None,
+            **_course_summary(None),
         })
     return render(request, "portal/dashboard_role.html", context)
 
@@ -442,6 +468,8 @@ def _render_show_lead(request, team, season):
         "arrived_count": status_counts.get(ShowDayRiderStatus.Status.ARRIVED, 0),
         "late_count": status_counts.get(ShowDayRiderStatus.Status.RUNNING_LATE, 0),
         "scratched_count": status_counts.get(ShowDayRiderStatus.Status.SCRATCHED, 0),
+        "course_show": next_show,
+        **_course_summary(next_show),
     })
     return render(request, "portal/dashboard_role.html", context)
 

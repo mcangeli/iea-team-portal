@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Horses{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">{% if horse %}<a href="{% url 'horse_detail' horse.pk %}">← Back to {{ horse.name }}</a>{% else %}<a href="{% url 'horse_list' %}">← Back to Horse Registry</a>{% endif %}</nav>
+<section class="page-intro horse-module-intro">
+  <div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
+    <h1>{{ title }}</h1>
+    <p>Keep barn identity, show information, preferences, restrictions, and Hoofprint details current.</p>
+  </div>
+  <div class="actions">{% if horse %}<a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'horse_list' %}">Cancel</a>{% endif %}</div>
+</section>
+<form method="post" enctype="multipart/form-data" class="card form-card horse-form-card">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="form-grid">
+    {% for field in form %}
+    <div class="form-field{% if field.name == 'riding_description' or field.name == 'notes' %} form-span-2{% endif %}">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+      {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="actions form-actions"><button class="btn" type="submit">Save horse</button>{% if horse %}<a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'horse_list' %}">Cancel</a>{% endif %}</div>
+</form>
+{% endblock %}

@@ -9,6 +9,12 @@ class PortalConfig(AppConfig):
         super().import_models()
         from . import lifecycle_models  # noqa: F401
         from . import branding_models  # noqa: F401
+        from . import horse_models  # noqa: F401
+        from . import hoofprint_models  # noqa: F401
+        from . import season_class_code  # noqa: F401
+        from . import show_readiness_models  # noqa: F401
+        from . import course_models  # noqa: F401
+        from . import show_planning_extensions  # noqa: F401
 
     def ready(self):
         import portal.signals  # noqa: F401

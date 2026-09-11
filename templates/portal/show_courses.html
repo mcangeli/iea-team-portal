@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Course Information · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_detail' show.pk %}">← Back to Show</a></nav>
+<section class="page-intro course-module-intro">
+  <div><div class="eyebrow">COURSE OPERATIONS</div><h1>Course Information</h1><p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p></div>
+  <div class="actions">{% if can_manage_courses %}<a class="btn" href="{% url 'show_course_add' show.pk %}">Add Course</a>{% endif %}<a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Show Day</a></div>
+</section>
+<section class="content-section compact-section">
+  <div class="section-head"><div><div class="eyebrow">RING BOOK</div><h2>Courses &amp; walks</h2><p class="muted">Course details for Coaches, Administrators, and the assigned Show Lead. Show Leads can keep posted course media current; private coaching notes remain Coach/Admin controlled.</p></div></div>
+  <div class="course-grid">
+    {% for course in courses %}
+    <article class="card course-card">
+      <div class="course-card-head"><div><span class="status-pill">{{ course.get_course_type_display }}</span><h2>{{ course.title }}</h2><p class="muted">{% if course.ring %}{{ course.ring }}{% else %}Ring TBD{% endif %}{% if course.course_designer %} · {{ course.course_designer }}{% endif %}</p></div><div class="actions">{% if can_manage_course_media %}<a class="text-link" href="{% url 'show_course_media' show.pk course.pk %}">Update image →</a>{% endif %}{% if can_manage_courses %}<a class="text-link" href="{% url 'show_course_edit' show.pk course.pk %}">Edit details →</a>{% endif %}</div></div>
+      <div class="course-facts">
+        {% if course.course_walk_at %}<div><span>Course walk</span><strong>{{ course.course_walk_at|date:"M j · g:i A" }}</strong></div>{% endif %}
+        {% if course.fence_count %}<div><span>Fences</span><strong>{{ course.fence_count }}</strong></div>{% endif %}
+      </div>
+      {% if course.show_classes.all %}<div class="course-class-block"><div class="section-kicker">Applies to</div><div class="class-chip-list">{% for class in course.show_classes.all %}<span class="class-chip">{{ class.class_number|default:class.name }}</span>{% endfor %}</div></div>{% endif %}
+      {% if course.combinations or course.related_distances or course.handy_options %}<dl class="detail-list course-detail-list">{% if course.combinations %}<dt>Combinations</dt><dd>{{ course.combinations }}</dd>{% endif %}{% if course.related_distances %}<dt>Related distances</dt><dd>{{ course.related_distances }}</dd>{% endif %}{% if course.handy_options %}<dt>Handy options</dt><dd>{{ course.handy_options }}</dd>{% endif %}</dl>{% endif %}
+      {% if course.posted_notes %}<div class="course-note"><div class="section-kicker">Course notes</div><p>{{ course.posted_notes|linebreaksbr }}</p></div>{% endif %}
+      {% if can_manage_courses and course.coach_notes %}<div class="course-note private"><div class="section-kicker">Private Coach/Admin</div><p>{{ course.coach_notes|linebreaksbr }}</p></div>{% endif %}
+      {% if course.course_file or course.external_link %}<div class="actions course-resources">{% if course.course_file %}<a class="btn secondary" href="{% url 'show_course_document' show.pk course.pk %}" target="_blank" rel="noopener">Open Course File</a>{% endif %}{% if course.external_link %}<a class="btn secondary" href="{{ course.external_link }}" target="_blank" rel="noopener">Open Course Link</a>{% endif %}</div>{% endif %}
+    </article>
+    {% empty %}<div class="card empty-state"><div class="eyebrow">COURSE BOARD</div><h2>No course information yet</h2><p>When a course is posted, add it here so the coaching team has one ringside source of truth.</p>{% if can_manage_courses %}<a class="btn" href="{% url 'show_course_add' show.pk %}">Add first course</a>{% endif %}</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

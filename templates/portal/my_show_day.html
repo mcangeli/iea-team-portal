@@ -103,6 +103,29 @@
   </div>
 </section>
 
+{% with horse_list=show.horse_list_documents.first %}
+{% if horse_list %}
+<section class="content-section my-show-day-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">SHOW HORSES</div>
+      <h2>Horse list &amp; coach notes</h2>
+      <p class="muted">Latest host/show horse list revision {{ horse_list.revision }}.</p>
+    </div>
+    <a class="btn secondary" href="{% url 'show_horse_list_document' show.pk horse_list.pk %}" target="_blank" rel="noopener">Open horse list</a>
+  </div>
+  {% if horse_list.family_notes %}
+  <article class="callout">
+    <strong>Coach notes for riders &amp; parents</strong>
+    <span>{{ horse_list.family_notes|linebreaksbr }}</span>
+  </article>
+  {% else %}
+  <p class="muted">No shared coach notes have been added for this horse list.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endwith %}
+
 <section class="content-section my-show-day-section">
   <div class="section-head">
     <div>

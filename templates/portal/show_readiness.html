@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Horse Readiness · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_horses' show.pk %}">← Back to Show Horses</a></nav>
+<section class="page-intro horse-module-intro">
+  <div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
+    <h1>Horse Readiness</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'show_horses' show.pk %}">Manage Show Horses</a>
+    {% if can_manage_show_horses %}<a class="btn secondary" href="{% url 'show_leased_horse_add' show.pk %}">Plan leased horse</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_hoofprint' show.pk %}">Hoofprint Builder</a>
+    <a class="btn secondary" href="{% url 'show_detail' show.pk %}">Show details</a>
+  </div>
+</section>
+
+<section class="content-section horse-readiness-overview">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">READINESS</div>
+      <h2>{% if readiness.ready %}Horse plan ready{% else %}Horse plan needs attention{% endif %}</h2>
+      <p class="muted">Readiness requires both enough total horses and horse coverage for every class with an active rider entry.</p>
+    </div>
+    <span class="horse-readiness-badge {% if readiness.ready %}is-ready{% else %}needs-attention{% endif %}">{% if readiness.ready %}READY{% else %}ACTION NEEDED{% endif %}</span>
+  </div>
+  <div class="stat-grid horse-readiness-stats">
+    <article class="stat-card"><small>ACTIVE RIDES</small><strong>{{ readiness.total_rides }}</strong><span>planned or entered rider-class rides</span></article>
+    <article class="stat-card"><small>SEASON RULE</small><strong>1 : {{ readiness.rides_per_horse }}</strong><span>one horse per {{ readiness.rides_per_horse }} rides</span></article>
+    <article class="stat-card {% if not readiness.count_ready %}readiness-alert-card{% endif %}"><small>REQUIRED</small><strong>{{ readiness.required_horses }}</strong><span>{% if readiness.horse_shortage %}short by {{ readiness.horse_shortage }} horse{{ readiness.horse_shortage|pluralize }}{% else %}horse count requirement met{% endif %}</span></article>
+    <article class="stat-card"><small>AVAILABLE</small><strong>{{ readiness.available_horses }}</strong><span>{{ readiness.registry_horses }} registry/contributed · {{ readiness.leased_horses }} leased</span></article>
+  </div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">CLASS COVERAGE</div><h2>{% if readiness.coverage_ready %}Every entered class has horse coverage{% else %}{{ readiness.uncovered_class_count }} class{{ readiness.uncovered_class_count|pluralize }} need coverage{% endif %}</h2><p class="muted">A show may meet the total horse requirement and still need attention if an entered class has no available horse assigned to it.</p></div></div>
+  {% if readiness.uncovered_classes %}
+  <div class="stack-list readiness-gap-list">
+    {% for class in readiness.uncovered_classes %}
+      <div class="stack-item readiness-gap-item"><div><div class="eyebrow">NEEDS A HORSE</div><strong>{% if class.season_class.class_code %}{{ class.season_class.class_code }} · {% elif class.class_number %}{{ class.class_number }} · {% endif %}{{ class.display_name }}</strong><div class="muted">Assign at least one available registry/contributed or leased horse to this class.</div></div><div class="actions"><a class="btn secondary" href="{% url 'show_horses' show.pk %}">Manage horses</a></div></div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="card readiness-success-card"><strong>Class coverage complete.</strong><p class="muted">Every class with an active rider entry has at least one available horse assigned.</p></div>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COGGINS CHECK</div><h2>{% if readiness.coggins_warning_count %}{{ readiness.coggins_warning_count }} registry horse{{ readiness.coggins_warning_count|pluralize }} need document attention{% else %}Registry horse documents look current{% endif %}</h2><p class="muted">This is an operational warning only; it does not change the horse-count or class-coverage calculation.</p></div></div>
+  {% if readiness.coggins_warnings %}
+  <div class="stack-list readiness-document-list">
+    {% for item in readiness.coggins_warnings %}
+      <div class="stack-item readiness-document-item"><div><strong>{{ item.horse.name }}</strong>{% if item.horse.show_name and item.horse.show_name != item.horse.name %}<div class="muted">Show: {{ item.horse.show_name }}</div>{% endif %}<div class="{% if item.status == 'expiring' %}status-warn{% else %}status-bad{% endif %}">{% if item.status == 'missing' %}No Coggins on file{% elif item.status == 'expired' %}Expired {{ item.record.expiration_date|date:"M j, Y" }}{% else %}Expires {{ item.record.expiration_date|date:"M j, Y" }}{% endif %}</div></div>{% if can_manage_registry %}<div class="actions"><a class="btn secondary" href="{% url 'horse_detail' item.horse.pk %}">Horse profile</a></div>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% else %}<div class="card readiness-success-card"><strong>No Coggins warnings for available registry horses.</strong></div>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">LEASED HORSE PLANNING</div><h2>Show-specific leased capacity</h2><p class="muted">Leased horses count toward the horse requirement and expected class coverage. They are planning records only and do not appear on the Hoofprint.</p></div>
+    {% if can_manage_show_horses %}<div class="actions"><a class="btn" href="{% url 'show_leased_horse_add' show.pk %}">Plan leased horse</a></div>{% endif %}
+  </div>
+  <div class="stack-list leased-horse-list">
+    {% for horse in leased_horses %}
+      <div class="stack-item leased-horse-item">
+        <div><div class="eyebrow">LEASED</div><strong>{{ horse.barn_name }}</strong><div class="muted">{% if horse.provider %}Expected from {{ horse.provider }} · {% endif %}{% if horse.available %}<span class="status-good">Counts as available</span>{% else %}<span class="status-warn">Not currently available</span>{% endif %}</div><div class="class-chip-list">{% for class in horse.show_classes.all %}<span class="class-chip">{% if class.season_class.class_code %}{{ class.season_class.class_code }}{% elif class.class_number %}{{ class.class_number }}{% else %}{{ class.display_name }}{% endif %}</span>{% empty %}<span class="muted">No expected classes assigned</span>{% endfor %}</div>{% if horse.notes %}<p class="horse-show-note">{{ horse.notes }}</p>{% endif %}</div>
+        {% if can_manage_show_horses %}<div class="actions"><a class="btn secondary" href="{% url 'show_leased_horse_edit' show.pk horse.pk %}">Edit plan</a><form method="post" class="inline-form" action="{% url 'show_leased_horse_remove' show.pk horse.pk %}" onsubmit="return confirm('Remove this leased horse plan?');">{% csrf_token %}<button class="link-button danger-link" type="submit">Remove</button></form></div>{% endif %}
+      </div>
+    {% empty %}<div class="empty-state"><h2>No leased horses planned</h2><p>Add one only when you expect leased horses to help satisfy the contribution requirement or class coverage.</p>{% if can_manage_show_horses %}<a class="btn secondary" href="{% url 'show_leased_horse_add' show.pk %}">Plan leased horse</a>{% endif %}</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

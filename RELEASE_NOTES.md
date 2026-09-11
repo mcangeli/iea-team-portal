@@ -1,5 +1,155 @@
 # Release Notes
 
+## v2.1.4 — Course & Show Operations
+
+v2.1.4 expands the show-operations layer around courses, horse eligibility, Hoofprint readiness, and host-provided Show Horse Lists while hardening permissions and show-day history.
+
+### Course Operations
+- Added a Coach/Admin **Course Information** workspace for show-specific course details, including course type, ring, selected classes, course walk, designer, fence count, combinations, related distances, handy options, operational notes, private coach notes, uploaded media, and external links.
+- Integrated course readiness/status into Coach/Admin dashboards, Show Lead operations, Show Detail, and Show Day.
+- Assigned Show Leads can view Course Information and maintain posted course media without gaining access to private Coach/Admin notes or full course setup.
+- Course uploads support JPG/JPEG, PNG, WEBP, HEIC/HEIF, and PDF with a 20 MB limit and phone-camera-friendly upload controls.
+- Uploaded course files are served through an authenticated, role-authorized portal route instead of exposing raw media URLs.
+- Course create/edit/media/remove activity is recorded in the operational audit trail.
+
+### Horse season eligibility enforcement
+- Show Horse assignments now enforce the horse's `HorseSeasonProfile` class eligibility by default.
+- Coach/Admin users can make an intentional exception with an explicit eligibility override and required reason.
+- Assigned Show Leads cannot introduce new ineligible classes.
+- Eligibility overrides are visibly identified on the Show Horses workflow and retained in audit details.
+
+### Hoofprint stabilization
+- Added live-vs-finalized Hoofprint comparison so the portal can warn when the current horse plan differs from the latest immutable snapshot.
+- Added non-blocking completeness warnings for missing classes, rider-facing horse descriptions, missing/expired Coggins information, and missing equipment/lead-change data.
+- Preserved the existing ability to finalize when a coach intentionally needs a usable Hoofprint despite warnings.
+- Horse of the Day history is protected: a show-horse assignment with an attached award cannot be deleted. The horse can instead be marked unavailable while the historical award remains intact.
+
+### Show Horse List documents
+- Added versioned Show Horse List documents per show.
+- Upload is optimized for taking a photo of a printed list from a phone while still supporting electronic PDF/image files.
+- Each new upload becomes a retained revision instead of silently replacing earlier source documents.
+- Added separate internal operational notes and **Coach Notes for Riders & Parents**.
+- Family-visible horse-list notes are surfaced in the Hoofprint/show-horse workflow and on My Show Day for participating riders/parents.
+- Horse-list documents are delivered through authenticated portal routes and are not exposed as raw media URLs.
+
+### Show Day / presentation hardening
+- Added branded production 403, 404, and 500 error pages.
+- Course Operations uses the established premium equestrian page hierarchy and supports the existing light/dark/mobile presentation.
+- Added a focused regression test around the Show Day planning-item crash that previously surfaced when assigned planning items were present.
+- The narrow `ShowPlanningItem.owner_id` compatibility extension remains in v2.1.4 to avoid destabilizing the oversized legacy Show Day module late in the release cycle; architectural removal is deferred to the planned 2.9.x cleanup.
+
+### Data, migrations, and validation
+- `0040_v214_show_courses.py` adds show course records.
+- `0041_v214_horse_eligibility_override.py` adds persisted show-horse eligibility override data.
+- `0042_v214_show_horse_list_documents.py` adds versioned Show Horse List documents and family-visible coach notes.
+- Added v2.1.4 regression coverage for horse eligibility, Hoofprint comparison/completeness, Course Operations permissions/media, protected documents, Show Horse List privacy, Show Day planning items, and Horse of the Day history protection.
+- Added `RELEASE_CHECKLIST_v2.1.4.md` for upgrade, role, privacy, presentation, and live-server validation.
+- Added and maintained `ROADMAP.md` as a living release artifact for future development planning.
+
+## v2.1.3 — Show Readiness Preview
+
+v2.1.3 extends Horse & Hoofprint Management into show-readiness planning and gives assigned Show Leads operational horse access for their shows.
+
+### Horse contribution requirement
+- Added a season-level **Rides per contributed horse** setting, defaulting to 5.
+- Required horses are calculated from active planned/entered rider-class rides, not rider count.
+- Fractional requirements always round up to the next whole horse (for example, 11 rides at 5 rides per horse requires 3 horses).
+- Scratched rider entries do not count toward the required-horse total.
+
+### Class coverage readiness
+- A show is only horse-ready when both the total horse-count requirement is met and every class with an active rider entry has at least one available horse assigned.
+- Readiness can therefore flag an uncovered class even when the team has enough horses overall.
+- Canonical Season Class IDs are used in readiness displays when available.
+
+### Leased horse planning
+- Added show-specific leased-horse planning records.
+- Leased horses count toward the total contribution requirement and expected class coverage.
+- The leased-horse workflow intentionally allows temporary planning names such as `Lease Horse 1` when the actual horse is not yet known.
+- Leased horses remain readiness-planning records and are **not automatically included on the Hoofprint**.
+
+### Show Lead horse operations
+- An actively assigned Show Lead can manage show-specific horse assignments for that show, including availability, class coverage, show overrides, and Horse of the Day.
+- Show Leads can manage leased-horse readiness plans and finalize Hoofprint snapshots for their assigned show.
+- Permanent Horse Registry records, Coggins records, and season horse eligibility remain Administrator/Coach responsibilities.
+- The Show Lead dashboard links directly into Horse Readiness and Show Horses for the assigned show.
+
+### Presentation and navigation
+- Added a branded Horse Readiness workspace using the established Horse & Hoofprint page-intro, action hierarchy, class chips, readiness states, dark-mode treatment, and mobile layout.
+- Show Horses now links directly to Horse Readiness and distinguishes registry/contributed horses from leased planning capacity.
+- Season Setup surfaces the current rides-per-horse rule and links to its dedicated editor.
+
+### Data and tests
+- Added migration `0039_v213_show_readiness.py` for the season horse requirement and show-specific leased-horse records.
+- Added focused readiness tests for round-up behavior, leased-horse contribution, class-coverage failure, and scratched-entry exclusion.
+
+## v2.1.2 — Hoofprint Builder & Presentation Polish
+
+v2.1.2 completes the first Horse & Hoofprint Management workflow from horse registry through show assignment and finalized Hoofprint output.
+
+### Hoofprint Builder
+- Added a live Hoofprint review driven by available horses assigned to the show.
+- Added PDF preview plus immutable finalized Hoofprint snapshots with version history.
+- Hoofprint PDFs render on US Letter landscape, repeat table headers across pages, and prioritize compact Class IDs such as `H1`, `H2`, `H8`, and `H14`.
+- Barn names are the primary horse identity on Hoofprint output, with show names displayed secondarily when different.
+- PDF responses disable caching and Preview links use cache-busting parameters so current output is shown reliably on mobile and desktop.
+
+### Season class IDs
+- Added a canonical Season Class ID used by linked Show Classes and Hoofprint output.
+- Existing show-level class numbers are retained for compatibility and historical data.
+- Season Setup exposes the Class ID for direct management and linked Show Classes inherit updates.
+
+### Presentation polish
+- Unified Horse Registry, Horse Detail, Coggins, season eligibility, Show Horses, Horse of the Day, and Hoofprint Builder around the v2 private-club/editorial design language.
+- Standardized `page-intro` headers, eyebrow labels, action hierarchy, class chips, status treatments, forms, and empty states.
+- Made barn names the primary ringside identity throughout the horse-management UI while preserving formal show names.
+- Added dedicated Horse & Hoofprint light/dark styling and a compact mobile treatment for ringside use.
+
+### Data and migrations
+- Added immutable `HoofprintSnapshot` storage.
+- Added canonical season-class code support and migration/backfill behavior.
+- Latest v2.1.2 migrations: `0037_v212_hoofprint_snapshots.py` and `0038_v212_season_class_codes.py`.
+
+## v2.1.1 — Show Horses
+
+v2.1.1 connected the Horse Registry to individual shows.
+
+- Added show horse assignments with per-show class selection, availability, notes, and equipment/lead-change overrides.
+- Added Horse of the Day tracking for Full Day, Morning, and Afternoon sessions.
+- Added Show Horses management and award history on horse profiles.
+- Preserved registry defaults while allowing event-specific overrides.
+- Added migrations `0035_v211_show_horse_assignments.py` and `0036_v211_horse_show_awards.py`.
+
+## v2.1.0 — Horse Registry Foundation
+
+v2.1.0 begins the Horse & Hoofprint Management work planned for the v2.1.x line.
+
+### Horse registry
+- Added a team-scoped Horse Registry with horse name/show name, breed/size, height, ownership/contributor information, home barn, photo, restrictions, crop/spur preferences, lead-change type, riding description, notes, and active/inactive status.
+- Administrators and Coaches can add and edit horses; authenticated team members can view active horse profiles.
+- Horse records are team-scoped so records from another team cannot be accessed through portal routes.
+
+### Coggins tracking
+- Added Coggins history as separate records instead of overwriting a single date/document.
+- Each record stores test date, expiration date, optional document upload, and notes.
+- The portal derives Current, Expiring Soon (within 30 days), and Expired status.
+- Coggins documents and internal horse notes are only linked from the management view shown to Administrators and Coaches.
+
+### Season class eligibility
+- Added per-season Horse Season Profiles linked to existing `SeasonClass` records.
+- Coaches can define which classes a horse is eligible for in each season without hard-coding class numbers into the horse record.
+- Historical season eligibility remains intact when classes change in future seasons.
+
+### Presentation and architecture
+- Added Horses to the primary navigation.
+- Added dedicated horse list, horse profile, Coggins, and season-eligibility screens with light/dark theme support.
+- Horse models are isolated in `portal/horse_models.py` and loaded through `PortalConfig`, following the v2 modular architecture.
+- Added migration `0033_v210_horse_registry.py` and focused v2.1.0 horse-registry tests.
+
+### Next in v2.1.x
+- v2.1.1: assign horses to shows and support show-specific availability/eligibility overrides.
+- v2.1.2: build Hoofprint output from the show horse roster.
+- v2.1.3: add show-readiness checks including horse-count guidance and Coggins warnings.
+
 ## v2.0.0 — Production Release
 
 v2.0.0 is the first production release of the redesigned IEA Team Portal after the Preview 1–9 and RC1–RC2 validation cycle.
@@ -23,49 +173,15 @@ v2.0.0 is the first production release of the redesigned IEA Team Portal after t
 
 ## v2.0.0 — Release Candidate 2
 
-RC2 is the final review candidate for v2.0. It freezes the feature and visual scope and incorporates the usability fixes verified during RC1 testing.
+RC2 is the final review candidate for v2.0 and freezes the feature and visual scope after Preview testing.
 
-### Dashboard permissions and role behavior
-- Coach accounts no longer receive Administrator-only dashboard switchers simply because Coaches can manage team operations.
-- Team Parent, Show Lead, and Points Secretary dashboards require the corresponding explicit assignment for non-Administrators.
-- Administrators retain access to all operational dashboards for review and support.
-- Dashboard summary spacing no longer depends on whether a workspace switcher is rendered.
-- Action Items assigned directly to a Coach are surfaced on the Coach dashboard.
-
-### Family and account access
-- Authorized Parents/Guardians can open Family Account information directly from the Rider profile as well as My Team.
-- Added a self-service **My Account** area.
-- Users can update first/last name and email, change their own password, and manage notification preferences.
-- Username, role, team assignment, and linked Rider/Parent records remain Administrator-controlled.
-
-### Squad photographic branding
-- Added optional Futures Team and Upper Team hero photographs in addition to the overall Program hero.
-- Each hero has an independent crop-position preference.
-- Single-squad family and Team Parent contexts use the corresponding squad photograph.
-- Mixed-squad families and unconfigured squad images fall back to the Program hero.
-- Latest migration: `0032_v200_squad_hero_images.py`.
-
-### Documentation and deployment
-- README is the primary installation and operating guide.
-- Added Nginx, Apache, and Caddy reverse-proxy/HTTPS examples.
-- Clarified role access, My Account, Family Account, squad branding, updates, backups, and rollback.
-
-### RC2 scope
-- No new feature development is planned between RC2 and final v2.0.0 unless a release-blocking issue is found.
-- RC2 itself adds no schema change beyond the squad-branding migration introduced at the end of RC1.
+Key RC2 work included role-aware dashboard permissions, Coach action-item visibility, Parent Family Account navigation, account self-service, reverse-proxy documentation, and Program/Futures/Upper photographic branding.
 
 ## v2.0.0 — Release Candidate 1
 
 RC1 froze the v2 feature and visual scope after the Preview series and moved development into production-readiness testing.
 
-Key RC1 work included:
-- role-oriented dashboard testing and permission cleanup;
-- Show Lead action styling and all-role dashboard spacing;
-- Coach-assigned Action Item visibility;
-- Parent Family Account navigation from Rider profiles;
-- user self-service account management;
-- reverse-proxy deployment documentation;
-- final Program/Futures/Upper photographic branding.
+Key RC1 work included role-oriented dashboard testing and permission cleanup, Show Lead action styling, Coach-assigned Action Item visibility, Parent Family Account navigation, user self-service account management, reverse-proxy deployment documentation, and final photographic branding.
 
 ## v2.0.0 — Preview 9: Final Presentation Polish
 
@@ -105,7 +221,7 @@ Preview 9 completed the planned v2 visual-design pass.
 - Added previous/next/Today navigation and type filtering.
 - Added Futures/Upper filtering where the event source carries squad information.
 - Added Calendar detail and RSVP-oriented behavior.
-- No migration was required.
+- No new migration was required.
 
 ## v2.0.0 — Preview 4: Rider Lifecycle
 

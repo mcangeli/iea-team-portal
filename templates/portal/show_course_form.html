@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_courses' show.pk %}">← Back to Course Information</a></nav>
+<section class="page-intro course-module-intro"><div><div class="eyebrow">COURSE OPERATIONS</div><h1>{{ title }}</h1><p>{{ show.name }} · Build the ringside course book.</p></div></section>
+<section class="content-section compact-section">
+  <form method="post" enctype="multipart/form-data" class="card form-card course-form-card">
+    {% csrf_token %}{{ form.non_field_errors }}
+    <div class="form-grid">{% for field in form %}<div class="form-field{% if field.name == 'show_classes' or field.name == 'posted_notes' or field.name == 'coach_notes' %} form-span-2{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}</div>{% endfor %}</div>
+    <div class="course-privacy-note"><strong>Private coaching notes stay private.</strong> The Coach/Admin notes field is kept separate from general course information so future rider-facing course access will not expose internal strategy.</div>
+    <div class="actions form-actions"><button class="btn" type="submit">Save Course</button><a class="btn secondary" href="{% url 'show_courses' show.pk %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

@@ -11,6 +11,7 @@
   </div>
   <div class="actions">
     {% if has_personal_riders %}<a class="btn secondary" href="{% url 'my_show_day' show.pk %}">My Show Day</a>{% endif %}
+    {% if operational %}<a class="btn secondary" href="{% url 'show_courses' show.pk %}">Course Information</a>{% endif %}
     <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
     <a class="btn secondary" href="{% url 'show_day_updates' show.pk %}">Updates</a>
   </div>
@@ -31,6 +32,29 @@
   <ul class="show-day-attention-list">
     {% for item in needs_attention %}<li>{{ item }}</li>{% endfor %}
   </ul>
+</section>
+{% endif %}
+
+{% if operational %}
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">COURSE OPERATIONS</div><h2>Course board</h2><p class="muted">Posted course details and walk times for the ringside team.</p></div>
+    <a class="text-link" href="{% url 'show_courses' show.pk %}">Open Course Information →</a>
+  </div>
+  <div class="planning-grid">
+    {% for course in show.courses.all %}
+      {% if course.active %}
+      <article class="card planning-card">
+        <small>{{ course.get_course_type_display }}{% if course.ring %} · {{ course.ring }}{% endif %}</small>
+        <h3>{{ course.title }}</h3>
+        {% if course.course_walk_at %}<p><strong>Walk:</strong> {{ course.course_walk_at|date:"g:i A" }}</p>{% endif %}
+        <p class="muted">{% if course.course_file or course.external_link %}Course media posted{% else %}Course media pending{% endif %}</p>
+      </article>
+      {% endif %}
+    {% empty %}
+      <div class="empty-state">No course information has been posted yet.</div>
+    {% endfor %}
+  </div>
 </section>
 {% endif %}
 

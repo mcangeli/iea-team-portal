@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} · {{ show.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_horses' show.pk %}">← Back to Show Horses</a></nav>
+<section class="page-intro horse-module-intro">
+  <div>
+    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
+    <h1>{{ title }}</h1>
+    <p>{{ show.name }} · Horse of the Day</p>
+  </div>
+  <div class="actions"><a class="btn secondary" href="{% url 'show_horses' show.pk %}">Cancel</a></div>
+</section>
+<section class="content-section compact-section">
+  <div class="section-head"><div><div class="eyebrow">RECOGNITION</div><h2>Award details</h2><p class="muted">Choose the session and a horse already assigned to this show.</p></div></div>
+  <form method="post" class="card form-card horse-form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="form-field{% if field.name == 'notes' %} form-span-2{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="help-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions form-actions"><button class="btn" type="submit">Save award</button><a class="btn secondary" href="{% url 'show_horses' show.pk %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

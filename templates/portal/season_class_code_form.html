@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Class ID · {{ season_class.name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  <a href="{% url 'season_setup' %}">← Back to Season Setup</a>
+</nav>
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SEASON CLASS</div>
+    <h1>{{ season_class.name }}</h1>
+    <p>{{ season_class.get_team_level_display }} · {{ season_class.get_discipline_display }}</p>
+  </div>
+</section>
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">CLASS IDENTIFIER</div>
+      <h2>Set the IEA Class ID</h2>
+      <p class="muted">This short ID becomes the default for every show class linked to this season class and is used on Hoofprint reports.</p>
+    </div>
+  </div>
+  <form method="post" class="card form-card">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="form-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="muted">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="field-error">{{ error }}</div>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="actions form-actions">
+      <button class="btn" type="submit">Save Class ID</button>
+      <a class="btn secondary" href="{% url 'season_setup' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
