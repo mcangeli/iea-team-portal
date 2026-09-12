@@ -9,7 +9,7 @@ The roadmap describes direction rather than a fixed contract. Features may move 
 The portal is evolving through four broad stages:
 
 - **2.1.x — Show operations:** make the internal team portal excellent at preparing for, running, and preserving the history of a show.
-- **2.5.x — Show host operations:** expand the existing host functionality into a complete workspace for a team hosting an event.
+- **2.5.x — Show host operations:** expand host functionality into a complete workspace for a team hosting an event.
 - **2.9.x — Foundation and presentation cleanup:** simplify architecture, navigation, layouts, shared UI, deployment, and regression coverage before the next major version.
 - **3.x — Public experience:** add an intentionally published external view for spectators, families, other teams, and other non-registered visitors without exposing private portal information.
 
@@ -29,21 +29,7 @@ The narrow `ShowPlanningItem.owner_id` compatibility extension remains intention
 
 **Status: released.**
 
-Completed scope includes:
-
-- Show-level post-show horse history workspace.
-- Generate a draft from registry and leased/show-specific horse planning records.
-- Preserve horse identity, provider/ownership data, class coverage, and show-specific notes as historical snapshot data.
-- Record whether each horse was actually used.
-- Record whether each horse counted toward the team's contribution.
-- Reconcile leased/show-specific planning placeholders to the actual Horse Registry horse used.
-- Finalize and lock the post-show history record.
-- Preserve finalizer identity and timestamp.
-- Add Horse Legacy statistics to the Team Record Book.
-- Add Horse History to Season Review.
-- Include Horse of the Day totals with Full Day/Morning/Afternoon distinctions.
-- Prefer finalized post-show snapshots for historical horse participation while retaining fallback to older live assignment history.
-- Add focused regression coverage for draft generation, reconciliation, finalization, and permissions.
+Completed scope includes post-show horse-history snapshots, registry/leased-horse reconciliation, historical horse usage/contribution records, immutable finalization, Horse Legacy statistics in the Team Record Book, and Season Review horse history.
 
 The 2.1.x progression is intentionally:
 
@@ -55,44 +41,47 @@ The 2.1.x progression is intentionally:
 
 ## 2.5.x — Show Host Operations
 
-### 2.5.0 — Host Show Workspace
+### 2.5.0 — Host Show Operations
 
-**Status: Preview 1 development.**
+**Status: release stabilization. Feature scope complete and live-tested.**
 
-The Host Show Workspace is intentionally separate from the normal attending-team workflow and is available only to shows marked **Hosting & attending**.
+v2.5.0 turns a show marked **Hosting & attending** into a dedicated host-operations workspace while reusing the portal's existing Show Planning, Courses, Schedule, Show Day, Horse/Hoofprint, Volunteer, and Finance systems rather than duplicating them.
 
-Preview 1 scope:
+Completed scope:
 
-- Dedicated Host Shows index and per-show Host Show Workspace.
+- Dedicated Host Shows index, Host Show Workspace, and Show Manager Dashboard.
 - New show-scoped **Show Manager** assignment, separate from Show Lead.
-- Coach/Admin users assign or remove Show Managers.
-- Assigned Show Managers can maintain the Host Show operational plan and show-personnel roster for their hosted show.
-- Show Leads retain their existing team/show-day responsibilities and can view Host Show Operations without receiving Show Manager administration rights.
-- Host readiness summary based on critical leadership, personnel, and operating information.
-- Track venue contact, arrival, rider/team check-in, trailer parking, spectator parking, warm-up/schooling, ring operations, volunteer check-in, hospitality, emergency information, prize-list link, schedule link, family-facing notes, and private host-team notes.
-- Flexible Show Personnel roster supporting multiple people where appropriate.
-- Initial core personnel roles:
-  - Show Secretary
-  - Judge
-  - Steward
-  - Gate
-  - Show Announcer
-  - EMS
-  - Other
-- Host Show Workspace links into existing Show Planning, Courses, Schedule, and Show Day rather than duplicating those systems.
-- Host Operations entry point on hosted Show Detail pages.
-- Migration `0045_v250_host_show_operations.py`.
-- Focused permission/readiness tests for Coach/Admin, Show Manager, Show Lead, and unrelated team users.
+- Coach/Admin assignment and removal of Show Managers; multiple managers are supported.
+- Show Managers manage assigned active hosted shows without receiving unrelated team-management or Finance authority.
+- Show Leads can review Host Workspace and Command Center information for their assigned show without inheriting Show Manager administration rights.
+- Host personnel roster for Show Secretary, Judge, Steward, Gate, Show Announcer, EMS, and other operational contacts.
+- Host plan for venue contact, arrival/check-in, trailer and spectator parking, warm-up/schooling, ring operations, volunteer check-in, hospitality, emergency information, show resources, family notes, and private host-team notes.
+- Readiness percentage and missing-item presentation.
+- Existing Finance hosting budget surfaced in Host Workspace and Show Manager Dashboard without duplicating budget/ledger models or granting transaction-level Finance access.
+- **Show-Day Command Center** with readiness checkpoints/deadlines, duty assignments, shifts, check-in, on-duty, handoff, and completion states.
+- Host duty assignments are operational staffing only and never create, satisfy, reduce, or alter normal `VolunteerLog` / season volunteer-hour requirements.
+- Explicit **Host Family Information** publication controls. Host information remains private until selected sections are deliberately published.
+- Family publication can selectively expose arrival/check-in, parking, warm-up, ring operations, hospitality, emergency information, prize-list/schedule links, and family notes.
+- Internal host notes, personnel records, readiness checkpoints, duties/handoffs, Command Center data, and budget information are never included on the family page.
+- Existing Show Day update audience filtering is reused for family-visible show-day updates.
+- Publication can be turned off without deleting the underlying host plan.
+- Show Manager dashboard is integrated into the shared role-dashboard selector.
+- Mobile, light/dark, empty-state, and partial-configuration presentation polish across host workflows.
+- Production 403/404/500 pages now honor the saved/system light/dark theme.
+- Explicit host-show lifecycle: status, not calendar date, controls whether a show is operational or historical.
+- **Complete** and **Cancelled** hosted shows move to Hosted Show History; Show Manager operational editing becomes read-only while historical review remains available.
+- Coach/Admin retain correction authority on archived host shows.
+- Host Workspace provides Coach/Admin **Mark Show Complete** and **Reopen Show** controls with confirmation before completion.
+- Already-published family information remains available after completion until explicitly unpublished.
+- Permission, lifecycle, presentation, family-publication, and role-matrix regression coverage.
 
-Planned follow-on work in the 2.5.x family:
+Data migrations introduced by v2.5.0:
 
-- Deeper host readiness/checklist workflow and deadlines.
-- Host-specific volunteer/staff assignment coordination.
-- Prize-list, schedule, course, horse-list, and other document collection/distribution.
-- Show-day announcements and host command-center presentation.
-- Ring/gate operational tools and staffing handoffs.
-- Review of host finance/reporting needs without duplicating the existing Finance system.
-- Mobile-first host-show presentation and role dashboards.
+- `0045_v250_host_show_operations.py`
+- `0046_v250_host_show_duties.py`
+- `0047_v250_host_family_publication.py`
+
+Release stabilization now focuses only on final documentation, migration verification, complete regression testing, and production-release review. No additional v2.5.0 feature scope should be added without reopening release planning.
 
 ---
 
@@ -106,6 +95,7 @@ Planned work includes:
 - Normalize feature boundaries and URL modules.
 - Move temporary/dynamic model additions into clean model declarations, including `SeasonClass.class_code` and `Season.rides_per_contributed_horse`.
 - Remove temporary compatibility extensions and accumulated technical debt, including the v2.1.4 Show Planning `owner_id` compatibility property.
+- Integrate Show Manager workspace discovery directly into the dashboard architecture and remove the temporary `dashboard_workspace_extensions.py` compatibility patch.
 - Consolidate shared templates, page structures, navigation patterns, and reusable UI components.
 - Consolidate and simplify CSS while preserving the premium equestrian visual direction.
 - Review mobile navigation and role-specific navigation holistically.
@@ -123,29 +113,13 @@ Planned work includes:
 
 Focus: create a polished external experience for people who do **not** have registered portal accounts.
 
-Potential public experiences include:
-
-- Public show landing pages.
-- Show date, venue, host, schedule, classes, and intentionally published general information.
-- Published show results.
-- Team and rider results where appropriate.
-- Public season results or standings where appropriate.
-- Mobile-first spectator/show-day presentation.
-- Shareable public show URLs and potentially QR codes.
-- A public-facing visual identity that complements the authenticated operations portal.
+Potential public experiences include public show landing pages, intentionally published show information, published results, appropriate team/rider results, mobile spectator views, and shareable show URLs.
 
 ### Public-by-explicit-publication principle
 
 **Nothing becomes public merely because it exists in the internal portal.**
 
-Public visibility must be an explicit action/state. The design should support concepts such as:
-
-- A show must be explicitly marked/published for public viewing.
-- Results must be explicitly published before appearing externally.
-- Public fields should be deliberately selected and reviewed.
-- Sensitive rider, parent, horse, financial, contact, operational, and internal coaching information remains private by default.
-- Unpublishing a show or result should remove it from the external experience without destroying the internal historical record.
-- Public routes and serializers/views should use an explicit allow-list of public information rather than reusing unrestricted internal objects/templates.
+Public visibility must be an explicit action/state. A show or result must be deliberately published, public fields must be allow-listed, sensitive rider/parent/horse/financial/contact/operational information remains private by default, and unpublishing removes the external view without destroying internal history.
 
 This principle is a foundational requirement for v3, not an optional enhancement.
 
@@ -163,14 +137,4 @@ These are intentionally not assigned to a release yet:
 
 ## Maintaining this roadmap
 
-`ROADMAP.md` is a release artifact and should travel with future releases.
-
-When development changes direction:
-
-1. Update this file in the same feature/release branch.
-2. Move completed items into the appropriate completed release description rather than simply deleting them.
-3. Record newly agreed future direction under the appropriate release family.
-4. Keep speculative ideas clearly separated from committed/current work.
-5. Preserve the **explicit publication** requirement for all future public-facing features.
-
-The roadmap should answer two questions at any point in development: **What are we building now?** and **Where are we going next?**
+`ROADMAP.md` is a release artifact and should travel with future releases. Update it in the same feature/release branch whenever development changes direction, preserve completed release descriptions, keep speculative ideas separate from committed work, and preserve the explicit-publication requirement for future public features.
