@@ -62,6 +62,25 @@ class V250HostCommandCenterTests(TestCase):
         self.client.force_login(self.parent)
         self.assertEqual(self.client.get(reverse("host_command_center", args=[self.show.pk])).status_code, 403)
 
+    def test_forbidden_add_requests_never_create_host_operations(self):
+        self.operations.delete()
+        self.assertFalse(HostShowOperations.objects.filter(show=self.show).exists())
+
+        for user in (self.lead, self.parent):
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(reverse("host_duty_add", args=[self.show.pk])).status_code, 403)
+            self.assertFalse(HostShowOperations.objects.filter(show=self.show).exists())
+            self.assertEqual(self.client.get(reverse("host_checkpoint_add", args=[self.show.pk])).status_code, 403)
+            self.assertFalse(HostShowOperations.objects.filter(show=self.show).exists())
+
+    def test_inactive_show_manager_cannot_manage_command_center(self):
+        assignment = ShowManagerAssignment.objects.get(show=self.show, user=self.manager)
+        assignment.active = False
+        assignment.save(update_fields=["active"])
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(reverse("host_command_center", args=[self.show.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("host_duty_add", args=[self.show.pk])).status_code, 403)
+
     def test_duty_assignment_does_not_create_volunteer_hours(self):
         self.client.force_login(self.manager)
         before = VolunteerLog.objects.count()
