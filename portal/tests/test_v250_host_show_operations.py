@@ -185,6 +185,18 @@ class V250HostShowOperationsTests(TestCase):
         self.assertContains(response, "Judge fee")
         self.assertNotContains(response, "View Show Finance")
 
+    def test_host_workspace_shows_budget_before_host_plan_setup(self):
+        self.create_hosting_finance()
+        self.assertFalse(HostShowOperations.objects.filter(show=self.hosted_show).exists())
+        self.client.force_login(self.manager)
+        response = self.client.get(reverse("host_show_workspace", args=[self.hosted_show.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Operational budget")
+        self.assertContains(response, "$1000.00")
+        self.assertContains(response, "Judge fee")
+        self.assertContains(response, "Host Show Workspace is ready to set up")
+        self.assertContains(response, "Set Up Host Plan")
+
     def test_show_lead_can_view_but_not_administer_host_plan(self):
         self.client.force_login(self.lead)
         self.assertEqual(self.client.get(reverse("host_show_workspace", args=[self.hosted_show.pk])).status_code, 200)
