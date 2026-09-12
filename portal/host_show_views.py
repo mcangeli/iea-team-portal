@@ -17,10 +17,12 @@ from .host_show_models import HostShowOperations, HostShowStaffAssignment, ShowM
 from .models import (
     FinancialTransaction,
     ReimbursementRequest,
+    Season,
     Show,
     ShowBudgetLine,
     ShowTransactionAllocation,
 )
+from .view_modules import dashboards as dashboard_views
 from .view_modules.common import _can_finance, _can_manage, _is_show_lead, _team
 
 
@@ -146,6 +148,7 @@ def dashboard_show_manager(request):
     team = _team(request.user)
     today = timezone.localdate()
     can_manage = _can_manage(request.user)
+    active_season = Season.objects.filter(team=team, is_active=True).first()
     shows = Show.objects.filter(
         team=team,
         financial_role=Show.FinancialRole.HOSTING_ATTENDING,
@@ -180,6 +183,7 @@ def dashboard_show_manager(request):
         "next_row": rows[0] if rows else None,
         "can_manage": can_manage,
         "can_finance": _can_finance(request.user, None),
+        "workspace_links": dashboard_views._workspace_links(request.user, team, active_season),
     })
 
 
