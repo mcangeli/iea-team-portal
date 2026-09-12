@@ -11,23 +11,13 @@
   </div>
   <div class="actions">
     <a class="btn" href="{% url 'host_command_center' show.pk %}">Show-Day Command Center</a>
-    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit host plan{% else %}Set up host plan{% endif %}</a>{% endif %}
+    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit Host Plan{% else %}Set Up Host Plan{% endif %}</a><a class="btn secondary" href="{% url 'host_family_publication_edit' show.pk %}">Publish Family Show Info</a>{% endif %}
     {% if can_manage %}<a class="btn secondary" href="{% url 'show_manager_add' show.pk %}">Assign Show Manager</a>{% endif %}
-    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_staff_add' show.pk %}">Add show personnel</a>{% endif %}
-    <a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show planning</a>
+    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_staff_add' show.pk %}">Add Show Personnel</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show Planning</a>
     <a class="btn secondary" href="{% url 'show_courses' show.pk %}">Courses</a>
     <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
     <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Team Show Day</a>
-  </div>
-</section>
-
-{% if operations %}
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HOST READINESS</div><h2>{{ operations.readiness_percent }}% ready</h2></div><p>Core leadership, personnel, and host-show operational details.</p></div>
-  <div class="stat-grid">
-    {% for label, ready in readiness_items %}
-    <article class="stat-card"><small>{{ label }}</small><strong>{% if ready %}Ready{% else %}Needed{% endif %}</strong><span>{% if ready %}Information recorded{% else %}Add before show day{% endif %}</span></article>
-    {% endfor %}
   </div>
 </section>
 
@@ -52,6 +42,16 @@
   {% else %}
   <div class="empty-state">No Hosting Operations budget lines have been created yet.{% if can_finance_show %} Open Show Finance to add the hosting budget.{% endif %}</div>
   {% endif %}
+</section>
+
+{% if operations %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOST READINESS</div><h2>{{ operations.readiness_percent }}% ready</h2></div><p>Core leadership, personnel, and host-show operational details.</p></div>
+  <div class="stat-grid">
+    {% for label, ready in readiness_items %}
+    <article class="stat-card"><small>{{ label }}</small><strong>{% if ready %}Ready{% else %}Needed{% endif %}</strong><span>{% if ready %}Information recorded{% else %}Add before show day{% endif %}</span></article>
+    {% endfor %}
+  </div>
 </section>
 
 <section class="content-section">
@@ -102,7 +102,7 @@
 </section>
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">DOCUMENTS & COMMUNICATION</div><h2>Published information</h2></div></div>
+  <div class="section-head"><div><div class="eyebrow">DOCUMENTS & COMMUNICATION</div><h2>Host information</h2><p class="muted">These fields stay private to the host team until explicitly selected in Publish Family Show Info.</p></div>{% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_family_publication_edit' show.pk %}">Publish Family Show Info</a>{% endif %}</div>
   <div class="actions">
     {% if operations.prize_list_url %}<a class="btn secondary" href="{{ operations.prize_list_url }}" target="_blank" rel="noopener">Prize list</a>{% endif %}
     {% if operations.schedule_url %}<a class="btn secondary" href="{{ operations.schedule_url }}" target="_blank" rel="noopener">Published schedule</a>{% endif %}
@@ -111,6 +111,6 @@
   {% if can_manage_host_show and operations.internal_notes %}<div class="callout"><strong>Private host-team notes</strong><span>{{ operations.internal_notes|linebreaksbr }}</span></div>{% endif %}
 </section>
 {% else %}
-<div class="empty-state"><h2>Host Show Workspace is ready to set up</h2><p>This show is marked Hosting & attending. Add the host plan to organize personnel, arrival, parking, rings, volunteers, hospitality, emergency information, and published resources.</p>{% if can_manage_host_show %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">Set up host plan</a>{% endif %}</div>
+<div class="empty-state"><h2>Host Show Workspace is ready to set up</h2><p>This show is marked Hosting & attending. The hosting budget above is already available; set up the host plan when you are ready to organize personnel, arrival, parking, rings, hospitality, safety, and family-facing information.</p>{% if can_manage_host_show %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">Set Up Host Plan</a>{% endif %}</div>
 {% endif %}
 {% endblock %}
