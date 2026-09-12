@@ -85,7 +85,8 @@ class V198SeasonHistoryTests(TestCase):
         self.season.save(update_fields=["is_closed", "is_active"])
         self.client.force_login(self.admin)
         response = self.client.post(
-            reverse("season_close", args=[self.season.pk])
+            reverse("season_close", args=[self.season.pk]),
+            {"confirm_archive": "yes"},
         )
         self.assertRedirects(
             response, reverse("season_review", args=[self.season.pk])
