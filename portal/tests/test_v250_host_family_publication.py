@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.host_show_models import HostShowFamilyPublication, HostShowOperations, HostShowStaffAssignment, ShowManagerAssignment
-from portal.models import Season, Show, Team, UserProfile
+from portal.models import Season, Show, ShowLeadAssignment, Team, UserProfile
 
 
 class V250HostFamilyPublicationTests(TestCase):
@@ -15,7 +15,9 @@ class V250HostFamilyPublicationTests(TestCase):
         self.show = Show.objects.create(team=self.team, season=self.season, name="Hosted Family Show", show_date=date(2026, 11, 21), financial_role=Show.FinancialRole.HOSTING_ATTENDING)
         self.manager = self.make_user("familymanager", UserProfile.Role.PARENT)
         self.parent = self.make_user("familyspectator", UserProfile.Role.PARENT)
+        self.lead = self.make_user("familylead", UserProfile.Role.PARENT)
         ShowManagerAssignment.objects.create(show=self.show, user=self.manager, active=True)
+        ShowLeadAssignment.objects.create(show=self.show, user=self.lead, active=True)
         self.operations = HostShowOperations.objects.create(
             show=self.show,
             arrival_instructions="Use the north entrance.",
@@ -62,6 +64,18 @@ class V250HostFamilyPublicationTests(TestCase):
         self.assertTrue(publication.published)
         self.assertTrue(publication.publish_arrival)
         self.assertFalse(publication.publish_emergency)
+
+    def test_show_lead_cannot_manage_family_publication(self):
+        self.client.force_login(self.lead)
+        self.assertEqual(self.client.get(reverse("host_family_publication_edit", args=[self.show.pk])).status_code, 403)
+
+    def test_inactive_show_manager_cannot_manage_unpublished_family_info(self):
+        assignment = ShowManagerAssignment.objects.get(show=self.show, user=self.manager)
+        assignment.active = False
+        assignment.save(update_fields=["active"])
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(reverse("host_family_publication_edit", args=[self.show.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("host_family_information", args=[self.show.pk])).status_code, 403)
 
     def test_family_page_shows_only_selected_host_sections(self):
         HostShowFamilyPublication.objects.create(operations=self.operations, published=True, publish_arrival=True, publish_family_notes=True, updated_by=self.manager)
