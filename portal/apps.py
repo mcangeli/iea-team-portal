@@ -8,7 +8,7 @@ class PortalConfig(AppConfig):
     def import_models(self):
         super().import_models()
         from . import lifecycle_models  # noqa: F401
-        from . import branding_models  # noqa: F401
+        from .model_modules import branding  # noqa: F401
         from . import horse_models  # noqa: F401
         from . import hoofprint_models  # noqa: F401
         from . import show_readiness_models  # noqa: F401

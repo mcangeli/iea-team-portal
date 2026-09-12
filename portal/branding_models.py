@@ -1,51 +1,9 @@
-"""Team branding model for v2.0 Preview 8."""
+"""Compatibility exports for the relocated branding model.
 
-from django.db import models
+New model-registration code lives under ``portal.model_modules``. Keep this
+module as a stable import path while the rest of the application is migrated.
+"""
 
-from .models import Team
+from .model_modules.branding import TeamBranding
 
-
-class TeamBranding(models.Model):
-    team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="branding")
-    hero_image = models.ImageField(
-        upload_to="team_branding/",
-        blank=True,
-        null=True,
-        help_text="Wide team/show photograph used on the dashboard and sign-in presentation.",
-    )
-    hero_image_position = models.CharField(
-        max_length=8,
-        choices=[
-            ("20%", "Favor top"),
-            ("50%", "Center"),
-            ("80%", "Favor bottom"),
-        ],
-        default="50%",
-        help_text="Adjust which part of the photograph remains visible when it is cropped.",
-    )
-
-    futures_hero_image = models.ImageField(
-        upload_to="team_branding/",
-        blank=True,
-        null=True,
-        help_text="Wide photograph representing the Futures Team.",
-    )
-    futures_hero_image_position = models.CharField(
-        max_length=8,
-        choices=[("20%", "Favor top"), ("50%", "Center"), ("80%", "Favor bottom")],
-        default="50%",
-    )
-    upper_hero_image = models.ImageField(
-        upload_to="team_branding/",
-        blank=True,
-        null=True,
-        help_text="Wide photograph representing the Upper Team.",
-    )
-    upper_hero_image_position = models.CharField(
-        max_length=8,
-        choices=[("20%", "Favor top"), ("50%", "Center"), ("80%", "Favor bottom")],
-        default="50%",
-    )
-
-    def __str__(self):
-        return f"{self.team} branding"
+__all__ = ["TeamBranding"]
