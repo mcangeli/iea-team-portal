@@ -273,6 +273,45 @@ def host_show_edit(request, show_pk):
 
 
 @login_required
+@require_POST
+def host_show_mark_complete(request, show_pk):
+    show = _host_show(request, show_pk)
+    if not _can_manage(request.user):
+        raise PermissionDenied
+    if show.status == Show.Status.CANCELLED:
+        messages.error(request, "A cancelled show must be reopened before it can be marked complete.")
+        return redirect("host_show_workspace", show_pk=show.pk)
+    if show.status != Show.Status.COMPLETE:
+        show.status = Show.Status.COMPLETE
+        show.save(update_fields=["status"])
+        messages.success(
+            request,
+            "Show marked complete. Host operations are now historical and Show Manager controls are read-only.",
+        )
+    else:
+        messages.info(request, "This show is already marked complete.")
+    return redirect("host_show_workspace", show_pk=show.pk)
+
+
+@login_required
+@require_POST
+def host_show_reopen(request, show_pk):
+    show = _host_show(request, show_pk)
+    if not _can_manage(request.user):
+        raise PermissionDenied
+    if show.status in CLOSED_HOST_SHOW_STATUSES:
+        show.status = Show.Status.ENTERED
+        show.save(update_fields=["status"])
+        messages.success(
+            request,
+            "Show reopened as Entries submitted. Host operations and Show Manager controls are active again.",
+        )
+    else:
+        messages.info(request, "This hosted show is already active.")
+    return redirect("host_show_workspace", show_pk=show.pk)
+
+
+@login_required
 def show_manager_add(request, show_pk):
     show = _host_show(request, show_pk)
     if not _can_manage(request.user):
