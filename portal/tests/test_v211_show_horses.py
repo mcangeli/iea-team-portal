@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from portal.horse_models import Horse, HorseShowAssignment, HorseShowAward
+from portal.horse_models import Horse, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from portal.models import Season, SeasonClass, Show, ShowClass, Team, UserProfile
 
 
@@ -33,10 +33,20 @@ class ShowHorseAssignmentTests(TestCase):
             spur_preference=Horse.Preference.NO,
             lead_change=Horse.LeadChange.FLYING,
         )
+        self.horse_profile = HorseSeasonProfile.objects.create(
+            horse=self.horse,
+            season=self.season,
+            active_for_season=True,
+        )
+        self.horse_profile.eligible_classes.add(self.season_class)
         self.admin = User.objects.create_user("horseadmin211", password="testpass123")
-        UserProfile.objects.create(user=self.admin, team=self.team, role=UserProfile.Role.ADMIN)
+        self.admin.profile.team = self.team
+        self.admin.profile.role = UserProfile.Role.ADMIN
+        self.admin.profile.save(update_fields=["team", "role"])
         self.rider = User.objects.create_user("horserider211", password="testpass123")
-        UserProfile.objects.create(user=self.rider, team=self.team, role=UserProfile.Role.RIDER)
+        self.rider.profile.team = self.team
+        self.rider.profile.role = UserProfile.Role.RIDER
+        self.rider.profile.save(update_fields=["team", "role"])
 
     def test_assignment_links_registry_horse_to_show_and_classes(self):
         assignment = HorseShowAssignment.objects.create(show=self.show, horse=self.horse)

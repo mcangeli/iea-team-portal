@@ -147,15 +147,16 @@ class V198AccessIEAImportTests(TestCase):
         self.assertContains(response, "matched by #IEA")
         self.assertNotContains(response, "was not found on this season roster")
 
-    def test_unmatched_iea_can_fallback_to_exact_name(self):
+    def test_mismatched_iea_does_not_fallback_to_exact_name(self):
         body = self.accessiea_csv().replace("1234567", "9999999")
         self.client.force_login(self.coach)
         response = self.client.post(
             reverse("season_history_import", args=[self.season.pk]),
             {"action": "preview", "csv_file": self.upload(body)},
         )
-        self.assertContains(response, "matched by exact name")
-        self.assertNotContains(response, "was not found on this season roster")
+        self.assertContains(response, "Rider #9999999 (Emma Brown) was not found on this season roster")
+        self.assertNotContains(response, "matched by exact name")
+
     def test_accessiea_header_variations_still_detect(self):
         body = self.accessiea_csv()
         body = body.replace(
@@ -171,4 +172,3 @@ class V198AccessIEAImportTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Preview ready")
         self.assertNotContains(response, "Missing required column(s): rider_first_name")
-

@@ -108,7 +108,12 @@ class OperationalAuditTests(TestCase):
             "notes": "",
             "action": "draft",
         })
-        self.assertEqual(response.status_code, 302)
+        form_errors = ""
+        if response.status_code == 200 and getattr(response, "context", None):
+            form = response.context.get("form")
+            if form is not None:
+                form_errors = form.errors.as_text()
+        self.assertEqual(response.status_code, 302, form_errors)
         item = ReimbursementRequest.objects.get(description="Office supplies draft")
         self.assertEqual(item.status, ReimbursementRequest.Status.DRAFT)
 

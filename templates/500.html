@@ -1,4 +1,26 @@
 {% load static %}<!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Something went wrong · Team Portal</title><link rel="stylesheet" href="{% static 'css/app.css' %}"><link rel="stylesheet" href="{% static 'css/theme-v2.css' %}"><link rel="stylesheet" href="{% static 'css/polish-v2.css' %}"></head>
-<body><main class="container" style="min-height:75vh;display:grid;place-items:center;padding-top:3rem;padding-bottom:3rem"><section class="card" style="max-width:720px;width:100%;padding:2rem"><div class="eyebrow">TEAM PORTAL</div><h1>We hit a snag.</h1><p class="muted">The portal ran into an unexpected server error while loading this page. Your data has not been intentionally changed.</p><p class="muted">Try returning to the dashboard or reloading the page. If the problem continues, note what you were doing so an administrator can review the application log.</p><div class="actions" style="margin-top:1.25rem"><a class="btn" href="/">Return to Dashboard</a><button class="btn secondary" type="button" onclick="window.location.reload()">Try Again</button></div><p class="muted" style="margin-top:1.5rem;font-size:.88rem">Error code: 500 · Internal server error</p></section></main></body></html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f7f5">
+  <title>Something went wrong · Team Portal</title>
+  <script>(function(){try{const saved=localStorage.getItem('iea-theme');const preferred=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=(saved==='dark'||saved==='light')?saved:preferred}catch(e){document.documentElement.dataset.theme='light'}})();</script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/theme-v2.css' %}">
+  <link rel="stylesheet" href="{% static 'css/polish-v2.css' %}">
+</head>
+<body class="error-shell">
+  <main class="error-page container">
+    <section class="error-card card">
+      <div class="error-card-topline"><div class="eyebrow">TEAM PORTAL · 500</div><button class="theme-toggle error-theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark theme"><span aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button></div>
+      <div class="error-code" aria-hidden="true">500</div>
+      <h1>We hit a snag.</h1>
+      <p class="muted">The portal ran into an unexpected server error while loading this page. Your data has not been intentionally changed.</p>
+      <p class="muted">Try returning to the dashboard or reloading the page. If the problem continues, note what you were doing so an administrator can review the application log.</p>
+      <div class="actions error-actions"><a class="btn" href="/">Return to Dashboard</a><button class="btn secondary" type="button" onclick="window.location.reload()">Try Again</button></div>
+      <p class="muted error-caption">Internal server error</p>
+    </section>
+  </main>
+<script>(function(){const b=document.getElementById('theme-toggle');if(!b)return;function t(){return document.documentElement.dataset.theme||'light'}function s(){const d=t()==='dark';b.setAttribute('aria-pressed',d?'true':'false');b.querySelector('.theme-toggle-label').textContent=d?'Light':'Dark';const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',d?'#101719':'#f5f7f5')}b.addEventListener('click',function(){const n=t()==='dark'?'light':'dark';document.documentElement.dataset.theme=n;try{localStorage.setItem('iea-theme',n)}catch(e){}s()});s()})();</script>
+</body></html>

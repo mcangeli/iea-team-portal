@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Host Shows{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div><div class="eyebrow">SHOW HOST OPERATIONS</div><h1>Host Shows</h1><p>Active hosted events and preserved host-show history in one place.</p></div>
+  <div class="actions"><a class="btn" href="{% url 'dashboard_show_manager' %}">Show Manager Dashboard</a><a class="btn secondary" href="{% url 'show_list' %}">All shows</a></div>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">ACTIVE HOST WORKSPACES</div><h2>{{ active_rows|length }} active hosted show{{ active_rows|length|pluralize }}</h2></div><p>Planning, live operations, family publication, and hosting budget remain active until a show is marked Complete or Cancelled.</p></div>
+  <div class="card-grid">
+    {% for row in active_rows %}
+    <article class="card"><div class="card-body">
+      <div class="eyebrow">{{ row.show.show_date|date:"M j, Y" }}</div><h2>{{ row.show.name }}</h2><p class="muted">{{ row.show.venue|default:"Venue not set" }} · {{ row.show.get_status_display }}</p>
+      {% if row.operations %}<p><span class="status-pill {% if row.operations.readiness_complete %}status-complete{% endif %}">{{ row.operations.readiness_percent }}% host ready</span></p>{% else %}<p><span class="status-pill">Setup needed</span></p>{% endif %}
+      <div class="actions"><a class="btn" href="{% url 'host_show_workspace' row.show.pk %}">Open Host Workspace</a>{% if can_manage %}<a class="btn secondary" href="{% url 'host_show_edit' row.show.pk %}">{% if row.operations %}Edit plan{% else %}Set up{% endif %}</a>{% endif %}</div>
+    </div></article>
+    {% empty %}<div class="empty-state"><h2>No active hosted shows</h2><p>Shows marked Complete or Cancelled are preserved below as hosted-show history.</p></div>{% endfor %}
+  </div>
+</section>
+
+{% if archived_rows %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOSTED SHOW HISTORY</div><h2>{{ archived_rows|length }} archived hosted show{{ archived_rows|length|pluralize }}</h2></div><p>Historical workspaces remain available for review. Show Manager operational editing is closed; Coaches/Admins retain correction access.</p></div>
+  <div class="card-grid">
+    {% for row in archived_rows %}
+    <article class="card"><div class="card-body">
+      <div class="eyebrow">{{ row.show.show_date|date:"M j, Y" }} · {{ row.show.get_status_display }}</div><h2>{{ row.show.name }}</h2><p class="muted">{{ row.show.venue|default:"Venue not set" }}</p>
+      <p><span class="status-pill {% if row.show.status == 'cancelled' %}status-cancelled{% else %}status-complete{% endif %}">Historical {{ row.show.get_status_display|lower }}</span></p>
+      <div class="actions"><a class="btn secondary" href="{% url 'host_show_workspace' row.show.pk %}">Review Host Workspace</a><a class="btn secondary" href="{% url 'host_command_center' row.show.pk %}">Review Command Center</a></div>
+    </div></article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

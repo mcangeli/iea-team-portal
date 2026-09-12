@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}{{ show.name }} · Host Show Operations{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
+
+<section class="page-intro">
+  <div>
+    <div class="eyebrow">SHOW HOST OPERATIONS</div>
+    <h1>Host Show Workspace</h1>
+    <p>{{ show.name }} · {{ show.show_date|date:"F j, Y" }}{% if show.venue %} · {{ show.venue }}{% endif %}</p>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{% url 'host_command_center' show.pk %}">Show-Day Command Center</a>
+    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_show_edit' show.pk %}">{% if operations %}Edit Host Plan{% else %}Set Up Host Plan{% endif %}</a><a class="btn secondary" href="{% url 'host_family_publication_edit' show.pk %}">Publish Family Show Info</a>{% endif %}
+    {% if can_manage %}<a class="btn secondary" href="{% url 'show_manager_add' show.pk %}">Assign Show Manager</a>{% endif %}
+    {% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_staff_add' show.pk %}">Add Show Personnel</a>{% endif %}
+    <a class="btn secondary" href="{% url 'show_planning' show.pk %}">Show Planning</a>
+    <a class="btn secondary" href="{% url 'show_courses' show.pk %}">Courses</a>
+    <a class="btn secondary" href="{% url 'show_schedule' show.pk %}">Schedule</a>
+    <a class="btn secondary" href="{% url 'show_day_dashboard' show.pk %}">Team Show Day</a>
+  </div>
+</section>
+
+{% if is_closed_host_show %}
+<div class="callout"><strong>Hosted show archived</strong><span>This show is {{ show.get_status_display|lower }}. Show Manager operational controls are read-only, while the historical host record remains available for review.</span>{% if can_manage %}<form class="inline-form" method="post" action="{% url 'host_show_reopen' show.pk %}" onsubmit="return confirm('Reopen this hosted show? It will return to Entries submitted and reactivate normal host operations.');">{% csrf_token %}<button class="btn secondary" type="submit">Reopen Show</button></form>{% endif %}</div>
+{% elif can_manage %}
+<div class="callout"><strong>Ready to close the hosted show?</strong><span>Marking the show complete moves it to Hosted Show History and makes Show Manager operational controls read-only. The host plan, budget, publication settings, duties, and assignments are preserved.</span><form class="inline-form" method="post" action="{% url 'host_show_mark_complete' show.pk %}" onsubmit="return confirm('Mark this hosted show complete? It will move to history and Show Manager operational controls will become read-only.');">{% csrf_token %}<button class="btn secondary" type="submit">Mark Show Complete</button></form></div>
+{% endif %}
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">HOSTING BUDGET</div><h2>Operational budget</h2><p class="muted">A show-running view of the existing Finance hosting budget. Detailed ledger access remains restricted to Finance roles.</p></div>
+    {% if can_finance_show %}<div class="actions"><a class="btn secondary" href="{% url 'show_finance' show.pk %}">View Show Finance</a></div>{% endif %}
+  </div>
+  <div class="stat-grid">
+    <article class="stat-card"><small>Budgeted expenses</small><strong>${{ hosting_budget.planned_expense|floatformat:2 }}</strong><span>Hosting operations plan</span></article>
+    <article class="stat-card"><small>Actual expenses</small><strong>${{ hosting_budget.actual_expense|floatformat:2 }}</strong><span>Posted hosting allocations</span></article>
+    <article class="stat-card"><small>Remaining</small><strong>${{ hosting_budget.remaining_expense|floatformat:2 }}</strong><span>{% if hosting_budget.over_budget %}Over budget{% else %}Against planned hosting expense{% endif %}</span></article>
+    <article class="stat-card"><small>Reimbursements pending</small><strong>${{ hosting_budget.pending_reimbursement_total|floatformat:2 }}</strong><span>{{ hosting_budget.pending_reimbursement_count }} submitted / approved</span></article>
+  </div>
+  {% if hosting_budget.planned_income or hosting_budget.actual_income %}<div class="detail-band"><div><small>Planned hosting income</small><strong>${{ hosting_budget.planned_income|floatformat:2 }}</strong></div><div><small>Actual hosting income</small><strong>${{ hosting_budget.actual_income|floatformat:2 }}</strong></div></div>{% endif %}
+  {% if hosting_budget.budget_rows %}<div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Budget item</th><th>Category</th><th>Type</th><th>Budget</th><th>Actual</th><th>Remaining</th></tr></thead><tbody>{% for row in hosting_budget.budget_rows %}<tr><td><strong>{{ row.line.description }}</strong></td><td>{{ row.line.category.name }}</td><td>{{ row.line.get_kind_display }}</td><td>${{ row.line.amount|floatformat:2 }}</td><td>${{ row.actual|floatformat:2 }}</td><td>{% if row.over_budget %}<strong>-${{ row.remaining|floatformat:2|cut:"-" }}</strong>{% else %}${{ row.remaining|floatformat:2 }}{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state">No Hosting Operations budget lines have been created yet.{% if can_finance_show %} Open Show Finance to add the hosting budget.{% endif %}</div>{% endif %}
+</section>
+
+{% if operations %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">HOST READINESS</div><h2>{{ operations.readiness_percent }}% ready</h2></div><p>Core leadership, personnel, and host-show operational details.</p></div><div class="stat-grid">{% for label, ready in readiness_items %}<article class="stat-card"><small>{{ label }}</small><strong>{% if ready %}Ready{% else %}Needed{% endif %}</strong><span>{% if ready %}Information recorded{% else %}Add before show day{% endif %}</span></article>{% endfor %}</div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">SHOW LEADERSHIP</div><h2>Show Managers</h2></div><p>Show Manager is a separate show-scoped operational role from Show Lead.</p></div><div class="card-grid">{% for assignment in managers %}<article class="card"><div class="card-body"><h3>{{ assignment.user.get_full_name|default:assignment.user.username }}</h3><p class="muted">Show Manager{% if assignment.notes %} · {{ assignment.notes }}{% endif %}</p>{% if can_manage %}<form method="post" action="{% url 'show_manager_remove' show.pk assignment.pk %}" onsubmit="return confirm('Remove this Show Manager assignment?');">{% csrf_token %}<button class="link-button danger-link" type="submit">Remove</button></form>{% endif %}</div></article>{% empty %}<div class="empty-state">No Show Manager has been assigned yet.</div>{% endfor %}</div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">SHOW PERSONNEL</div><h2>Officials & operations staff</h2></div><p>Track the Secretary, Judge(s), Steward(s), Gate, Announcer, EMS, and other event personnel.</p></div><div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Role</th><th>Name</th><th>Organization</th><th>Contact</th><th>Notes</th>{% if can_manage_host_show %}<th>Actions</th>{% endif %}</tr></thead><tbody>{% for person in staff %}<tr><td><strong>{{ person.get_role_display }}</strong></td><td>{{ person.name }}</td><td>{{ person.organization|default:"—" }}</td><td>{% if person.phone %}{{ person.phone }}{% endif %}{% if person.email %}{% if person.phone %}<br>{% endif %}{{ person.email }}{% endif %}{% if not person.phone and not person.email %}—{% endif %}</td><td>{{ person.notes|default:"—" }}</td>{% if can_manage_host_show %}<td><span class="table-actions"><a class="text-link" href="{% url 'host_staff_edit' show.pk person.pk %}">Edit</a><form class="inline-form" method="post" action="{% url 'host_staff_remove' show.pk person.pk %}" onsubmit="return confirm('Remove this show personnel record?');">{% csrf_token %}<button class="link-button danger-link" type="submit">Remove</button></form></span></td>{% endif %}</tr>{% empty %}<tr><td colspan="6" class="muted">No show personnel have been added yet.</td></tr>{% endfor %}</tbody></table></div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">VENUE CONTACT</div><h2>Site coordination</h2></div></div><div class="detail-band"><div><small>Venue contact</small><strong>{{ operations.venue_contact|default:"Not set" }}</strong>{% if operations.venue_contact_phone %}<p>{{ operations.venue_contact_phone }}</p>{% endif %}</div></div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">ARRIVAL & PARKING</div><h2>Getting everyone on site</h2></div></div><div class="card-grid"><article class="card"><div class="card-body"><h3>Arrival instructions</h3><p>{{ operations.arrival_instructions|default:"Not recorded yet."|linebreaksbr }}</p><p><strong>Check-in:</strong> {{ operations.check_in_location|default:"Not set" }}</p></div></article><article class="card"><div class="card-body"><h3>Trailer parking</h3><p>{{ operations.trailer_parking|default:"Not recorded yet."|linebreaksbr }}</p></div></article><article class="card"><div class="card-body"><h3>Spectator parking</h3><p>{{ operations.spectator_parking|default:"Not recorded yet."|linebreaksbr }}</p></div></article></div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">RINGS & HORSES</div><h2>Competition flow</h2></div></div><div class="card-grid"><article class="card"><div class="card-body"><h3>Warm-up / schooling</h3><p>{{ operations.warmup_schooling|default:"Not recorded yet."|linebreaksbr }}</p></div></article><article class="card"><div class="card-body"><h3>Ring operations</h3><p>{{ operations.ring_operations|default:"Not recorded yet."|linebreaksbr }}</p></div></article></div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">PEOPLE & SAFETY</div><h2>Volunteer, hospitality & emergency</h2></div></div><div class="card-grid"><article class="card"><div class="card-body"><h3>Volunteer check-in</h3><p>{{ operations.volunteer_check_in|default:"Not recorded yet."|linebreaksbr }}</p></div></article><article class="card"><div class="card-body"><h3>Hospitality</h3><p>{{ operations.hospitality|default:"Not recorded yet."|linebreaksbr }}</p></div></article><article class="card"><div class="card-body"><h3>Emergency information</h3><p>{{ operations.emergency_information|default:"Not recorded yet."|linebreaksbr }}</p></div></article></div></section>
+
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">DOCUMENTS & COMMUNICATION</div><h2>Host information</h2><p class="muted">These fields stay private to the host team until explicitly selected in Publish Family Show Info.</p></div>{% if can_manage_host_show %}<a class="btn secondary" href="{% url 'host_family_publication_edit' show.pk %}">Publish Family Show Info</a>{% endif %}</div><div class="actions">{% if operations.prize_list_url %}<a class="btn secondary" href="{{ operations.prize_list_url }}" target="_blank" rel="noopener">Prize list</a>{% endif %}{% if operations.schedule_url %}<a class="btn secondary" href="{{ operations.schedule_url }}" target="_blank" rel="noopener">Published schedule</a>{% endif %}</div>{% if operations.family_notes %}<div class="callout"><strong>Rider & family information</strong><span>{{ operations.family_notes|linebreaksbr }}</span></div>{% endif %}{% if can_manage_host_show and operations.internal_notes %}<div class="callout"><strong>Private host-team notes</strong><span>{{ operations.internal_notes|linebreaksbr }}</span></div>{% endif %}</section>
+{% else %}
+<div class="empty-state"><h2>Host Show Workspace is ready to set up</h2><p>This show is marked Hosting & attending. The hosting budget above is already available; set up the host plan when you are ready to organize personnel, arrival, parking, rings, hospitality, safety, and family-facing information.</p>{% if can_manage_host_show %}<a class="btn" href="{% url 'host_show_edit' show.pk %}">Set Up Host Plan</a>{% endif %}</div>
+{% endif %}
+{% endblock %}
