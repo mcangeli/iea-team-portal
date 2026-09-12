@@ -1,4 +1,4 @@
-name: iea-team-portal
+name: ${COMPOSE_PROJECT_NAME:-iea-team-portal}
 
 services:
   db:
@@ -38,6 +38,6 @@ services:
 
 volumes:
   postgres_data:
-    name: iea-team-portal_postgres_data
+    name: ${POSTGRES_VOLUME_NAME:-iea-team-portal_postgres_data}
   media_data:
-    name: iea-team-portal_media_data
+    name: ${MEDIA_VOLUME_NAME:-iea-team-portal_media_data}
