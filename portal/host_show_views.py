@@ -26,6 +26,9 @@ from .view_modules import dashboards as dashboard_views
 from .view_modules.common import _can_finance, _can_manage, _is_show_lead, _team
 
 
+CLOSED_HOST_SHOW_STATUSES = {Show.Status.COMPLETE, Show.Status.CANCELLED}
+
+
 def _host_show(request, show_pk):
     team = _team(request.user)
     show = get_object_or_404(Show, pk=show_pk, team=team)
@@ -38,8 +41,15 @@ def _is_show_manager(user, show):
     return ShowManagerAssignment.objects.filter(show=show, user=user, active=True).exists()
 
 
+def _host_show_is_closed(show):
+    return show.status in CLOSED_HOST_SHOW_STATUSES
+
+
 def _can_manage_host_show(user, show):
-    return _can_manage(user) or _is_show_manager(user, show)
+    # Coach/Admin retain correction authority on archived shows. A Show Manager
+    # remains able to review the historical workspace, but normal operational
+    # editing ends when the show is explicitly marked Complete or Cancelled.
+    return _can_manage(user) or (_is_show_manager(user, show) and not _host_show_is_closed(show))
 
 
 def _hosting_budget_summary(show):
@@ -112,6 +122,21 @@ def _hosting_budget_summary(show):
     }
 
 
+def _host_show_row(show, user):
+    operations = HostShowOperations.objects.filter(show=show).first()
+    readiness_items = operations.readiness_items if operations else []
+    return {
+        "show": show,
+        "operations": operations,
+        "is_show_manager": _is_show_manager(user, show),
+        "is_closed": _host_show_is_closed(show),
+        "readiness_percent": operations.readiness_percent if operations else 0,
+        "missing": [label for label, ready in readiness_items if not ready] if operations else ["Host plan not started"],
+        "staff_count": operations.staff_assignments.filter(active=True).count() if operations else 0,
+        "budget": _hosting_budget_summary(show),
+    }
+
+
 @login_required
 def host_show_list(request):
     team = _team(request.user)
@@ -127,19 +152,19 @@ def host_show_list(request):
             | Q(lead_assignments__user=request.user, lead_assignments__active=True)
         ).distinct()
 
-    rows = []
-    for show in shows:
-        operations = HostShowOperations.objects.filter(show=show).first()
-        rows.append({
-            "show": show,
-            "operations": operations,
-            "is_show_manager": _is_show_manager(request.user, show),
-        })
+    rows = [_host_show_row(show, request.user) for show in shows]
+    active_rows = [row for row in rows if not row["is_closed"]]
+    archived_rows = [row for row in rows if row["is_closed"]]
 
     return render(
         request,
         "portal/host_show_list.html",
-        {"rows": rows, "can_manage": can_manage},
+        {
+            "rows": rows,
+            "active_rows": active_rows,
+            "archived_rows": archived_rows,
+            "can_manage": can_manage,
+        },
     )
 
 
@@ -149,34 +174,32 @@ def dashboard_show_manager(request):
     today = timezone.localdate()
     can_manage = _can_manage(request.user)
     active_season = Season.objects.filter(team=team, is_active=True).first()
+
+    # The operational dashboard is intentionally current-looking: completed and
+    # cancelled shows belong in Host Shows history, not the active command view.
     shows = Show.objects.filter(
         team=team,
         financial_role=Show.FinancialRole.HOSTING_ATTENDING,
         show_date__gte=today,
-    ).select_related("season").order_by("show_date", "name")
+    ).exclude(status__in=CLOSED_HOST_SHOW_STATUSES).select_related("season").order_by("show_date", "name")
+
+    assignment_qs = ShowManagerAssignment.objects.filter(
+        show__team=team,
+        user=request.user,
+        active=True,
+    )
     if not can_manage:
         shows = shows.filter(
             manager_assignments__user=request.user,
             manager_assignments__active=True,
         ).distinct()
-        if not shows.exists() and not ShowManagerAssignment.objects.filter(
-            show__team=team, user=request.user, active=True
-        ).exists():
+        if not assignment_qs.exists():
             raise PermissionDenied
 
-    rows = []
-    for show in shows[:8]:
-        operations = HostShowOperations.objects.filter(show=show).first()
-        readiness_items = operations.readiness_items if operations else []
-        missing = [label for label, ready in readiness_items if not ready] if operations else ["Host plan not started"]
-        rows.append({
-            "show": show,
-            "operations": operations,
-            "readiness_percent": operations.readiness_percent if operations else 0,
-            "missing": missing,
-            "staff_count": operations.staff_assignments.filter(active=True).count() if operations else 0,
-            "budget": _hosting_budget_summary(show),
-        })
+    rows = [_host_show_row(show, request.user) for show in shows[:8]]
+    historical_assignment_count = assignment_qs.filter(
+        show__status__in=CLOSED_HOST_SHOW_STATUSES,
+    ).count()
 
     return render(request, "portal/dashboard_show_manager.html", {
         "rows": rows,
@@ -184,6 +207,7 @@ def dashboard_show_manager(request):
         "can_manage": can_manage,
         "can_finance": _can_finance(request.user, None),
         "workspace_links": dashboard_views._workspace_links(request.user, team, active_season),
+        "historical_assignment_count": historical_assignment_count,
     })
 
 
@@ -200,6 +224,7 @@ def host_show_workspace(request, show_pk):
     readiness_items = operations.readiness_items if operations else []
     staff = operations.staff_assignments.filter(active=True) if operations else HostShowStaffAssignment.objects.none()
     managers = show.manager_assignments.filter(active=True).select_related("user")
+    is_closed = _host_show_is_closed(show)
     return render(
         request,
         "portal/host_show_workspace.html",
@@ -211,10 +236,11 @@ def host_show_workspace(request, show_pk):
             "managers": managers,
             "hosting_budget": _hosting_budget_summary(show),
             "can_manage": can_manage,
-            "can_manage_host_show": can_manage or is_show_manager,
+            "can_manage_host_show": _can_manage_host_show(request.user, show),
             "can_finance_show": _can_finance(request.user, show.season),
             "is_show_manager": is_show_manager,
             "is_show_lead": is_show_lead,
+            "is_closed_host_show": is_closed,
         },
     )
 
