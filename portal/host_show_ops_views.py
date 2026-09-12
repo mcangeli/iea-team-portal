@@ -7,7 +7,7 @@ from django.views.decorators.http import require_POST
 
 from .host_show_forms import HostShowDutyAssignmentForm, HostShowReadinessCheckpointForm
 from .host_show_models import HostShowDutyAssignment, HostShowOperations, HostShowReadinessCheckpoint
-from .host_show_views import _can_manage_host_show, _host_show, _is_show_manager
+from .host_show_views import _can_manage_host_show, _host_show, _host_show_is_closed, _is_show_manager
 from .view_modules.common import _can_manage, _is_show_lead
 
 
@@ -36,8 +36,9 @@ def host_command_center(request, show_pk):
     if not (can_manage or is_manager or is_lead):
         raise PermissionDenied
 
+    can_manage_host = _can_manage_host_show(request.user, show)
     operations = HostShowOperations.objects.filter(show=show).first()
-    if not operations and (can_manage or is_manager):
+    if not operations and can_manage_host:
         operations = HostShowOperations.objects.create(
             show=show,
             created_by=request.user,
@@ -55,6 +56,7 @@ def host_command_center(request, show_pk):
             "handoff_count": 0,
             "can_manage_host_show": False,
             "is_show_lead": is_lead,
+            "is_closed_host_show": _host_show_is_closed(show),
         })
 
     now = timezone.now()
@@ -82,8 +84,9 @@ def host_command_center(request, show_pk):
         "overdue_checkpoint_count": len(overdue_checkpoints),
         "active_duty_count": active_duties.count(),
         "handoff_count": handoff_duties.count(),
-        "can_manage_host_show": can_manage or is_manager,
+        "can_manage_host_show": can_manage_host,
         "is_show_lead": is_lead,
+        "is_closed_host_show": _host_show_is_closed(show),
     })
 
 
