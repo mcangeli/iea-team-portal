@@ -20,3 +20,4 @@ class PortalConfig(AppConfig):
 
     def ready(self):
         import portal.signals  # noqa: F401
+        import portal.dashboard_workspace_extensions  # noqa: F401
