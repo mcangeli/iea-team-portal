@@ -16,6 +16,7 @@ from portal.models import (
     FinancialTransaction,
     FundraisingCampaign,
     FundraisingContribution,
+    FundraisingPolicy,
     GuardianContact,
     Rider,
     RiderGuardian,
@@ -123,6 +124,11 @@ class FundraisingAndFamilyPrivacyTests(TestCase):
         self.assertEqual(self.client.get(reverse("reimbursement_create")).status_code, 403)
 
     def test_fundraising_contribution_posts_cash_once_and_family_credit_separately(self):
+        FundraisingPolicy.objects.create(
+            season=self.season,
+            model=FundraisingPolicy.Model.HYBRID,
+            default_family_credit_percent=Decimal("60.00"),
+        )
         campaign = FundraisingCampaign.objects.create(
             team=self.team, season=self.season, name="Fall Fundraiser",
             goal_amount=Decimal("1000.00"), status=FundraisingCampaign.Status.ACTIVE,
@@ -226,7 +232,7 @@ class FundraisingAndFamilyPrivacyTests(TestCase):
             category=self.expense_category, amount=Decimal("500.00"),
             description="Shared expense",
         )
-        allocation = ShowTransactionAllocation.objects.create(
+        ShowTransactionAllocation.objects.create(
             transaction=tx, show=show,
             scope=FinancialTransaction.ShowFinanceScope.HOSTING,
             amount=Decimal("400.00"),
@@ -259,4 +265,3 @@ class FundraisingAndFamilyPrivacyTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Updated competition result")
         self.assertNotContains(response, "Created private finance item")
-
