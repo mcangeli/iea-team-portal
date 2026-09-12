@@ -28,9 +28,13 @@ class HorseRegistryTests(TestCase):
             sort_order=1,
         )
         self.admin = User.objects.create_user("horseadmin", password="testpass123")
-        UserProfile.objects.create(user=self.admin, team=self.team, role=UserProfile.Role.ADMIN)
+        self.admin.profile.team = self.team
+        self.admin.profile.role = UserProfile.Role.ADMIN
+        self.admin.profile.save(update_fields=["team", "role"])
         self.rider = User.objects.create_user("horserider", password="testpass123")
-        UserProfile.objects.create(user=self.rider, team=self.team, role=UserProfile.Role.RIDER)
+        self.rider.profile.team = self.team
+        self.rider.profile.role = UserProfile.Role.RIDER
+        self.rider.profile.save(update_fields=["team", "role"])
         self.horse = Horse.objects.create(team=self.team, name="Biscuit", breed="Quarter Horse Cross", sex=Horse.Sex.GELDING)
 
     def test_horse_sex_display(self):
