@@ -1,14 +1,16 @@
 from pathlib import Path
 
+from django.db import models
 from django.test import SimpleTestCase
+
+from portal.branding_models import TeamBranding
 
 
 class PhotoBrandingTests(SimpleTestCase):
     def test_preview8_branding_fields_and_migration_exist(self):
         root = Path(__file__).resolve().parents[2]
-        models = (root / "portal/branding_models.py").read_text()
-        self.assertIn("hero_image = models.ImageField", models)
-        self.assertIn("hero_image_position = models.CharField", models)
+        self.assertIsInstance(TeamBranding._meta.get_field("hero_image"), models.ImageField)
+        self.assertIsInstance(TeamBranding._meta.get_field("hero_image_position"), models.CharField)
         self.assertTrue((root / "portal/migrations/0031_v200_team_branding.py").exists())
 
     def test_branding_management_surface_exists(self):
