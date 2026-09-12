@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
-{% block title %}{{ show.name }} · Family Publication{% endblock %}
+{% block title %}{{ show.name }} · Publish Family Show Info{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'host_show_workspace' show.pk %}">← Back to Host Show Workspace</a></nav>
-<section class="page-intro"><div><div class="eyebrow">SHOW HOST COMMUNICATION</div><h1>Family publication settings</h1><p>{{ show.name }} · Choose exactly which host-plan sections riders and families may see.</p></div><div class="actions"><a class="btn secondary" href="{% url 'host_family_information' show.pk %}">Preview family page</a></div></section>
-<div class="callout"><strong>Explicit publication</strong><span>Nothing from Host Show Operations is family-visible merely because it exists. Turn on the master publication switch and select only the sections you want to distribute. Internal host notes, personnel records, duties, handoffs, readiness checkpoints, and budget data are never included.</span></div>
+<section class="page-intro"><div><div class="eyebrow">SHOW HOST COMMUNICATION</div><h1>Publish Family Show Info</h1><p>{{ show.name }} · Choose exactly which host-show details riders and families may see.</p></div><div class="actions"><a class="btn secondary" href="{% url 'host_family_information' show.pk %}">Preview Family Page</a></div></section>
+<div class="callout"><strong>Explicit publication</strong><span>Host Show Operations stays private by default. Turn on publication and select only the sections you want to distribute. Internal host notes, personnel records, readiness checkpoints, duty assignments, handoffs, Command Center data, and budget information are never included.</span></div>
 <form method="post" class="content-section">{% csrf_token %}
   {{ form.non_field_errors }}
   <div class="form-grid">
     {% for field in form %}<div class="field-row"><label for="{{ field.id_for_label }}">{{ field }} <span>{{ field.label }}</span></label>{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
   </div>
-  <div class="actions"><button class="btn" type="submit">Save publication settings</button><a class="btn secondary" href="{% url 'host_show_workspace' show.pk %}">Cancel</a></div>
+  <div class="actions"><button class="btn" type="submit">Save Publication Settings</button><a class="btn secondary" href="{% url 'host_show_workspace' show.pk %}">Cancel</a></div>
 </form>
 {% endblock %}
