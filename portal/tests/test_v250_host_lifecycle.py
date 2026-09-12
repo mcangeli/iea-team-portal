@@ -24,26 +24,10 @@ class V250HostShowLifecycleTests(TestCase):
         self.coach = self.make_user("lifecycle-coach", UserProfile.Role.COACH)
         self.parent = self.make_user("lifecycle-parent", UserProfile.Role.PARENT)
 
-        self.past_open = self.make_show(
-            "Past Open Hosted Show",
-            today - timedelta(days=2),
-            Show.Status.ENTERED,
-        )
-        self.upcoming = self.make_show(
-            "Upcoming Hosted Show",
-            today + timedelta(days=14),
-            Show.Status.PLANNING,
-        )
-        self.completed = self.make_show(
-            "Completed Hosted Show",
-            today - timedelta(days=21),
-            Show.Status.COMPLETE,
-        )
-        self.cancelled = self.make_show(
-            "Cancelled Hosted Show",
-            today + timedelta(days=30),
-            Show.Status.CANCELLED,
-        )
+        self.past_open = self.make_show("Past Open Hosted Show", today - timedelta(days=2), Show.Status.ENTERED)
+        self.upcoming = self.make_show("Upcoming Hosted Show", today + timedelta(days=14), Show.Status.PLANNING)
+        self.completed = self.make_show("Completed Hosted Show", today - timedelta(days=21), Show.Status.COMPLETE)
+        self.cancelled = self.make_show("Cancelled Hosted Show", today + timedelta(days=30), Show.Status.CANCELLED)
         self.operations = {}
         for show in [self.past_open, self.upcoming, self.completed, self.cancelled]:
             ShowManagerAssignment.objects.create(show=show, user=self.manager, active=True)
@@ -97,6 +81,8 @@ class V250HostShowLifecycleTests(TestCase):
         command_center = self.client.get(reverse("host_command_center", args=[self.completed.pk]))
         self.assertEqual(workspace.status_code, 200)
         self.assertEqual(command_center.status_code, 200)
+        self.assertContains(workspace, "Hosted show archived")
+        self.assertNotContains(workspace, "Reopen Show")
         self.assertContains(command_center, "Historical command center")
         self.assertEqual(self.client.get(reverse("host_show_edit", args=[self.completed.pk])).status_code, 403)
         self.assertEqual(self.client.get(reverse("host_duty_add", args=[self.completed.pk])).status_code, 403)
@@ -111,9 +97,43 @@ class V250HostShowLifecycleTests(TestCase):
 
     def test_coach_retains_correction_access_on_archived_host_show(self):
         self.client.force_login(self.coach)
+        response = self.client.get(reverse("host_show_workspace", args=[self.completed.pk]))
+        self.assertContains(response, "Reopen Show")
         self.assertEqual(self.client.get(reverse("host_show_edit", args=[self.completed.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("host_duty_add", args=[self.completed.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("host_family_publication_edit", args=[self.completed.pk])).status_code, 200)
+
+    def test_coach_can_mark_active_hosted_show_complete(self):
+        self.client.force_login(self.coach)
+        workspace = self.client.get(reverse("host_show_workspace", args=[self.upcoming.pk]))
+        self.assertContains(workspace, "Mark Show Complete")
+        response = self.client.post(reverse("host_show_mark_complete", args=[self.upcoming.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.upcoming.refresh_from_db()
+        self.assertEqual(self.upcoming.status, Show.Status.COMPLETE)
+        dashboard = self.client.get(reverse("dashboard_show_manager"))
+        self.assertNotContains(dashboard, "Upcoming Hosted Show")
+
+    def test_show_manager_cannot_mark_show_complete_or_reopen(self):
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.post(reverse("host_show_mark_complete", args=[self.upcoming.pk])).status_code, 403)
+        self.assertEqual(self.client.post(reverse("host_show_reopen", args=[self.completed.pk])).status_code, 403)
+
+    def test_coach_can_reopen_completed_show(self):
+        self.client.force_login(self.coach)
+        response = self.client.post(reverse("host_show_reopen", args=[self.completed.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.completed.refresh_from_db()
+        self.assertEqual(self.completed.status, Show.Status.ENTERED)
+        manager_dashboard = self.client.get(reverse("dashboard_show_manager"))
+        self.assertContains(manager_dashboard, "Completed Hosted Show")
+
+    def test_cancelled_show_must_be_reopened_before_mark_complete(self):
+        self.client.force_login(self.coach)
+        response = self.client.post(reverse("host_show_mark_complete", args=[self.cancelled.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.cancelled.refresh_from_db()
+        self.assertEqual(self.cancelled.status, Show.Status.CANCELLED)
 
     def test_published_family_information_remains_available_after_completion(self):
         HostShowFamilyPublication.objects.create(
