@@ -168,7 +168,7 @@ def dashboard_show_manager(request):
     for show in shows[:8]:
         operations = HostShowOperations.objects.filter(show=show).first()
         readiness_items = operations.readiness_items if operations else []
-        missing = [label for label, ready in readiness_items if not ready]
+        missing = [label for label, ready in readiness_items if not ready] if operations else ["Host plan not started"]
         rows.append({
             "show": show,
             "operations": operations,
