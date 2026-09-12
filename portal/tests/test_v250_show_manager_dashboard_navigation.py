@@ -29,6 +29,7 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
         self.manager = self.make_user("manager-nav", UserProfile.Role.PARENT)
         self.parent = self.make_user("parent-nav", UserProfile.Role.PARENT)
         self.admin = self.make_user("admin-nav", UserProfile.Role.ADMIN)
+        self.coach = self.make_user("coach-nav", UserProfile.Role.COACH)
         ShowManagerAssignment.objects.create(show=self.show, user=self.manager, active=True)
 
     def make_user(self, username, role):
@@ -58,6 +59,20 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
     def test_unassigned_parent_does_not_get_show_manager_workspace(self):
         links = self.workspace_links(self.parent)
         self.assertNotIn("Show Manager", [link["label"] for link in links])
+
+    def test_inactive_assignment_removes_show_manager_workspace_and_route(self):
+        assignment = ShowManagerAssignment.objects.get(show=self.show, user=self.manager)
+        assignment.active = False
+        assignment.save(update_fields=["active"])
+        self.assertNotIn("Show Manager", [link["label"] for link in self.workspace_links(self.manager)])
+        self.client.force_login(self.manager)
+        self.assertEqual(self.client.get(reverse("dashboard_show_manager")).status_code, 403)
+
+    def test_coach_show_manager_keeps_both_workspaces(self):
+        ShowManagerAssignment.objects.create(show=self.show, user=self.coach, active=True)
+        labels = [link["label"] for link in self.workspace_links(self.coach)]
+        self.assertIn("Coach", labels)
+        self.assertIn("Show Manager", labels)
 
     def test_show_manager_dashboard_route_opens_for_assigned_manager(self):
         self.client.force_login(self.manager)
