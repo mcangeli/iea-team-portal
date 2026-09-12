@@ -1,13 +1,21 @@
 from datetime import date
-from decimal import Decimal
-from io import BytesIO
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.models import Rider, Season, SeasonClass, SeasonMembership, ShowResult, Team, UserProfile
+from portal.models import (
+    Rider,
+    Season,
+    SeasonClass,
+    SeasonMembership,
+    Show,
+    ShowEntry,
+    ShowResult,
+    Team,
+    UserProfile,
+)
 
 
 class V198AccessIEAImportTests(TestCase):
@@ -25,38 +33,45 @@ class V198AccessIEAImportTests(TestCase):
         self.coach.profile.team = self.team
         self.coach.profile.role = UserProfile.Role.COACH
         self.coach.profile.save(update_fields=["team", "role"])
+
         self.rider = Rider.objects.create(
             team=self.team,
             first_name="Emma",
             last_name="Brown",
-            grade=11,
             iea_member_number="1234567",
+        )
+        self.flat = SeasonClass.objects.create(
+            season=self.season,
+            name="Varsity Open Equitation on the flat",
+            team_level=SeasonClass.TeamLevel.UPPER,
+            discipline="hunt_seat",
         )
         self.membership = SeasonMembership.objects.create(
             rider=self.rider,
             season=self.season,
             team_level=SeasonMembership.TeamLevel.UPPER,
         )
-        self.season_class = SeasonClass.objects.create(
-            season=self.season,
-            name="Varsity Open Equitation on the flat",
-            team_level=SeasonClass.TeamLevel.UPPER,
-        )
-        self.membership.classes.add(self.season_class)
+        self.membership.classes.add(self.flat)
 
     def upload(self, body):
-        return SimpleUploadedFile("accessiea.csv", body.encode("utf-8"), content_type="text/csv")
+        return SimpleUploadedFile(
+            "Rider-Performance.csv",
+            body.encode("utf-8"),
+            content_type="text/csv",
+        )
 
-    def accessiea_csv(self):
+    def accessiea_csv(self, regular="5", region_team="4", region_individual="3", zone_individual=""):
         return (
             "#IEA,# of Shows,Rider Name,Class,Total Rider Points,"
             "9/7/2025 Blue Skies Riding Academy Show,"
-            "2/7/2026 Zone 4 Region 3 Finals - Team,"
-            "2/7/2026 Zone 4 Region 3 Finals - Individual\n"
-            "1234567,3,Emma Brown,Varsity Open Equitation on the flat,12,5,4,3\n"
+            "2/7/2026 Zone 4 Region 3 Finals Team,"
+            "2/7/2026 Zone 4 Region 3 Finals Individual,"
+            "3/14/2026 Zone 4 Finals Individual\n"
+            f"1234567,3,Emma Brown,Varsity Open Equitation on the flat,12,"
+            f"{regular},{region_team},{region_individual},{zone_individual}\n"
         )
 
-    def test_accessiea_export_previews_and_imports(self):
+    def test_accessiea_preview_does_not_write(self):
         self.client.force_login(self.coach)
         response = self.client.post(
             reverse("season_history_import", args=[self.season.pk]),
@@ -64,8 +79,63 @@ class V198AccessIEAImportTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Preview ready")
-        self.client.post(reverse("season_history_import", args=[self.season.pk]), {"action": "commit"})
+        self.assertContains(response, "Blue Skies Riding Academy Show")
+        self.assertContains(response, "Zone 4 Region 3 Finals")
+        self.assertEqual(Show.objects.count(), 0)
+
+    def test_accessiea_commit_creates_regular_and_finals_tracks(self):
+        self.client.force_login(self.coach)
+        self.client.post(
+            reverse("season_history_import", args=[self.season.pk]),
+            {"action": "preview", "csv_file": self.upload(self.accessiea_csv())},
+        )
+        self.client.post(
+            reverse("season_history_import", args=[self.season.pk]),
+            {"action": "commit"},
+        )
+
         self.assertEqual(ShowResult.objects.count(), 3)
+        self.assertEqual(
+            Show.objects.filter(
+                name="Zone 4 Region 3 Finals",
+                competition_level=Show.CompetitionLevel.REGIONAL,
+            ).count(),
+            1,
+        )
+        tracks = set(
+            ShowEntry.objects.filter(
+                show_class__show__competition_level=Show.CompetitionLevel.REGIONAL
+            ).values_list("competition_track", flat=True)
+        )
+        self.assertEqual(
+            tracks,
+            {
+                ShowEntry.CompetitionTrack.TEAM,
+                ShowEntry.CompetitionTrack.INDIVIDUAL,
+            },
+        )
+
+    def test_blank_cell_is_no_ride_but_zero_is_real_result(self):
+        body = self.accessiea_csv(
+            regular="0",
+            region_team="",
+            region_individual="",
+            zone_individual="",
+        )
+        body = body.replace(",3,Emma Brown,", ",1,Emma Brown,").replace(",12,", ",0,")
+        self.client.force_login(self.coach)
+        self.client.post(
+            reverse("season_history_import", args=[self.season.pk]),
+            {"action": "preview", "csv_file": self.upload(body)},
+        )
+        self.client.post(
+            reverse("season_history_import", args=[self.season.pk]),
+            {"action": "commit"},
+        )
+        self.assertEqual(ShowResult.objects.count(), 1)
+        result = ShowResult.objects.get()
+        self.assertEqual(result.points, 0)
+        self.assertTrue(result.manual_points)
 
     def test_iea_number_matches_even_when_name_differs(self):
         body = self.accessiea_csv().replace("Emma Brown", "Emma B. Brown")
