@@ -5,14 +5,6 @@ from .horse_models import Horse
 from .models import Season, Show, ShowClass
 
 
-if not any(field.name == "rides_per_contributed_horse" for field in Season._meta.fields):
-    rides_field = models.PositiveSmallIntegerField(
-        default=5,
-        help_text="Number of rider class rides covered by each contributed horse. IEA currently requires one horse for every five rides.",
-    )
-    rides_field.contribute_to_class(Season, "rides_per_contributed_horse")
-
-
 class ShowLeasedHorse(models.Model):
     show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="leased_horses")
     barn_name = models.CharField(max_length=120)
