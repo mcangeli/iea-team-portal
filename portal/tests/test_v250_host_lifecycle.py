@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from portal.host_show_models import HostShowOperations, ShowManagerAssignment
+from portal.host_show_models import HostShowFamilyPublication, HostShowOperations, ShowManagerAssignment
 from portal.models import Season, Show, Team, UserProfile
 
 
@@ -44,9 +44,15 @@ class V250HostShowLifecycleTests(TestCase):
             today + timedelta(days=30),
             Show.Status.CANCELLED,
         )
+        self.operations = {}
         for show in [self.past_open, self.upcoming, self.completed, self.cancelled]:
             ShowManagerAssignment.objects.create(show=show, user=self.manager, active=True)
-            HostShowOperations.objects.create(show=show, created_by=self.coach, updated_by=self.coach)
+            self.operations[show.pk] = HostShowOperations.objects.create(
+                show=show,
+                family_notes=f"Family notes for {show.name}",
+                created_by=self.coach,
+                updated_by=self.coach,
+            )
 
     def make_user(self, username, role):
         user = User.objects.create_user(username=username, password="testpass")
@@ -108,6 +114,18 @@ class V250HostShowLifecycleTests(TestCase):
         self.assertEqual(self.client.get(reverse("host_show_edit", args=[self.completed.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("host_duty_add", args=[self.completed.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("host_family_publication_edit", args=[self.completed.pk])).status_code, 200)
+
+    def test_published_family_information_remains_available_after_completion(self):
+        HostShowFamilyPublication.objects.create(
+            operations=self.operations[self.completed.pk],
+            published=True,
+            publish_family_notes=True,
+            updated_by=self.coach,
+        )
+        self.client.force_login(self.parent)
+        response = self.client.get(reverse("host_family_information", args=[self.completed.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Family notes for Completed Hosted Show")
 
     def test_unassigned_parent_cannot_use_archive_as_backdoor(self):
         self.client.force_login(self.parent)
