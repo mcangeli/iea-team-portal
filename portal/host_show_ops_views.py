@@ -14,6 +14,10 @@ from .view_modules.common import _can_manage, _is_show_lead
 def _operations_for(request, show_pk, *, create=False):
     show = _host_show(request, show_pk)
     if create:
+        # Never mutate Host Show Operations as a side effect of a request the
+        # current user is not authorized to manage.
+        if not _can_manage_host_show(request.user, show):
+            raise PermissionDenied
         operations, _ = HostShowOperations.objects.get_or_create(
             show=show,
             defaults={"created_by": request.user, "updated_by": request.user},
@@ -86,8 +90,6 @@ def host_command_center(request, show_pk):
 @login_required
 def host_checkpoint_add(request, show_pk):
     show, operations = _operations_for(request, show_pk, create=True)
-    if not _can_manage_host_show(request.user, show):
-        raise PermissionDenied
     form = HostShowReadinessCheckpointForm(request.POST or None, team=show.team)
     if request.method == "POST" and form.is_valid():
         checkpoint = form.save(commit=False)
@@ -146,8 +148,6 @@ def host_checkpoint_complete(request, show_pk, checkpoint_pk):
 @login_required
 def host_duty_add(request, show_pk):
     show, operations = _operations_for(request, show_pk, create=True)
-    if not _can_manage_host_show(request.user, show):
-        raise PermissionDenied
     form = HostShowDutyAssignmentForm(request.POST or None, team=show.team)
     form.instance.operations = operations
     if request.method == "POST" and form.is_valid():
