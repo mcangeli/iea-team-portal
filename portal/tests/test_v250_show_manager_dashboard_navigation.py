@@ -64,3 +64,14 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
         response = self.client.get(reverse("dashboard_show_manager"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Hosted Invitational")
+        self.assertContains(response, "Team overview")
+        self.assertContains(response, "Show Manager")
+        self.assertContains(response, "Publish Family Show Info")
+
+    def test_show_manager_dashboard_selector_is_available_to_admin(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("dashboard_show_manager"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Team overview")
+        self.assertContains(response, "Coach")
+        self.assertContains(response, "Show Manager")
