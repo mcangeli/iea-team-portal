@@ -36,6 +36,10 @@ class Season(models.Model):
     closed_at = models.DateTimeField(null=True, blank=True)
     futures_volunteer_hours_required = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     upper_volunteer_hours_required = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    rides_per_contributed_horse = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Number of rider class rides covered by each contributed horse. IEA currently requires one horse for every five rides.",
+    )
 
     class ShowFeePolicy(models.TextChoices):
         INCLUDED = "included", "Included in membership dues"
@@ -204,6 +208,11 @@ class SeasonClass(models.Model):
     )
     sort_order = models.PositiveIntegerField(default=0)
     active = models.BooleanField(default=True)
+    class_code = models.CharField(
+        max_length=30,
+        blank=True,
+        help_text="Short IEA class identifier, such as H1, H2, H8, or H14.",
+    )
 
     class Meta:
         ordering = ["team_level", "sort_order", "name"]
