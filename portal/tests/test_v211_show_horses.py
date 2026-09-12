@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from portal.horse_models import Horse, HorseShowAssignment, HorseShowAward
+from portal.horse_models import Horse, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from portal.models import Season, SeasonClass, Show, ShowClass, Team, UserProfile
 
 
@@ -33,6 +33,12 @@ class ShowHorseAssignmentTests(TestCase):
             spur_preference=Horse.Preference.NO,
             lead_change=Horse.LeadChange.FLYING,
         )
+        self.horse_profile = HorseSeasonProfile.objects.create(
+            horse=self.horse,
+            season=self.season,
+            active_for_season=True,
+        )
+        self.horse_profile.eligible_classes.add(self.season_class)
         self.admin = User.objects.create_user("horseadmin211", password="testpass123")
         self.admin.profile.team = self.team
         self.admin.profile.role = UserProfile.Role.ADMIN
