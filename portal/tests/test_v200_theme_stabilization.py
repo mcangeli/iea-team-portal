@@ -19,6 +19,7 @@ class ThemeStabilizationTests(SimpleTestCase):
         self.assertIn("prefers-color-scheme: dark", template)
         self.assertIn("localStorage.getItem('iea-theme')", template)
 
-    def test_no_preview6_migration(self):
+    def test_preview6_theme_work_did_not_require_theme_migration(self):
         root = Path(__file__).resolve().parents[2]
-        self.assertFalse(list((root / "portal/migrations").glob("0031_v200*.py")))
+        migration_names = [path.name.lower() for path in (root / "portal/migrations").glob("*.py")]
+        self.assertFalse([name for name in migration_names if "theme" in name])
