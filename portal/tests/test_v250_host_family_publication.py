@@ -42,6 +42,13 @@ class V250HostFamilyPublicationTests(TestCase):
         response = self.client.get(reverse("host_family_information", args=[self.show.pk]))
         self.assertEqual(response.status_code, 403)
 
+    def test_publication_settings_use_clear_family_publish_language(self):
+        self.client.force_login(self.manager)
+        response = self.client.get(reverse("host_family_publication_edit", args=[self.show.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Publish Family Show Info")
+        self.assertContains(response, "Host Show Operations stays private by default")
+
     def test_show_manager_can_publish_selected_sections(self):
         self.client.force_login(self.manager)
         response = self.client.post(reverse("host_family_publication_edit", args=[self.show.pk]), {
