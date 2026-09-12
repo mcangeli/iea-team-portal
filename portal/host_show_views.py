@@ -171,17 +171,19 @@ def host_show_list(request):
 @login_required
 def dashboard_show_manager(request):
     team = _team(request.user)
-    today = timezone.localdate()
     can_manage = _can_manage(request.user)
     active_season = Season.objects.filter(team=team, is_active=True).first()
 
-    # The operational dashboard is intentionally current-looking: completed and
-    # cancelled shows belong in Host Shows history, not the active command view.
+    # Status is the operational boundary. An active-season show remains on the
+    # board until it is explicitly marked Complete or Cancelled, even if its
+    # calendar date has passed and the team still needs to finish closeout.
     shows = Show.objects.filter(
         team=team,
         financial_role=Show.FinancialRole.HOSTING_ATTENDING,
-        show_date__gte=today,
-    ).exclude(status__in=CLOSED_HOST_SHOW_STATUSES).select_related("season").order_by("show_date", "name")
+    ).exclude(status__in=CLOSED_HOST_SHOW_STATUSES)
+    if active_season:
+        shows = shows.filter(season=active_season)
+    shows = shows.select_related("season").order_by("show_date", "name")
 
     assignment_qs = ShowManagerAssignment.objects.filter(
         show__team=team,
