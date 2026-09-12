@@ -53,6 +53,7 @@ v2.5.0 expands the IEA Team Portal from attending-show operations into a complet
 - Production 403/404/500 pages now honor saved/system theme and include a safe theme toggle.
 - Permission checks occur before helper code can create Host Operations records on unauthorized requests.
 - Adds regression coverage for role combinations, multiple/inactive managers, privacy, family publication, lifecycle, presentation, and lifecycle controls.
+- Final stabilization also corrected reimbursement form team binding discovered by the full regression suite; the temporary compatibility shim is scheduled for normalization in v2.9.x.
 
 ## Data migrations
 
@@ -64,4 +65,13 @@ No schema change is required by the final lifecycle-control/stabilization work b
 
 ## Validation
 
-Feature previews and stabilization passes were live-tested during development. Final production promotion requires a clean complete `portal.tests` regression suite and completion of `RELEASE_CHECKLIST_v2.5.0.md`.
+Release validation completed successfully on the final v2.5.0 release candidate:
+
+- Django system check reported no issues.
+- `makemigrations portal --check --dry-run` reported no model drift.
+- Migrations `0045`, `0046`, and `0047` were confirmed applied.
+- Focused regression suites passed after stabilization fixes.
+- The complete `portal.tests` regression suite completed with no failures or errors.
+- Final branch comparison against production `main` is clean and mergeable with no unexpected migrations or debug files.
+
+v2.5.0 is release-ready pending explicit production merge approval.
