@@ -15,11 +15,12 @@
   </div>
 </section>
 
+{% if is_closed_host_show %}<div class="callout"><strong>Historical command center</strong><span>This hosted show is marked {{ show.get_status_display }}. Show Manager operational controls are closed and the staffing/readiness record is preserved for review. Coaches and Administrators retain correction access.</span></div>{% endif %}
 <div class="callout"><strong>Operational staffing only</strong><span>Assignments on this page coordinate show-host coverage and handoffs. They do not count toward, satisfy, or change season volunteer-hour requirements.</span></div>
 {% if not operations %}<div class="empty-state host-ops-empty"><strong>Host plan not started</strong><span>You can view this Command Center because you are assigned as Show Lead, but host operations have not been set up yet. A Coach, Administrator, or Show Manager must start the host plan before readiness checkpoints or duties are available.</span></div>{% endif %}
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">COMMAND STATUS</div><h2>Coverage at a glance</h2></div><p>Readiness and staffing status for the hosted event.</p></div>
+  <div class="section-head"><div><div class="eyebrow">COMMAND STATUS</div><h2>Coverage at a glance</h2></div><p>{% if is_closed_host_show %}Final recorded readiness and staffing status for this hosted event.{% else %}Readiness and staffing status for the hosted event.{% endif %}</p></div>
   <div class="stat-grid">
     <article class="stat-card"><small>Open checkpoints</small><strong>{{ open_checkpoint_count }}</strong><span>Host-prep items still open</span></article>
     <article class="stat-card"><small>Overdue</small><strong>{{ overdue_checkpoint_count }}</strong><span>Readiness deadlines passed</span></article>
