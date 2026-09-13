@@ -25,7 +25,7 @@ Staging validated with the full 350-test portal suite green.
 
 ### Backup integrity
 
-Both regular upgrades and Git-driven updates now run a lightweight integrity check immediately after `pg_dump`:
+Both regular upgrades and Git-driven updates run a lightweight integrity check immediately after `pg_dump`:
 
 - the backup must exist and be non-empty;
 - the backup must contain the PostgreSQL plain-text dump signature;
@@ -72,11 +72,11 @@ Regression coverage: `portal.tests.test_v290_preview6_deployment_health`.
 
 ## Preview 6C — environment isolation and recovery runbook
 
-Implemented; awaiting staging validation.
+Staging validated, including the documented restore/recovery checks.
 
 ### Staging / production isolation
 
-Added `portal/tests/test_v290_preview6_environment_isolation.py` to protect the deployment identities documented in the two environment templates.
+`portal/tests/test_v290_preview6_environment_isolation.py` protects the deployment identities documented in the two environment templates.
 
 The regression contract requires staging and production to use distinct:
 
@@ -97,7 +97,7 @@ It also protects:
 
 ### Restore and rollback runbook
 
-Added `docs/BACKUP_RESTORE_ROLLBACK.md` with:
+`docs/BACKUP_RESTORE_ROLLBACK.md` documents:
 
 - the distinction between code-only rollback and database restore;
 - a staging-first restore drill;
@@ -112,17 +112,47 @@ Database restoration is deliberately **not** exposed as an automatic `portalctl`
 
 ### Media recovery boundary
 
-The recovery documentation now explicitly calls out that PostgreSQL backups do not contain uploaded files. ArenaLine media requires separate volume/filesystem backup coverage for rider photos, Coggins documents, Hoofprint horse-list uploads, and Finance receipts.
+The recovery documentation explicitly calls out that PostgreSQL backups do not contain uploaded files. ArenaLine media requires separate volume/filesystem backup coverage for rider photos, Coggins documents, Hoofprint horse-list uploads, and Finance receipts.
 
-`docs/STAGING.md` was updated to:
+`docs/STAGING.md` links to the recovery runbook, validates dump signatures before restore, restores with `ON_ERROR_STOP=1`, uses `portalctl health` after startup, and requires a staging restore drill before v2.9 production promotion.
 
-- link to the recovery runbook;
-- validate dump signatures before restore;
-- restore with `ON_ERROR_STOP=1`;
-- use `portalctl health` after staging startup;
-- require a staging restore drill before v2.9 production promotion.
+## Preview 6D — production operator and release-candidate gate
 
-## Remaining Preview 6 audit
+Implemented; awaiting final staging validation.
+
+### Production-facing documentation cleanup
+
+The root README now identifies the product as **ArenaLine v2.9.0** rather than the obsolete IEA Team Portal v2.0.0 release. Production setup/update guidance now references:
+
+- the v2.9.0 release tag;
+- `portalctl preflight` and `portalctl health`;
+- shared version/deployment behavior;
+- validated PostgreSQL backups;
+- explicit database recovery documentation;
+- separate uploaded-media backup requirements;
+- the v2.9 architecture/module boundary;
+- the v2.9 release-candidate checklist.
+
+### Release-candidate checklist
+
+Added `RELEASE_CHECKLIST_v2.9.0.md` as the production-promotion gate. It covers:
+
+1. source/release identity;
+2. application regression tests;
+3. functional visual checks;
+4. Preview 5 security/data-access guarantees;
+5. staging isolation and restore-drill evidence;
+6. production environment/preflight checks;
+7. exact-tag production promotion;
+8. immediate post-promotion smoke checks;
+9. rollback decision path;
+10. release evidence retention.
+
+Production promotion should use the exact validated `v2.9.0` tag rather than an unpinned feature branch.
+
+Regression coverage: `portal.tests.test_v290_preview6_release_candidate`.
+
+## Preview 6 completion status
 
 1. ~~Release identity and version plumbing.~~
 2. ~~Backup restore drill instructions and rollback decision path.~~
@@ -130,8 +160,8 @@ The recovery documentation now explicitly calls out that PostgreSQL backups do n
 4. ~~Docker Compose production/staging configuration review.~~
 5. ~~Static manifest and uploaded-media runtime verification.~~
 6. ~~Environment examples and staging-vs-production safety defaults.~~
-7. Production deployment documentation / operator checklist cleanup.
-8. v2.9 release-candidate checklist and final regression gate.
+7. ~~Production deployment documentation / operator checklist cleanup.~~
+8. v2.9 release-candidate final regression gate — awaiting final validation.
 
 ## Guardrails
 
@@ -143,3 +173,4 @@ The recovery documentation now explicitly calls out that PostgreSQL backups do n
 - The existing shared `.env` deployment model remains supported.
 - Code rollback remains separate from database restore because schema compatibility must be evaluated per release.
 - Destructive recovery commands must use explicit staging/production targets rather than inferring a Docker volume from context.
+- The production `v2.9.0` tag must point to the exact commit that passed the final regression, deployment-health, restore-drill, and visual gates.
