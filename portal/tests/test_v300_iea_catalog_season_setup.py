@@ -65,6 +65,9 @@ class IEACatalogSeasonSetupTests(TestCase):
             active=False,
             class_code="h1",
         )
+        legacy.refresh_from_db()
+        canonical_code = legacy.class_code
+
         result = configure_iea_season_catalog(
             season=self.season,
             rulebook_season="2026-2027",
@@ -77,7 +80,8 @@ class IEACatalogSeasonSetupTests(TestCase):
         self.assertEqual(legacy.name, "Our local H1 label")
         self.assertEqual(legacy.sort_order, 99)
         self.assertFalse(legacy.active)
-        self.assertEqual(legacy.class_code, "h1")
+        self.assertEqual(legacy.class_code, canonical_code)
+        self.assertEqual(legacy.class_code, "H1")
 
     def test_multiple_disciplines_can_be_configured(self):
         result = configure_iea_season_catalog(
@@ -86,6 +90,11 @@ class IEACatalogSeasonSetupTests(TestCase):
             disciplines=["hunt_seat", "dressage"],
         )
         self.assertEqual(result.created, 28)
+        self.assertEqual(result.conflicts, ())
+        self.assertEqual(
+            SeasonClass.objects.filter(season=self.season, discipline="hunt_seat").count(),
+            14,
+        )
         self.assertEqual(
             SeasonClass.objects.filter(season=self.season, discipline="dressage").count(),
             14,
