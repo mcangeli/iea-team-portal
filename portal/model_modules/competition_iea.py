@@ -1,6 +1,8 @@
 """IEA-specific reference models for ArenaLine competition workflows."""
 
 from django.db import models
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 
 class IEAClassCatalogEntry(models.Model):
@@ -96,11 +98,12 @@ class IEASeasonCatalogConfiguration(models.Model):
         return f"{self.season} · {self.rulebook_season} · {disciplines}"
 
 
-# ``portal.models`` remains the legacy home of SeasonClass during the 3.0
-# architecture transition. PortalConfig imports this module only after the
-# primary models module has loaded, so the field can be contributed here while
-# keeping the IEA reference dependency inside the competition domain.
-from portal.models import SeasonClass  # noqa: E402
+# ``portal.models`` remains the legacy home of SeasonClass and ShowClass during
+# the 3.0 architecture transition. PortalConfig imports this module only after
+# the primary models module has loaded, so IEA reference fields can be
+# contributed here without moving competition-specific dependencies into the
+# generic ArenaLine models module.
+from portal.models import SeasonClass, ShowClass  # noqa: E402
 
 _catalog_entry_field = models.ForeignKey(
     IEAClassCatalogEntry,
@@ -111,3 +114,26 @@ _catalog_entry_field = models.ForeignKey(
     help_text="Optional official IEA class definition for this season-specific class.",
 )
 _catalog_entry_field.contribute_to_class(SeasonClass, "catalog_entry")
+
+_show_catalog_entry_field = models.ForeignKey(
+    IEAClassCatalogEntry,
+    on_delete=models.PROTECT,
+    null=True,
+    blank=True,
+    related_name="direct_show_classes",
+    help_text="Official show-only IEA class definition when no SeasonClass should be created.",
+)
+_show_catalog_entry_field.contribute_to_class(ShowClass, "catalog_entry")
+
+
+@receiver(pre_save, sender=ShowClass)
+def snapshot_direct_iea_show_class(sender, instance, **kwargs):
+    """Snapshot a direct show-only catalog entry onto legacy ShowClass fields."""
+    if instance.season_class_id or not getattr(instance, "catalog_entry_id", None):
+        return
+    entry = instance.catalog_entry
+    instance.name = entry.official_name
+    instance.discipline = entry.discipline
+    instance.class_number = entry.class_code
+    if not instance.sort_order:
+        instance.sort_order = entry.sort_order
