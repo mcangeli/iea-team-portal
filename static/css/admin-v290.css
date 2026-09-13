@@ -1,0 +1,76 @@
+/* ArenaLine v2.9 Preview 4H — administration, forms, destructive actions */
+
+.section-user_list .table-card,
+.section-season_setup .team-panel,
+.section-season_setup .funding-policy-summary,
+.section-team_branding .branding-form-card,
+.section-team_branding .branding-preview-card,
+.form-card,
+.danger-card{
+  border:1px solid var(--line);
+  border-top:3px solid var(--arena-gold);
+  border-radius:18px;
+  background:var(--surface);
+  box-shadow:0 10px 30px rgba(16,34,37,.06);
+}
+
+.section-user_list .table-card{overflow:hidden}
+.section-user_list .table-wrap{overflow:auto}
+.section-user_list table{width:100%;border-collapse:collapse}
+.section-user_list th{background:var(--surface-soft);color:var(--muted);font-size:.68rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+.section-user_list th,.section-user_list td{padding:.9rem 1rem;border-bottom:1px solid var(--line);vertical-align:top}
+.section-user_list tbody tr:last-child td{border-bottom:0}
+.section-user_list .table-actions{display:flex;gap:.7rem;flex-wrap:wrap}
+
+.section-season_setup .team-split-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin-top:1rem}
+.section-season_setup .team-panel{padding:1rem 1.1rem}
+.section-season_setup .season-class-row{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;padding:.85rem 0;border-top:1px solid var(--line)}
+.section-season_setup .season-class-row:first-of-type{margin-top:.55rem}
+.section-season_setup .class-actions{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;flex-wrap:wrap}
+.section-season_setup .policy-chip-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;margin-top:.8rem}
+.section-season_setup .policy-chip-grid>span{display:grid;gap:.2rem;padding:.8rem;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft);font-weight:700}
+.section-season_setup .policy-chip-grid small{color:var(--muted);font-size:.64rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+
+.section-team_branding .branding-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.9fr);gap:1.25rem;align-items:start}
+.section-team_branding .branding-form-card,.section-team_branding .branding-preview-card{padding:1.1rem}
+.section-team_branding .field-wrap{display:grid;gap:.4rem;margin-bottom:1rem}
+.section-team_branding .branding-preview-card{position:sticky;top:1rem}
+
+.form-card{max-width:900px;margin-inline:auto;padding:1.15rem 1.2rem}
+.form-card>h1{margin-bottom:1rem}
+.form-card form>p{display:grid;gap:.38rem;margin:0 0 1rem}
+.form-card form>p>label,.form-card .field-wrap>label{font-weight:800}
+.form-card .helptext,.form-card .help-text{color:var(--muted);font-size:.84rem}
+.form-card ul.errorlist{margin:.25rem 0 0;padding:0;list-style:none;color:var(--danger,#b64d4d);font-weight:700;font-size:.88rem}
+.form-card form>.btn{margin-top:.25rem}
+
+.danger-card{max-width:720px;border-top-color:var(--danger,#b64d4d)}
+.danger-card h1{margin-bottom:.5rem}
+.danger-card .actions{margin-top:1.15rem;padding-top:1rem;border-top:1px solid var(--line)}
+.danger-btn{background:var(--danger,#b64d4d);border-color:var(--danger,#b64d4d);color:#fff}
+.danger-btn:hover{filter:brightness(.95)}
+
+.page-back-nav a[data-history-back]{cursor:pointer}
+
+html[data-theme="dark"] .section-user_list .table-card,
+html[data-theme="dark"] .section-season_setup .team-panel,
+html[data-theme="dark"] .section-season_setup .funding-policy-summary,
+html[data-theme="dark"] .section-team_branding .branding-form-card,
+html[data-theme="dark"] .section-team_branding .branding-preview-card,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .danger-card{box-shadow:0 10px 30px rgba(0,0,0,.16)}
+
+@media(max-width:860px){
+  .section-season_setup .team-split-grid,.section-team_branding .branding-layout{grid-template-columns:1fr}
+  .section-team_branding .branding-preview-card{position:static}
+  .section-season_setup .policy-chip-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+@media(max-width:620px){
+  .section-season_setup .season-class-row{display:grid}
+  .section-season_setup .class-actions{justify-content:flex-start}
+  .section-season_setup .policy-chip-grid{grid-template-columns:1fr}
+  .form-card{padding:1rem}
+  .danger-card .actions{display:grid}
+  .danger-card .actions .btn{width:100%;justify-content:center;text-align:center}
+}
