@@ -181,9 +181,20 @@ footer{
   flex-wrap:wrap;
 }
 .arena-footer-signature{display:inline-flex;align-items:center;gap:7px;margin-right:4px}
-.arena-footer-signature img{width:24px;height:24px}
+.arena-footer-signature img{display:none}
+.arena-footer-signature:before{
+  content:"";
+  width:24px;
+  height:24px;
+  flex:0 0 24px;
+  background:var(--arena-navy);
+  -webkit-mask:url("../brand/arenaline-geometric-mark.svg") center/contain no-repeat;
+  mask:url("../brand/arenaline-geometric-mark.svg") center/contain no-repeat;
+}
 .arena-wordmark{font-size:.78rem;font-weight:700;letter-spacing:.17em}
 .arena-wordmark .arena-wordmark-line{color:var(--arena-gold)}
+html[data-theme="light"] footer .arena-footer-signature:before{background:var(--arena-navy)}
+html[data-theme="dark"] footer .arena-footer-signature:before{background:var(--arena-gold)}
 html[data-theme="dark"] footer .arena-wordmark{color:var(--arena-cream)}
 html[data-theme="light"] footer .arena-wordmark{color:var(--arena-navy)}
 html[data-theme="dark"] .page-intro{border-bottom-color:color-mix(in srgb,var(--arena-gold) 24%,var(--line))}
