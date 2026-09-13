@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -20,3 +23,25 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertContains(response, "/static/brand/arenaline-geometric-mark.")
         self.assertContains(response, "/static/css/arenaline-v290.")
         self.assertNotContains(response, "Team Portal")
+
+    def test_brand_styles_keep_light_and_dark_modes(self):
+        css = (Path(settings.BASE_DIR) / "static/css/arenaline-v290.css").read_text()
+        self.assertIn('html[data-theme="light"]', css)
+        self.assertIn('html[data-theme="dark"]', css)
+        self.assertIn("--arena-navy:#0E2A47", css)
+        self.assertIn("--arena-gold:#C9A96B", css)
+        self.assertIn("--arena-blue:#007297", css)
+
+    def test_primary_surfaces_use_arenaline_language(self):
+        templates = Path(settings.BASE_DIR) / "templates/portal"
+        dashboard = (templates / "dashboard.html").read_text()
+        my_team = (templates / "my_team.html").read_text()
+        show_manager = (templates / "dashboard_show_manager.html").read_text()
+
+        self.assertIn("Dashboard · ArenaLine", dashboard)
+        self.assertIn("ARENALINE · SEASON HOME", dashboard)
+        self.assertNotIn("Equestrian Team Portal", dashboard)
+        self.assertIn("My Team · ArenaLine", my_team)
+        self.assertIn("ARENALINE · TEAM HUB", my_team)
+        self.assertIn("Show Manager · ArenaLine", show_manager)
+        self.assertIn("ARENALINE · SHOW HOST OPERATIONS", show_manager)
