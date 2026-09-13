@@ -1,0 +1,66 @@
+/* ArenaLine v2.9 Preview 4F — Operations & Communications presentation. */
+.action-stack,.ops-list,.agenda-events,.notification-list{display:grid;gap:.85rem}
+.action-row,.ops-row,.committee-card,.volunteer-card,.notification-card,.announcement-card{
+  border-color:color-mix(in srgb,var(--arena-gold) 14%,var(--line));
+  box-shadow:0 8px 24px color-mix(in srgb,var(--arena-navy) 5%,transparent);
+}
+.action-row,.ops-row{transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+.action-row:hover,.ops-row:hover{border-color:color-mix(in srgb,var(--arena-gold) 42%,var(--line));transform:translateY(-1px)}
+.action-row{display:flex;align-items:center;justify-content:space-between;gap:1.25rem}
+.action-copy{min-width:0;flex:1}
+.action-copy small,.ops-main small{color:var(--club-brass);font-weight:750;letter-spacing:.04em}
+.action-copy h3,.ops-main h3,.committee-card h3,.volunteer-card h3{color:var(--heading);font-family:var(--arena-serif);font-weight:600}
+.action-row-actions{justify-content:flex-end;align-items:center}
+.action-row.is-complete{opacity:.72}
+.action-row.is-complete h3{text-decoration:line-through;text-decoration-thickness:1px}
+.ops-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:1rem;text-decoration:none;color:inherit}
+.ops-row .datebox{border-color:color-mix(in srgb,var(--arena-gold) 24%,var(--line));background:var(--surface-soft)}
+.ops-meta{text-align:right}
+.ops-meta strong{display:block;color:var(--heading);font-family:var(--arena-serif);font-size:1.45rem}
+.volunteer-grid,.committee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.volunteer-card,.committee-card{background:var(--surface)}
+.volunteer-card.complete{border-color:color-mix(in srgb,#2f7a4f 42%,var(--line))}
+.volunteer-head,.committee-card{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}
+.volunteer-card progress,.entry-table progress{width:100%;accent-color:var(--arena-blue)}
+.notification-nav .notification-count{background:var(--arena-gold);color:var(--arena-navy);font-weight:800}
+.notification-card.is-unread,.announcement-card.is-unread{border-left:3px solid var(--arena-gold)}
+
+/* Calendar: scoped ArenaLine overrides for the legacy inline calendar presentation. */
+.section-calendar .calendar-toolbar{background:var(--surface);border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line));box-shadow:var(--arena-shadow)}
+.section-calendar .calendar-period-nav h2,.section-calendar .agenda-day-heading h2,.section-calendar .agenda-date-block strong,.section-calendar .month-day>header>span{font-family:var(--arena-serif)}
+.section-calendar .calendar-nav-button{background:var(--surface);color:var(--heading);border-color:color-mix(in srgb,var(--arena-gold) 18%,var(--line))}
+.section-calendar .calendar-nav-button:hover{border-color:var(--arena-gold);color:var(--heading)}
+.section-calendar .calendar-view-switch{background:var(--surface-soft);border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line))}
+.section-calendar .calendar-view-switch a{color:var(--nav-text)}
+.section-calendar .calendar-view-switch a.active{background:var(--arena-blue);color:white}
+.section-calendar .calendar-filters select{background:var(--control-bg);color:var(--ink);border-color:var(--control-border)}
+.section-calendar .month-calendar,.section-calendar .month-day,.section-calendar .agenda-date-block{background:var(--surface);border-color:color-mix(in srgb,var(--arena-gold) 12%,var(--line))}
+.section-calendar .month-weekdays{background:var(--surface-soft);border-color:var(--line)}
+.section-calendar .month-day.outside-month{background:color-mix(in srgb,var(--surface-soft) 58%,var(--surface));color:var(--muted)}
+.section-calendar .month-day.today{box-shadow:inset 0 0 0 2px var(--arena-gold)}
+.section-calendar .month-event{background:color-mix(in srgb,var(--arena-blue) 8%,var(--surface));border-left-color:var(--arena-blue);color:var(--ink)}
+.section-calendar .month-event.kind-lesson{background:color-mix(in srgb,var(--arena-gold) 12%,var(--surface));border-left-color:var(--arena-gold)}
+.section-calendar .month-event.kind-deadline{background:color-mix(in srgb,#b64d4d 9%,var(--surface));border-left-color:#b64d4d}
+.section-calendar .month-event.kind-meeting{background:color-mix(in srgb,#5575a2 10%,var(--surface))}
+.section-calendar .month-event.kind-social{background:color-mix(in srgb,#7b5a91 10%,var(--surface))}
+.section-calendar .agenda-date-block span{background:var(--arena-blue)}
+.section-calendar .agenda-day.today .agenda-date-block{box-shadow:0 0 0 2px var(--arena-gold)}
+.section-calendar .agenda-event-marker{background:var(--arena-blue)}
+.section-calendar .agenda-event-main small,.section-calendar .agenda-event-arrow{color:var(--arena-blue)}
+
+html[data-theme="dark"] .action-row,
+html[data-theme="dark"] .ops-row,
+html[data-theme="dark"] .committee-card,
+html[data-theme="dark"] .volunteer-card,
+html[data-theme="dark"] .notification-card,
+html[data-theme="dark"] .announcement-card{box-shadow:0 14px 34px rgba(0,0,0,.14)}
+
+@media(max-width:760px){
+  .action-row{align-items:stretch;flex-direction:column}
+  .action-row-actions{justify-content:flex-start}
+  .action-row-actions form,.action-row-actions .btn{width:100%}
+  .action-row-actions .btn{text-align:center;justify-content:center}
+  .ops-row{grid-template-columns:auto minmax(0,1fr)}
+  .ops-meta{grid-column:2;text-align:left}
+  .committee-card,.volunteer-head{align-items:flex-start;flex-direction:column}
+}
