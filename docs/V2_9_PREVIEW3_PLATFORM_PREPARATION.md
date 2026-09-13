@@ -72,6 +72,19 @@ Implemented:
 
 The finance domain is now organization-oriented at the application boundary while remaining fully compatible with the v2.9 Team-backed schema.
 
+## Preview 3F — Administration organization boundary
+
+Implemented:
+
+- added `organization_for_view_user()` to preserve the legacy authenticated-view rule that ordinary users require an assigned organization while an unassigned superuser may continue to resolve no tenant;
+- moved committee administration, user onboarding/account management, password reset, and audit-log entry points to the platform organization boundary;
+- moved active-period lookups in administration to `active_period_for_organization()`;
+- preserved persisted `profile__team`, committee `team`, season, forms, permission checks, and audit records behind that boundary;
+- changed generic audit-log presentation from “Team audit log” to “Organization audit log” while keeping stored Team-backed audit data unchanged;
+- added focused regression coverage for the compatibility semantics and administration-domain boundary.
+
+People/roster remains the next generic domain to migrate; genuine IEA team assignment and competition language within that module will remain intact.
+
 ## Architectural rules
 
 1. `Team` remains the database tenant in v2.9.
@@ -105,6 +118,7 @@ Preview 3 adds focused tests for:
 - organization module resolution defaults;
 - current `Team`-backed organization lookup;
 - unassigned-account behavior and required organization permission handling;
+- legacy superuser view-context behavior through `organization_for_view_user()`;
 - default organization and active operating-period service boundaries;
 - organization role / management authority boundaries;
 - generic `portal_organization` shell context;
@@ -112,9 +126,11 @@ Preview 3 adds focused tests for:
 - elimination of direct `portal_team` usage from the shared ArenaLine shell;
 - generic Operations / Communications organization-context resolution;
 - Finance organization / operating-period resolution;
+- Administration organization / operating-period resolution;
 - compatibility use of persisted team/season fields behind those boundaries;
-- preservation of finance permission and audit services;
-- theme-aware footer mark contrast.
+- preservation of finance and administration permission/audit services;
+- theme-aware footer mark contrast;
+- generic ArenaLine login branding and signature treatment.
 
 ## Validation gate
 
@@ -124,7 +140,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_administration_context portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
