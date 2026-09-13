@@ -3,7 +3,7 @@ from django.conf import settings
 
 
 PRODUCT_NAME = "ArenaLine"
-PRODUCT_TAGLINE = "Equestrian operations, from barn aisle to show ring."
+PRODUCT_TAGLINE = "One team. One season. One place to manage it."
 
 
 def portal_context(request):
