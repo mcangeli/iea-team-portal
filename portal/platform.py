@@ -29,12 +29,26 @@ def organization_for_user(user, *, required: bool = False):
     return organization
 
 
-def default_organization():
-    """Return the legacy default tenant used by unauthenticated branded surfaces.
+def organization_for_view_user(user):
+    """Resolve organization context with legacy authenticated-view semantics.
 
-    The current application historically uses the first Team row to brand the
-    login screen. Keeping that lookup here prevents generic shell code from
-    depending directly on the persisted tenant model while preserving behavior.
+    Existing generic views historically allowed an unassigned superuser to pass
+    through tenant resolution while requiring ordinary accounts to be assigned
+    to a Team. Preview 3 keeps that behavior intact behind a named platform seam.
+    """
+
+    return organization_for_user(
+        user,
+        required=not getattr(user, "is_superuser", False),
+    )
+
+
+def default_organization():
+    """Return the legacy default tenant when an explicit compatibility caller needs it.
+
+    Generic unauthenticated ArenaLine surfaces no longer use this fallback for
+    branding. It remains available only for legacy callers that explicitly need
+    the first persisted Team during the v2.9 transition.
     """
 
     return Team.objects.order_by("pk").first()
