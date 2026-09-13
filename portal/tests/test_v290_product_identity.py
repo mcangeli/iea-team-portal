@@ -100,3 +100,63 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertIn("Finance · ArenaLine", finance)
         self.assertIn("ARENALINE · FINANCE", finance)
         self.assertIn("organization’s", finance)
+
+    def test_preview_2c_generic_surface_sweep_and_domain_boundaries(self):
+        templates = Path(settings.BASE_DIR) / "templates/portal"
+
+        parent_list = (templates / "parent_list.html").read_text()
+        former_riders = (templates / "former_rider_list.html").read_text()
+        action_items = (templates / "action_item_list.html").read_text()
+        volunteer = (templates / "volunteer_dashboard.html").read_text()
+        calendar = (templates / "calendar.html").read_text()
+        notifications = (templates / "notifications.html").read_text()
+        users = (templates / "user_list.html").read_text()
+        committees = (templates / "committee_list.html").read_text()
+        season_setup = (templates / "season_setup.html").read_text()
+        generic_form = (templates / "form.html").read_text()
+        confirm_delete = (templates / "confirm_delete.html").read_text()
+
+        self.assertIn("Parents & Guardians · ArenaLine", parent_list)
+        self.assertIn("ARENALINE · PEOPLE", parent_list)
+        self.assertIn("Futures", parent_list)
+        self.assertIn("Upper School", parent_list)
+
+        self.assertIn("Alumni / Former Riders · ArenaLine", former_riders)
+        self.assertIn("ARENALINE · PEOPLE", former_riders)
+        self.assertIn("current organization operations", former_riders)
+
+        self.assertIn("Action Items · ArenaLine", action_items)
+        self.assertIn("ARENALINE · OPERATIONS", action_items)
+        self.assertIn("organization needs to get done", action_items)
+        self.assertNotIn("TEAM HUB", action_items)
+
+        self.assertIn("Volunteer Hours · ArenaLine", volunteer)
+        self.assertIn("ARENALINE · OPERATIONS", volunteer)
+        self.assertNotIn("awaiting coach approval", volunteer)
+
+        self.assertIn("Calendar · ArenaLine", calendar)
+        self.assertIn("ARENALINE · OPERATIONS", calendar)
+        self.assertIn("organization events", calendar)
+        self.assertNotIn("Team calendar", calendar)
+
+        self.assertIn("Notifications · ArenaLine", notifications)
+        self.assertIn("ARENALINE · COMMUNICATIONS", notifications)
+        self.assertIn("organization updates", notifications)
+
+        self.assertIn("Users · ArenaLine", users)
+        self.assertIn("ARENALINE · ADMINISTRATION", users)
+        self.assertIn("Committees · ArenaLine", committees)
+        self.assertIn("ARENALINE · ADMINISTRATION", committees)
+        self.assertIn("Season Setup · ArenaLine", season_setup)
+
+        self.assertIn("{{ title }} · ArenaLine", generic_form)
+        self.assertIn('default:"ARENALINE"', generic_form)
+        self.assertIn("{{ title }} · ArenaLine", confirm_delete)
+
+        # IEA-specific competition and program terminology remains deliberately intact.
+        self.assertIn("Futures Team", season_setup)
+        self.assertIn("Upper School Team", season_setup)
+        self.assertIn("HORSE &amp; HOOFPRINT MANAGEMENT", season_setup)
+        self.assertIn("Regionals", season_setup)
+        self.assertIn("Zones", season_setup)
+        self.assertIn("Nationals", season_setup)
