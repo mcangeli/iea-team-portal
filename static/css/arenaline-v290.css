@@ -193,8 +193,8 @@ footer{
 }
 .arena-wordmark{font-size:.78rem;font-weight:700;letter-spacing:.17em}
 .arena-wordmark .arena-wordmark-line{color:var(--arena-gold)}
-html[data-theme="light"] footer .arena-footer-signature:before{background:var(--arena-navy)}
-html[data-theme="dark"] footer .arena-footer-signature:before{background:var(--arena-gold)}
+html[data-theme="light"] footer .arena-footer-signature:before{background:color-mix(in srgb,var(--arena-navy) 88%,black)}
+html[data-theme="dark"] footer .arena-footer-signature:before{background:color-mix(in srgb,var(--arena-gold) 82%,white)}
 html[data-theme="dark"] footer .arena-wordmark{color:var(--arena-cream)}
 html[data-theme="light"] footer .arena-wordmark{color:var(--arena-navy)}
 html[data-theme="dark"] .page-intro{border-bottom-color:color-mix(in srgb,var(--arena-gold) 24%,var(--line))}
