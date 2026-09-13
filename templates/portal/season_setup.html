@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Season Setup{% endblock %}
+{% block title %}Season Setup · ArenaLine{% endblock %}
 {% block content %}
 <div class="page-title"><div><div class="eyebrow">PROGRAM STRUCTURE</div><h1>{{ season.name|default:"Season setup" }}</h1><p>Define season classes once, then assign each rider to Futures or Upper School and the classes they ride all season.</p></div>{% if season %}
 <section class="content-section funding-policy-summary"><div class="section-head"><div><div class="eyebrow">SHOW FUNDING</div><h2>Show fee policy</h2><p class="muted">Define whether show costs are covered by dues, billed to families, packaged, or handled manually.</p></div><a class="btn secondary" href="{% url 'show_funding_policy' %}">Configure funding</a></div><div class="policy-chip-grid"><span><small>Regular</small>{{ season.get_regular_show_fee_policy_display }}</span><span><small>Regionals</small>{{ season.get_regional_show_fee_policy_display }}</span><span><small>Zones</small>{{ season.get_zone_show_fee_policy_display }}</span><span><small>Nationals</small>{{ season.get_national_show_fee_policy_display }}</span></div>{% if season.dues_coverage_notes %}<p class="muted">{{ season.dues_coverage_notes }}</p>{% endif %}</section>
