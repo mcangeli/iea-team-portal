@@ -11,6 +11,7 @@ from .forms_legacy import *  # noqa: F401,F403
 from .forms_legacy import ReimbursementRequestForm as _LegacyReimbursementRequestForm
 from .forms_legacy import SeasonClassForm as _LegacySeasonClassForm
 from .forms_legacy import ShowClassForm as _LegacyShowClassForm
+from .forms_legacy import ShowEntryForm as _LegacyShowEntryForm
 from .model_modules.competition_iea import IEAClassCatalogEntry
 
 
@@ -191,8 +192,8 @@ class ShowClassForm(_LegacyShowClassForm):
     """Catalog-aware ShowClass form for ArenaLine v3.
 
     Normal IEA classes reference SeasonClass. Official show-only offerings such
-    as warm-ups reference the catalog directly and never become rider season
-    assignments.
+    as warm-ups and VOC reference the catalog directly and never become rider
+    season assignments.
     """
 
     official_show_only_class = _CatalogEntryChoiceField(
@@ -296,6 +297,8 @@ class ShowClassForm(_LegacyShowClassForm):
                 or show_only.season_assignable
             ):
                 self.add_error("official_show_only_class", "Choose a show-only class from this season's configured IEA catalog.")
+            if (show_only.class_code or "").upper() == "VOC" and self.show.competition_level != "regular":
+                self.add_error("official_show_only_class", "VOC may only be offered at a regular-season show.")
             return cleaned
 
         if season_class.season_id != self.show.season_id or not season_class.active:
@@ -339,3 +342,37 @@ class ShowClassForm(_LegacyShowClassForm):
             obj.save()
             self.save_m2m()
         return obj
+
+
+class ShowEntryForm(_LegacyShowEntryForm):
+    """Catalog-aware rider entry form, including same-show VOC eligibility."""
+
+    def __init__(self, *args, show=None, team=None, **kwargs):
+        super().__init__(*args, show=show, team=team, **kwargs)
+        if not show:
+            return
+
+        selected_class_id = self.data.get("show_class") if self.is_bound else getattr(self.instance, "show_class_id", None)
+        if not selected_class_id:
+            return
+        try:
+            selected = show.classes.select_related("catalog_entry", "season_class").get(pk=selected_class_id)
+        except (ShowClass.DoesNotExist, ValueError, TypeError):
+            return
+
+        catalog = getattr(selected, "catalog_entry", None)
+        if not catalog or (catalog.class_code or "").upper() != "VOC":
+            return
+
+        from portal.iea_voc import voc_candidate_ids
+
+        candidate_ids = voc_candidate_ids(show)
+        self.fields["rider"].queryset = Rider.objects.filter(
+            pk__in=candidate_ids,
+            team=team,
+            active=True,
+        )
+        self.fields["rider"].help_text = (
+            "VOC candidates come from completed same-show H1/H2 results. "
+            "ArenaLine keeps unresolved cutoff ties visible because judge-card scores are not stored."
+        )
