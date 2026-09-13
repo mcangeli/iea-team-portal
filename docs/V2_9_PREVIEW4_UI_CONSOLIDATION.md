@@ -23,11 +23,26 @@ Implemented:
 
 This first Preview 4 slice intentionally does not rewrite every template. Existing semantic classes such as `page-title`, `page-intro`, `section-head`, `entry-table`, `form-card`, `empty-state`, and `filter-tabs` now have a stronger common ArenaLine contract that later module passes can reuse.
 
+## Preview 4B — dashboard family consolidation
+
+Implemented:
+
+- added `static/css/dashboard-v290.css` as the shared dashboard-family presentation layer;
+- loaded the dashboard presentation layer from the shared ArenaLine base template;
+- removed remaining template-local `<style>` blocks from the main, role, and Show Manager dashboard family;
+- retained a common dashboard hero language for the main and role-specific dashboards;
+- standardized workspace tabs, quick-action groups, course-status cards, summary spacing, dashboard hero marks, and responsive behavior;
+- brought Show Manager into the same dashboard visual family with the shared ArenaLine hero treatment while preserving all hosted-show workflows;
+- retained role-specific information architecture for coaches, team parents, show leads, points secretaries, and Show Manager rather than flattening those workflows into a generic dashboard;
+- added focused regression coverage to prevent dashboard presentation from drifting back into template-local CSS.
+
+Preview 4B is a presentation-only consolidation. No dashboard queries, permissions, role routing, show-host behavior, or competition logic are changed.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
 
-1. Dashboard and role-specific dashboard consistency.
+1. ~~Dashboard and role-specific dashboard consistency.~~
 2. People / Families presentation.
 3. Horses presentation.
 4. IEA Competition presentation.
@@ -54,7 +69,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -62,6 +77,6 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation-contract tests pass;
+- Preview 4 presentation-contract and dashboard-family tests pass;
 - the full portal regression suite remains green;
-- representative pages render consistently in both light and dark modes.
+- main, role-specific, and Show Manager dashboards render as one ArenaLine visual family in both light and dark modes.
