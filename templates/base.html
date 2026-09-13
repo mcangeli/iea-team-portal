@@ -20,11 +20,11 @@
   <link rel="stylesheet" href="{% static 'css/courses-v2.css' %}">
   <link rel="stylesheet" href="{% static 'css/arenaline-v290.css' %}">
 </head>
-<body class="{% if not user.is_authenticated %}auth-shell {% endif %}section-{{ request.resolver_match.url_name|default:'portal' }}"{% if portal_team.branding.hero_image %} style="--team-hero-image:url('{{ portal_team.branding.hero_image.url }}');--team-hero-position:{{ portal_team.branding.hero_image_position }};"{% endif %}>
+<body class="{% if not user.is_authenticated %}auth-shell {% endif %}section-{{ request.resolver_match.url_name|default:'portal' }}"{% if portal_organization.branding.hero_image %} style="--team-hero-image:url('{{ portal_organization.branding.hero_image.url }}');--team-hero-position:{{ portal_organization.branding.hero_image_position }};"{% endif %}>
 <header class="topbar">
   <a class="brand" href="/">
-    {% if portal_team and portal_team.logo %}<img src="{{ portal_team.logo.url }}" alt="{{ portal_team.name }} logo">{% else %}<span class="brand-mark arena-mark" aria-hidden="true"><img src="{% static 'brand/arenaline-geometric-mark.svg' %}" alt=""></span>{% endif %}
-    <span class="brand-copy"><strong>{% if portal_team %}{{ portal_team.short_name|default:portal_team.name }}{% else %}{{ product_name|default:'ArenaLine' }}{% endif %}</strong>{% if user.is_authenticated %}<small>{{ product_name|default:'ArenaLine' }} · Equestrian operations</small>{% else %}<small>{{ product_tagline|default:'One team. One season. One place to manage it.' }}</small>{% endif %}</span>
+    {% if portal_organization and portal_organization.logo %}<img src="{{ portal_organization.logo.url }}" alt="{{ portal_organization.name }} logo">{% else %}<span class="brand-mark arena-mark" aria-hidden="true"><img src="{% static 'brand/arenaline-geometric-mark.svg' %}" alt=""></span>{% endif %}
+    <span class="brand-copy"><strong>{% if portal_organization %}{{ portal_organization.short_name|default:portal_organization.name }}{% else %}{{ product_name|default:'ArenaLine' }}{% endif %}</strong>{% if user.is_authenticated %}<small>{{ product_name|default:'ArenaLine' }} · Equestrian operations</small>{% else %}<small>{{ product_tagline|default:'One team. One season. One place to manage it.' }}</small>{% endif %}</span>
   </a>
   {% if user.is_authenticated and not user.profile.must_change_password %}
   <button class="mobile-nav-toggle" id="mobile-nav-toggle" type="button" aria-controls="primary-nav" aria-expanded="false"><span class="mobile-nav-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span><span>Menu</span></button>
