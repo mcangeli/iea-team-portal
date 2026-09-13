@@ -2,4 +2,4 @@
 {% block title %}{{ title }} · ArenaLine{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
-<div class="form-card"><div class="eyebrow">{{ eyebrow|default:"ARENALINE" }}</div><h1>{{ title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Save</button></form></div>{% endblock %}
+<div class="form-card"><div class="eyebrow">{% if eyebrow == "TEAM HUB" or eyebrow == "SCHEDULE" %}ARENALINE · OPERATIONS{% elif eyebrow == "TEAM NEWS" or eyebrow == "COMMUNICATIONS" %}ARENALINE · COMMUNICATIONS{% elif eyebrow == "USER & FAMILY ONBOARDING" or eyebrow == "ADMIN" or eyebrow == "ADMINISTRATION" %}ARENALINE · ADMINISTRATION{% else %}{{ eyebrow|default:"ARENALINE" }}{% endif %}</div><h1>{{ title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Save</button></form></div>{% endblock %}
