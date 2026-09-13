@@ -37,6 +37,17 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertIn("--arena-gold:#C9A96B", css)
         self.assertIn("--arena-blue:#007297", css)
 
+    def test_login_intro_uses_arenaline_line_and_arena_sweep_motif(self):
+        css = (Path(settings.BASE_DIR) / "static/css/arenaline-v290.css").read_text()
+
+        self.assertIn(".login-intro:before", css)
+        self.assertIn("border-radius:50%", css)
+        self.assertIn(".login-intro:after", css)
+        self.assertIn("transform:rotate(-6deg)", css)
+        self.assertIn('html[data-theme="light"] .login-intro', css)
+        self.assertIn('html[data-theme="dark"] .login-intro', css)
+        self.assertIn("rgba(244,241,234,.88)", css)
+
     def test_primary_surfaces_use_arenaline_language(self):
         templates = Path(settings.BASE_DIR) / "templates/portal"
         dashboard = (templates / "dashboard.html").read_text()
