@@ -1,37 +1,38 @@
-# IEA Team Portal Roadmap
+# ArenaLine Roadmap
 
-This is a living roadmap for the IEA Team Portal. It should be reviewed and updated as each release family develops so the repository always communicates where the product is headed as well as what has already been built.
+ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The IEA Team Portal has evolved into ArenaLine while preserving the IEA workflows already built for riders, families, horses, shows, operations, finance, communications, history, and hosted-show management.
 
-The roadmap describes direction rather than a fixed contract. Features may move between point releases as real-world testing identifies better workflows.
+This is a living roadmap. It describes current product direction rather than a fixed contract, and should be updated whenever development priorities materially change.
 
 ## Product direction
 
-The portal is evolving through four broad stages:
+The current progression is:
 
-- **2.1.x — Show operations:** make the internal team portal excellent at preparing for, running, and preserving the history of a show.
-- **2.5.x — Show host operations:** expand host functionality into a complete workspace for a team hosting an event.
-- **2.9.x — Foundation and presentation cleanup:** simplify architecture, navigation, layouts, shared UI, deployment, and regression coverage before the next major version.
-- **3.x — Public experience:** add an intentionally published external view for spectators, families, other teams, and other non-registered visitors without exposing private portal information.
+- **2.1.x — Horse, Hoofprint, Course & Show Operations:** establish strong show preparation, horse management, course operations, and historical preservation.
+- **2.5.x — Show Host Operations:** expand hosted-show functionality into a complete operational workspace.
+- **2.9.x — ArenaLine foundation:** complete the product transition, platform/module boundaries, shared UI, security audit, deployment hardening, and release cleanup.
+- **3.0.x — Competition foundation & architecture cleanup:** begin the next major line with official IEA class/rulebook reference data, remaining architectural housekeeping, and legacy presentation cleanup.
+- **Later 3.x — External/public experiences and broader platform growth:** add explicitly published public experiences only after the 3.0 competition foundation is stable, while continuing to prepare ArenaLine for additional equestrian disciplines and organization types.
 
 ---
 
 ## 2.1.x — Horse, Hoofprint, Course & Show Operations
 
-### 2.1.4 — Course & Show Operations
-
 **Status: released.**
 
-Completed scope includes Course Operations, horse season-eligibility enforcement, Show Horse List revisions, Hoofprint change/completeness checks, Horse of the Day history protection, protected show/course documents, and Show Day/presentation stabilization.
+The 2.1 line established the Horse & Hoofprint system and expanded show operations through course management and post-show history.
 
-The narrow `ShowPlanningItem.owner_id` compatibility extension remains intentionally in place and is deferred to the planned 2.9.x architectural cleanup.
+Major outcomes include:
 
-### 2.1.5 — Post-Show Horse History
+- Horse registry and season eligibility.
+- Show Horse Lists and Hoofprint workflows.
+- Course Operations and protected show/course documents.
+- Horse of the Day history protection.
+- Post-show horse-history snapshots and immutable finalization.
+- Horse Legacy statistics in Record Book and Season Review.
+- Historical preservation of horse usage and contribution.
 
-**Status: released.**
-
-Completed scope includes post-show horse-history snapshots, registry/leased-horse reconciliation, historical horse usage/contribution records, immutable finalization, Horse Legacy statistics in the Team Record Book, and Season Review horse history.
-
-The 2.1.x progression is intentionally:
+The 2.1 progression remains:
 
 > **2.1.3:** Are we ready for the show?  
 > **2.1.4:** Do we have everything needed to run the show?  
@@ -43,37 +44,21 @@ The 2.1.x progression is intentionally:
 
 ### 2.5.0 — Host Show Operations
 
-**Status: release stabilization. Feature scope complete and live-tested.**
+**Status: released.**
 
-v2.5.0 turns a show marked **Hosting & attending** into a dedicated host-operations workspace while reusing the portal's existing Show Planning, Courses, Schedule, Show Day, Horse/Hoofprint, Volunteer, and Finance systems rather than duplicating them.
+v2.5.0 turned a show marked **Hosting & attending** into a dedicated host-operations workspace while reusing ArenaLine's existing Show Planning, Courses, Schedule, Show Day, Horse/Hoofprint, Volunteer, and Finance systems.
 
-Completed scope:
+Major outcomes include:
 
-- Dedicated Host Shows index, Host Show Workspace, and Show Manager Dashboard.
-- New show-scoped **Show Manager** assignment, separate from Show Lead.
-- Coach/Admin assignment and removal of Show Managers; multiple managers are supported.
-- Show Managers manage assigned active hosted shows without receiving unrelated team-management or Finance authority.
-- Show Leads can review Host Workspace and Command Center information for their assigned show without inheriting Show Manager administration rights.
-- Host personnel roster for Show Secretary, Judge, Steward, Gate, Show Announcer, EMS, and other operational contacts.
-- Host plan for venue contact, arrival/check-in, trailer and spectator parking, warm-up/schooling, ring operations, volunteer check-in, hospitality, emergency information, show resources, family notes, and private host-team notes.
-- Readiness percentage and missing-item presentation.
-- Existing Finance hosting budget surfaced in Host Workspace and Show Manager Dashboard without duplicating budget/ledger models or granting transaction-level Finance access.
-- **Show-Day Command Center** with readiness checkpoints/deadlines, duty assignments, shifts, check-in, on-duty, handoff, and completion states.
-- Host duty assignments are operational staffing only and never create, satisfy, reduce, or alter normal `VolunteerLog` / season volunteer-hour requirements.
-- Explicit **Host Family Information** publication controls. Host information remains private until selected sections are deliberately published.
-- Family publication can selectively expose arrival/check-in, parking, warm-up, ring operations, hospitality, emergency information, prize-list/schedule links, and family notes.
-- Internal host notes, personnel records, readiness checkpoints, duties/handoffs, Command Center data, and budget information are never included on the family page.
-- Existing Show Day update audience filtering is reused for family-visible show-day updates.
-- Publication can be turned off without deleting the underlying host plan.
-- Show Manager dashboard is integrated into the shared role-dashboard selector.
-- Mobile, light/dark, empty-state, and partial-configuration presentation polish across host workflows.
-- Production 403/404/500 pages now honor the saved/system light/dark theme.
-- Explicit host-show lifecycle: status, not calendar date, controls whether a show is operational or historical.
-- **Complete** and **Cancelled** hosted shows move to Hosted Show History; Show Manager operational editing becomes read-only while historical review remains available.
-- Coach/Admin retain correction authority on archived host shows.
-- Host Workspace provides Coach/Admin **Mark Show Complete** and **Reopen Show** controls with confirmation before completion.
-- Already-published family information remains available after completion until explicitly unpublished.
-- Permission, lifecycle, presentation, family-publication, and role-matrix regression coverage.
+- Host Shows index, Host Show Workspace, and Show Manager Dashboard.
+- Show-scoped Show Manager assignments separate from Show Lead.
+- Host personnel roster and operational host plan.
+- Readiness tracking and Show-Day Command Center.
+- Host duty assignments, shifts, handoff, and completion tracking.
+- Selective Host Family Information publication.
+- Hosting budget visibility without broadening Finance permissions.
+- Hosted-show lifecycle, completion, reopening, and history.
+- Role, permission, lifecycle, and family-publication regression coverage.
 
 Data migrations introduced by v2.5.0:
 
@@ -81,60 +66,226 @@ Data migrations introduced by v2.5.0:
 - `0046_v250_host_show_duties.py`
 - `0047_v250_host_family_publication.py`
 
-Release stabilization now focuses only on final documentation, migration verification, complete regression testing, and production-release review. No additional v2.5.0 feature scope should be added without reopening release planning.
+---
+
+## 2.9.x — ArenaLine Foundation
+
+### 2.9.0 — ArenaLine Platform Transition
+
+**Status: released.**
+
+v2.9.0 completed the transition from a single-purpose IEA Team Portal presentation into the ArenaLine product/platform foundation while preserving the existing IEA competition domain.
+
+### Product and platform identity
+
+- Product identity moved to **ArenaLine**.
+- ArenaLine platform modules are now explicitly separated from the IEA competition module.
+- Generic organization/platform terminology is used where appropriate while real IEA concepts remain IEA-specific.
+- `Team` remains the persisted tenant model for compatibility, with organization service boundaries layered above it.
+- Module availability is separated from authorization.
+
+Current module boundaries:
+
+- `core`
+- `people`
+- `horses`
+- `competition_iea`
+- `operations`
+- `finance`
+- `communications`
+
+### Presentation and navigation
+
+- Shared ArenaLine visual identity and component styling.
+- Consolidated dashboard family.
+- Unified People & Families, Horse Registry, Competition, Operations, Communications, Finance, and Administration presentation.
+- Role- and permission-aware navigation.
+- Light/dark presentation cleanup.
+- Premium equestrian visual direction retained across the application.
+
+### Security and data boundaries
+
+- Organization/tenant boundary regression coverage.
+- Cross-organization access checks.
+- Rider/family privacy checks.
+- Finance access and export restrictions.
+- Delegated committee/role boundaries.
+- Show/operations visibility controls.
+- File and private-export access audit.
+
+### Deployment and release operations
+
+- Release identity now derives from a single root `VERSION` source.
+- Production/staging isolation is documented and regression-tested.
+- `portalctl` validates backups and performs deployment health checks.
+- Post-start checks cover PostgreSQL, Django, migrations, static assets, media storage, and gateway configuration.
+- Backup/restore and rollback procedures are documented.
+- A staging restore drill is part of release qualification.
+- v2.9.0 passed the final 359-test portal regression gate before production promotion.
+
+### Deferred intentionally to 3.0
+
+The following were explicitly not forced into v2.9 because they are better handled at the beginning of a major development line:
+
+- Official IEA Rulebook/Class Catalog reference data.
+- Remaining legacy template-local styling cleanup.
+- Further modularization of oversized view modules where materially useful.
 
 ---
 
-## 2.9.x — Layout, Architecture & Release Cleanup
+# 3.0.x — Competition Foundation & Housekeeping
 
-Focus: stabilize and simplify the application before v3 rather than introducing another large feature family.
+The first 3.0 work should strengthen the IEA competition model and finish deferred structural cleanup **before** beginning major new public-facing or cross-discipline feature work.
 
-Planned work includes:
+The detailed kickoff review is maintained in `docs/V3_0_KICKOFF_REVIEW.md`.
 
-- Complete modularization of remaining oversized view modules.
-- Normalize feature boundaries and URL modules.
-- Move temporary/dynamic model additions into clean model declarations, including `SeasonClass.class_code` and `Season.rides_per_contributed_horse`.
-- Remove temporary compatibility extensions and accumulated technical debt, including the v2.1.4 Show Planning `owner_id` compatibility property.
-- Integrate Show Manager workspace discovery directly into the dashboard architecture and remove the temporary `dashboard_workspace_extensions.py` compatibility patch.
-- Consolidate shared templates, page structures, navigation patterns, and reusable UI components.
-- Consolidate and simplify CSS while preserving the premium equestrian visual direction.
-- Review mobile navigation and role-specific navigation holistically.
-- Improve consistency between light and dark modes.
-- Fix and simplify `portalctl`, including explicit branch/ref update behavior and the current tag-fetch issue.
-- Expand regression and permission testing.
-- Normalize release notes, versioning, migrations, and branch/release practices.
-- Review database and permission boundaries in preparation for public-facing functionality.
+## 3.0.0 — IEA Rulebook & Class Catalog Foundation
 
-2.9.x should leave the application feeling intentionally designed rather than incrementally accumulated.
+**Priority: first substantive 3.0 feature.**
+
+ArenaLine should stop requiring organization administrators to manually define official IEA competition classes that are already governed by the IEA rulebook.
+
+Create versioned reference/source data for official IEA competition classes for:
+
+- Hunt Seat
+- Dressage
+- Western
+
+The catalog should be versioned by IEA rulebook / competition season so historical seasons retain the definitions that were valid at that time.
+
+Likely catalog fields include:
+
+- discipline;
+- class code / number;
+- official class name;
+- division / level;
+- team-level or eligibility grouping;
+- individual/team applicability;
+- team-scoring inclusion;
+- active status;
+- rulebook season/version;
+- display/sort order.
+
+### Intended data flow
+
+The planned relationship is:
+
+`IEAClassCatalog -> SeasonClass -> Rider season assignments -> ShowClass -> Entries/results -> Qualification`
+
+Expected administrator workflow:
+
+1. Create or activate an IEA season.
+2. Select the disciplines the organization participates in.
+3. Load the applicable official IEA class catalog for that rulebook season.
+4. Confirm which classes the organization participates in.
+5. Generate organization-specific `SeasonClass` records.
+6. Build show classes by selecting valid season classes rather than typing official classes free-form.
+
+`SeasonClass` remains organization-specific. The official catalog is reference data owned by `competition_iea`, not ArenaLine core.
+
+### Rule data
+
+Where supported by the applicable official rulebook, competition rules currently embedded in application logic should be reviewed for movement into versioned competition reference data. This includes items such as team-scoring eligibility and exclusions like H8/H14.
+
+No rule should be invented or inferred. Official source material must be verified before catalog content or historical rule behavior is migrated.
 
 ---
 
-## 3.x — Public / External Portal
+## 3.0.x — Legacy Presentation Cleanup
 
-Focus: create a polished external experience for people who do **not** have registered portal accounts.
+The second early 3.0 workstream is removal of presentation debt intentionally left untouched during the v2.9 stabilization release.
 
-Potential public experiences include public show landing pages, intentionally published show information, published results, appropriate team/rider results, mobile spectator views, and shareable show URLs.
+Initial work:
 
-### Public-by-explicit-publication principle
+1. Inventory remaining template-local `<style>` blocks.
+2. Identify rules made obsolete by the ArenaLine v2.9 shared presentation layers.
+3. Move reusable rules into shared CSS modules.
+4. Remove duplicate/legacy rules only after responsive and light/dark visual regression checks.
+5. Preserve behavior while changing presentation structure.
 
-**Nothing becomes public merely because it exists in the internal portal.**
+The first known candidate is:
 
-Public visibility must be an explicit action/state. A show or result must be deliberately published, public fields must be allow-listed, sensitive rider/parent/horse/financial/contact/operational information remains private by default, and unpublishing removes the external view without destroying internal history.
+- `templates/portal/calendar_v2.html`
 
-This principle is a foundational requirement for v3, not an optional enhancement.
+Calendar Month/Agenda behavior, filtering, and mobile switching must remain stable during cleanup.
 
 ---
 
-## Longer-term ideas
+## 3.0.x — Architecture Housekeeping
 
-These are intentionally not assigned to a release yet:
+Before large new 3.x feature families, revisit deferred architecture cleanup where it provides a meaningful ownership or maintenance benefit.
 
-- Convert an uploaded host Show Horse List into a temporary show-specific horse pool that can be matched to classes/riders without polluting the permanent team Horse Registry.
-- Public live-show/spectator views if the publishing model proves reliable.
-- Additional reporting and historical analytics based on the operational data accumulated throughout the 2.x line.
+Priorities include:
+
+- Continue modularizing oversized view modules where useful.
+- Keep generic platform behavior separate from discipline-specific competition behavior.
+- Preserve the organization service boundary introduced in v2.9.
+- Avoid unnecessary destructive schema renames merely to make internal naming more generic.
+- Review temporary compatibility layers and remove them only when regression coverage proves the replacement path.
+
+This work is housekeeping, not a license for a broad rewrite.
+
+---
+
+# Later 3.x — Public / External Experience
+
+Public/external functionality remains part of ArenaLine's longer 3.x direction, but it is **not the first 3.0 milestone**.
+
+Potential experiences include:
+
+- public show landing pages;
+- intentionally published show information;
+- published results;
+- appropriate team/rider results;
+- mobile spectator views;
+- shareable show URLs;
+- public live-show views where the publication model proves reliable.
+
+## Public-by-explicit-publication principle
+
+**Nothing becomes public merely because it exists inside ArenaLine.**
+
+Public visibility must always be explicit. Public fields must be allow-listed, and private rider, parent, horse, finance, contact, and operational information remains private by default. Unpublishing should remove the external view without destroying internal history.
+
+The security and organization boundaries validated in v2.9 are prerequisites for this work.
+
+---
+
+# Longer-term ArenaLine Platform Direction
+
+ArenaLine's platform architecture should allow future competition disciplines and broader equestrian-program workflows without forcing IEA-specific concepts into generic core modules.
+
+Longer-term ideas not yet assigned to a specific release include:
+
+- Additional competition modules with their own rule/class catalogs.
+- Broader barn/program management features outside competition operations.
+- Temporary show-specific horse pools built from uploaded host horse lists without polluting the permanent Horse Registry.
+- Richer historical analytics and reporting across seasons, riders, horses, shows, and operations.
+- Additional controlled external/public experiences.
+
+These remain directional ideas until assigned to a release plan.
+
+---
+
+## Roadmap guardrails
+
+- IEA-specific rules and terminology remain in `competition_iea`; generic ArenaLine core should not absorb them.
+- Official competition reference data must come from verified official sources.
+- Historical seasons must preserve the rule/class definitions applicable to those seasons.
+- Platform cleanup should not trigger destructive migrations solely for naming aesthetics.
+- Security, privacy, tenant boundaries, and explicit-publication behavior remain release gates.
+- Completed behavior should remain covered by regression tests before structural cleanup removes compatibility paths.
 
 ---
 
 ## Maintaining this roadmap
 
-`ROADMAP.md` is a release artifact and should travel with future releases. Update it in the same feature/release branch whenever development changes direction, preserve completed release descriptions, keep speculative ideas separate from committed work, and preserve the explicit-publication requirement for future public features.
+`ROADMAP.md` is the canonical product roadmap and should travel with releases.
+
+When development direction changes:
+
+- update this file in the active feature/release branch;
+- preserve concise summaries of completed release families;
+- keep detailed implementation notes in dedicated documents under `docs/`;
+- distinguish committed near-term work from longer-term ideas;
+- keep `docs/V3_0_KICKOFF_REVIEW.md` aligned with the active 3.0 work until those items are completed.
