@@ -74,9 +74,6 @@ class SeasonClassForm(_LegacySeasonClassForm):
         super().__init__(*args, season=season, **kwargs)
         self.season = season or (self.instance.season if self.instance and self.instance.pk else None)
         self.catalog_configuration = None
-
-        # Manual/special classes remain supported, so these fields become
-        # conditionally required in clean() rather than at field parsing time.
         self.fields["name"].required = False
         self.fields["team_level"].required = False
         self.fields["discipline"].required = False
@@ -125,9 +122,6 @@ class SeasonClassForm(_LegacySeasonClassForm):
             if entry.rulebook_season != config.rulebook_season or entry.discipline not in config.disciplines:
                 self.add_error("official_catalog_entry", "Choose a class from this season's configured IEA catalog.")
                 return cleaned
-
-            # New rows and newly linked legacy rows are canonicalized immediately.
-            # Existing linked rows only refresh when the admin explicitly asks.
             if not self.instance.pk or current_entry_id != entry.pk or sync_requested:
                 cleaned["name"] = entry.official_name
                 cleaned["team_level"] = entry.team_level
@@ -135,9 +129,6 @@ class SeasonClassForm(_LegacySeasonClassForm):
                 cleaned["sort_order"] = entry.sort_order
                 cleaned.setdefault("active", True)
         else:
-            # Clearing the selector on an already-linked row does not silently
-            # unlink historical data. Keep the existing link unless a future
-            # explicit unlink workflow is introduced.
             if current_entry_id:
                 entry = self.instance.catalog_entry
             if not (cleaned.get("name") or "").strip():
@@ -199,10 +190,20 @@ class _CatalogAwareSeasonClassChoiceField(forms.ModelChoiceField):
 class ShowClassForm(_LegacyShowClassForm):
     """Catalog-aware ShowClass form for ArenaLine v3.
 
-    Catalog-backed classes are the normal IEA path. Existing manual/special
-    SeasonClass rows remain usable only with an explicit exception acknowledgement.
+    Normal IEA classes reference SeasonClass. Official show-only offerings such
+    as warm-ups reference the catalog directly and never become rider season
+    assignments.
     """
 
+    official_show_only_class = _CatalogEntryChoiceField(
+        queryset=IEAClassCatalogEntry.objects.none(),
+        required=False,
+        label="Official show-only IEA class",
+        help_text=(
+            "Optional rulebook-defined offering for this show only. These classes are not "
+            "added to rider season assignments and do not earn season points."
+        ),
+    )
     use_manual_special_class = forms.BooleanField(
         required=False,
         label="Use a manual / special-case season class",
@@ -215,6 +216,8 @@ class ShowClassForm(_LegacyShowClassForm):
     def __init__(self, *args, show=None, **kwargs):
         super().__init__(*args, show=show, **kwargs)
         self.show = show
+        self.catalog_configuration = None
+        self.fields["season_class"].required = False
         if not show:
             return
 
@@ -234,31 +237,70 @@ class ShowClassForm(_LegacyShowClassForm):
             ).exclude(pk__in=used)
             available = available.distinct()
 
+            used_show_only = show.classes.exclude(
+                pk=getattr(self.instance, "pk", None)
+            ).exclude(catalog_entry__isnull=True).values_list("catalog_entry_id", flat=True)
+            self.fields["official_show_only_class"].queryset = IEAClassCatalogEntry.objects.filter(
+                rulebook_season=config.rulebook_season,
+                discipline__in=config.disciplines,
+                active=True,
+                season_assignable=False,
+            ).exclude(pk__in=used_show_only).order_by(
+                "discipline", "team_level", "sort_order", "class_code"
+            )
+        else:
+            self.fields["official_show_only_class"].queryset = IEAClassCatalogEntry.objects.none()
+            self.fields["official_show_only_class"].help_text = (
+                "Configure the season's IEA Class Catalog first to use official show-only offerings."
+            )
+
         field = _CatalogAwareSeasonClassChoiceField(
             queryset=available.select_related("catalog_entry").order_by(
                 "discipline", "team_level", "sort_order", "name"
             ),
+            required=False,
             label="Season class",
             help_text=(
-                "Official IEA catalog classes are the normal choice. Manual/special-case "
+                "Official IEA season classes are the normal choice. Manual/special-case "
                 "classes require the exception checkbox below."
             ) if config else self.fields["season_class"].help_text,
         )
         if getattr(self.instance, "season_class_id", None):
             field.initial = self.instance.season_class_id
         self.fields["season_class"] = field
+        if getattr(self.instance, "catalog_entry_id", None) and not getattr(self.instance, "season_class_id", None):
+            self.initial.setdefault("official_show_only_class", self.instance.catalog_entry_id)
 
     def clean(self):
         cleaned = super().clean()
         season_class = cleaned.get("season_class")
-        if not season_class or not self.show:
+        show_only = cleaned.get("official_show_only_class")
+        if not self.show:
+            return cleaned
+
+        if season_class and show_only:
+            self.add_error("official_show_only_class", "Choose either a season class or a show-only class, not both.")
+            return cleaned
+        if not season_class and not show_only:
+            self.add_error("season_class", "Choose a season class or an official show-only IEA class.")
+            return cleaned
+
+        config = self.catalog_configuration
+        if show_only:
+            if not config:
+                self.add_error("official_show_only_class", "Configure the season's IEA Class Catalog first.")
+                return cleaned
+            if (
+                show_only.rulebook_season != config.rulebook_season
+                or show_only.discipline not in config.disciplines
+                or show_only.season_assignable
+            ):
+                self.add_error("official_show_only_class", "Choose a show-only class from this season's configured IEA catalog.")
             return cleaned
 
         if season_class.season_id != self.show.season_id or not season_class.active:
             self.add_error("season_class", "Choose an active class from this show's season.")
             return cleaned
-
-        config = getattr(self, "catalog_configuration", None)
         if not config:
             return cleaned
 
@@ -279,5 +321,21 @@ class ShowClassForm(_LegacyShowClassForm):
                 "use_manual_special_class",
                 "Confirm the manual/special-case exception to use this non-catalog class.",
             )
-
         return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        show_only = self.cleaned_data.get("official_show_only_class")
+        if show_only:
+            obj.season_class = None
+            obj.catalog_entry = show_only
+            obj.name = show_only.official_name
+            obj.discipline = show_only.discipline
+            obj.class_number = show_only.class_code
+            obj.sort_order = show_only.sort_order
+        else:
+            obj.catalog_entry = None
+        if commit:
+            obj.save()
+            self.save_m2m()
+        return obj
