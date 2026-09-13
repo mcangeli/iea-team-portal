@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}Alumni / Former Riders{% endblock %}
+{% block title %}Alumni / Former Riders · ArenaLine{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation">
   <a href="{% url 'rider_list' %}">← Back to current riders</a>
@@ -7,9 +7,9 @@
 
 <div class="page-title">
   <div>
-    <div class="eyebrow">ROSTER ARCHIVE</div>
+    <div class="eyebrow">ARENALINE · PEOPLE</div>
     <h1>Alumni / Former Riders</h1>
-    <p>Former riders stay connected to their season history, results, awards, photos, and Record Book contributions without appearing in current team operations.</p>
+    <p>Former riders stay connected to their season history, results, awards, photos, and Record Book contributions without appearing in current organization operations.</p>
   </div>
 </div>
 
@@ -22,7 +22,7 @@
 
 <section class="roster-section">
   <div class="section-head">
-    <div><div class="eyebrow">HISTORICAL ROSTER</div><h2>Former team riders</h2></div>
+    <div><div class="eyebrow">HISTORICAL ROSTER</div><h2>Former riders</h2></div>
     <span class="roster-count">{{ former_riders|length }} riders</span>
   </div>
   <div class="rider-grid">
