@@ -45,3 +45,24 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertIn("ARENALINE · TEAM HUB", my_team)
         self.assertIn("Show Manager · ArenaLine", show_manager)
         self.assertIn("ARENALINE · SHOW HOST OPERATIONS", show_manager)
+
+    def test_shell_exposes_arenaline_domain_navigation(self):
+        base = (Path(settings.BASE_DIR) / "templates/base.html").read_text()
+
+        for module_id in (
+            'data-module="core"',
+            'data-module="people"',
+            'data-module="horses"',
+            'data-module="competition_iea"',
+            'data-module="operations"',
+            'data-module="finance"',
+            'data-module="communications"',
+        ):
+            self.assertIn(module_id, base)
+
+        self.assertIn("People & families", base)
+        self.assertIn("Horse management", base)
+        self.assertIn("IEA competition", base)
+        self.assertIn("Everyday operations", base)
+        self.assertIn("Organization administration", base)
+        self.assertIn("ArenaLine' }} · Equestrian operations", base)
