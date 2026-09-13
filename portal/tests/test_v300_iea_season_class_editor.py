@@ -42,7 +42,10 @@ class IEASeasonClassEditorTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Official IEA class")
         self.assertContains(response, "H1")
-        self.assertContains(response, self.h1.official_name)
+        form = response.context["form"]
+        official_field = form.fields["official_catalog_entry"]
+        self.assertTrue(official_field.queryset.filter(pk=self.h1.pk).exists())
+        self.assertIn(self.h1.official_name, official_field.label_from_instance(self.h1))
 
     def test_create_from_official_catalog_populates_canonical_fields(self):
         response = self.client.post(
