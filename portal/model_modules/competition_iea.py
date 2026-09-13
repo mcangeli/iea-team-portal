@@ -6,7 +6,7 @@ from django.db import models
 class IEAClassCatalogEntry(models.Model):
     """Immutable-by-version reference definition for an official IEA class.
 
-    Organization-specific participation remains on ``SeasonClass``.  This
+    Organization-specific participation remains on ``SeasonClass``. This
     model stores the official rulebook definition so later IEA rulebook
     seasons can coexist with historical definitions instead of mutating them.
     """
@@ -59,3 +59,20 @@ class IEAClassCatalogEntry(models.Model):
 
     def __str__(self):
         return f"{self.rulebook_season} · {self.class_code} · {self.official_name}"
+
+
+# ``portal.models`` remains the legacy home of SeasonClass during the 3.0
+# architecture transition. PortalConfig imports this module only after the
+# primary models module has loaded, so the field can be contributed here while
+# keeping the IEA reference dependency inside the competition domain.
+from portal.models import SeasonClass  # noqa: E402
+
+_catalog_entry_field = models.ForeignKey(
+    IEAClassCatalogEntry,
+    on_delete=models.PROTECT,
+    null=True,
+    blank=True,
+    related_name="season_classes",
+    help_text="Optional official IEA class definition for this season-specific class.",
+)
+_catalog_entry_field.contribute_to_class(SeasonClass, "catalog_entry")
