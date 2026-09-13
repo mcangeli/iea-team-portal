@@ -4,63 +4,63 @@
 
 Preview 5 verifies that ArenaLine's current role model, organization boundary, and delegated responsibilities are enforced by server-side data access rather than only by navigation or presentation.
 
-This phase should prefer explicit scoping and denial over convenience. A user who guesses or receives a URL must not gain access to records outside the organization, family, rider, season, Finance scope, or delegated show responsibility they are allowed to see.
+This phase prefers explicit scoping and denial over convenience. A user who guesses or receives a URL must not gain access to records outside the organization, family, rider, season, Finance scope, or delegated show responsibility they are allowed to see.
 
-## Security boundaries under review
+## Security boundaries reviewed
 
 ### 1. Organization / tenant boundary
 
 - ordinary authenticated users must resolve an assigned organization;
-- object lookups must be scoped to the current organization directly or through a trusted parent relation;
+- object lookups are scoped to the current organization directly or through a trusted parent relation;
 - records from another organization must not be readable, editable, deleted, exported, or downloaded by changing a primary key in a URL;
-- the legacy unassigned-superuser compatibility behavior remains explicit and should not leak into ordinary accounts.
+- the legacy unassigned-superuser compatibility behavior remains explicit and does not leak into ordinary accounts.
 
 ### 2. People & family privacy
 
-- Parent/Guardian accounts may see only riders linked to their family relationships;
+- Parent/Guardian accounts may see only riders linked to their family relationships for private data;
 - Rider accounts may see only their own private rider information;
 - Coach/Admin access remains broader as defined by the current product role model;
-- private contact, profile, family-account, and rider-development information must use the private visibility helpers rather than roster visibility alone.
+- private contact, profile, family-account, and rider-development information uses the private visibility helpers rather than roster visibility alone.
 
 ### 3. Finance
 
-- Rider accounts must never receive Finance authority;
+- Rider accounts never receive Finance authority;
 - Admin/Superuser Finance authority remains organization-scoped;
 - Treasurer delegation is season-scoped;
-- Family Account access must be limited to Finance-authorized users or the appropriate linked family according to the existing family-account contract;
-- ledger, receipts, exports, reimbursement artifacts, assistance, dues, fundraising, and show-finance objects must be scoped before lookup or download.
+- Family Account access is limited to Finance-authorized users or the appropriate linked family according to the existing family-account contract;
+- ledger, receipts, exports, reimbursement artifacts, assistance, dues, fundraising, and show-finance objects are scoped before lookup or download.
 
 ### 4. Delegated roles
 
 - Points Secretary authority is limited to points/qualification responsibilities;
 - Team Parent roles are limited to their Futures or Upper coordination boundaries;
 - Show Lead authority is limited to the assigned show and appropriate show-planning/show-day responsibilities;
-- committee assignment must never silently upgrade a Parent/Rider account to general Coach/Admin authority.
+- committee assignment does not silently upgrade a Parent/Rider account to general Coach/Admin authority.
 
 ### 5. Competition and show-day privacy
 
 - point-rider designations remain hidden from Rider/Parent surfaces where required;
 - family-facing show-day views expose only family-visible/published operational information;
 - show-planning items respect `family_visible` and team-level boundaries;
-- Hoofprint/horse-management mutation remains Coach/Admin or explicitly authorized workflow access.
+- Hoofprint/horse-management mutation remains Coach/Admin or explicitly authorized Show Lead workflow access.
 
 ### 6. Mutations and destructive actions
 
-- POST endpoints must re-check server-side authority;
-- mutations must scope the target object to the current organization/season/show before changing it;
+- POST endpoints re-check server-side authority;
+- mutations scope the target object to the current organization/season/show before changing it;
 - archived-season protections remain enforced;
-- delete/void/unlink operations should fail closed on mismatched ownership or organization.
+- delete/void/unlink operations fail closed on mismatched ownership or organization.
 
 ### 7. Exports, files, and downloads
 
-- CSV exports must apply the same data visibility rules as their HTML views;
-- receipts/documents must verify access before serving files;
+- CSV exports apply the same data visibility rules as their HTML views;
+- receipts/documents verify access before serving files;
 - historical imports and administrative uploads remain management-only;
-- no file URL should become an authorization bypass.
+- file-serving routes do not become an authorization bypass.
 
 ## Existing baseline controls confirmed at Preview 5 start
 
-The current v2.9 code already provides several important shared controls:
+The current v2.9 code already provided several important shared controls:
 
 - `organization_for_view_user()` requires an organization for ordinary accounts while retaining the explicit superuser compatibility case;
 - `_visible_riders()` narrows Parent accounts to linked riders and Rider accounts to themselves;
@@ -70,11 +70,11 @@ The current v2.9 code already provides several important shared controls:
 - `_finance_season_ids()` constrains delegated Treasurer access to assigned seasons;
 - Finance dashboard/audit queries begin from the current organization and permitted seasons.
 
-These helpers are the baseline contract; Preview 5 verifies that individual endpoints consistently use them.
+These helpers became the baseline contract for the endpoint-by-endpoint Preview 5 audit.
 
 ## Preview 5A — shared boundary baseline
 
-Implemented and staging-validated:
+Staging-validated:
 
 - regression coverage for the organization boundary and shared visibility/Finance helper contract;
 - retained the explicit unassigned-superuser compatibility behavior while requiring organization assignment for ordinary accounts;
@@ -83,7 +83,7 @@ Implemented and staging-validated:
 
 ## Preview 5B — cross-organization direct-object probe
 
-Implemented and staging-validated:
+Staging-validated:
 
 - added `portal/tests/test_v290_preview5_cross_organization.py`;
 - creates two independent organizations and logs in as an Administrator for Organization A;
@@ -102,7 +102,7 @@ Representative probes cover:
 
 ## Preview 5C — private data, nested mutations, exports, and files
 
-Implemented and staging-validated:
+Staging-validated:
 
 - added `portal/tests/test_v290_preview5_private_exports.py`;
 - verifies Parent/Guardian private-rider access is family-specific rather than organization-wide;
@@ -113,7 +113,7 @@ Implemented and staging-validated:
 - confirms foreign guardian-link, show-class, and family-finance child objects fail before mutation;
 - protects the receipt route expectation that authorization/object lookup happens before stored-file access.
 
-Code review for this slice also confirms:
+Code review also confirmed:
 
 - rider/parent CSV exports begin from the current organization and require management authority;
 - Finance report/export querysets begin from the current organization and re-check Finance authorization;
@@ -126,7 +126,7 @@ A deliberate product distinction is retained: same-organization users may see th
 
 ## Preview 5D — Competition, Hoofprint, and delegated-role boundaries
 
-Implemented; awaiting staging validation:
+Staging-validated:
 
 - added `portal/tests/test_v290_preview5_delegated_roles.py`;
 - verifies Points Secretary can manage competition results and see the season review while remaining blocked from general show administration, historical imports, Horse Registry management, and Finance;
@@ -135,36 +135,58 @@ Implemented; awaiting staging validation:
 - verifies Show Lead does not gain general show editing, Horse Registry creation, or Finance authority;
 - verifies delegated roles receive `404` rather than foreign organization data when a Hoofprint/show URL contains another organization's show ID.
 
-Code review for this slice confirms:
+Code review confirmed:
 
 - scoring/result mutation first resolves the ShowEntry through the current organization and then applies season-scoped points authority;
 - historical CSV entry/import/template routes remain Coach/Admin management-only and scope the season to the current organization;
 - Hoofprint and uploaded horse-list routes scope the show to the current organization before rendering, mutating, or serving a child document;
 - Hoofprint finalization and horse-list upload require `_can_manage_show_horses()`, which is Coach/Admin or Show Lead for that specific show;
 - show-planning access computes allowed team levels from the user's current delegated role, and individual planning-item mutations re-check both visibility and item-level authority;
-- existing prize-list schedule coverage already verifies Futures/Upper Team Parent edits stay squad-scoped and Rider accounts remain read-only even if a committee assignment is attached accidentally.
+- existing prize-list schedule coverage verifies Futures/Upper Team Parent edits stay squad-scoped and Rider accounts remain read-only even if a committee assignment is attached accidentally.
 
-## Audit sequence
+## Preview 5E — Operations and Communications access
+
+Staging-validated:
+
+- added `portal/tests/test_v290_preview5_operations_access.py`;
+- verifies private Calendar events remain hidden from Parent/Rider accounts;
+- verifies foreign-organization Calendar events fail closed;
+- verifies Parents may RSVP only for linked riders;
+- verifies Lesson detail access requires a visible/linked rider for non-managers;
+- verifies Volunteer review remains management-only and organization-scoped;
+- verifies hidden Action Items cannot be claimed through a guessed URL while family-visible claimable items remain usable;
+- verifies Notifications may only be marked read by their actual owner.
+
+Code review confirmed:
+
+- Calendar list/detail visibility is filtered server-side;
+- lesson attendance visibility is narrowed through `_visible_riders()` for non-managers;
+- volunteer submission constrains the selectable rider queryset and volunteer review requires management authority;
+- RSVP resolves both the event and rider through organization/visibility-scoped querysets;
+- Action Item claim/complete routes resolve through `_visible_action_items()` before mutation;
+- Notification mutation is scoped directly to `user=request.user`.
+
+## Final audit sequence
 
 1. ~~Platform/organization boundary and shared permission helpers.~~
-2. ~~People / family privacy and account linking baseline.~~
-3. ~~Finance and financial downloads/exports baseline.~~
-4. Competition, scoring, history, and Hoofprint access — delegated-role baseline implemented; staging validation pending.
-5. Operations, calendar, lessons, volunteer, and communications access.
-6. Show Lead / Team Parent / Points Secretary delegated-role matrix — implemented; staging validation pending.
-7. Cross-organization IDOR sweep — direct objects and representative nested mutations/download boundaries covered.
+2. ~~People / family privacy and account linking.~~
+3. ~~Finance and financial downloads/exports.~~
+4. ~~Competition, scoring, history, and Hoofprint access.~~
+5. ~~Operations, calendar, lessons, volunteer, and communications access.~~
+6. ~~Show Lead / Team Parent / Points Secretary delegated-role matrix.~~
+7. ~~Cross-organization IDOR sweep, including representative nested mutations/download boundaries.~~
 8. Final regression matrix and closeout.
 
-## Guardrails
+## Guardrails retained
 
 - Do not broaden permissions to make tests pass.
 - Prefer organization-scoped `get_object_or_404(...)` patterns over fetching globally and checking afterward.
 - Keep module availability separate from authorization.
 - Preserve genuine IEA role/domain behavior unless a security issue requires narrowing access.
-- No schema changes should be introduced unless a concrete security gap cannot be closed safely at the service/query layer.
+- No schema changes were required for Preview 5.
 
 ## Validation strategy
 
-Preview 5 adds focused tests that intentionally create two organizations and attempt cross-organization access using guessed primary keys. It also exercises Parent, Rider, Coach/Admin, Treasurer, Points Secretary, Team Parent, and Show Lead accounts against both allowed and denied endpoints.
+Preview 5 focused tests intentionally create multiple organizations and exercise guessed primary keys, nested objects, family relationships, delegated roles, exports, files, POST mutations, and archived-season protections.
 
-The full `portal` suite remains the final regression gate for every Preview 5 slice.
+The full `portal` suite remains the final regression gate for Preview 5 closeout.
