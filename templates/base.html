@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="{% static 'css/dashboard-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/people-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/horses-v290.css' %}">
+  <link rel="stylesheet" href="{% static 'css/competition-v290.css' %}">
 </head>
 <body class="{% if not user.is_authenticated %}auth-shell {% endif %}section-{{ request.resolver_match.url_name|default:'portal' }}"{% if portal_organization.branding.hero_image %} style="--team-hero-image:url('{{ portal_organization.branding.hero_image.url }}');--team-hero-position:{{ portal_organization.branding.hero_image_position }};"{% endif %}>
 <header class="topbar">
