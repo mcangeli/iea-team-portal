@@ -4,14 +4,23 @@ from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
+from portal.models import Team
+
 
 class ArenaLineOrganizationShellTests(TestCase):
-    def test_login_context_exposes_generic_organization_contract_and_compat_alias(self):
+    def test_login_context_exposes_generic_contract_without_tenant_identity(self):
+        Team.objects.create(name="Example Riding Organization", short_name="Example")
+
         response = self.client.get(reverse("login"))
+
         self.assertEqual(response.status_code, 200)
         self.assertIn("portal_organization", response.context)
         self.assertIn("portal_team", response.context)
-        self.assertIs(response.context["portal_organization"], response.context["portal_team"])
+        self.assertIsNone(response.context["portal_organization"])
+        self.assertIsNone(response.context["portal_team"])
+        self.assertContains(response, "ArenaLine")
+        self.assertContains(response, "One team. One season. One place to manage it.")
+        self.assertNotContains(response, "Example Riding Organization")
 
     def test_base_shell_uses_generic_organization_context(self):
         base = (Path(settings.BASE_DIR) / "templates/base.html").read_text()
