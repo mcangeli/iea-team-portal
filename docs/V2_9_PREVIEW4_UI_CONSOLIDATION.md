@@ -101,6 +101,20 @@ Implemented:
 
 The remaining calendar inline presentation cleanup is explicitly deferred to the ArenaLine 3.0 kickoff review in `docs/V3_0_KICKOFF_REVIEW.md`.
 
+## Preview 4G — Finance presentation
+
+Implemented:
+
+- added `static/css/finance-v290.css` as the shared ArenaLine finance presentation layer;
+- loaded the finance layer from the shared ArenaLine base template;
+- aligned finance summary metrics, receivable/assistance summary links, treasurer attention cards, account balances, budget/actual tables, and ledger amounts;
+- aligned family-account charges, payments, credits, service agreements, assistance awards/claims, and fundraising summaries with the same visual hierarchy;
+- improved responsive behavior for finance action groups, summary grids, family ledger rows, and assistance details;
+- retained all finance permissions, transaction behavior, balance calculations, dues generation, payment voiding, assistance handling, service credits, receivable calculations, and fundraising behavior unchanged;
+- added focused regression coverage protecting both the finance presentation layer and the existing family-account/receivable workflow hooks.
+
+Preview 4G is presentation-only. No accounting calculation, financial permission, transaction, dues, family balance, assistance, reimbursement, or fundraising logic is changed.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
@@ -110,7 +124,7 @@ The remaining Preview 4 work should proceed module by module:
 3. ~~Horses presentation.~~
 4. ~~IEA Competition presentation.~~
 5. ~~Operations / Communications presentation.~~
-6. Finance presentation.
+6. ~~Finance presentation.~~
 7. Administration / forms / destructive-action consistency.
 8. Responsive and light/dark final polish.
 
@@ -132,7 +146,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_preview4_finance portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -140,7 +154,7 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation, dashboard-family, People / Families, Horses, Competition, and Operations tests pass;
+- Preview 4 presentation, dashboard-family, People / Families, Horses, Competition, Operations, and Finance tests pass;
 - the full portal regression suite remains green;
-- dashboards, People / Families, horse-management, competition, calendar, action-item, lesson, volunteer, and committee screens render consistently in both light and dark modes;
-- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, and operational workflow behavior remain unchanged.
+- dashboards and all completed Preview 4 module surfaces render consistently in both light and dark modes;
+- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, operational workflows, and finance behavior remain unchanged.
