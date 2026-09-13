@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
-{% block title %}Action Items{% endblock %}
+{% block title %}Action Items · ArenaLine{% endblock %}
 {% block content %}
-<div class="section-head"><div><div class="eyebrow">TEAM HUB</div><h1>Action items</h1><p>Assignments, sign-ups, supplies, paperwork, and other things the team needs to get done.</p></div>
+<div class="section-head"><div><div class="eyebrow">ARENALINE · OPERATIONS</div><h1>Action items</h1><p>Assignments, sign-ups, supplies, paperwork, and other things the organization needs to get done.</p></div>
 {% if can_manage %}<a class="btn" href="{% url 'action_item_create' %}">Add action item</a>{% endif %}</div>
 
 <div class="filter-tabs"><a class="{% if not show_completed %}active{% endif %}" href="{% url 'action_item_list' %}">Open</a><a class="{% if show_completed %}active{% endif %}" href="?completed=1">Include completed</a></div>
