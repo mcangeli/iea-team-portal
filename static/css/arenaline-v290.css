@@ -269,6 +269,142 @@ html[data-theme="dark"] .page-intro{border-bottom-color:color-mix(in srgb,var(--
 html[data-theme="dark"] .card,
 html[data-theme="dark"] .stat-card,
 html[data-theme="dark"] .empty-state{box-shadow:0 14px 34px rgba(0,0,0,.12)}
+
+/* Preview 4: shared presentation contract. */
+.page-title,.page-intro{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:clamp(18px,3vw,34px);
+  margin:0 0 24px;
+}
+.page-title>div:first-child,.page-intro>div:first-child{min-width:0}
+.page-title h1,.page-intro h1{
+  margin:.08em 0 .16em;
+  color:var(--heading);
+  font-size:clamp(2.35rem,4vw,3.9rem);
+  line-height:.98;
+}
+.page-title p,.page-intro p{
+  max-width:720px;
+  margin:.25rem 0 0;
+  color:var(--muted);
+  font-size:.98rem;
+}
+.page-title .actions,.page-intro .actions{
+  justify-content:flex-end;
+  align-items:center;
+  max-width:620px;
+}
+.actions .btn{white-space:nowrap}
+.btn.secondary{
+  background:var(--surface);
+  color:var(--heading);
+  border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line));
+}
+.btn.secondary:hover{
+  background:var(--surface-soft);
+  border-color:color-mix(in srgb,var(--arena-gold) 42%,var(--line));
+  box-shadow:none;
+}
+.content-section{margin-top:42px}
+.section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+  margin:0 0 16px;
+}
+.section-head>div:first-child{min-width:0}
+.section-head h2{margin:.08em 0 0;font-size:clamp(1.7rem,2.4vw,2.15rem)}
+.section-head p{margin:.3rem 0 0;color:var(--muted)}
+.card,.empty-state,.form-card,.class-card,.finance-stat,.finance-summary-link,.finance-account-card{
+  background:var(--surface);
+  border-color:color-mix(in srgb,var(--arena-gold) 12%,var(--line));
+  box-shadow:0 8px 24px color-mix(in srgb,var(--arena-navy) 5%,transparent);
+}
+.empty-state{
+  min-height:86px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border-style:dashed;
+}
+.entry-table-wrap{
+  border:1px solid color-mix(in srgb,var(--arena-gold) 12%,var(--line));
+  border-radius:16px;
+  background:var(--surface);
+  overflow:auto;
+}
+.entry-table th{
+  background:var(--surface-soft);
+  color:var(--muted);
+}
+.entry-table tbody tr:hover td{background:color-mix(in srgb,var(--surface-soft) 45%,transparent)}
+.form-card{
+  border:1px solid color-mix(in srgb,var(--arena-gold) 16%,var(--line));
+  box-shadow:var(--arena-shadow);
+}
+.form-card label,.field-wrap label{color:var(--heading)}
+.form-card input,.form-card select,.form-card textarea,.auth-card input{
+  background:var(--control-bg);
+  color:var(--ink);
+  border-color:var(--control-border);
+}
+.form-card input:focus,.form-card select:focus,.form-card textarea:focus,.auth-card input:focus{
+  border-color:var(--arena-blue);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--arena-blue) 16%,transparent);
+}
+.dashboard-workspaces{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.55rem;
+  margin:1rem 0;
+  clear:both;
+}
+.dashboard-hero + .club-summary{margin-top:1.25rem}
+.dashboard-workspaces + .club-summary{margin-top:1rem}
+.dashboard-workspace-link{
+  display:inline-flex;
+  align-items:center;
+  min-height:2.25rem;
+  padding:.45rem .8rem;
+  border:1px solid color-mix(in srgb,var(--arena-gold) 14%,var(--line));
+  border-radius:999px;
+  background:var(--surface);
+  color:var(--nav-text);
+  text-decoration:none;
+  font-size:.86rem;
+  font-weight:700;
+  letter-spacing:.01em;
+  transition:.15s ease;
+}
+.dashboard-workspace-link:hover,.dashboard-workspace-link.active{
+  color:var(--heading);
+  border-color:color-mix(in srgb,var(--arena-gold) 48%,var(--line));
+  transform:translateY(-1px);
+}
+.filter-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.45rem;
+  margin:0 0 26px;
+}
+.filter-tabs a{
+  border:1px solid color-mix(in srgb,var(--arena-gold) 12%,var(--line));
+  background:var(--surface);
+  color:var(--nav-text);
+}
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .empty-state,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .class-card,
+html[data-theme="dark"] .finance-stat,
+html[data-theme="dark"] .finance-summary-link,
+html[data-theme="dark"] .finance-account-card{
+  box-shadow:0 14px 34px rgba(0,0,0,.14);
+}
 @media(max-width:760px){
   .brand-mark.arena-mark{width:32px;height:32px}
   .arena-footer-signature{width:100%;justify-content:center;margin-bottom:2px}
@@ -276,4 +412,8 @@ html[data-theme="dark"] .empty-state{box-shadow:0 14px 34px rgba(0,0,0,.12)}
   .login-intro{min-height:180px}
   .login-intro:before{width:124%;height:64%;left:-18%;top:20%}
   .login-intro:after{left:-14%;right:-16%;bottom:25%}
+  .page-title,.page-intro,.section-head{align-items:flex-start;flex-direction:column}
+  .page-title .actions,.page-intro .actions{justify-content:flex-start;max-width:none}
+  .dashboard-workspaces{flex-wrap:nowrap;overflow-x:auto;padding:.15rem 0 .4rem;scrollbar-width:thin}
+  .dashboard-workspace-link{flex:0 0 auto}
 }
