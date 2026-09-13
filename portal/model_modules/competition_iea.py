@@ -103,7 +103,7 @@ class IEASeasonCatalogConfiguration(models.Model):
 # the primary models module has loaded, so IEA reference fields can be
 # contributed here without moving competition-specific dependencies into the
 # generic ArenaLine models module.
-from portal.models import SeasonClass, ShowClass  # noqa: E402
+from portal.models import SeasonClass, ShowClass, ShowResult  # noqa: E402
 
 _catalog_entry_field = models.ForeignKey(
     IEAClassCatalogEntry,
@@ -126,6 +126,19 @@ _show_catalog_entry_field = models.ForeignKey(
 _show_catalog_entry_field.contribute_to_class(ShowClass, "catalog_entry")
 
 
+def _catalog_aware_show_class_team_level(instance):
+    if instance.season_class_id:
+        return instance.season_class.team_level
+    if getattr(instance, "catalog_entry_id", None):
+        return instance.catalog_entry.team_level
+    return "both"
+
+
+# Replace the legacy fallback property so show-only catalog classes retain their
+# official Futures/Upper identity throughout existing display and permission code.
+ShowClass.team_level = property(_catalog_aware_show_class_team_level)
+
+
 @receiver(pre_save, sender=ShowClass)
 def snapshot_direct_iea_show_class(sender, instance, **kwargs):
     """Snapshot a direct show-only catalog entry onto legacy ShowClass fields."""
@@ -137,3 +150,15 @@ def snapshot_direct_iea_show_class(sender, instance, **kwargs):
     instance.class_number = entry.class_code
     if not instance.sort_order:
         instance.sort_order = entry.sort_order
+
+
+@receiver(pre_save, sender=ShowResult)
+def suppress_points_for_non_scoring_catalog_class(sender, instance, **kwargs):
+    """Official show-only warm-ups never earn ArenaLine individual/team points."""
+    if not instance.entry_id:
+        return
+    show_class = instance.entry.show_class
+    entry = getattr(show_class, "catalog_entry", None)
+    if entry and not entry.individual_points_enabled and not entry.team_points_enabled:
+        instance.points = None
+        instance.manual_points = False
