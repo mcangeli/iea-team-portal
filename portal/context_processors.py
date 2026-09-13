@@ -1,6 +1,7 @@
 from .models import ActionItem, CommitteeAssignment
 from .modules import (
     ARENA_MODULES,
+    DEFAULT_ENABLED_MODULES,
     enabled_modules_for_organization,
 )
 from .platform import (
