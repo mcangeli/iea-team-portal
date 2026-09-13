@@ -83,7 +83,18 @@ Implemented:
 - changed generic audit-log presentation from “Team audit log” to “Organization audit log” while keeping stored Team-backed audit data unchanged;
 - added focused regression coverage for the compatibility semantics and administration-domain boundary.
 
-People/roster remains the next generic domain to migrate; genuine IEA team assignment and competition language within that module will remain intact.
+## Preview 3G — People / roster compatibility seam
+
+Implemented:
+
+- routed the shared legacy `_team()` compatibility helper through `organization_for_view_user()`;
+- removed direct `UserProfile.team` storage knowledge from the shared tenant resolver;
+- allowed People/Roster and remaining legacy callers to inherit the ArenaLine organization boundary without a broad behavioral rewrite;
+- preserved the existing superuser/no-profile behavior and ordinary-user assignment requirement through the platform service;
+- retained persisted `team` relationships and explicit IEA roster semantics such as Futures/Upper assignments and IEA member identifiers;
+- added focused People regression coverage preventing the shared resolver or roster module from drifting back to direct profile storage access.
+
+This deliberately treats `_team()` as a compatibility API rather than deleting it in one pass. Generic domains can continue migrating directly to the platform services over time, while IEA-specific code can keep team semantics where they are meaningful.
 
 ## Architectural rules
 
@@ -95,6 +106,7 @@ People/roster remains the next generic domain to migrate; genuine IEA team assig
 6. Stable module IDs are application contracts and should not be renamed casually.
 7. `portal_organization` is the preferred shell/template tenant contract; `portal_team` is compatibility-only during the v2.9 transition.
 8. Persisted `team` / `season` field names may remain behind generic organization / operating-period service boundaries until a later intentional schema migration.
+9. `_team()` is compatibility-only; new generic platform code should resolve organization context through `portal.platform` directly.
 
 ## Current module IDs
 
@@ -127,6 +139,8 @@ Preview 3 adds focused tests for:
 - generic Operations / Communications organization-context resolution;
 - Finance organization / operating-period resolution;
 - Administration organization / operating-period resolution;
+- People/Roster resolution through the shared organization-context compatibility seam;
+- preservation of IEA roster terminology and team-level semantics;
 - compatibility use of persisted team/season fields behind those boundaries;
 - preservation of finance and administration permission/audit services;
 - theme-aware footer mark contrast;
@@ -140,7 +154,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_administration_context portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_administration_context portal.tests.test_v290_people_context portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
