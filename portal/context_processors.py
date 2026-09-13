@@ -5,6 +5,19 @@ from django.conf import settings
 PRODUCT_NAME = "ArenaLine"
 PRODUCT_TAGLINE = "One team. One season. One place to manage it."
 
+# Preview 2C: stable product-domain identifiers. These are intentionally
+# presentation/application metadata only; Team remains the current tenant model.
+ARENA_MODULES = {
+    "core": {"label": "Core", "scope": "platform"},
+    "people": {"label": "People & Families", "scope": "platform"},
+    "horses": {"label": "Horses", "scope": "platform"},
+    "competition_iea": {"label": "IEA Competition", "scope": "competition"},
+    "operations": {"label": "Operations", "scope": "platform"},
+    "finance": {"label": "Finance", "scope": "platform"},
+    "communications": {"label": "Communications", "scope": "platform"},
+}
+DEFAULT_ENABLED_MODULES = tuple(ARENA_MODULES.keys())
+
 
 def portal_context(request):
     team = None
@@ -42,6 +55,9 @@ def portal_context(request):
         "portal_can_finance": can_finance,
         "product_name": PRODUCT_NAME,
         "product_tagline": PRODUCT_TAGLINE,
+        "portal_modules": ARENA_MODULES,
+        "portal_enabled_modules": DEFAULT_ENABLED_MODULES,
+        "portal_organization_label": "Organization",
         "site_version": settings.SITE_VERSION,
         "site_version_docs_url": (
             f"{settings.PORTAL_REPOSITORY_URL}/tree/v{settings.SITE_VERSION}"
