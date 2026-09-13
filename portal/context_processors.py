@@ -4,6 +4,7 @@ from .modules import (
     DEFAULT_ENABLED_MODULES,
     enabled_modules_for_organization,
 )
+from .platform import organization_for_user
 from django.conf import settings
 
 
@@ -21,7 +22,7 @@ def portal_context(request):
     if request.user.is_authenticated:
         can_manage = request.user.is_superuser
         if hasattr(request.user, "profile"):
-            team = request.user.profile.team
+            team = organization_for_user(request.user)
             role = request.user.profile.role
             can_manage = can_manage or role in {"admin", "coach"}
         season = Season.objects.filter(team=team, is_active=True).first() if team else None
