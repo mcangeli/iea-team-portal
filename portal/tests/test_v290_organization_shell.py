@@ -21,3 +21,11 @@ class ArenaLineOrganizationShellTests(TestCase):
         self.assertIn("portal_organization.logo", base)
         self.assertIn("portal_organization.name", base)
         self.assertIn("portal_organization.branding.hero_image", base)
+
+    def test_branding_entry_point_uses_platform_organization_boundary(self):
+        branding_views = (Path(settings.BASE_DIR) / "portal/view_modules/branding.py").read_text()
+
+        self.assertIn("organization_for_user(request.user, required=True)", branding_views)
+        self.assertIn("TeamBranding.objects.get_or_create(team=organization)", branding_views)
+        self.assertIn('"organization": organization', branding_views)
+        self.assertNotIn("_team(request.user)", branding_views)
