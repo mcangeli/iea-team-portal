@@ -1,5 +1,6 @@
 """IEA-specific reference models for ArenaLine competition workflows."""
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -88,7 +89,6 @@ class IEASeasonCatalogConfiguration(models.Model):
         selected = set(self.disciplines or [])
         unsupported = selected - supported
         if unsupported:
-            from django.core.exceptions import ValidationError
             raise ValidationError({
                 "disciplines": f"Unsupported IEA discipline(s): {', '.join(sorted(unsupported))}."
             })
@@ -98,12 +98,17 @@ class IEASeasonCatalogConfiguration(models.Model):
         return f"{self.season} · {self.rulebook_season} · {disciplines}"
 
 
-# ``portal.models`` remains the legacy home of SeasonClass and ShowClass during
-# the 3.0 architecture transition. PortalConfig imports this module only after
-# the primary models module has loaded, so IEA reference fields can be
-# contributed here without moving competition-specific dependencies into the
-# generic ArenaLine models module.
-from portal.models import SeasonClass, ShowClass, ShowResult  # noqa: E402
+# ``portal.models`` remains the legacy home of season/show competition models
+# during the 3.0 architecture transition. PortalConfig imports this module only
+# after the primary models module has loaded, so IEA reference fields and rules
+# can remain inside the competition-specific boundary.
+from portal.models import (  # noqa: E402
+    SeasonClass,
+    SeasonMembership,
+    ShowClass,
+    ShowEntry,
+    ShowResult,
+)
 
 _catalog_entry_field = models.ForeignKey(
     IEAClassCatalogEntry,
@@ -134,9 +139,67 @@ def _catalog_aware_show_class_team_level(instance):
     return "both"
 
 
-# Replace the legacy fallback property so show-only catalog classes retain their
-# official Futures/Upper identity throughout existing display and permission code.
 ShowClass.team_level = property(_catalog_aware_show_class_team_level)
+
+
+WARMUP_PREREQUISITE_CODES = {
+    "H7X/H8X": {"H7", "H8"},
+    "H13X/H14X": {"H13", "H14"},
+    "W7X/W8X": {"W7", "W8"},
+    "W13X/W14X": {"W13", "W14"},
+    "D7X/D8X": {"D7", "D8"},
+    "D13X/D14X": {"D13", "D14"},
+}
+
+
+_original_show_entry_clean = ShowEntry.clean
+
+
+def _catalog_aware_show_entry_clean(instance):
+    _original_show_entry_clean(instance)
+    if not instance.show_class_id or not instance.rider_id:
+        return
+    show_class = instance.show_class
+    if show_class.season_class_id or not getattr(show_class, "catalog_entry_id", None):
+        return
+
+    catalog = show_class.catalog_entry
+    if catalog.season_assignable:
+        return
+
+    show = show_class.show
+    if show.competition_level != "regular":
+        raise ValidationError("Official IEA warm-up classes are regular-season show-only offerings.")
+
+    membership = SeasonMembership.objects.filter(
+        rider=instance.rider,
+        season=show.season,
+    ).first()
+    if not membership:
+        raise ValidationError("This rider is not on the roster for this show's season.")
+    if catalog.team_level != IEAClassCatalogEntry.TeamLevel.BOTH and membership.team_level != catalog.team_level:
+        raise ValidationError("This warm-up belongs to a different team level than the rider's season roster.")
+
+    prerequisite_codes = WARMUP_PREREQUISITE_CODES.get((catalog.class_code or "").upper())
+    if prerequisite_codes:
+        eligible = ShowEntry.objects.filter(
+            rider=instance.rider,
+            show_class__show=show,
+            show_class__class_number__in=prerequisite_codes,
+        ).exclude(status=ShowEntry.Status.SCRATCHED)
+        if instance.pk:
+            eligible = eligible.exclude(pk=instance.pk)
+        if not eligible.exists():
+            codes = " or ".join(sorted(prerequisite_codes))
+            raise ValidationError(
+                f"This rider must already be entered in {codes} at this show before entering this warm-up."
+            )
+
+    instance.is_point_rider = False
+    instance.entry_type = ShowEntry.EntryType.INDIVIDUAL
+
+
+ShowEntry.clean = _catalog_aware_show_entry_clean
 
 
 @receiver(pre_save, sender=ShowClass)
