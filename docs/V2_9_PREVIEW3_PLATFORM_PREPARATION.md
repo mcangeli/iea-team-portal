@@ -59,6 +59,19 @@ Implemented:
 
 This is intentionally not a blanket terminology replacement. Genuine team-level and IEA competition code continues to use team semantics.
 
+## Preview 3E — Finance organization / operating-period boundary
+
+Implemented:
+
+- moved the family-finance view domain to `organization_for_user()` for tenant resolution;
+- moved active finance-period lookup to `active_period_for_organization()`;
+- covered receivables, dues setup/generation, home barns, family accounts, credits, service agreements, assistance claims, and family payments;
+- preserved persisted `team` / `season` fields, finance permission checks, audit events, validation, and transaction behavior;
+- retained existing finance forms and query filters so this remains a context-boundary refactor rather than a finance-model rewrite;
+- added Finance-specific regression coverage to prevent direct `_team(request.user)` / `_active_season()` usage from returning to the family-finance domain.
+
+The finance domain is now organization-oriented at the application boundary while remaining fully compatible with the v2.9 Team-backed schema.
+
 ## Architectural rules
 
 1. `Team` remains the database tenant in v2.9.
@@ -98,7 +111,9 @@ Preview 3 adds focused tests for:
 - preservation of the `portal_team` compatibility alias;
 - elimination of direct `portal_team` usage from the shared ArenaLine shell;
 - generic Operations / Communications organization-context resolution;
-- compatibility use of persisted team/season fields behind that boundary;
+- Finance organization / operating-period resolution;
+- compatibility use of persisted team/season fields behind those boundaries;
+- preservation of finance permission and audit services;
 - theme-aware footer mark contrast.
 
 ## Validation gate
@@ -109,7 +124,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
