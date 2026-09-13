@@ -1,10 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Dashboard · ArenaLine{% endblock %}
 {% block content %}
-<style>
-.dashboard-workspaces{display:flex;flex-wrap:wrap;gap:.55rem;margin:1rem 0 1rem;clear:both}.dashboard-hero + .club-summary{margin-top:1.25rem}.dashboard-workspaces + .club-summary{margin-top:1rem}.dashboard-workspace-link{display:inline-flex;align-items:center;min-height:2.25rem;padding:.45rem .8rem;border:1px solid var(--line,rgba(255,255,255,.16));border-radius:999px;text-decoration:none;font-size:.86rem;font-weight:700;letter-spacing:.01em;background:var(--surface,rgba(255,255,255,.04))}.dashboard-workspace-link:hover,.dashboard-workspace-link.active{border-color:currentColor;transform:translateY(-1px)}@media(max-width:700px){.dashboard-workspaces{flex-wrap:nowrap;overflow-x:auto;margin-bottom:1rem;padding:.15rem 0 .4rem;scrollbar-width:thin}.dashboard-workspace-link{flex:0 0 auto}}
-</style>
-
 <section class="hero dashboard-hero club-hero">
   <div class="hero-copy">
     <div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div>
