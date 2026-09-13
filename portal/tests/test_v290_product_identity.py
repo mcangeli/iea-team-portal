@@ -4,7 +4,12 @@ from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.context_processors import PRODUCT_NAME, PRODUCT_TAGLINE
+from portal.context_processors import (
+    ARENA_MODULES,
+    DEFAULT_ENABLED_MODULES,
+    PRODUCT_NAME,
+    PRODUCT_TAGLINE,
+)
 
 
 class ArenaLineProductIdentityTests(TestCase):
@@ -66,3 +71,15 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertIn("Everyday operations", base)
         self.assertIn("Organization administration", base)
         self.assertIn("ArenaLine' }} · Equestrian operations", base)
+
+    def test_module_registry_separates_platform_from_iea_competition(self):
+        self.assertEqual(set(DEFAULT_ENABLED_MODULES), set(ARENA_MODULES))
+        self.assertEqual(ARENA_MODULES["competition_iea"]["scope"], "competition")
+        for module_id in ("core", "people", "horses", "operations", "finance", "communications"):
+            self.assertEqual(ARENA_MODULES[module_id]["scope"], "platform")
+
+    def test_context_exposes_module_metadata_for_future_enablement(self):
+        response = self.client.get(reverse("login"))
+        self.assertEqual(response.context["portal_modules"], ARENA_MODULES)
+        self.assertEqual(tuple(response.context["portal_enabled_modules"]), DEFAULT_ENABLED_MODULES)
+        self.assertEqual(response.context["portal_organization_label"], "Organization")
