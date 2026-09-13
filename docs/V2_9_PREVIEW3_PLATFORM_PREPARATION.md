@@ -46,6 +46,19 @@ Implemented:
 
 This makes the application shell organization-oriented even though the current persisted tenant is still `Team`.
 
+## Preview 3D — generic Operations / Communications context boundary
+
+Implemented:
+
+- moved action-item, calendar, RSVP, and announcement entry points to `organization_for_user()`;
+- moved active-period lookup in those generic workflows to `active_period_for_organization()`;
+- preserved persisted `team` and `season` fields as compatibility details behind the platform boundary;
+- preserved existing permission checks, URLs, forms, notification behavior, and IEA-specific audience logic;
+- replaced one remaining generic calendar-delete reference to “team record” with “organization record”;
+- added focused regression coverage preventing these generic domain entry points from drifting back to `_team(request.user)` / `_active_season()`.
+
+This is intentionally not a blanket terminology replacement. Genuine team-level and IEA competition code continues to use team semantics.
+
 ## Architectural rules
 
 1. `Team` remains the database tenant in v2.9.
@@ -55,6 +68,7 @@ This makes the application shell organization-oriented even though the current p
 5. All modules remain enabled by default until a later feature explicitly introduces organization-level configuration.
 6. Stable module IDs are application contracts and should not be renamed casually.
 7. `portal_organization` is the preferred shell/template tenant contract; `portal_team` is compatibility-only during the v2.9 transition.
+8. Persisted `team` / `season` field names may remain behind generic organization / operating-period service boundaries until a later intentional schema migration.
 
 ## Current module IDs
 
@@ -82,7 +96,10 @@ Preview 3 adds focused tests for:
 - organization role / management authority boundaries;
 - generic `portal_organization` shell context;
 - preservation of the `portal_team` compatibility alias;
-- elimination of direct `portal_team` usage from the shared ArenaLine shell.
+- elimination of direct `portal_team` usage from the shared ArenaLine shell;
+- generic Operations / Communications organization-context resolution;
+- compatibility use of persisted team/season fields behind that boundary;
+- theme-aware footer mark contrast.
 
 ## Validation gate
 
@@ -92,7 +109,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
