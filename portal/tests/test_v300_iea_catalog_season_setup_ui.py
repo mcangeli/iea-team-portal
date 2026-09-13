@@ -90,3 +90,12 @@ class IEACatalogSeasonSetupUITests(TestCase):
         self.assertContains(response, "IEA CLASS CATALOG")
         self.assertContains(response, "Official IEA catalog")
         self.assertContains(response, "2026-2027")
+
+    def test_parent_cannot_open_catalog_configuration(self):
+        parent = User.objects.create_user(username="catalog-parent", password="test-pass")
+        parent.profile.team = self.team
+        parent.profile.role = UserProfile.Role.PARENT
+        parent.profile.save(update_fields=["team", "role"])
+        self.client.force_login(parent)
+        response = self.client.get(reverse("season_class_create") + "?catalog=1")
+        self.assertEqual(response.status_code, 403)
