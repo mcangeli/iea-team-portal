@@ -33,3 +33,12 @@ class ArenaLinePreview4CompetitionTests(SimpleTestCase):
         self.assertIn("TEAM QUALIFICATION", standings)
         self.assertIn("individual_qualification_points", standings)
         self.assertIn("team_qualification_points", standings)
+
+    def test_scoring_settings_has_stable_back_navigation(self):
+        scoring = (Path(settings.BASE_DIR) / "portal/view_modules/scoring.py").read_text()
+        shared_form = (Path(settings.BASE_DIR) / "templates/portal/form.html").read_text()
+
+        self.assertIn('"back_url_name": "season_setup"', scoring)
+        self.assertIn('"back_label": "Back to season setup"', scoring)
+        self.assertIn("{% if back_url_name %}", shared_form)
+        self.assertIn("{% url back_url_name %}", shared_form)
