@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Riders · ArenaLine{% endblock %}
 {% block content %}
+<div class="people-roster">
 <div class="page-title">
   <div><div class="eyebrow">ARENALINE · PEOPLE{% if season %} · {{ season.name }}{% endif %}</div><h1>Riders</h1><p>Manage the people in your program while IEA season assignments continue to determine each rider’s Futures or Upper School team and classes.</p></div>
   {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'former_rider_list' %}">Alumni / Former Riders</a><a class="btn secondary" href="{% url 'rider_export' %}?team={{ selected_team }}">Export CSV</a><a class="btn secondary" href="{% url 'season_setup' %}">Season setup</a><a class="btn" href="{% url 'rider_create' %}">Add rider</a></div>{% endif %}
@@ -18,4 +19,5 @@
 </section>{% endif %}
 
 {% if selected_team == 'all' or selected_team == 'unassigned' %}{% if unassigned %}<section class="roster-section"><div class="section-head"><div><div class="eyebrow">NEEDS ATTENTION</div><h2>Not assigned to active season</h2></div></div><div class="rider-grid">{% for r in unassigned %}{% include 'portal/_rider_card.html' with r=r %}{% endfor %}</div></section>{% endif %}{% endif %}
+</div>
 {% endblock %}
