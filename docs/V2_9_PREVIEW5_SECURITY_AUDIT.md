@@ -102,7 +102,7 @@ Representative probes cover:
 
 ## Preview 5C — private data, nested mutations, exports, and files
 
-Implemented; awaiting staging validation:
+Implemented and staging-validated:
 
 - added `portal/tests/test_v290_preview5_private_exports.py`;
 - verifies Parent/Guardian private-rider access is family-specific rather than organization-wide;
@@ -124,14 +124,34 @@ Code review for this slice also confirms:
 
 A deliberate product distinction is retained: same-organization users may see the normal rider roster/profile surface, while private rider data is controlled separately through `_can_view_private_rider()` and family-finance data through `_can_view_family_account()`.
 
+## Preview 5D — Competition, Hoofprint, and delegated-role boundaries
+
+Implemented; awaiting staging validation:
+
+- added `portal/tests/test_v290_preview5_delegated_roles.py`;
+- verifies Points Secretary can manage competition results and see the season review while remaining blocked from general show administration, historical imports, Horse Registry management, and Finance;
+- verifies Futures Team Parent retains show-planning coordination access without gaining general show administration, Hoofprint/horse-list mutation, or Finance authority;
+- verifies Show Lead can use assigned-show planning and Hoofprint/horse-list workflows but cannot use the same delegated authority on another show in the same organization;
+- verifies Show Lead does not gain general show editing, Horse Registry creation, or Finance authority;
+- verifies delegated roles receive `404` rather than foreign organization data when a Hoofprint/show URL contains another organization's show ID.
+
+Code review for this slice confirms:
+
+- scoring/result mutation first resolves the ShowEntry through the current organization and then applies season-scoped points authority;
+- historical CSV entry/import/template routes remain Coach/Admin management-only and scope the season to the current organization;
+- Hoofprint and uploaded horse-list routes scope the show to the current organization before rendering, mutating, or serving a child document;
+- Hoofprint finalization and horse-list upload require `_can_manage_show_horses()`, which is Coach/Admin or Show Lead for that specific show;
+- show-planning access computes allowed team levels from the user's current delegated role, and individual planning-item mutations re-check both visibility and item-level authority;
+- existing prize-list schedule coverage already verifies Futures/Upper Team Parent edits stay squad-scoped and Rider accounts remain read-only even if a committee assignment is attached accidentally.
+
 ## Audit sequence
 
 1. ~~Platform/organization boundary and shared permission helpers.~~
-2. People / family privacy and account linking — private/family baseline covered; additional role matrix remains.
-3. Finance and financial downloads/exports — baseline covered; delegated Treasurer edge cases remain.
-4. Competition, scoring, history, and Hoofprint access.
+2. ~~People / family privacy and account linking baseline.~~
+3. ~~Finance and financial downloads/exports baseline.~~
+4. Competition, scoring, history, and Hoofprint access — delegated-role baseline implemented; staging validation pending.
 5. Operations, calendar, lessons, volunteer, and communications access.
-6. Show Lead / Team Parent / Points Secretary delegated-role matrix.
+6. Show Lead / Team Parent / Points Secretary delegated-role matrix — implemented; staging validation pending.
 7. Cross-organization IDOR sweep — direct objects and representative nested mutations/download boundaries covered.
 8. Final regression matrix and closeout.
 
