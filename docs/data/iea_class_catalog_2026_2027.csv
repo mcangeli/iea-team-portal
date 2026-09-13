@@ -1,0 +1,43 @@
+rulebook_season,discipline,class_code,official_name,team_level,ability_level,class_family,individual_points_enabled,team_points_enabled,season_assignable,source_rule
+2026-2027,hunt_seat,H1,"Varsity Open Equitation Over Fences 2'6\"",upper,open,over_fences,true,true,true,H3301
+2026-2027,hunt_seat,H2,Varsity Open Equitation on the Flat,upper,open,flat,true,true,true,H3301
+2026-2027,hunt_seat,H3,"Varsity Intermediate Equitation Over Fences 2'",upper,intermediate,over_fences,true,true,true,H3301
+2026-2027,hunt_seat,H4,Varsity Intermediate Equitation on the Flat,upper,intermediate,flat,true,true,true,H3301
+2026-2027,hunt_seat,H5,Junior Varsity Novice Equitation Over Fences X-rails,upper,novice,over_fences,true,true,true,H3301
+2026-2027,hunt_seat,H6,Junior Varsity Novice Equitation on the Flat,upper,novice,flat,true,true,true,H3301
+2026-2027,hunt_seat,H7,Junior Varsity Beginner Equitation on the Flat - Walk/Trot/Canter,upper,beginner,flat,true,true,true,H3301
+2026-2027,hunt_seat,H8,Junior Varsity Beginner Equitation on the Flat - Walk/Trot,upper,beginner,flat,true,false,true,H3301
+2026-2027,hunt_seat,H9,"Future Intermediate Equitation Over Fences 2'",futures,intermediate,over_fences,true,true,true,H3302
+2026-2027,hunt_seat,H10,Future Intermediate Equitation on the Flat,futures,intermediate,flat,true,true,true,H3302
+2026-2027,hunt_seat,H11,Future Novice Equitation Over Fences X-rails,futures,novice,over_fences,true,true,true,H3302
+2026-2027,hunt_seat,H12,Future Novice Equitation on the Flat,futures,novice,flat,true,true,true,H3302
+2026-2027,hunt_seat,H13,Future Beginner Equitation on the Flat - Walk/Trot/Canter,futures,beginner,flat,true,true,true,H3302
+2026-2027,hunt_seat,H14,Future Beginner Equitation on the Flat - Walk/Trot,futures,beginner,flat,true,false,true,H3302
+2026-2027,western,W1,Varsity Open Horsemanship,upper,open,horsemanship,true,true,true,W3301
+2026-2027,western,W2,Varsity Open Reining,upper,open,reining,true,true,true,W3302
+2026-2027,western,W3,Varsity Intermediate Horsemanship,upper,intermediate,horsemanship,true,true,true,W3301
+2026-2027,western,W4,Varsity Intermediate Reining,upper,intermediate,reining,true,true,true,W3302
+2026-2027,western,W5,Junior Varsity Novice Horsemanship,upper,novice,horsemanship,true,true,true,W3301
+2026-2027,western,W6,Junior Varsity Novice Ranch Riding,upper,novice,ranch_riding,true,true,true,W3302
+2026-2027,western,W7,Junior Varsity Beginner Horsemanship Walk/Jog/Lope,upper,beginner,horsemanship,true,true,true,W3301
+2026-2027,western,W8,Junior Varsity Beginner Horsemanship Walk/Jog,upper,beginner,horsemanship,true,false,true,W3301
+2026-2027,western,W9,Future Intermediate Horsemanship,futures,intermediate,horsemanship,true,true,true,W3301
+2026-2027,western,W10,Future Intermediate Reining,futures,intermediate,reining,true,true,true,W3302
+2026-2027,western,W11,Future Novice Horsemanship,futures,novice,horsemanship,true,true,true,W3301
+2026-2027,western,W12,Future Novice Ranch Riding,futures,novice,ranch_riding,true,true,true,W3302
+2026-2027,western,W13,Future Beginner Horsemanship Walk/Jog/Lope,futures,beginner,horsemanship,true,true,true,W3301
+2026-2027,western,W14,Future Beginner Horsemanship Walk/Jog,futures,beginner,horsemanship,true,false,true,W3301
+2026-2027,dressage,D1,Varsity Open Dressage Test,upper,open,dressage_test,true,true,true,D3301
+2026-2027,dressage,D2,Varsity Open Dressage Seat Equitation (DSE),upper,open,dse,true,true,true,D3301
+2026-2027,dressage,D3,Varsity Intermediate Dressage Test,upper,intermediate,dressage_test,true,true,true,D3301
+2026-2027,dressage,D4,Varsity Intermediate Dressage Seat Equitation,upper,intermediate,dse,true,true,true,D3301
+2026-2027,dressage,D5,Junior Varsity Novice Dressage Test,upper,novice,dressage_test,true,true,true,D3301
+2026-2027,dressage,D6,Junior Varsity Novice Dressage Seat Equitation,upper,novice,dse,true,true,true,D3301
+2026-2027,dressage,D7,Junior Varsity Beginner Dressage Seat Equitation - Walk/Trot/Canter,upper,beginner,dse,true,true,true,D3301
+2026-2027,dressage,D8,Junior Varsity Beginner Dressage Seat Equitation - Walk/Trot,upper,beginner,dse,true,false,true,D3301
+2026-2027,dressage,D9,Future Intermediate Dressage Test,futures,intermediate,dressage_test,true,true,true,D3302
+2026-2027,dressage,D10,Future Intermediate Dressage Seat Equitation,futures,intermediate,dse,true,true,true,D3302
+2026-2027,dressage,D11,Future Novice Dressage Test,futures,novice,dressage_test,true,true,true,D3302
+2026-2027,dressage,D12,Future Novice Dressage Seat Equitation,futures,novice,dse,true,true,true,D3302
+2026-2027,dressage,D13,Future Beginner Dressage Seat Equitation - Walk/Trot/Canter,futures,beginner,dse,true,true,true,D3302
+2026-2027,dressage,D14,Future Beginner Equitation on the Flat - Walk/Trot,futures,beginner,dse,true,false,true,D3302
