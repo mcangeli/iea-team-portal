@@ -151,6 +151,9 @@ class ArenaLineProductIdentityTests(TestCase):
 
         self.assertIn("{{ title }} · ArenaLine", generic_form)
         self.assertIn('default:"ARENALINE"', generic_form)
+        self.assertIn('eyebrow == "TEAM HUB" or eyebrow == "SCHEDULE"', generic_form)
+        self.assertIn("ARENALINE · OPERATIONS", generic_form)
+        self.assertIn("ARENALINE · COMMUNICATIONS", generic_form)
         self.assertIn("{{ title }} · ArenaLine", confirm_delete)
 
         # IEA-specific competition and program terminology remains deliberately intact.
