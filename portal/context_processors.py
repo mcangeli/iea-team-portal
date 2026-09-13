@@ -63,9 +63,9 @@ def portal_context(request):
     enabled_modules = enabled_modules_for_organization(organization)
 
     return {
-        # Compatibility template name retained through v2.9. New generic code
-        # should use the organization-oriented helpers above rather than inspect
-        # how this object is persisted.
+        "portal_organization": organization,
+        # Compatibility alias retained through v2.9 for feature templates that
+        # still use the persisted Team vocabulary.
         "portal_team": organization,
         "portal_role": role,
         "portal_can_manage": can_manage,
