@@ -1,22 +1,10 @@
 from .models import ActionItem, CommitteeAssignment, Season, Team
+from .modules import ARENA_MODULES, DEFAULT_ENABLED_MODULES, resolve_enabled_modules
 from django.conf import settings
 
 
 PRODUCT_NAME = "ArenaLine"
 PRODUCT_TAGLINE = "One team. One season. One place to manage it."
-
-# Preview 2C: stable product-domain identifiers. These are intentionally
-# presentation/application metadata only; Team remains the current tenant model.
-ARENA_MODULES = {
-    "core": {"label": "Core", "scope": "platform"},
-    "people": {"label": "People & Families", "scope": "platform"},
-    "horses": {"label": "Horses", "scope": "platform"},
-    "competition_iea": {"label": "IEA Competition", "scope": "competition"},
-    "operations": {"label": "Operations", "scope": "platform"},
-    "finance": {"label": "Finance", "scope": "platform"},
-    "communications": {"label": "Communications", "scope": "platform"},
-}
-DEFAULT_ENABLED_MODULES = tuple(ARENA_MODULES.keys())
 
 
 def portal_context(request):
@@ -48,6 +36,12 @@ def portal_context(request):
         ) if team else []
     elif request.path.startswith("/accounts/login"):
         team = Team.objects.order_by("pk").first()
+
+    # Preview 3: all modules remain enabled by default.  Resolution now runs
+    # through the platform module service so future organization-level settings
+    # do not require another template/navigation contract change.
+    enabled_modules = resolve_enabled_modules()
+
     return {
         "portal_team": team,
         "portal_role": role,
@@ -56,7 +50,7 @@ def portal_context(request):
         "product_name": PRODUCT_NAME,
         "product_tagline": PRODUCT_TAGLINE,
         "portal_modules": ARENA_MODULES,
-        "portal_enabled_modules": DEFAULT_ENABLED_MODULES,
+        "portal_enabled_modules": enabled_modules,
         "portal_organization_label": "Organization",
         "site_version": settings.SITE_VERSION,
         "site_version_docs_url": (
