@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% block title %}IEA Class Catalog · ArenaLine{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <div class="eyebrow">IEA COMPETITION</div>
+    <h1>Official class catalog</h1>
+    <p>Choose the official IEA rulebook season and the disciplines this ArenaLine season participates in. Synchronizing creates or safely links season classes; it never deletes existing classes.</p>
+  </div>
+  <a class="btn secondary" href="{% url 'season_setup' %}">Back to season setup</a>
+</div>
+
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">{{ season.name }}</div>
+      <h2>Catalog configuration</h2>
+      {% if config %}<p class="muted">Currently configured for {{ config.rulebook_season }}.</p>{% endif %}
+    </div>
+  </div>
+
+  <form method="post" action="{% url 'season_class_create' %}?catalog=1" class="form-stack">
+    {% csrf_token %}
+    <input type="hidden" name="catalog_mode" value="1">
+    {{ form.non_field_errors }}
+    <div class="form-group">
+      <label for="{{ form.rulebook_season.id_for_label }}">{{ form.rulebook_season.label }}</label>
+      {{ form.rulebook_season }}
+      {{ form.rulebook_season.errors }}
+    </div>
+    <div class="form-group">
+      <label>{{ form.disciplines.label }}</label>
+      {{ form.disciplines }}
+      {{ form.disciplines.errors }}
+    </div>
+    <div class="callout">
+      <strong>Safe synchronization</strong>
+      <p class="muted">Existing catalog-linked classes are reused. Exact legacy matches are linked without rewriting their organization-specific fields. Ambiguous matches are reported as conflicts instead of guessed. Removing a discipline here does not delete or deactivate classes already used by the season.</p>
+    </div>
+    <div class="form-actions">
+      <button class="btn" type="submit">Sync official classes</button>
+      <a class="btn secondary" href="{% url 'season_setup' %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
