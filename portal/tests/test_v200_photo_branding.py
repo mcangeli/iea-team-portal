@@ -20,10 +20,11 @@ class PhotoBrandingTests(SimpleTestCase):
         self.assertIn('enctype="multipart/form-data"', template)
         self.assertIn("LIVE PREVIEW", template)
 
-    def test_dashboard_and_login_support_team_photo(self):
+    def test_dashboard_and_login_support_organization_photo(self):
         root = Path(__file__).resolve().parents[2]
         base = (root / "templates/base.html").read_text()
         css = (root / "static/css/photo-v2.css").read_text()
-        self.assertIn("portal_team.branding.hero_image.url", base)
+        self.assertIn("portal_organization.branding.hero_image.url", base)
+        self.assertNotIn("portal_team.branding.hero_image.url", base)
         self.assertIn('body[style*="--team-hero-image"] .dashboard-hero', css)
         self.assertIn('body[style*="--team-hero-image"] .login-intro', css)
