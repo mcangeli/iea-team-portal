@@ -55,13 +55,29 @@ Implemented:
 
 Preview 4C remains presentation-only. Rider visibility, guardian relationships, account access, roster filters, IEA team assignments, and season enrollment behavior are unchanged.
 
+## Preview 4D — Horses presentation
+
+Implemented:
+
+- added `static/css/horses-v290.css` as the ArenaLine horse-management presentation layer while retaining the existing `horses-v2.css` feature styles underneath it;
+- loaded the Preview 4 horse layer from the shared ArenaLine base template;
+- aligned horse registry cards, imagery, typography, metadata, status presentation, and hover behavior with the ArenaLine surface system;
+- aligned horse-detail profile cards, detail lists, internal notes, Coggins/readiness panels, and season-eligibility history;
+- aligned horse forms with the Preview 4 form language while preserving the existing two-column horse-data layout;
+- aligned Show Horses, Horse of the Day, class chips, assignment notes, and action rows with the same visual system;
+- aligned Horse Readiness statistics, readiness badges, missing-class warnings, Coggins warnings, success states, and leased-horse planning surfaces;
+- preserved Horse & Hoofprint terminology, Coggins behavior, season eligibility, show-horse assignments, leased-horse planning, and all IEA-specific horse workflows unchanged;
+- added focused regression coverage protecting the shared horse presentation hooks and Hoofprint/IEA terminology.
+
+Preview 4D is presentation-only. Horse registry data, Coggins calculations, readiness rules, show assignments, Hoofprint behavior, and season eligibility logic are unchanged.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
 
 1. ~~Dashboard and role-specific dashboard consistency.~~
 2. ~~People / Families presentation.~~
-3. Horses presentation.
+3. ~~Horses presentation.~~
 4. IEA Competition presentation.
 5. Operations / Communications presentation.
 6. Finance presentation.
@@ -86,7 +102,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -94,7 +110,7 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation, dashboard-family, and People / Families tests pass;
+- Preview 4 presentation, dashboard-family, People / Families, and Horses tests pass;
 - the full portal regression suite remains green;
-- dashboards and People / Families screens render consistently in both light and dark modes;
-- rider privacy and genuine IEA roster semantics remain unchanged.
+- dashboards, People / Families, and horse-management screens render consistently in both light and dark modes;
+- rider privacy, genuine IEA roster semantics, Horse & Hoofprint terminology, and horse-management behavior remain unchanged.
