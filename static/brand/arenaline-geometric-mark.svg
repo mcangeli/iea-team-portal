@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 78 78" role="img" aria-labelledby="title desc">
+  <title id="title">ArenaLine geometric mark</title>
+  <desc id="desc">A fine gold circle crossed by two angled arena lines.</desc>
+  <circle cx="39" cy="39" r="38" fill="none" stroke="#C9A96B" stroke-width="1"/>
+  <line x1="17" y1="51" x2="43.28" y2="12.04" stroke="#C9A96B" stroke-width="1" stroke-linecap="round"/>
+  <line x1="25" y1="22" x2="45.09" y2="55.46" stroke="#C9A96B" stroke-width="1" stroke-linecap="round"/>
+</svg>

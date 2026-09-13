@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Horse Registry · Team Portal{% endblock %}
+{% block title %}Horse Registry · ArenaLine{% endblock %}
 {% block content %}
 <section class="page-intro horse-module-intro">
   <div>
-    <div class="eyebrow">HORSE &amp; HOOFPRINT MANAGEMENT</div>
+    <div class="eyebrow">ARENALINE · HORSE MANAGEMENT</div>
     <h1>Horse Registry</h1>
-    <p>Maintain barn and show names, horse preferences, Coggins status, and season eligibility in one place.</p>
+    <p>Maintain barn and show names, horse preferences, health-document status, and competition eligibility in one place.</p>
   </div>
   {% if can_manage %}<div class="actions"><a class="btn" href="{% url 'horse_create' %}">Add horse</a></div>{% endif %}
 </section>
@@ -21,9 +21,9 @@
 <section class="content-section horse-registry-section">
   <div class="section-head">
     <div>
-      <div class="eyebrow">TEAM HORSES</div>
+      <div class="eyebrow">HORSE REGISTRY</div>
       <h2>{{ rows|length }} horse{{ rows|length|pluralize }}</h2>
-      <p class="muted">Barn names are shown first for ringside use; show names remain available when they differ.</p>
+      <p class="muted">Barn names are shown first for day-to-day use; show names remain available when they differ.</p>
     </div>
   </div>
   <div class="card-grid">
@@ -51,7 +51,7 @@
       </a>
     </article>
     {% empty %}
-    <div class="empty-state"><h2>No horses yet</h2><p>Add the team’s first horse to begin building the Horse &amp; Hoofprint registry.</p>{% if can_manage %}<a class="btn" href="{% url 'horse_create' %}">Add first horse</a>{% endif %}</div>
+    <div class="empty-state"><h2>No horses yet</h2><p>Add your organization’s first horse to begin building the ArenaLine horse registry.</p>{% if can_manage %}<a class="btn" href="{% url 'horse_create' %}">Add first horse</a>{% endif %}</div>
     {% endfor %}
   </div>
 </section>

@@ -1,0 +1,132 @@
+/* ArenaLine v2.9 Preview 4I — final responsive, navigation, and theme polish. */
+
+/* Keep keyboard focus visible across the shared shell. */
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--arena-gold, #C9A96B) 72%, white);
+  outline-offset: 3px;
+}
+
+/* Module navigation should read as one coherent system. */
+.main-nav .nav-primary,
+.main-nav .nav-utility {
+  align-items: center;
+}
+
+.nav-menu-panel {
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 2rem));
+}
+
+.nav-menu-panel a,
+.notification-nav,
+.nav-signout,
+.theme-toggle {
+  min-height: 40px;
+}
+
+.nav-menu[data-module="finance"] .nav-menu-label {
+  color: var(--arena-gold, #C9A96B);
+}
+
+/* Prevent wide tables and dense action groups from breaking the viewport. */
+.entry-table-wrap,
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.actions,
+.table-actions,
+.class-actions,
+.mobile-sticky-actions {
+  row-gap: .55rem;
+}
+
+/* Shared responsive rhythm for the last-mile polish pass. */
+@media (max-width: 980px) {
+  .page-title,
+  .page-intro,
+  .section-head {
+    align-items: flex-start;
+  }
+
+  .page-title > .actions,
+  .page-intro > .actions,
+  .section-head > .actions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .container {
+    width: min(100% - 1rem, var(--content-width, 1180px));
+  }
+
+  .main-nav.is-open {
+    max-height: calc(100vh - 76px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .main-nav .nav-primary,
+  .main-nav .nav-utility {
+    width: 100%;
+  }
+
+  .main-nav details.nav-menu,
+  .main-nav .notification-nav,
+  .main-nav .theme-toggle,
+  .main-nav form,
+  .main-nav .nav-signout {
+    width: 100%;
+  }
+
+  .main-nav details.nav-menu > summary,
+  .main-nav .notification-nav,
+  .main-nav .theme-toggle,
+  .main-nav .nav-signout {
+    min-height: 44px;
+  }
+
+  .nav-menu-panel,
+  .nav-menu-panel-right {
+    position: static;
+    width: 100%;
+    max-width: none;
+    margin-top: .35rem;
+    box-shadow: none;
+  }
+
+  .page-title > .actions,
+  .page-intro > .actions,
+  .section-head > .actions,
+  .mobile-sticky-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .page-title > .actions .btn,
+  .page-intro > .actions .btn,
+  .section-head > .actions .btn,
+  .mobile-sticky-actions .btn,
+  .mobile-sticky-actions form,
+  .mobile-sticky-actions button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  footer {
+    text-align: center;
+  }
+}
+
+html[data-theme="dark"] .nav-menu-panel {
+  box-shadow: 0 16px 36px rgba(0,0,0,.28);
+}

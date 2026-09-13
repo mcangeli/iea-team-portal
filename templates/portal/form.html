@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
 {% block content %}
-<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
-<div class="form-card"><div class="eyebrow">{{ eyebrow|default:"COACH TOOLS" }}</div><h1>{{ title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Save</button></form></div>{% endblock %}
+<nav class="page-back-nav" aria-label="Back navigation">{% if back_url_name %}<a href="{% url back_url_name %}">← {{ back_label|default:"Back" }}</a>{% else %}<a href="#" data-history-back>← Back</a>{% endif %}</nav>
+<div class="form-card"><div class="eyebrow">{% if eyebrow == "TEAM HUB" or eyebrow == "SCHEDULE" %}ARENALINE · OPERATIONS{% elif eyebrow == "TEAM NEWS" or eyebrow == "COMMUNICATIONS" %}ARENALINE · COMMUNICATIONS{% elif eyebrow == "USER & FAMILY ONBOARDING" or eyebrow == "ADMIN" or eyebrow == "ADMINISTRATION" %}ARENALINE · ADMINISTRATION{% else %}{{ eyebrow|default:"ARENALINE" }}{% endif %}</div><h1>{{ title }}</h1><form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="btn" type="submit">Save</button></form></div>{% endblock %}

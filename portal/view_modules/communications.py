@@ -52,13 +52,13 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import active_period_for_organization, organization_for_user
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _active_season,
     _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
@@ -87,7 +87,6 @@ from .common import (
     _rider_class_point_rows,
     _selected_team,
     _show_planning_allowed_levels,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -103,9 +102,9 @@ from .communications_helpers import (
 
 @login_required
 def event_rsvp(request, pk, rider_pk):
-    team = _team(request.user)
-    event = get_object_or_404(CalendarEvent, pk=pk, team=team, rsvp_requested=True)
-    rider = get_object_or_404(_visible_riders(request.user, team), pk=rider_pk)
+    organization = organization_for_user(request.user, required=True)
+    event = get_object_or_404(CalendarEvent, pk=pk, team=organization, rsvp_requested=True)
+    rider = get_object_or_404(_visible_riders(request.user, organization), pk=rider_pk)
     rsvp, _ = EventRSVP.objects.get_or_create(event=event, rider=rider)
     form = EventRSVPForm(request.POST or None, instance=rsvp)
     if form.is_valid():
@@ -122,8 +121,8 @@ def event_rsvp(request, pk, rider_pk):
 
 @login_required
 def action_item_list(request):
-    team = _team(request.user)
-    items = _visible_action_items(request.user, team)
+    organization = organization_for_user(request.user, required=True)
+    items = _visible_action_items(request.user, organization)
     show_completed = request.GET.get("completed") == "1"
     if not show_completed:
         items = items.filter(completed=False)
@@ -136,13 +135,13 @@ def action_item_list(request):
 @login_required
 def action_item_create(request):
     _require_manage(request.user)
-    team = _team(request.user)
-    season = _active_season(team)
-    form = ActionItemForm(request.POST or None, team=team, season=season)
+    organization = organization_for_user(request.user, required=True)
+    period = active_period_for_organization(organization)
+    form = ActionItemForm(request.POST or None, team=organization, season=period)
     if form.is_valid():
         obj = form.save(commit=False)
-        obj.team = team
-        obj.season = season
+        obj.team = organization
+        obj.season = period
         obj.created_by = request.user
         obj.save()
         messages.success(request, "Action item created.")
@@ -154,9 +153,9 @@ def action_item_create(request):
 @login_required
 def action_item_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
-    item = get_object_or_404(ActionItem, pk=pk, team=team)
-    form = ActionItemForm(request.POST or None, instance=item, team=team, season=item.season)
+    organization = organization_for_user(request.user, required=True)
+    item = get_object_or_404(ActionItem, pk=pk, team=organization)
+    form = ActionItemForm(request.POST or None, instance=item, team=organization, season=item.season)
     if form.is_valid():
         form.save()
         messages.success(request, "Action item updated.")
@@ -168,8 +167,8 @@ def action_item_edit(request, pk):
 @login_required
 @require_POST
 def action_item_claim(request, pk):
-    team = _team(request.user)
-    item = get_object_or_404(_visible_action_items(request.user, team), pk=pk, completed=False)
+    organization = organization_for_user(request.user, required=True)
+    item = get_object_or_404(_visible_action_items(request.user, organization), pk=pk, completed=False)
     if not item.claimable:
         raise PermissionDenied
     if item.claimed_by_id and item.claimed_by_id != request.user.id and not _can_manage(request.user):
@@ -183,8 +182,8 @@ def action_item_claim(request, pk):
 @login_required
 @require_POST
 def action_item_complete(request, pk):
-    team = _team(request.user)
-    item = get_object_or_404(_visible_action_items(request.user, team), pk=pk)
+    organization = organization_for_user(request.user, required=True)
+    item = get_object_or_404(_visible_action_items(request.user, organization), pk=pk)
     allowed = _can_manage(request.user) or item.assigned_to_id == request.user.id or item.claimed_by_id == request.user.id
     if not allowed:
         raise PermissionDenied
@@ -195,10 +194,10 @@ def action_item_complete(request, pk):
 
 @login_required
 def calendar(request):
-    team = _team(request.user)
+    organization = organization_for_user(request.user, required=True)
     selected_kind = request.GET.get("kind", "all")
     valid_kinds = {value for value, _label in CalendarEvent.Kind.choices}
-    events = team.events.select_related("show", "lesson").all()
+    events = organization.events.select_related("show", "lesson").all()
     if not _can_manage(request.user):
         events = events.filter(visible_to_all=True)
     if selected_kind in valid_kinds:
@@ -212,18 +211,23 @@ def calendar(request):
 
 @login_required
 def event_create(request):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user)
+    organization = organization_for_user(request.user, required=True)
     form = CalendarEventForm(request.POST or None)
     if form.is_valid():
-        obj = form.save(commit=False); obj.team = team; obj.season = _active_season(team); obj.save()
-        messages.success(request, "Calendar event added."); return redirect("calendar")
+        obj = form.save(commit=False)
+        obj.team = organization
+        obj.season = active_period_for_organization(organization)
+        obj.save()
+        messages.success(request, "Calendar event added.")
+        return redirect("calendar")
     return render(request, "portal/form.html", {"form": form, "title": "Add calendar event", "eyebrow": "SCHEDULE"})
 
 @login_required
 def event_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
-    event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=team)
+    organization = organization_for_user(request.user, required=True)
+    event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=organization)
 
     if event.show_id:
         messages.info(request, "This calendar entry is synced from a show. Edit the show to update the calendar.")
@@ -235,7 +239,7 @@ def event_edit(request, pk):
     form = CalendarEventForm(request.POST or None, instance=event)
     if form.is_valid():
         obj = form.save(commit=False)
-        obj.team = team
+        obj.team = organization
         obj.save()
         messages.success(request, "Calendar event updated.")
         return redirect("calendar")
@@ -248,8 +252,8 @@ def event_edit(request, pk):
 @login_required
 def event_delete(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
-    event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=team)
+    organization = organization_for_user(request.user, required=True)
+    event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=organization)
 
     if event.show_id:
         messages.info(request, "This calendar entry is synced from a show. Manage the show instead of deleting the calendar copy.")
@@ -267,17 +271,25 @@ def event_delete(request, pk):
     return render(request, "portal/confirm_delete.html", {
         "object": event,
         "title": f"Delete calendar event · {event.title}",
-        "message": "This will permanently remove this manually-created calendar event. It will not delete any rider, show, lesson, or other team record.",
+        "message": "This will permanently remove this manually-created calendar event. It will not delete any rider, show, lesson, or other organization record.",
     })
 
 @login_required
 def announcement_create(request):
-    _require_manage(request.user); team = _team(request.user)
-    form = AnnouncementForm(request.POST or None, team=team)
+    _require_manage(request.user)
+    organization = organization_for_user(request.user, required=True)
+    period = active_period_for_organization(organization)
+    form = AnnouncementForm(request.POST or None, team=organization)
     if form.is_valid():
-        obj = form.save(commit=False); obj.team = team; obj.season = _active_season(team); obj.created_by = request.user; obj.save(); form.save_m2m()
+        obj = form.save(commit=False)
+        obj.team = organization
+        obj.season = period
+        obj.created_by = request.user
+        obj.save()
+        form.save_m2m()
         recipient_count = _deliver_announcement(obj) if obj.published else 0
-        messages.success(request, f"Announcement posted to {recipient_count} portal user{'s' if recipient_count != 1 else ''}."); return redirect("dashboard")
+        messages.success(request, f"Announcement posted to {recipient_count} portal user{'s' if recipient_count != 1 else ''}.")
+        return redirect("dashboard")
     return render(request, "portal/form.html", {"form": form, "title": "Post announcement", "eyebrow": "TEAM NEWS"})
 
 @login_required

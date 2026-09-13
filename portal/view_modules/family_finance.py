@@ -52,13 +52,13 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import active_period_for_organization, organization_for_user
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _active_season,
     _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
@@ -87,7 +87,6 @@ from .common import (
     _rider_class_point_rows,
     _selected_team,
     _show_planning_allowed_levels,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -105,8 +104,8 @@ from .family_finance_helpers import (
 
 @login_required
 def finance_receivables(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_user(request.user, required=True)
+    season = active_period_for_organization(team)
     _require_finance(request.user, season)
     rows = []
     total_billed = total_relief = total_paid = total_balance = Decimal("0")
@@ -132,8 +131,8 @@ def finance_receivables(request):
 
 @login_required
 def finance_dues_setup(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_user(request.user, required=True)
+    season = active_period_for_organization(team)
     _require_finance(request.user, season)
     barns = HomeBarn.objects.filter(team=team).order_by("name")
     rates = MembershipDuesRate.objects.filter(season=season).select_related("home_barn") if season else MembershipDuesRate.objects.none()
@@ -144,8 +143,8 @@ def finance_dues_setup(request):
 @login_required
 @friendly_integrity_errors
 def home_barn_create(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_user(request.user, required=True)
+    season = active_period_for_organization(team)
     _require_finance(request.user, season)
     form = HomeBarnForm(request.POST or None)
     if form.is_valid():
@@ -157,8 +156,8 @@ def home_barn_create(request):
 @login_required
 @friendly_integrity_errors
 def home_barn_edit(request, pk):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_user(request.user, required=True)
+    season = active_period_for_organization(team)
     _require_finance(request.user, season)
     obj = get_object_or_404(HomeBarn, pk=pk, team=team)
     form = HomeBarnForm(request.POST or None, instance=obj)
@@ -169,7 +168,7 @@ def home_barn_edit(request, pk):
 @login_required
 @friendly_integrity_errors
 def dues_rate_create(request):
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_user(request.user, required=True); season = active_period_for_organization(team)
     _require_finance(request.user, season)
     if not season:
         messages.error(request, "Create or activate a season before setting dues.")
@@ -184,7 +183,7 @@ def dues_rate_create(request):
 @login_required
 @friendly_integrity_errors
 def dues_rate_edit(request, pk):
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_user(request.user, required=True); season = active_period_for_organization(team)
     _require_finance(request.user, season)
     obj = get_object_or_404(MembershipDuesRate.objects.select_related("season", "home_barn"), pk=pk, season__team=team)
     form = MembershipDuesRateForm(request.POST or None, instance=obj, team=team, season=obj.season)
@@ -197,7 +196,7 @@ def dues_rate_edit(request, pk):
 @login_required
 @require_POST
 def membership_dues_generate(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(
         SeasonMembership.objects.select_related("season", "rider", "home_barn"),
         pk=membership_pk, season__team=team
@@ -229,7 +228,7 @@ def membership_dues_generate(request, membership_pk):
 
 @login_required
 def family_account(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(
         SeasonMembership.objects.select_related("rider", "season", "home_barn"),
         pk=membership_pk, season__team=team,
@@ -264,7 +263,7 @@ def family_account(request, membership_pk):
 @login_required
 @friendly_integrity_errors
 def family_charge_create(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(SeasonMembership.objects.select_related("season", "rider"), pk=membership_pk, season__team=team)
     _require_finance(request.user, membership.season)
     form = FamilyChargeForm(request.POST or None, membership=membership)
@@ -284,7 +283,7 @@ def family_charge_create(request, membership_pk):
 
 @login_required
 def family_charge_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(FamilyCharge.objects.select_related("membership__season", "membership__rider"), pk=pk, membership__season__team=team)
     _require_finance(request.user, obj.membership.season)
     form = FamilyChargeForm(request.POST or None, instance=obj, membership=obj.membership)
@@ -305,7 +304,7 @@ def family_charge_edit(request, pk):
 @login_required
 @friendly_integrity_errors
 def family_credit_add(request, charge_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     charge = get_object_or_404(FamilyCharge.objects.select_related("membership__season", "membership__rider"), pk=charge_pk, membership__season__team=team)
     _require_finance(request.user, charge.membership.season)
     form = FamilyCreditForm(request.POST or None)
@@ -325,7 +324,7 @@ def family_credit_add(request, charge_pk):
 
 @login_required
 def family_credit_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(
         FamilyCredit.objects.select_related("charge__membership__season", "charge__membership__rider"),
         pk=pk, charge__membership__season__team=team
@@ -351,7 +350,7 @@ def family_credit_edit(request, pk):
 @login_required
 @friendly_integrity_errors
 def service_agreement_add(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(SeasonMembership.objects.select_related("season", "rider"), pk=membership_pk, season__team=team)
     _require_finance(request.user, membership.season)
     form = ServiceAgreementCreditForm(request.POST or None, membership=membership)
@@ -370,7 +369,7 @@ def service_agreement_add(request, membership_pk):
 
 @login_required
 def service_agreement_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(ServiceAgreementCredit.objects.select_related("membership__season", "membership__rider"), pk=pk, membership__season__team=team)
     _require_finance(request.user, obj.membership.season)
     form = ServiceAgreementCreditForm(request.POST or None, instance=obj, membership=obj.membership)
@@ -390,7 +389,7 @@ def service_agreement_edit(request, pk):
 @login_required
 @friendly_integrity_errors
 def assistance_award_add(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(SeasonMembership.objects.select_related("season", "rider"), pk=membership_pk, season__team=team)
     _require_finance(request.user, membership.season)
     form = FinancialAssistanceAwardForm(request.POST or None)
@@ -409,7 +408,7 @@ def assistance_award_add(request, membership_pk):
 
 @login_required
 def assistance_award_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(FinancialAssistanceAward.objects.select_related("membership__season", "membership__rider"), pk=pk, membership__season__team=team)
     _require_finance(request.user, obj.membership.season)
     form = FinancialAssistanceAwardForm(request.POST or None, instance=obj)
@@ -428,7 +427,7 @@ def assistance_award_edit(request, pk):
 
 @login_required
 def assistance_claim_add(request, award_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     award = get_object_or_404(FinancialAssistanceAward.objects.select_related("membership__season", "membership__rider"), pk=award_pk, membership__season__team=team)
     _require_finance(request.user, award.membership.season)
     form = AssistanceClaimForm(request.POST or None, award=award, team=team)
@@ -448,7 +447,7 @@ def assistance_claim_add(request, award_pk):
 
 @login_required
 def assistance_claim_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(AssistanceClaim.objects.select_related("award__membership__season", "award__membership__rider"), pk=pk, award__membership__season__team=team)
     _require_finance(request.user, obj.award.membership.season)
     form = AssistanceClaimForm(request.POST or None, instance=obj, award=obj.award, team=team)
@@ -468,7 +467,7 @@ def assistance_claim_edit(request, pk):
 
 @login_required
 def family_payment_add(request, membership_pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     membership = get_object_or_404(
         SeasonMembership.objects.select_related("season", "rider"),
         pk=membership_pk, season__team=team
@@ -497,7 +496,7 @@ def family_payment_add(request, membership_pk):
 
 @login_required
 def family_payment_edit(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(
         FamilyPayment.objects.select_related(
             "membership__season", "membership__rider", "charge", "financial_transaction"
@@ -529,7 +528,7 @@ def family_payment_edit(request, pk):
 
 @login_required
 def family_payment_delete(request, pk):
-    team = _team(request.user)
+    team = organization_for_user(request.user, required=True)
     obj = get_object_or_404(
         FamilyPayment.objects.select_related(
             "membership__season", "membership__rider", "financial_transaction"
@@ -581,8 +580,8 @@ def family_payment_delete(request, pk):
 @login_required
 @require_POST
 def membership_dues_generate_all(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_user(request.user, required=True)
+    season = active_period_for_organization(team)
     _require_finance(request.user, season)
     if not season:
         messages.error(request, "Create or activate a season before generating membership dues.")

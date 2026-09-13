@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
-{% block title %}Team Finance{% endblock %}
+{% block title %}Finance · ArenaLine{% endblock %}
 {% block content %}
 <section class="page-intro finance-intro">
   <div>
-    <div class="eyebrow">TEAM FINANCE · {{ season.name|default:"NO ACTIVE SEASON" }}</div>
+    <div class="eyebrow">ARENALINE · FINANCE{% if season %} · {{ season.name }}{% endif %}</div>
     <h1>Finance</h1>
-    <p>Season budget, cash activity, account balances, and recent team transactions.</p>
+    <p>Track your organization’s budget, cash activity, account balances, family receivables, and recent transactions.</p>
   </div>
   <div class="actions"><a class="btn secondary" href="{% url 'finance_audit_log' %}">Audit log</a>
     <a class="btn secondary" href="{% url 'finance_receivables' %}">Family receivables</a>
@@ -80,7 +80,7 @@
         <p>Opening ${{ row.account.opening_balance|floatformat:2 }} · +${{ row.income|floatformat:2 }} · −${{ row.expense|floatformat:2 }}</p>
       </article>
     {% empty %}
-      <div class="empty-state">Add the team's first financial account to begin using the ledger.</div>
+      <div class="empty-state">Add your organization’s first financial account to begin using the ledger.</div>
     {% endfor %}
   </div>
 </section>

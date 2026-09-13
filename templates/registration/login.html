@@ -1,24 +1,24 @@
 {% extends 'base.html' %}
-{% block title %}Sign in · Team Portal{% endblock %}
+{% block title %}Sign in · {{ product_name|default:'ArenaLine' }}{% endblock %}
 {% block content %}
 <section class="login-layout">
   <div class="login-intro">
-    <div class="eyebrow light">PRIVATE TEAM ACCESS</div>
-    <h1>Ride together.<br>Compete together.</h1>
-    <p>Your private team headquarters for the season—from training days to the show ring.</p>
+    <div class="eyebrow light">ARENALINE · PRIVATE ACCESS</div>
+    <h1>From barn aisle<br>to show ring.</h1>
+    <p>{{ product_tagline|default:'One team. One season. One place to manage it.' }}</p>
     <div class="rail-line" aria-hidden="true"></div>
   </div>
   <div class="auth-card">
-    <div class="eyebrow">WELCOME BACK</div>
+    <div class="eyebrow">WELCOME TO ARENALINE</div>
     <h2>Sign in</h2>
-    <p class="muted">Use the account provided by your team administrator.</p>
+    <p class="muted">Use the account provided by your organization administrator.</p>
     <form method="post" class="stack-form">
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors }}</div>{% endif %}
       {% for field in form %}
         <div class="field-wrap"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}</div>
       {% endfor %}
-      <button class="btn wide" type="submit">Enter team portal</button>
+      <button class="btn wide" type="submit">Enter ArenaLine</button>
       {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
     </form>
   </div>

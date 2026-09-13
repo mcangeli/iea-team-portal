@@ -80,7 +80,7 @@ start_upgrade_log() {
   stamp="$(date +%Y%m%d-%H%M%S)"
   UPGRADE_LOG="$ROOT_DIR/logs/upgrade-v${RELEASE_VERSION}-$stamp.log"
   exec > >(tee -a "$UPGRADE_LOG") 2>&1
-  echo "IEA Team Portal upgrade log"
+  echo "ArenaLine upgrade log"
   echo "Release: v${RELEASE_VERSION}"
   echo "Started: $(date --iso-8601=seconds 2>/dev/null || date)"
   echo "Environment: $SHARED_ENV"
@@ -91,6 +91,69 @@ start_upgrade_log() {
 
 compose() {
   docker compose --env-file "$SHARED_ENV" "$@"
+}
+
+verify_database_backup() {
+  local backup="$1"
+  test -s "$backup" || {
+    echo "Backup failed or is empty: $backup" >&2
+    exit 1
+  }
+  if ! grep -q '^-- PostgreSQL database dump' "$backup"; then
+    echo "Backup does not look like a PostgreSQL plain-text dump: $backup" >&2
+    exit 1
+  fi
+  echo "Backup integrity check passed: $backup"
+}
+
+deployment_health() {
+  local failed=0
+
+  echo "Checking container status..."
+  compose ps
+
+  echo "Checking PostgreSQL readiness..."
+  if ! compose exec -T db sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'; then
+    echo "PostgreSQL readiness check failed." >&2
+    failed=1
+  fi
+
+  echo "Checking Django configuration..."
+  if ! compose exec -T web python manage.py check; then
+    echo "Django system check failed." >&2
+    failed=1
+  fi
+
+  echo "Checking migration state..."
+  if ! compose exec -T web python manage.py portal_preflight; then
+    echo "Portal migration preflight failed." >&2
+    failed=1
+  fi
+
+  echo "Checking collected static assets..."
+  if ! compose exec -T web sh -c 'test -s /app/staticfiles/staticfiles.json'; then
+    echo "Static manifest is missing or empty at /app/staticfiles/staticfiles.json." >&2
+    failed=1
+  fi
+
+  echo "Checking media volume..."
+  if ! compose exec -T web sh -c 'test -d /app/media && test -w /app/media'; then
+    echo "Media volume is unavailable or not writable by the web container." >&2
+    failed=1
+  fi
+
+  echo "Validating gateway configuration..."
+  if ! compose exec -T gateway caddy validate --config /etc/caddy/Caddyfile; then
+    echo "Gateway configuration validation failed." >&2
+    failed=1
+  fi
+
+  if [[ "$failed" -ne 0 ]]; then
+    echo "Deployment health check FAILED." >&2
+    return 1
+  fi
+
+  echo "Deployment health check passed for ArenaLine v${RELEASE_VERSION}."
 }
 
 require_git_repo() {
@@ -157,10 +220,7 @@ git_backup_database() {
   compose up -d db
   echo "Creating PostgreSQL backup: $GIT_UPDATE_BACKUP"
   compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$GIT_UPDATE_BACKUP"
-  test -s "$GIT_UPDATE_BACKUP" || {
-    echo "Backup failed or is empty: $GIT_UPDATE_BACKUP" >&2
-    exit 1
-  }
+  verify_database_backup "$GIT_UPDATE_BACKUP"
 }
 
 git_update() {
@@ -175,7 +235,7 @@ git_update() {
   GIT_UPDATE_LOG="$ROOT_DIR/logs/git-update-$stamp.log"
   exec > >(tee -a "$GIT_UPDATE_LOG") 2>&1
 
-  echo "IEA Team Portal Git update"
+  echo "ArenaLine Git update"
   echo "Started: $(date --iso-8601=seconds 2>/dev/null || date)"
   echo "Repository: $(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo unknown)"
   echo "Current ref: $(current_git_ref)"
@@ -241,6 +301,7 @@ EOF
   compose run --rm web python manage.py showmigrations --plan
   echo "Starting $target..."
   compose up -d --build
+  deployment_health
 
   echo
   echo "Git update complete."
@@ -257,6 +318,7 @@ git_status_report() {
   echo "Repository: $(git -C "$SCRIPT_DIR" remote get-url origin 2>/dev/null || echo unknown)"
   echo "Installed ref: $(current_git_ref)"
   echo "Commit: $(git -C "$SCRIPT_DIR" rev-parse --short HEAD)"
+  echo "Release: v${RELEASE_VERSION}"
   echo "Update channel: $PORTAL_UPDATE_CHANNEL"
   if [[ -n "$(git -C "$SCRIPT_DIR" status --porcelain --untracked-files=normal)" ]]; then
     echo "Working tree: LOCAL CHANGES PRESENT"
@@ -300,6 +362,7 @@ git_rollback() {
   git -C "$SCRIPT_DIR" checkout --detach "$previous_commit"
   compose build web
   compose up -d --build
+  deployment_health
   echo "Application code rolled back to $(current_git_ref)."
 }
 
@@ -312,6 +375,10 @@ case "${1:-}" in
     ;;
   rollback-code)
     git_rollback
+    ;;
+  health)
+    validate_host_environment
+    deployment_health
     ;;
   preflight)
     validate_host_environment
@@ -334,7 +401,7 @@ case "${1:-}" in
     compose up -d db
     echo "Creating PostgreSQL backup: $backup"
     compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$backup"
-    test -s "$backup" || { echo "Backup failed or is empty: $backup" >&2; exit 1; }
+    verify_database_backup "$backup"
     echo "Building web image..."
     compose build web
     echo "Running application/environment checks..."
@@ -345,7 +412,8 @@ case "${1:-}" in
     compose run --rm web python manage.py showmigrations --plan
     echo "Starting v${RELEASE_VERSION}..."
     compose up -d --build
-    echo "Upgrade started. Check status with: ./portalctl ps"
+    deployment_health
+    echo "Upgrade complete. Check status any time with: ./portalctl health"
     echo "Backup saved at: $backup"
     echo "Upgrade log saved at: $UPGRADE_LOG"
     ;;

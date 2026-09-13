@@ -126,7 +126,13 @@ def scoring_settings(request):
     form = SeasonScoringConfigForm(request.POST or None, instance=config)
     if form.is_valid():
         form.save(); messages.success(request, "Season scoring and qualification rules updated."); return redirect("standings")
-    return render(request, "portal/form.html", {"form": form, "title": "Scoring & qualification rules", "eyebrow": season.name})
+    return render(request, "portal/form.html", {
+        "form": form,
+        "title": "Scoring & qualification rules",
+        "eyebrow": season.name,
+        "back_url_name": "season_setup",
+        "back_label": "Back to season setup",
+    })
 
 @login_required
 def qualification_override_edit(request, membership_pk, class_pk):

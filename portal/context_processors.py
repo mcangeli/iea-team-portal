@@ -1,41 +1,81 @@
-from .models import ActionItem, CommitteeAssignment, Season, Team
+from .models import ActionItem, CommitteeAssignment
+from .modules import (
+    ARENA_MODULES,
+    DEFAULT_ENABLED_MODULES,
+    enabled_modules_for_organization,
+)
+from .platform import (
+    active_period_for_organization,
+    can_manage_organization,
+    organization_for_user,
+    role_for_user,
+)
 from django.conf import settings
 
 
+PRODUCT_NAME = "ArenaLine"
+PRODUCT_TAGLINE = "One team. One season. One place to manage it."
+
+
 def portal_context(request):
-    team = None
+    organization = None
     role = None
     can_manage = False
     unread_notifications = 0
     can_finance = False
     assigned_actions = []
+
     if request.user.is_authenticated:
-        can_manage = request.user.is_superuser
-        if hasattr(request.user, "profile"):
-            team = request.user.profile.team
-            role = request.user.profile.role
-            can_manage = can_manage or role in {"admin", "coach"}
-        season = Season.objects.filter(team=team, is_active=True).first() if team else None
+        organization = organization_for_user(request.user)
+        role = role_for_user(request.user)
+        can_manage = can_manage_organization(request.user)
+        period = active_period_for_organization(organization)
+
         can_finance = False if role == "rider" else (request.user.is_superuser or role == "admin")
-        if role != "rider" and not can_finance and season:
+        if role != "rider" and not can_finance and period:
             can_finance = CommitteeAssignment.objects.filter(
-                user=request.user, season=season, role=CommitteeAssignment.Role.TREASURER, active=True
+                user=request.user,
+                season=period,
+                role=CommitteeAssignment.Role.TREASURER,
+                active=True,
             ).exists()
-        unread_notifications = request.user.portal_notifications.filter(read_at__isnull=True).count() if hasattr(request.user, "portal_notifications") else 0
+
+        unread_notifications = (
+            request.user.portal_notifications.filter(read_at__isnull=True).count()
+            if hasattr(request.user, "portal_notifications")
+            else 0
+        )
         assigned_actions = list(
             ActionItem.objects.filter(
-                team=team,
+                team=organization,
                 assigned_to=request.user,
                 completed=False,
-            ).select_related("show", "rider").order_by("due_at", "-created_at")[:8]
-        ) if team else []
-    elif request.path.startswith("/accounts/login"):
-        team = Team.objects.order_by("pk").first()
+            )
+            .select_related("show", "rider")
+            .order_by("due_at", "-created_at")[:8]
+        ) if organization else []
+
+    # Anonymous surfaces intentionally remain product-branded. Organization
+    # identity is resolved only after authentication so the login screen does
+    # not leak or imply any particular tenant.
+
+    # Preview 3: Team remains the v2.9 persisted tenant, but module availability
+    # is resolved through an organization-neutral platform boundary.
+    enabled_modules = enabled_modules_for_organization(organization)
+
     return {
-        "portal_team": team,
+        "portal_organization": organization,
+        # Compatibility alias retained through v2.9 for feature templates that
+        # still use the persisted Team vocabulary.
+        "portal_team": organization,
         "portal_role": role,
         "portal_can_manage": can_manage,
         "portal_can_finance": can_finance,
+        "product_name": PRODUCT_NAME,
+        "product_tagline": PRODUCT_TAGLINE,
+        "portal_modules": ARENA_MODULES,
+        "portal_enabled_modules": enabled_modules,
+        "portal_organization_label": "Organization",
         "site_version": settings.SITE_VERSION,
         "site_version_docs_url": (
             f"{settings.PORTAL_REPOSITORY_URL}/tree/v{settings.SITE_VERSION}"

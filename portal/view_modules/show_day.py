@@ -352,7 +352,7 @@ def show_day_dashboard(request, pk):
     ]
     my_assignments = [
         item for item in planning_items
-        if item.owner_id == request.user.id and not item.completed
+        if (item.claimed_by_id or item.assigned_to_id) == request.user.id and not item.completed
     ]
 
     needs_attention = []
