@@ -160,16 +160,84 @@ h1,h2,.page-title h1,.page-intro h1,.section-head h2,.hero h1,.show-hero h1,.log
   background:linear-gradient(135deg,var(--surface),color-mix(in srgb,var(--surface-soft) 65%,var(--surface)));
 }
 .callout{border-color:color-mix(in srgb,var(--arena-gold) 32%,var(--line))}
-.login-intro{position:relative}
+.login-intro{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  min-height:220px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+.login-intro:before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:112%;
+  height:68%;
+  left:-12%;
+  top:18%;
+  border:1px solid color-mix(in srgb,var(--arena-gold) 46%,transparent);
+  border-left-color:transparent;
+  border-bottom-color:transparent;
+  border-radius:50%;
+  transform:rotate(-8deg);
+  opacity:.42;
+  pointer-events:none;
+}
 .login-intro:after{
   content:"";
   position:absolute;
-  inset:auto 2% 7% 8%;
+  z-index:-1;
+  left:-8%;
+  right:-10%;
+  bottom:24%;
   height:1px;
-  background:linear-gradient(90deg,transparent,var(--arena-gold),transparent);
-  opacity:.65;
-  transform:rotate(-5deg);
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(201,169,107,.10) 8%,
+    rgba(201,169,107,.55) 34%,
+    rgba(201,169,107,.86) 53%,
+    rgba(201,169,107,.34) 73%,
+    transparent
+  );
+  transform:rotate(-6deg);
+  transform-origin:center;
   pointer-events:none;
+}
+html[data-theme="light"] .login-intro{
+  background:
+    radial-gradient(circle at 84% 18%,rgba(14,42,71,.04),transparent 18rem),
+    radial-gradient(circle at 16% 82%,rgba(201,169,107,.09),transparent 17rem);
+}
+html[data-theme="light"] .login-intro:before{
+  border-color:color-mix(in srgb,var(--arena-navy) 22%,transparent);
+  border-left-color:transparent;
+  border-bottom-color:transparent;
+  opacity:.34;
+}
+html[data-theme="dark"] .login-intro{
+  background:
+    radial-gradient(circle at 84% 18%,rgba(201,169,107,.12),transparent 20rem),
+    radial-gradient(circle at 14% 80%,rgba(201,169,107,.06),transparent 17rem);
+}
+html[data-theme="dark"] .login-intro:before{
+  border-color:color-mix(in srgb,var(--arena-gold) 58%,transparent);
+  border-left-color:transparent;
+  border-bottom-color:transparent;
+  opacity:.48;
+}
+html[data-theme="dark"] .login-intro:after{
+  background:linear-gradient(
+    90deg,
+    transparent,
+    rgba(201,169,107,.13) 8%,
+    rgba(201,169,107,.64) 34%,
+    rgba(244,241,234,.88) 53%,
+    rgba(201,169,107,.44) 73%,
+    transparent
+  );
 }
 .auth-card{box-shadow:var(--arena-shadow)}
 footer{
@@ -205,4 +273,7 @@ html[data-theme="dark"] .empty-state{box-shadow:0 14px 34px rgba(0,0,0,.12)}
   .brand-mark.arena-mark{width:32px;height:32px}
   .arena-footer-signature{width:100%;justify-content:center;margin-bottom:2px}
   .page-intro{padding-bottom:.9rem}
+  .login-intro{min-height:180px}
+  .login-intro:before{width:124%;height:64%;left:-18%;top:20%}
+  .login-intro:after{left:-14%;right:-16%;bottom:25%}
 }
