@@ -1,5 +1,9 @@
 from .models import ActionItem, CommitteeAssignment, Season, Team
-from .modules import ARENA_MODULES, DEFAULT_ENABLED_MODULES, resolve_enabled_modules
+from .modules import (
+    ARENA_MODULES,
+    DEFAULT_ENABLED_MODULES,
+    enabled_modules_for_organization,
+)
 from django.conf import settings
 
 
@@ -37,10 +41,9 @@ def portal_context(request):
     elif request.path.startswith("/accounts/login"):
         team = Team.objects.order_by("pk").first()
 
-    # Preview 3: all modules remain enabled by default.  Resolution now runs
-    # through the platform module service so future organization-level settings
-    # do not require another template/navigation contract change.
-    enabled_modules = resolve_enabled_modules()
+    # Preview 3: Team remains the v2.9 persisted tenant, but module availability
+    # is now resolved through an organization-neutral platform boundary.
+    enabled_modules = enabled_modules_for_organization(team)
 
     return {
         "portal_team": team,
