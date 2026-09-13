@@ -52,7 +52,7 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
-from ..platform import organization_for_view_user
+from ..platform import active_period_for_organization, organization_for_view_user
 
 TEAM_LEVELS = {SeasonMembership.TeamLevel.FUTURES, SeasonMembership.TeamLevel.UPPER}
 
@@ -326,7 +326,8 @@ def _announcement_recipients(announcement):
     return users.distinct()
 
 def _active_season(team):
-    return team.seasons.filter(is_active=True).first()
+    """Compatibility alias for legacy callers resolving the active operating period."""
+    return active_period_for_organization(team)
 
 def _selected_team(request):
     value = request.GET.get("team", "all").lower()
