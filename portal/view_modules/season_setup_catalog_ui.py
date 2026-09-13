@@ -1,8 +1,9 @@
 """Compatibility routing for catalog-backed Season Setup UI.
 
-The existing season_class_create URL remains the manual/special-case workflow.
-Adding ?catalog=1 opens the official IEA catalog configuration workflow without
-changing historical URLs or removing manual class creation.
+The existing season_class_create URL now serves the catalog-aware SeasonClass
+editor, which supports both official IEA selection and deliberate manual/special
+classes. Adding ?catalog=1 continues to open the whole-season rulebook/discipline
+synchronization workflow without changing historical URLs.
 """
 
 from .iea_catalog_admin import iea_catalog_configuration
