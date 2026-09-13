@@ -110,12 +110,13 @@ def configure_iea_season_catalog(*, season, rulebook_season: str, disciplines: I
 
         name_collision = SeasonClass.objects.filter(
             season=season,
+            discipline=entry.discipline,
             name=entry.official_name,
             team_level=entry.team_level,
         ).exists()
         if name_collision:
             conflicts.append(
-                f"{entry.class_code}: a SeasonClass with the official name/team already exists but cannot be matched safely."
+                f"{entry.class_code}: a SeasonClass with the official name/team already exists in this discipline but cannot be matched safely."
             )
             continue
 
