@@ -13,6 +13,8 @@ The staging instance uses its own:
 
 Production defaults remain unchanged.
 
+For database restore drills and rollback decisions, also use `docs/BACKUP_RESTORE_ROLLBACK.md`.
+
 ## Recommended layout
 
 ```text
@@ -130,10 +132,11 @@ mkdir -p /opt/arenaline-staging/import
   > /opt/arenaline-staging/import/production.sql
 ```
 
-Verify the dump is non-empty:
+Verify the dump is non-empty and recognizable as PostgreSQL output:
 
 ```bash
-test -s /opt/arenaline-staging/import/production.sql && echo "Database snapshot created"
+test -s /opt/arenaline-staging/import/production.sql
+grep -m1 '^-- PostgreSQL database dump' /opt/arenaline-staging/import/production.sql
 ```
 
 This is a read-only operation against the production database.
@@ -144,7 +147,7 @@ The staging database was created by the Postgres container from staging `.env`. 
 
 ```bash
 cd /opt/arenaline-staging/app
-./portalctl exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+./portalctl exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"' \
   < /opt/arenaline-staging/import/production.sql
 ```
 
@@ -157,7 +160,7 @@ cd /opt/arenaline-staging/app
 docker volume rm arenaline-staging_postgres_data
 
 ./portalctl up -d db
-./portalctl exec -T db sh -c 'psql -U "$POSTGRES_USER" "$POSTGRES_DB"' \
+./portalctl exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" "$POSTGRES_DB"' \
   < /opt/arenaline-staging/import/production.sql
 ```
 
@@ -185,13 +188,15 @@ docker run --rm \
 
 The production volume is mounted read-only for this copy.
 
+Remember that PostgreSQL dumps do not contain uploaded media. A complete recovery plan needs both database and media recovery coverage.
+
 ## 8. Start ArenaLine staging
 
 ```bash
 cd /opt/arenaline-staging/app
 ./portalctl preflight
 ./portalctl up -d --build
-./portalctl ps
+./portalctl health
 ```
 
 Then run the application checks:
@@ -274,10 +279,14 @@ A future staging refresh should be treated as destructive to staging only:
 
 1. stop staging;
 2. replace/recreate the staging PostgreSQL volume;
-3. restore a fresh `--no-owner --no-privileges` production dump;
+3. restore a fresh `--no-owner --no-privileges` production dump with `psql -v ON_ERROR_STOP=1`;
 4. optionally replace the staging media volume from the production media volume;
 5. confirm `EMAIL_HOST` is still blank;
 6. run `portalctl preflight`;
-7. start staging.
+7. start staging and run `portalctl health`.
 
 Never automate a staging refresh in a way that can target a production volume by inference. Production and staging volume names should always be explicit.
+
+## Release-candidate recovery drill
+
+Before promoting v2.9 to production, perform at least one restore drill using `docs/BACKUP_RESTORE_ROLLBACK.md`. The drill is complete only when the restored staging database starts cleanly, `./portalctl health` passes, representative data/media are present, and the release regression suite is green.
