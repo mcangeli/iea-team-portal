@@ -21,118 +21,68 @@ Implemented:
 - normalized roster filter-tab presentation and responsive behavior;
 - added focused regression coverage for the shared presentation contract.
 
-This first Preview 4 slice intentionally does not rewrite every template. Existing semantic classes such as `page-title`, `page-intro`, `section-head`, `entry-table`, `form-card`, `empty-state`, and `filter-tabs` now have a stronger common ArenaLine contract that later module passes can reuse.
-
 ## Preview 4B — dashboard family consolidation
 
-Implemented:
-
-- added `static/css/dashboard-v290.css` as the shared dashboard-family presentation layer;
-- loaded the dashboard presentation layer from the shared ArenaLine base template;
-- removed remaining template-local `<style>` blocks from the main, role, and Show Manager dashboard family;
-- retained a common dashboard hero language for the main and role-specific dashboards;
-- standardized workspace tabs, quick-action groups, course-status cards, summary spacing, dashboard hero marks, and responsive behavior;
-- brought Show Manager into the same dashboard visual family with the shared ArenaLine hero treatment while preserving all hosted-show workflows;
-- retained role-specific information architecture for coaches, team parents, show leads, points secretaries, and Show Manager rather than flattening those workflows into a generic dashboard;
-- added focused regression coverage to prevent dashboard presentation from drifting back into template-local CSS.
-
-Preview 4B is a presentation-only consolidation. No dashboard queries, permissions, role routing, show-host behavior, or competition logic are changed.
+Implemented shared dashboard presentation, removed remaining dashboard-local presentation CSS, standardized workspace tabs and quick actions, and aligned Show Manager with the main dashboard family while preserving role-specific workflows.
 
 ## Preview 4C — People / Families presentation
 
-Implemented:
-
-- added `static/css/people-v290.css` as the shared People / Families presentation layer;
-- loaded the People presentation layer from the shared ArenaLine base template;
-- aligned rider roster cards with the ArenaLine surface, typography, chip, hover, and theme treatment;
-- improved rider roster section rhythm and roster-count presentation while preserving Futures / Upper School groupings;
-- aligned rider profile hierarchy, contact strips, lifecycle banners, season-membership cards, class chips, and family-contact cards;
-- aligned the parent / guardian directory with the same family contact-card presentation;
-- aligned rider onboarding / editing forms and season-enrollment class choices with the shared ArenaLine form language;
-- added responsive handling for rider profiles, family cards, and membership history;
-- preserved `private_view`, `can_manage`, family-account, IEA member number, team-level, class-assignment, and season-assignment conditions unchanged;
-- added focused regression coverage protecting both the new presentation layer and the existing IEA/privacy semantics.
-
-Preview 4C remains presentation-only. Rider visibility, guardian relationships, account access, roster filters, IEA team assignments, and season enrollment behavior are unchanged.
+Implemented `static/css/people-v290.css`, aligning roster cards, rider profiles, guardian/family cards, onboarding forms, and responsive behavior while preserving all privacy, role, Futures/Upper, and season-assignment semantics.
 
 ## Preview 4D — Horses presentation
 
-Implemented:
-
-- added `static/css/horses-v290.css` as the ArenaLine horse-management presentation layer while retaining the existing `horses-v2.css` feature styles underneath it;
-- loaded the Preview 4 horse layer from the shared ArenaLine base template;
-- aligned horse registry cards, imagery, typography, metadata, status presentation, and hover behavior with the ArenaLine surface system;
-- aligned horse-detail profile cards, detail lists, internal notes, Coggins/readiness panels, and season-eligibility history;
-- aligned horse forms with the Preview 4 form language while preserving the existing two-column horse-data layout;
-- aligned Show Horses, Horse of the Day, class chips, assignment notes, and action rows with the same visual system;
-- aligned Horse Readiness statistics, readiness badges, missing-class warnings, Coggins warnings, success states, and leased-horse planning surfaces;
-- preserved Horse & Hoofprint terminology, Coggins behavior, season eligibility, show-horse assignments, leased-horse planning, and all IEA-specific horse workflows unchanged;
-- added focused regression coverage protecting the shared horse presentation hooks and Hoofprint/IEA terminology.
-
-Preview 4D is presentation-only. Horse registry data, Coggins calculations, readiness rules, show assignments, Hoofprint behavior, and season eligibility logic are unchanged.
+Implemented `static/css/horses-v290.css`, aligning horse registry/detail/forms, Coggins/readiness, show-horse planning, Horse of the Day, leased-horse planning, and Hoofprint-adjacent surfaces without changing horse or competition behavior.
 
 ## Preview 4E — IEA Competition presentation
 
-Implemented:
-
-- added `static/css/competition-v290.css` as the ArenaLine competition presentation layer;
-- loaded the competition layer from the shared ArenaLine base template;
-- aligned Show list cards, dates, status pills, past-show history, and hover states with the shared ArenaLine surface system;
-- aligned Show Detail hero treatment, competition metadata, class cards, entry tables, postseason result summaries, and mobile actions;
-- aligned Standings team-summary cards, qualification tables, progress indicators, and status presentation;
-- aligned Season Archive cards and historical season statistics;
-- aligned Record Book honors, rider/horse record tables, rankings, award cards, and historical summary surfaces;
-- preserved Futures / Upper, point riders, H8/H14 team-point exclusion, individual/team postseason tracks, qualification thresholds, Regionals/Zones/Nationals language, and advancement behavior unchanged;
-- added focused regression coverage protecting both the competition presentation layer and genuine IEA scoring/qualification semantics.
-
-Preview 4E remains presentation-only. Show setup, scoring, point-rider designation, qualification calculations, postseason advancement, and historical records are unchanged.
+Implemented `static/css/competition-v290.css`, aligning Shows, Show Detail, Standings, Season Archive, and Record Book while preserving genuine IEA terminology, point riders, H8/H14 exclusions, postseason tracks, qualification thresholds, and advancement behavior.
 
 ## Preview 4F — Operations / Communications presentation
 
-Implemented:
-
-- added `static/css/operations-v290.css` as the shared ArenaLine Operations / Communications presentation layer;
-- loaded the operations layer from the shared ArenaLine base template;
-- aligned action-item rows, ownership/action controls, lesson list rows, volunteer progress cards, committee cards, and communication/notification accents with the shared ArenaLine surface system;
-- added scoped ArenaLine calendar overrides for toolbar, month/agenda navigation, filters, day cells, event types, and light/dark surfaces;
-- intentionally retained the existing template-local calendar `<style>` block for v2.9 rather than performing a high-risk calendar rewrite during the presentation pass;
-- preserved action claiming/completion, lesson navigation/attendance workflows, volunteer approval semantics, delegated committee access, and calendar behavior unchanged;
-- added focused regression coverage protecting both the new Operations presentation layer and the existing operational workflow hooks.
-
-The remaining calendar inline presentation cleanup is explicitly deferred to the ArenaLine 3.0 kickoff review in `docs/V3_0_KICKOFF_REVIEW.md`.
+Implemented `static/css/operations-v290.css`, aligning calendar, action items, lessons, volunteer, committees, and communication accents. The legacy calendar inline stylesheet is intentionally retained for v2.9 and is listed for ArenaLine 3.0 cleanup in `docs/V3_0_KICKOFF_REVIEW.md`.
 
 ## Preview 4G — Finance presentation
 
-Implemented:
-
-- added `static/css/finance-v290.css` as the shared ArenaLine finance presentation layer;
-- loaded the finance layer from the shared ArenaLine base template;
-- aligned finance summary metrics, receivable/assistance summary links, treasurer attention cards, account balances, budget/actual tables, and ledger amounts;
-- aligned family-account charges, payments, credits, service agreements, assistance awards/claims, and fundraising summaries with the same visual hierarchy;
-- improved responsive behavior for finance action groups, summary grids, family ledger rows, and assistance details;
-- retained all finance permissions, transaction behavior, balance calculations, dues generation, payment voiding, assistance handling, service credits, receivable calculations, and fundraising behavior unchanged;
-- added focused regression coverage protecting both the finance presentation layer and the existing family-account/receivable workflow hooks.
-
-Preview 4G is presentation-only. No accounting calculation, financial permission, transaction, dues, family balance, assistance, reimbursement, or fundraising logic is changed.
+Implemented `static/css/finance-v290.css`, aligning finance summaries, treasurer worklists, accounts, budgets, ledger tables, family receivables/accounts, dues, credits, payments, assistance, reimbursement, and fundraising surfaces without changing accounting behavior.
 
 ## Preview 4H — Administration, forms, and destructive actions
 
+Implemented `static/css/admin-v290.css`, aligning Users, Season Setup, Branding, generic forms, and delete/confirmation screens. Shared history-back behavior now has a safe dashboard fallback, and destructive confirmations no longer use direct `javascript:history.back()` links.
+
+## Preview 4I — final responsive, theme, and navigation polish
+
 Implemented:
 
-- added `static/css/admin-v290.css` as the shared ArenaLine administration/form presentation layer;
-- loaded the administration layer from the shared ArenaLine base template;
-- aligned Users, Season Setup, Branding, generic forms, and destructive confirmation screens with the Preview 4 surface/form language;
-- standardized administration tables, season/team panels, class-action rows, funding-policy chips, branding layout, help/error text, and responsive form behavior;
-- restored the shared `data-history-back` behavior in the base shell with a dashboard fallback when browser history is unavailable;
-- removed direct `javascript:history.back()` usage from the shared delete confirmation and routed both Back and Cancel through the common navigation behavior;
-- preserved user roles, temporary-password state, rider/guardian linking, Futures / Upper School season structure, class codes, Hoofprint season requirements, and all administration permissions unchanged;
-- added focused regression coverage for administration presentation, shared back-navigation behavior, and retained IEA/user-management semantics.
+- added `static/css/final-polish-v290.css` as the final cross-module responsive/accessibility layer;
+- added consistent `:focus-visible` treatment for links, buttons, summaries, and form controls;
+- improved mobile navigation scrolling, menu-panel behavior, touch-target sizing, action stacking, table overflow, and footer rhythm;
+- verified the global shell against the `ARENA_MODULES` registry rather than the historical menu layout;
+- moved Finance out of Operations and made it an independent top-level module menu for authorized finance users;
+- retained Operations for Calendar, Action Items, Lessons, Volunteer, and Committees only;
+- retained Competition as the IEA-specific destination for Shows, Standings, Season History, and Record Book;
+- retained People and Horses as independent platform modules;
+- retained Communications as the notification utility surface;
+- retained Manage for organization administration: Users, Season Setup, Branding, Audit Log, and staff-only Django admin;
+- renamed the People menu item from `Parents` to `Parents & guardians` to match current domain language;
+- simplified Manage role gating so it is explicit and no longer depends on mixed template `and/or` precedence;
+- added `portal/tests/test_v290_preview4_navigation.py` to protect the module/menu map, Finance separation, administration map, final-polish CSS, and mobile navigation behavior.
 
-Preview 4H does not change authorization, account lifecycle, season setup logic, class behavior, or destructive-action server behavior. It only makes the administrative surfaces visually and navigationally consistent.
+### Final navigation map
+
+| ArenaLine area | Global navigation surface |
+| --- | --- |
+| Core | Dashboard, My Team |
+| People & Families | Riders, Parents & guardians |
+| Horses | Horse registry |
+| IEA Competition | Shows, Standings, Season history, Record book |
+| Operations | Calendar, Action items, Lessons, Volunteer, Committees |
+| Finance | Finance dashboard, Family receivables, Dues setup, Accounts & categories, Season budget, Reports, Fundraising, Reimbursements |
+| Communications | Notifications utility |
+| Organization administration | Users, Season setup, Branding, Audit log, staff-only Django admin |
+
+Finance visibility remains permission-aware through `portal_can_finance`; module availability remains independent through `portal_enabled_modules`.
 
 ## Preview 4 goals
-
-The remaining Preview 4 work should proceed module by module:
 
 1. ~~Dashboard and role-specific dashboard consistency.~~
 2. ~~People / Families presentation.~~
@@ -141,7 +91,9 @@ The remaining Preview 4 work should proceed module by module:
 5. ~~Operations / Communications presentation.~~
 6. ~~Finance presentation.~~
 7. ~~Administration / forms / destructive-action consistency.~~
-8. Responsive and light/dark final polish.
+8. ~~Responsive, light/dark, and navigation final polish.~~
+
+Preview 4 implementation is complete pending the final staging validation gate.
 
 ## Guardrails
 
@@ -150,10 +102,10 @@ The remaining Preview 4 work should proceed module by module:
 - Prefer existing shared semantic classes over adding page-specific CSS.
 - Keep light and dark themes at feature parity.
 - Preserve accessibility cues, focus states, semantic headings, and readable contrast.
-- Avoid template-local `<style>` blocks unless a component is truly isolated and cannot reasonably belong to the shared presentation layer.
+- Avoid template-local `<style>` blocks unless a component is intentionally deferred or truly isolated.
 - No database migrations are expected from Preview 4 UI work.
 
-## Validation gate
+## Final validation gate
 
 Run on staging after pulling the feature branch:
 
@@ -161,7 +113,17 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_preview4_finance portal.tests.test_v290_preview4_administration portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test \
+  portal.tests.test_v290_preview4_presentation \
+  portal.tests.test_v290_preview4_dashboards \
+  portal.tests.test_v290_preview4_people \
+  portal.tests.test_v290_preview4_horses \
+  portal.tests.test_v290_preview4_competition \
+  portal.tests.test_v290_preview4_operations \
+  portal.tests.test_v290_preview4_finance \
+  portal.tests.test_v290_preview4_administration \
+  portal.tests.test_v290_preview4_navigation \
+  portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -169,8 +131,10 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- all Preview 4 presentation-contract tests through Administration pass;
+- all Preview 4 presentation/navigation contracts pass;
 - the full portal regression suite remains green;
-- dashboards and all completed Preview 4 module/admin surfaces render consistently in both light and dark modes;
+- desktop and mobile navigation follow the final module map above;
+- Finance appears only for users with finance access and is no longer nested beneath Operations;
+- all completed module/admin surfaces remain coherent in light and dark themes;
 - shared Back/Cancel behavior works on generic and destructive forms;
-- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, operational workflows, finance behavior, and administration permissions remain unchanged.
+- rider privacy, Horse & Hoofprint behavior, IEA scoring/qualification semantics, operational workflows, finance behavior, and administration permissions remain unchanged.
