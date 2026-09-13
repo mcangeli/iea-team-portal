@@ -7,7 +7,6 @@ from .modules import (
 from .platform import (
     active_period_for_organization,
     can_manage_organization,
-    default_organization,
     organization_for_user,
     role_for_user,
 )
@@ -56,8 +55,9 @@ def portal_context(request):
             .order_by("due_at", "-created_at")[:8]
         ) if organization else []
 
-    elif request.path.startswith("/accounts/login"):
-        organization = default_organization()
+    # Anonymous surfaces intentionally remain product-branded. Organization
+    # identity is resolved only after authentication so the login screen does
+    # not leak or imply any particular tenant.
 
     # Preview 3: Team remains the v2.9 persisted tenant, but module availability
     # is resolved through an organization-neutral platform boundary.
