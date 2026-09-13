@@ -98,10 +98,6 @@ class IEASeasonCatalogConfiguration(models.Model):
         return f"{self.season} · {self.rulebook_season} · {disciplines}"
 
 
-# ``portal.models`` remains the legacy home of season/show competition models
-# during the 3.0 architecture transition. PortalConfig imports this module only
-# after the primary models module has loaded, so IEA reference fields and rules
-# can remain inside the competition-specific boundary.
 from portal.models import (  # noqa: E402
     SeasonClass,
     SeasonMembership,
@@ -169,7 +165,7 @@ def _catalog_aware_show_entry_clean(instance):
 
     show = show_class.show
     if show.competition_level != "regular":
-        raise ValidationError("Official IEA warm-up classes are regular-season show-only offerings.")
+        raise ValidationError("Official IEA show-only classes are regular-season offerings.")
 
     membership = SeasonMembership.objects.filter(
         rider=instance.rider,
@@ -178,9 +174,21 @@ def _catalog_aware_show_entry_clean(instance):
     if not membership:
         raise ValidationError("This rider is not on the roster for this show's season.")
     if catalog.team_level != IEAClassCatalogEntry.TeamLevel.BOTH and membership.team_level != catalog.team_level:
-        raise ValidationError("This warm-up belongs to a different team level than the rider's season roster.")
+        raise ValidationError("This show-only class belongs to a different team level than the rider's season roster.")
 
-    prerequisite_codes = WARMUP_PREREQUISITE_CODES.get((catalog.class_code or "").upper())
+    code = (catalog.class_code or "").upper()
+    if code == "VOC":
+        from portal.iea_voc import voc_candidate_ids
+
+        if instance.rider_id not in voc_candidate_ids(show):
+            raise ValidationError(
+                "This rider is not currently eligible for VOC from completed same-show H1/H2 results."
+            )
+        instance.is_point_rider = False
+        instance.entry_type = ShowEntry.EntryType.INDIVIDUAL
+        return
+
+    prerequisite_codes = WARMUP_PREREQUISITE_CODES.get(code)
     if prerequisite_codes:
         eligible = ShowEntry.objects.filter(
             rider=instance.rider,
@@ -217,7 +225,7 @@ def snapshot_direct_iea_show_class(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=ShowResult)
 def suppress_points_for_non_scoring_catalog_class(sender, instance, **kwargs):
-    """Official show-only warm-ups never earn ArenaLine individual/team points."""
+    """Official show-only warm-ups and VOC never earn ArenaLine points."""
     if not instance.entry_id:
         return
     show_class = instance.entry.show_class
