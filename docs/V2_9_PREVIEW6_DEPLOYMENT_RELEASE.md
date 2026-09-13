@@ -21,7 +21,7 @@ Staging validated.
 
 ## Preview 6B — deployment health and backup verification
 
-Implemented; awaiting staging validation.
+Staging validated with the full 350-test portal suite green.
 
 ### Backup integrity
 
@@ -35,7 +35,7 @@ This is a fast deployment-time verification and does not replace periodic restor
 
 ### Post-start health verification
 
-`portalctl` now provides:
+`portalctl` provides:
 
 ```bash
 ./portalctl health
@@ -70,15 +70,67 @@ An upgrade is not reported as complete until those checks pass.
 
 Regression coverage: `portal.tests.test_v290_preview6_deployment_health`.
 
+## Preview 6C — environment isolation and recovery runbook
+
+Implemented; awaiting staging validation.
+
+### Staging / production isolation
+
+Added `portal/tests/test_v290_preview6_environment_isolation.py` to protect the deployment identities documented in the two environment templates.
+
+The regression contract requires staging and production to use distinct:
+
+- Compose project names;
+- PostgreSQL volume names;
+- media volume names;
+- gateway ports;
+- PostgreSQL database names;
+- PostgreSQL users.
+
+It also protects:
+
+- `PORTAL_ENVIRONMENT=production` vs `staging`;
+- production `stable` vs staging `preview` update channels;
+- staging email disabled by default;
+- staging local/private cookie/HSTS defaults vs production secure defaults;
+- Compose use of environment-selected named volumes and loopback gateway binding.
+
+### Restore and rollback runbook
+
+Added `docs/BACKUP_RESTORE_ROLLBACK.md` with:
+
+- the distinction between code-only rollback and database restore;
+- a staging-first restore drill;
+- explicit backup validation;
+- explicit staging-volume verification before destructive steps;
+- `psql -v ON_ERROR_STOP=1` restore behavior;
+- post-restore `preflight`, `health`, and application verification;
+- a production rollback decision path;
+- recovery evidence that should be retained for a release.
+
+Database restoration is deliberately **not** exposed as an automatic `portalctl` shortcut because selecting the wrong database/volume is inherently destructive. The runbook keeps the target and backup path explicit.
+
+### Media recovery boundary
+
+The recovery documentation now explicitly calls out that PostgreSQL backups do not contain uploaded files. ArenaLine media requires separate volume/filesystem backup coverage for rider photos, Coggins documents, Hoofprint horse-list uploads, and Finance receipts.
+
+`docs/STAGING.md` was updated to:
+
+- link to the recovery runbook;
+- validate dump signatures before restore;
+- restore with `ON_ERROR_STOP=1`;
+- use `portalctl health` after staging startup;
+- require a staging restore drill before v2.9 production promotion.
+
 ## Remaining Preview 6 audit
 
 1. ~~Release identity and version plumbing.~~
-2. Backup restore drill instructions and rollback decision path.
+2. ~~Backup restore drill instructions and rollback decision path.~~
 3. ~~`portalctl` post-start deployment health checks.~~
-4. Docker Compose production/staging configuration review.
+4. ~~Docker Compose production/staging configuration review.~~
 5. ~~Static manifest and uploaded-media runtime verification.~~
-6. Environment examples and staging-vs-production safety defaults.
-7. Production/staging deployment documentation cleanup.
+6. ~~Environment examples and staging-vs-production safety defaults.~~
+7. Production deployment documentation / operator checklist cleanup.
 8. v2.9 release-candidate checklist and final regression gate.
 
 ## Guardrails
@@ -90,3 +142,4 @@ Regression coverage: `portal.tests.test_v290_preview6_deployment_health`.
 - Release tooling should derive the application version from one source of truth.
 - The existing shared `.env` deployment model remains supported.
 - Code rollback remains separate from database restore because schema compatibility must be evaluated per release.
+- Destructive recovery commands must use explicit staging/production targets rather than inferring a Docker volume from context.
