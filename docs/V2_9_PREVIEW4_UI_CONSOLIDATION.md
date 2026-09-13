@@ -87,6 +87,20 @@ Implemented:
 
 Preview 4E remains presentation-only. Show setup, scoring, point-rider designation, qualification calculations, postseason advancement, and historical records are unchanged.
 
+## Preview 4F — Operations / Communications presentation
+
+Implemented:
+
+- added `static/css/operations-v290.css` as the shared ArenaLine Operations / Communications presentation layer;
+- loaded the operations layer from the shared ArenaLine base template;
+- aligned action-item rows, ownership/action controls, lesson list rows, volunteer progress cards, committee cards, and communication/notification accents with the shared ArenaLine surface system;
+- added scoped ArenaLine calendar overrides for toolbar, month/agenda navigation, filters, day cells, event types, and light/dark surfaces;
+- intentionally retained the existing template-local calendar `<style>` block for v2.9 rather than performing a high-risk calendar rewrite during the presentation pass;
+- preserved action claiming/completion, lesson navigation/attendance workflows, volunteer approval semantics, delegated committee access, and calendar behavior unchanged;
+- added focused regression coverage protecting both the new Operations presentation layer and the existing operational workflow hooks.
+
+The remaining calendar inline presentation cleanup is explicitly deferred to the ArenaLine 3.0 kickoff review in `docs/V3_0_KICKOFF_REVIEW.md`.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
@@ -95,7 +109,7 @@ The remaining Preview 4 work should proceed module by module:
 2. ~~People / Families presentation.~~
 3. ~~Horses presentation.~~
 4. ~~IEA Competition presentation.~~
-5. Operations / Communications presentation.
+5. ~~Operations / Communications presentation.~~
 6. Finance presentation.
 7. Administration / forms / destructive-action consistency.
 8. Responsive and light/dark final polish.
@@ -118,7 +132,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -126,7 +140,7 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation, dashboard-family, People / Families, Horses, and Competition tests pass;
+- Preview 4 presentation, dashboard-family, People / Families, Horses, Competition, and Operations tests pass;
 - the full portal regression suite remains green;
-- dashboards, People / Families, horse-management, and competition screens render consistently in both light and dark modes;
-- rider privacy, Horse & Hoofprint behavior, and genuine IEA roster/scoring/qualification semantics remain unchanged.
+- dashboards, People / Families, horse-management, competition, calendar, action-item, lesson, volunteer, and committee screens render consistently in both light and dark modes;
+- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, and operational workflow behavior remain unchanged.
