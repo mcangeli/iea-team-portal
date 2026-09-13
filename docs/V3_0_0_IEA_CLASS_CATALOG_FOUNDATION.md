@@ -4,6 +4,12 @@
 
 Design/source-verification phase. No schema migration has been introduced yet.
 
+## Validation environment
+
+All v3.0 development validation must run against the isolated ArenaLine staging installation before any production promotion is considered. This includes migration rehearsal, catalog seeding, scoring/qualification regression tests, permission tests, UI smoke tests, and full portal regression runs.
+
+Production remains pinned to the released v2.9.0 line during this work. The v3.0 branch must not be validated by applying experimental migrations or seed data directly to production.
+
 ## Goal
 
 Replace free-form, organization-authored IEA class definitions with a versioned, official IEA class catalog while preserving `SeasonClass` as the organization/season-specific instance used by existing rider assignments, shows, entries, results, scoring, and historical records.
@@ -134,6 +140,8 @@ Do not move organization policy or runtime authorization into the catalog.
 - Never overwrite historical catalog versions when a later IEA rulebook changes a class.
 - Do not seed unverified class definitions.
 - Add regression coverage before changing scoring behavior.
+- Run all migration, seed, scoring, permission, presentation, and full-suite validation on ArenaLine staging first.
+- Do not use production as a v3.0 test environment.
 
 ## First implementation slice
 
@@ -143,6 +151,8 @@ Do not move organization policy or runtime authorization into the catalog.
 4. Introduce the catalog reference model and migration.
 5. Seed only the verified 2026–2027 catalog.
 6. Add model-level tests proving rulebook-season version isolation.
+7. Deploy the feature branch to ArenaLine staging, apply migrations there, run the focused v3.0 tests, then run the full portal regression suite.
+8. Perform staging UI smoke tests before considering the slice complete.
 
 ## Deferred until source extraction is complete
 
