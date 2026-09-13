@@ -1,6 +1,6 @@
 """ArenaLine platform module registry and enablement helpers.
 
-v2.9 keeps every existing module enabled by default.  This module establishes a
+v2.9 keeps every existing module enabled by default. This module establishes a
 single application boundary for module metadata and future organization-level
 enablement without changing the current Team tenancy model or database schema.
 """
@@ -25,7 +25,7 @@ def resolve_enabled_modules(module_ids: Iterable[str] | None = None) -> tuple[st
     """Return valid enabled modules in registry order.
 
     Passing ``None`` preserves current ArenaLine behavior by enabling every
-    registered module.  An explicit iterable is supported as the stable service
+    registered module. An explicit iterable is supported as the stable service
     boundary future organization configuration can call into; unknown IDs are
     ignored rather than leaking invalid module names into templates.
 
@@ -39,6 +39,20 @@ def resolve_enabled_modules(module_ids: Iterable[str] | None = None) -> tuple[st
     requested = set(module_ids)
     requested.add("core")
     return tuple(module_id for module_id in ARENA_MODULES if module_id in requested)
+
+
+def enabled_modules_for_organization(organization) -> tuple[str, ...]:
+    """Resolve module availability for the current ArenaLine organization.
+
+    ``Team`` remains the persisted tenant object in v2.9, but callers should use
+    this organization-neutral boundary rather than baking tenant storage details
+    into navigation or platform services. Preview 3 intentionally returns the
+    full existing module set; later organization configuration can be introduced
+    behind this function without changing the template contract.
+    """
+
+    del organization  # Reserved for the future organization/module configuration boundary.
+    return resolve_enabled_modules()
 
 
 def module_is_enabled(module_id: str, enabled_modules: Iterable[str] | None = None) -> bool:
