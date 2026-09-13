@@ -61,6 +61,41 @@ class IEAClassCatalogEntry(models.Model):
         return f"{self.rulebook_season} · {self.class_code} · {self.official_name}"
 
 
+class IEASeasonCatalogConfiguration(models.Model):
+    """IEA catalog selection for one ArenaLine season.
+
+    Keeping this as an IEA companion record avoids adding competition-specific
+    fields to the generic ArenaLine ``Season`` model.
+    """
+
+    season = models.OneToOneField(
+        "portal.Season",
+        on_delete=models.CASCADE,
+        related_name="iea_catalog_configuration",
+    )
+    rulebook_season = models.CharField(max_length=20)
+    disciplines = models.JSONField(default=list, blank=True)
+    configured_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["season_id"]
+
+    def clean(self):
+        super().clean()
+        supported = {value for value, _label in IEAClassCatalogEntry.Discipline.choices}
+        selected = set(self.disciplines or [])
+        unsupported = selected - supported
+        if unsupported:
+            from django.core.exceptions import ValidationError
+            raise ValidationError({
+                "disciplines": f"Unsupported IEA discipline(s): {', '.join(sorted(unsupported))}."
+            })
+
+    def __str__(self):
+        disciplines = ", ".join(self.disciplines or []) or "No disciplines"
+        return f"{self.season} · {self.rulebook_season} · {disciplines}"
+
+
 # ``portal.models`` remains the legacy home of SeasonClass during the 3.0
 # architecture transition. PortalConfig imports this module only after the
 # primary models module has loaded, so the field can be contributed here while
