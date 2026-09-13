@@ -70,7 +70,7 @@ The current v2.9 code already provides several important shared controls:
 - `_finance_season_ids()` constrains delegated Treasurer access to assigned seasons;
 - Finance dashboard/audit queries begin from the current organization and permitted seasons.
 
-These helpers are the baseline contract; Preview 5 will verify that individual endpoints consistently use them.
+These helpers are the baseline contract; Preview 5 verifies that individual endpoints consistently use them.
 
 ## Preview 5A — shared boundary baseline
 
@@ -83,7 +83,7 @@ Implemented and staging-validated:
 
 ## Preview 5B — cross-organization direct-object probe
 
-Implemented:
+Implemented and staging-validated:
 
 - added `portal/tests/test_v290_preview5_cross_organization.py`;
 - creates two independent organizations and logs in as an Administrator for Organization A;
@@ -91,7 +91,7 @@ Implemented:
 - expects cross-organization direct-object access to fail as `404`, preventing both data disclosure and object-existence leakage through normal feature routes;
 - code review confirms representative Rider, Horse, Show/Class/Entry, Finance, and User-management lookups are constrained to the current organization or a trusted organization-owned parent relation.
 
-Representative probes currently cover:
+Representative probes cover:
 
 - `rider_detail` and `rider_edit`;
 - `horse_detail` and `horse_edit`;
@@ -100,17 +100,39 @@ Representative probes currently cover:
 - `user_edit` and `user_reset_password`;
 - `season_review`.
 
-This slice is intentionally an enforcement baseline, not proof that every endpoint is complete. Subsequent Preview 5 work continues through nested mutations, downloads/exports, delegated-role boundaries, and family-facing privacy.
+## Preview 5C — private data, nested mutations, exports, and files
+
+Implemented; awaiting staging validation:
+
+- added `portal/tests/test_v290_preview5_private_exports.py`;
+- verifies Parent/Guardian private-rider access is family-specific rather than organization-wide;
+- verifies Family Account access is family-specific and cross-organization membership IDs fail closed;
+- confirms Rider and Parent/Guardian directory exports remain management-only;
+- confirms Finance transaction and receivables exports reject a Parent without Finance authority;
+- probes nested destructive/edit routes so a valid Organization A parent object cannot be combined with an Organization B child ID;
+- confirms foreign guardian-link, show-class, and family-finance child objects fail before mutation;
+- protects the receipt route expectation that authorization/object lookup happens before stored-file access.
+
+Code review for this slice also confirms:
+
+- rider/parent CSV exports begin from the current organization and require management authority;
+- Finance report/export querysets begin from the current organization and re-check Finance authorization;
+- transaction receipt downloads scope the transaction to the current organization before opening the receipt;
+- reimbursement receipt downloads scope the reimbursement to the current organization and then require either the requester or Finance authority;
+- `rider_guardian_unlink` resolves the rider from the current organization first and then constrains the link to that rider;
+- nested ShowClass/ShowEntry and Finance allocation lookups are constrained through an organization-owned parent relation.
+
+A deliberate product distinction is retained: same-organization users may see the normal rider roster/profile surface, while private rider data is controlled separately through `_can_view_private_rider()` and family-finance data through `_can_view_family_account()`.
 
 ## Audit sequence
 
 1. ~~Platform/organization boundary and shared permission helpers.~~
-2. People / family privacy and account linking.
-3. Finance and financial downloads/exports.
+2. People / family privacy and account linking — private/family baseline covered; additional role matrix remains.
+3. Finance and financial downloads/exports — baseline covered; delegated Treasurer edge cases remain.
 4. Competition, scoring, history, and Hoofprint access.
 5. Operations, calendar, lessons, volunteer, and communications access.
 6. Show Lead / Team Parent / Points Secretary delegated-role matrix.
-7. Cross-organization IDOR sweep — direct-object baseline complete; nested mutations/downloads remain.
+7. Cross-organization IDOR sweep — direct objects and representative nested mutations/download boundaries covered.
 8. Final regression matrix and closeout.
 
 ## Guardrails
