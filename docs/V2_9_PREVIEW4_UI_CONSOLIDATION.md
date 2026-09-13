@@ -115,6 +115,21 @@ Implemented:
 
 Preview 4G is presentation-only. No accounting calculation, financial permission, transaction, dues, family balance, assistance, reimbursement, or fundraising logic is changed.
 
+## Preview 4H — Administration, forms, and destructive actions
+
+Implemented:
+
+- added `static/css/admin-v290.css` as the shared ArenaLine administration/form presentation layer;
+- loaded the administration layer from the shared ArenaLine base template;
+- aligned Users, Season Setup, Branding, generic forms, and destructive confirmation screens with the Preview 4 surface/form language;
+- standardized administration tables, season/team panels, class-action rows, funding-policy chips, branding layout, help/error text, and responsive form behavior;
+- restored the shared `data-history-back` behavior in the base shell with a dashboard fallback when browser history is unavailable;
+- removed direct `javascript:history.back()` usage from the shared delete confirmation and routed both Back and Cancel through the common navigation behavior;
+- preserved user roles, temporary-password state, rider/guardian linking, Futures / Upper School season structure, class codes, Hoofprint season requirements, and all administration permissions unchanged;
+- added focused regression coverage for administration presentation, shared back-navigation behavior, and retained IEA/user-management semantics.
+
+Preview 4H does not change authorization, account lifecycle, season setup logic, class behavior, or destructive-action server behavior. It only makes the administrative surfaces visually and navigationally consistent.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
@@ -125,7 +140,7 @@ The remaining Preview 4 work should proceed module by module:
 4. ~~IEA Competition presentation.~~
 5. ~~Operations / Communications presentation.~~
 6. ~~Finance presentation.~~
-7. Administration / forms / destructive-action consistency.
+7. ~~Administration / forms / destructive-action consistency.~~
 8. Responsive and light/dark final polish.
 
 ## Guardrails
@@ -146,7 +161,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_preview4_finance portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_preview4_horses portal.tests.test_v290_preview4_competition portal.tests.test_v290_preview4_operations portal.tests.test_v290_preview4_finance portal.tests.test_v290_preview4_administration portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -154,7 +169,8 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation, dashboard-family, People / Families, Horses, Competition, Operations, and Finance tests pass;
+- all Preview 4 presentation-contract tests through Administration pass;
 - the full portal regression suite remains green;
-- dashboards and all completed Preview 4 module surfaces render consistently in both light and dark modes;
-- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, operational workflows, and finance behavior remain unchanged.
+- dashboards and all completed Preview 4 module/admin surfaces render consistently in both light and dark modes;
+- shared Back/Cancel behavior works on generic and destructive forms;
+- rider privacy, Horse & Hoofprint behavior, genuine IEA roster/scoring/qualification semantics, operational workflows, finance behavior, and administration permissions remain unchanged.
