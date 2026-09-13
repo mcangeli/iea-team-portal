@@ -38,12 +38,29 @@ Implemented:
 
 Preview 4B is a presentation-only consolidation. No dashboard queries, permissions, role routing, show-host behavior, or competition logic are changed.
 
+## Preview 4C — People / Families presentation
+
+Implemented:
+
+- added `static/css/people-v290.css` as the shared People / Families presentation layer;
+- loaded the People presentation layer from the shared ArenaLine base template;
+- aligned rider roster cards with the ArenaLine surface, typography, chip, hover, and theme treatment;
+- improved rider roster section rhythm and roster-count presentation while preserving Futures / Upper School groupings;
+- aligned rider profile hierarchy, contact strips, lifecycle banners, season-membership cards, class chips, and family-contact cards;
+- aligned the parent / guardian directory with the same family contact-card presentation;
+- aligned rider onboarding / editing forms and season-enrollment class choices with the shared ArenaLine form language;
+- added responsive handling for rider profiles, family cards, and membership history;
+- preserved `private_view`, `can_manage`, family-account, IEA member number, team-level, class-assignment, and season-assignment conditions unchanged;
+- added focused regression coverage protecting both the new presentation layer and the existing IEA/privacy semantics.
+
+Preview 4C remains presentation-only. Rider visibility, guardian relationships, account access, roster filters, IEA team assignments, and season enrollment behavior are unchanged.
+
 ## Preview 4 goals
 
 The remaining Preview 4 work should proceed module by module:
 
 1. ~~Dashboard and role-specific dashboard consistency.~~
-2. People / Families presentation.
+2. ~~People / Families presentation.~~
 3. Horses presentation.
 4. IEA Competition presentation.
 5. Operations / Communications presentation.
@@ -69,7 +86,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_preview4_presentation portal.tests.test_v290_preview4_dashboards portal.tests.test_v290_preview4_people portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -77,6 +94,7 @@ Expected results:
 
 - Django system check passes;
 - no migration/schema drift;
-- Preview 4 presentation-contract and dashboard-family tests pass;
+- Preview 4 presentation, dashboard-family, and People / Families tests pass;
 - the full portal regression suite remains green;
-- main, role-specific, and Show Manager dashboards render as one ArenaLine visual family in both light and dark modes.
+- dashboards and People / Families screens render consistently in both light and dark modes;
+- rider privacy and genuine IEA roster semantics remain unchanged.
