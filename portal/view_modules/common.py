@@ -52,6 +52,7 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import organization_for_view_user
 
 TEAM_LEVELS = {SeasonMembership.TeamLevel.FUTURES, SeasonMembership.TeamLevel.UPPER}
 
@@ -150,11 +151,8 @@ def friendly_integrity_errors(view_func):
     return wrapped
 
 def _team(user):
-    if user.is_superuser:
-        return user.profile.team if hasattr(user, "profile") else None
-    if not hasattr(user, "profile") or not user.profile.team:
-        raise PermissionDenied("Your account is not assigned to a team.")
-    return user.profile.team
+    """Compatibility alias for legacy callers resolving persisted Team context."""
+    return organization_for_view_user(user)
 
 def _can_manage(user):
     return user.is_superuser or (
