@@ -1,0 +1,103 @@
+/* ArenaLine v2.9 Preview 4B — shared dashboard family presentation. */
+.dashboard-shell-link{display:none}
+.dashboard-workspaces{margin:1rem 0 1.2rem}
+.dashboard-workspaces + .club-summary{margin-top:0}
+.dashboard-hero{min-height:245px}
+.dashboard-hero .hero-copy{max-width:780px}
+.dashboard-hero .welcome-kicker{
+  margin-bottom:.45rem;
+  color:rgba(244,241,234,.82);
+  font-size:.88rem;
+  letter-spacing:.02em;
+}
+.dashboard-hero .welcome-kicker strong{color:var(--arena-cream)}
+.dashboard-hero .hero-mark{
+  display:grid;
+  place-items:center;
+  width:clamp(92px,12vw,145px);
+  height:clamp(92px,12vw,145px);
+  padding:14px;
+  border:1px solid rgba(244,241,234,.2);
+  border-radius:24px;
+  background:rgba(244,241,234,.08);
+  backdrop-filter:blur(8px);
+}
+.dashboard-hero .hero-mark img{max-width:100%;max-height:100%;object-fit:contain}
+.quick-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.65rem;
+  margin-top:.85rem;
+}
+.course-status-card{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:1.25rem;
+  align-items:center;
+}
+.course-status-state{
+  color:var(--heading);
+  font-family:var(--arena-serif);
+  font-size:1.35rem;
+  font-weight:600;
+}
+.course-status-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  margin-top:.7rem;
+}
+.course-status-meta span{
+  padding:.35rem .6rem;
+  border:1px solid color-mix(in srgb,var(--arena-gold) 18%,var(--line));
+  border-radius:999px;
+  background:var(--surface-soft);
+  color:var(--muted);
+  font-size:.78rem;
+  font-weight:650;
+}
+.dashboard-role-summary,.show-manager-summary{margin-top:1.15rem}
+.show-manager-hero .hero-copy{max-width:760px}
+.show-manager-hero .hero-actions{
+  position:relative;
+  z-index:2;
+  align-self:flex-end;
+}
+.show-manager-hero .btn.secondary{
+  background:rgba(244,241,234,.1);
+  color:var(--arena-cream);
+  border-color:rgba(244,241,234,.28);
+}
+.show-manager-hero .btn.secondary:hover{
+  background:rgba(244,241,234,.16);
+  border-color:rgba(244,241,234,.46);
+}
+.dashboard-stat-grid .stat-card,
+.stat-grid .stat-card{
+  position:relative;
+  overflow:hidden;
+  background:var(--surface);
+}
+.dashboard-stat-grid .stat-card:before,
+.stat-grid .stat-card:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  width:2px;
+  background:linear-gradient(var(--arena-gold),transparent 78%);
+  opacity:.72;
+}
+.dashboard-stat-grid .stat-card strong,
+.stat-grid .stat-card strong{color:var(--heading)}
+@media(max-width:760px){
+  .dashboard-hero{min-height:0;align-items:flex-start}
+  .dashboard-hero .hero-mark{display:none}
+  .quick-actions{display:grid;grid-template-columns:1fr}
+  .quick-actions .btn,.quick-actions .button{width:100%;text-align:center}
+  .course-status-card{grid-template-columns:1fr}
+  .course-status-card .btn{width:100%;text-align:center}
+  .show-manager-hero .hero-actions{align-self:stretch;width:100%}
+  .show-manager-hero .hero-actions .btn{width:100%}
+}
