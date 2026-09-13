@@ -52,13 +52,13 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import active_period_for_organization, organization_for_view_user
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _active_season,
     _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
@@ -87,7 +87,6 @@ from .common import (
     _rider_class_point_rows,
     _selected_team,
     _show_planning_allowed_levels,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -103,8 +102,8 @@ from .administration_helpers import (
 
 @login_required
 def committee_list(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
     assignments = CommitteeAssignment.objects.filter(team=team, season=season).select_related("user") if season else []
     return render(request, "portal/committee_list.html", {
         "season": season, "assignments": assignments, "can_manage": _can_manage(request.user)
@@ -114,7 +113,7 @@ def committee_list(request):
 @friendly_integrity_errors
 def committee_assignment_create(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season before assigning committee chairs.")
         return redirect("committee_list")
@@ -133,7 +132,7 @@ def committee_assignment_create(request):
 @login_required
 def committee_assignment_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     obj = get_object_or_404(CommitteeAssignment.objects.select_related("season"), pk=pk, team=team)
     _ensure_season_open(obj.season)
     form = CommitteeAssignmentForm(request.POST or None, instance=obj, team=team)
@@ -151,7 +150,7 @@ def committee_assignment_edit(request, pk):
 @login_required
 def user_list(request):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     users = User.objects.filter(profile__team=team).select_related("profile", "rider_record", "guardian_contact").order_by("last_name", "first_name", "username")
     if not _is_admin(request.user):
         users = users.filter(profile__role__in=[UserProfile.Role.PARENT, UserProfile.Role.RIDER])
@@ -160,7 +159,7 @@ def user_list(request):
 @login_required
 def user_create(request, rider_pk=None, guardian_pk=None):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team, user__isnull=True) if rider_pk else None
     guardian = get_object_or_404(GuardianContact, pk=guardian_pk, team=team, user__isnull=True) if guardian_pk else None
     form = UserOnboardingForm(request.POST or None, team=team, actor=request.user, initial_rider=rider, initial_guardian=guardian)
@@ -225,7 +224,7 @@ def user_create(request, rider_pk=None, guardian_pk=None):
 @login_required
 def user_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     target = get_object_or_404(User.objects.select_related("profile"), pk=pk, profile__team=team)
     if not _can_manage_user(request.user, target):
         raise PermissionDenied
@@ -235,7 +234,7 @@ def user_edit(request, pk):
         target.refresh_from_db()
         _audit_event(
             team=team, actor=request.user, action=AuditEvent.Action.UPDATED,
-            season=_active_season(team), entity_type="User", entity_id=target.pk,
+            season=active_period_for_organization(team), entity_type="User", entity_id=target.pk,
             entity_label=target.get_full_name() or target.username,
             summary=f"Updated user account: {target.get_full_name() or target.username}",
             details={"role": getattr(target.profile, "role", ""), "active": target.is_active},
@@ -247,7 +246,7 @@ def user_edit(request, pk):
 @login_required
 def user_reset_password(request, pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     target = get_object_or_404(User.objects.select_related("profile"), pk=pk, profile__team=team)
     if not _can_manage_user(request.user, target):
         raise PermissionDenied
@@ -275,7 +274,7 @@ def password_change_required(request):
 @login_required
 def audit_log(request):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     qs = AuditEvent.objects.filter(team=team).select_related("actor", "season")
     if not _is_admin(request.user):
         qs = qs.exclude(entity_type__in=FINANCE_AUDIT_ENTITY_TYPES)
@@ -332,8 +331,8 @@ def audit_log(request):
         "entity_id": entity_id,
         "q": q,
         "filter_query": urlencode({k: v for k, v in params.items() if v}),
-        "audit_title": "Team audit log",
+        "audit_title": "Organization audit log",
         "audit_eyebrow": "OPERATIONS & CONTROLS",
-        "audit_intro": "Immutable activity history for important team, competition, user, and finance changes.",
+        "audit_intro": "Immutable activity history for important organization, competition, user, and finance changes.",
         "audit_back_url": "dashboard",
     })
