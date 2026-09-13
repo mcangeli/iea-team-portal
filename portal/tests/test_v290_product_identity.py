@@ -83,3 +83,20 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertEqual(response.context["portal_modules"], ARENA_MODULES)
         self.assertEqual(tuple(response.context["portal_enabled_modules"]), DEFAULT_ENABLED_MODULES)
         self.assertEqual(response.context["portal_organization_label"], "Organization")
+
+    def test_platform_surfaces_use_generic_language_but_keep_iea_specialization(self):
+        templates = Path(settings.BASE_DIR) / "templates/portal"
+        horses = (templates / "horse_list.html").read_text()
+        riders = (templates / "rider_list.html").read_text()
+        finance = (templates / "finance_dashboard.html").read_text()
+
+        self.assertIn("Horse Registry · ArenaLine", horses)
+        self.assertIn("ARENALINE · HORSE MANAGEMENT", horses)
+        self.assertNotIn("Team Portal", horses)
+        self.assertIn("Riders · ArenaLine", riders)
+        self.assertIn("ARENALINE · PEOPLE", riders)
+        self.assertIn("IEA · GRADES 4–8", riders)
+        self.assertIn("IEA · GRADES 9–12", riders)
+        self.assertIn("Finance · ArenaLine", finance)
+        self.assertIn("ARENALINE · FINANCE", finance)
+        self.assertIn("organization’s", finance)
