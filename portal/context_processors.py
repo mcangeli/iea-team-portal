@@ -2,6 +2,10 @@ from .models import ActionItem, CommitteeAssignment, Season, Team
 from django.conf import settings
 
 
+PRODUCT_NAME = "ArenaLine"
+PRODUCT_TAGLINE = "Equestrian operations, from barn aisle to show ring."
+
+
 def portal_context(request):
     team = None
     role = None
@@ -36,6 +40,8 @@ def portal_context(request):
         "portal_role": role,
         "portal_can_manage": can_manage,
         "portal_can_finance": can_finance,
+        "product_name": PRODUCT_NAME,
+        "product_tagline": PRODUCT_TAGLINE,
         "site_version": settings.SITE_VERSION,
         "site_version_docs_url": (
             f"{settings.PORTAL_REPOSITORY_URL}/tree/v{settings.SITE_VERSION}"
