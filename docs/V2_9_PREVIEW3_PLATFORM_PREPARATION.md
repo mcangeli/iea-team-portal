@@ -33,6 +33,19 @@ Implemented:
 - the shared context processor now obtains its tenant through this platform boundary;
 - no model/table/relationship rename is performed.
 
+## Preview 3C — shared shell / operating-context boundary
+
+Implemented:
+
+- expanded `portal.platform` with `default_organization()`, `active_period_for_organization()`, `role_for_user()`, and `can_manage_organization()`;
+- moved login branding tenant lookup, active-season lookup, role lookup, and shell management authority out of the context processor;
+- added `portal_organization` as the generic template context contract;
+- retained `portal_team` as a v2.9 compatibility alias for feature templates that still use persisted Team vocabulary;
+- moved the shared ArenaLine shell (`templates/base.html`) entirely to `portal_organization`;
+- preserved all existing database relationships, URLs, permissions, and visible navigation behavior.
+
+This makes the application shell organization-oriented even though the current persisted tenant is still `Team`.
+
 ## Architectural rules
 
 1. `Team` remains the database tenant in v2.9.
@@ -41,6 +54,7 @@ Implemented:
 4. Module availability and user permission are separate concerns: enabling a module never grants access by itself.
 5. All modules remain enabled by default until a later feature explicitly introduces organization-level configuration.
 6. Stable module IDs are application contracts and should not be renamed casually.
+7. `portal_organization` is the preferred shell/template tenant contract; `portal_team` is compatibility-only during the v2.9 transition.
 
 ## Current module IDs
 
@@ -63,7 +77,12 @@ Preview 3 adds focused tests for:
 - module-aware navigation guards;
 - organization module resolution defaults;
 - current `Team`-backed organization lookup;
-- unassigned-account behavior and required organization permission handling.
+- unassigned-account behavior and required organization permission handling;
+- default organization and active operating-period service boundaries;
+- organization role / management authority boundaries;
+- generic `portal_organization` shell context;
+- preservation of the `portal_team` compatibility alias;
+- elimination of direct `portal_team` usage from the shared ArenaLine shell.
 
 ## Validation gate
 
@@ -73,7 +92,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
@@ -83,7 +102,7 @@ Expected results:
 - no migration/schema drift;
 - focused v2.9 tests pass;
 - the full portal regression suite remains green;
-- navigation appears unchanged with all current modules present.
+- navigation and branding appear unchanged with all current modules present.
 
 ## Deliberately deferred
 
