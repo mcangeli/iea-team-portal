@@ -81,11 +81,13 @@ from .view_modules.roster import (
     parent_list,
     parent_export,
     season_setup,
-    season_class_create,
+    season_class_create as legacy_season_class_create,
     season_class_edit,
     rider_guardian_link,
     rider_guardian_unlink,
 )
+
+from .view_modules.season_setup_catalog_ui import season_class_create
 
 from .view_modules.communications_helpers import (
     _deliver_announcement,
