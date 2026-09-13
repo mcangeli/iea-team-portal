@@ -72,15 +72,45 @@ The current v2.9 code already provides several important shared controls:
 
 These helpers are the baseline contract; Preview 5 will verify that individual endpoints consistently use them.
 
+## Preview 5A — shared boundary baseline
+
+Implemented and staging-validated:
+
+- regression coverage for the organization boundary and shared visibility/Finance helper contract;
+- retained the explicit unassigned-superuser compatibility behavior while requiring organization assignment for ordinary accounts;
+- confirmed Rider Finance denial and season-scoped Treasurer behavior through existing hardening tests;
+- confirmed existing fundraising/privacy/archive controls remain green under the v2.9 platform boundary.
+
+## Preview 5B — cross-organization direct-object probe
+
+Implemented:
+
+- added `portal/tests/test_v290_preview5_cross_organization.py`;
+- creates two independent organizations and logs in as an Administrator for Organization A;
+- attempts direct access to Organization B records by primary key across People, Horses, Competition, Finance, Administration, and Season History;
+- expects cross-organization direct-object access to fail as `404`, preventing both data disclosure and object-existence leakage through normal feature routes;
+- code review confirms representative Rider, Horse, Show/Class/Entry, Finance, and User-management lookups are constrained to the current organization or a trusted organization-owned parent relation.
+
+Representative probes currently cover:
+
+- `rider_detail` and `rider_edit`;
+- `horse_detail` and `horse_edit`;
+- `show_detail` and `show_edit`;
+- `finance_account_edit`;
+- `user_edit` and `user_reset_password`;
+- `season_review`.
+
+This slice is intentionally an enforcement baseline, not proof that every endpoint is complete. Subsequent Preview 5 work continues through nested mutations, downloads/exports, delegated-role boundaries, and family-facing privacy.
+
 ## Audit sequence
 
-1. Platform/organization boundary and shared permission helpers.
+1. ~~Platform/organization boundary and shared permission helpers.~~
 2. People / family privacy and account linking.
 3. Finance and financial downloads/exports.
 4. Competition, scoring, history, and Hoofprint access.
 5. Operations, calendar, lessons, volunteer, and communications access.
 6. Show Lead / Team Parent / Points Secretary delegated-role matrix.
-7. Mutation and cross-organization IDOR sweep.
+7. Cross-organization IDOR sweep — direct-object baseline complete; nested mutations/downloads remain.
 8. Final regression matrix and closeout.
 
 ## Guardrails
@@ -93,6 +123,6 @@ These helpers are the baseline contract; Preview 5 will verify that individual e
 
 ## Validation strategy
 
-Preview 5 will add focused tests that intentionally create two organizations and attempt cross-organization access using guessed primary keys. It will also exercise Parent, Rider, Coach/Admin, Treasurer, Points Secretary, Team Parent, and Show Lead accounts against both allowed and denied endpoints.
+Preview 5 adds focused tests that intentionally create two organizations and attempt cross-organization access using guessed primary keys. It also exercises Parent, Rider, Coach/Admin, Treasurer, Points Secretary, Team Parent, and Show Lead accounts against both allowed and denied endpoints.
 
 The full `portal` suite remains the final regression gate for every Preview 5 slice.
