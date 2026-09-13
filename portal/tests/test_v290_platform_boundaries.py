@@ -11,6 +11,7 @@ from portal.platform import (
     can_manage_organization,
     default_organization,
     organization_for_user,
+    organization_for_view_user,
     role_for_user,
 )
 
@@ -29,6 +30,22 @@ class ArenaLinePlatformBoundaryTests(SimpleTestCase):
         user = SimpleNamespace(profile=SimpleNamespace(team=None))
         with self.assertRaisesMessage(PermissionDenied, "Your account is not assigned to a team."):
             organization_for_user(user, required=True)
+
+    def test_view_organization_context_preserves_legacy_superuser_behavior(self):
+        superuser = SimpleNamespace(is_superuser=True)
+        self.assertIsNone(organization_for_view_user(superuser))
+
+        team = object()
+        assigned_superuser = SimpleNamespace(
+            is_superuser=True,
+            profile=SimpleNamespace(team=team),
+        )
+        self.assertIs(organization_for_view_user(assigned_superuser), team)
+
+    def test_view_organization_context_requires_assignment_for_normal_user(self):
+        user = SimpleNamespace(is_superuser=False, profile=SimpleNamespace(team=None))
+        with self.assertRaisesMessage(PermissionDenied, "Your account is not assigned to a team."):
+            organization_for_view_user(user)
 
     def test_default_organization_hides_persisted_team_lookup_from_shell_code(self):
         expected = object()
