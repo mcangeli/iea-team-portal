@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
+<section class="page-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>{{ title }}</h1><p>A Station device is a shared barn tablet or kiosk with limited access.</p></div></section>
+<section class="content-section people-form-shell">
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save</button><a class="btn btn-secondary" href="{% url 'station_manage' %}">Cancel</a></div></form>
+</section>
+{% endblock %}
