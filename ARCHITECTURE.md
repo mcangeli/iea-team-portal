@@ -19,31 +19,26 @@ IEA-specific competition behavior lives under `competition_iea` and should not l
 
 The Django view layer is organized by functional domain under `portal/view_modules/`.
 
-`portal/views.py` remains a compatibility namespace so existing URL configuration and imports such as `portal.views.show_detail` continue to work while implementations live in smaller domain modules.
+`portal/views.py` remains a compatibility namespace so existing URL configuration and imports continue to work while implementations live in smaller domain modules.
 
-### Domain modules
+Important v3.1 domains include:
 
 | Module | Responsibility |
 | --- | --- |
 | `dashboards.py` | Role-aware dashboard entry points |
 | `roster.py` | Team roster, riders, parents/guardians, season membership/classes |
-| `communications.py` | Calendar, events/RSVPs, announcements, action items, notifications |
 | `competitions.py` | Shows, show classes, entries, and result editing |
-| `show_day.py` | My Show Day, rider status, schedule, updates, weekly summary |
+| `show_day.py` | Authenticated Show Day operations and family/team show-day views |
+| `show_day_live.py` | Show-level live lifecycle control |
+| `show_class_live.py` | Per-class lifecycle, ring assignment, result publication |
+| `spectator_updates.py` | Public-safe show-day announcements and ring delays |
+| `public_site.py` | Anonymous public program/show views and stable live resolver |
 | `scoring.py` | Standings, qualification, scoring configuration, points-rider operations |
 | `show_planning.py` | Show planning, Show Lead assignments, planning items |
-| `lessons.py` | Lessons, attendance, availability, volunteer workflows |
 | `history.py` | Season archive/review, historical import/corrections, awards, Record Book |
-| `administration.py` | Users, committee assignments, general audit log |
-| `finance_core.py` | Finance dashboard, ledger, accounts, categories, budgets |
-| `family_finance.py` | Dues, family accounts, payments/charges/credits, assistance |
-| `fundraising.py` | Fundraising policy, campaigns, contributions, family fundraising |
-| `finance_reports.py` | Financial reporting and CSV exports |
-| `show_finance.py` | Show budgets, allocations, funding policy, reimbursements |
+| `finance_*` | Restricted finance domains and reporting |
 
-Most domains also have a matching `*_helpers.py` containing private logic used only by that domain.
-
-`common.py` is limited to helpers shared across multiple domains, including permissions, audit utilities, organization/season visibility, and shared scoring/query calculations.
+Most domains also have matching helper modules containing private logic used only by that domain.
 
 ## IEA competition boundary
 
@@ -56,7 +51,7 @@ Official IEA rulebook
         ↓
 IEAClassCatalogEntry
         ↓
-SeasonClass (normal rider/season placement classes)
+SeasonClass
         ↓
 ShowClass
         ↓
@@ -65,56 +60,101 @@ ShowEntry / ShowResult
 Scoring / qualification
 ```
 
-Official show-only offerings such as warm-ups and VOC use a direct catalog relationship:
+Official show-only offerings such as warm-ups and VOC may link directly from catalog data to `ShowClass` without creating `SeasonClass` rows.
 
-```text
-IEAClassCatalogEntry
-        ↓
-ShowClass
-        ↓
-ShowEntry / ShowResult
-```
+Catalog metadata is authoritative for scoring eligibility where available. Legacy code/name heuristics remain only as compatibility fallbacks for historical rows that are not linked to catalog data.
 
-They do not create `SeasonClass` records and therefore do not enter normal rider season assignments.
+## Live Show Day model
 
-Catalog metadata is authoritative for scoring eligibility where available:
+v3.1 adds explicit show-day state without rewriting the legacy `ShowClass` model.
 
-- `individual_points_enabled`
-- `team_points_enabled`
-- `season_assignable`
+Companion models under `portal/model_modules/show_day_state.py` provide:
 
-Legacy code/name heuristics may remain only as compatibility fallbacks for historical rows that are not linked to catalog data.
+- `ShowClassLiveState` — Not started / In progress / Paused / Complete plus result publication state;
+- `ShowClassRingAssignment` — structured ring assignment while preserving old schedule-note data;
+- `SpectatorShowUpdate` — public-safe announcements, breaks, schedule notices, and ring delays.
+
+The design intentionally supports multiple simultaneous active classes as long as they are in different rings. A ring may have only one active/paused class at a time.
+
+Show-level lifecycle remains on `Show.status`. Completing a class does not complete the show. Pausing a class does not pause the entire show.
+
+## Public publication boundary
+
+Nothing becomes public merely because it exists inside ArenaLine.
+
+The v3.1 public layer uses explicit publication records under `portal/model_modules/public_site.py`:
+
+- `PublicSiteProfile` controls whether an organization has an anonymous public site;
+- `PublicShowPublication` controls whether a show is public and which categories of show data may be exposed.
+
+Anonymous routes do not reuse authenticated portal views. They consume deliberately allow-listed payload builders in `portal/publication.py`.
+
+### Public allow-list
+
+Depending on explicit publication controls, public payloads may include:
+
+- organization display identity/logo/website;
+- show name/date/time;
+- venue/address/host/IEA area;
+- published class schedule and ring;
+- spectator-facing live state;
+- explicitly published class results;
+- spectator-safe notices/delays.
+
+Public results expose only approved placement information such as class identity, place, and rider display name.
+
+### Private-by-default data
+
+The public layer must not expose:
+
+- rider/guardian contact information;
+- private rider notes;
+- horse medical/Coggins/internal notes;
+- finance data;
+- committee/admin records;
+- points-rider strategy;
+- entry notes/internal strategy;
+- private operational documents/files.
+
+### Stable live URL
+
+`/public/<site-slug>/live/` is a stable season-long spectator entry point. It resolves to a currently active published show and otherwise falls back to the public schedule. This lets organizations reuse one QR code/link without weakening the publication boundary.
+
+## Result publication
+
+Result publication has two layers for compatibility:
+
+- legacy show-level `publish_results` remains the broad compatibility gate;
+- live-managed classes use `ShowClassLiveState.results_published` as the class-level publication decision.
+
+Completing a class does not automatically publish results. Publication remains explicit and reversible.
+
+## Presentation boundary
+
+Shared presentation belongs in static stylesheets and common components rather than template-local style blocks.
+
+v3.1 adds layered presentation files for Show Day and the public spectator experience. These layers are intentionally presentation-only so responsive/mobile polish can evolve without changing workflow or permission logic.
+
+At tablet/mobile widths, Show Day converts the wide class board into stacked class cards while preserving the same actions and permissions.
 
 ## Compatibility rule
 
 Compatibility layers are deliberate and should be removed only when their callers are known and covered by tests. Examples include:
 
 - `portal.views` re-exporting domain views;
-- nullable catalog links on historical `SeasonClass` and `ShowClass` rows;
+- nullable catalog links on historical `SeasonClass`/`ShowClass` rows;
 - organization helpers wrapping the persisted `Team` tenant model;
-- legacy scoring heuristics used only when no catalog metadata is available.
+- legacy scoring heuristics used only when no catalog metadata is available;
+- the legacy single `PublicShowPublication.current_class` pointer retained while multi-ring public state is derived from class lifecycle records.
 
 A cleanup should reduce duplicate behavior without rewriting historical records or breaking old URLs.
-
-## Presentation boundary
-
-Shared presentation belongs in static stylesheets and common components rather than template-local `<style>` blocks. ArenaLine surfaces should use the established theme variables and typography so light/dark mode and organization branding remain consistent.
-
-The calendar is the first v3 cleanup target following this rule; month, agenda, filter, and mobile behavior remain intact while presentation moves into the Operations stylesheet.
-
-## Public-facing boundary
-
-Nothing becomes public merely because it exists inside ArenaLine.
-
-Future public pages must use an explicit publication/allow-list model. Public routes should expose only fields intentionally approved for spectators or external audiences and must not reuse authenticated internal views as a shortcut.
-
-Public-facing work should be built as a separate presentation and access boundary on top of stable competition data, not by weakening internal permissions.
 
 ## Development rules
 
 - Keep generic platform behavior separate from IEA-specific rules.
+- Preserve explicit public publication boundaries.
 - Prefer domain services/helpers over adding more behavior to monolithic modules.
 - Preserve historical data and stable URLs during refactors.
 - Do not combine rulebook/scoring changes with unrelated UI rewrites.
 - Add or expand regression tests before removing compatibility behavior.
-- Run v3 migrations and validation on staging before production promotion.
+- Run migrations and validation on staging before production promotion.
