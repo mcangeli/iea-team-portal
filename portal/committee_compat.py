@@ -4,10 +4,13 @@ from portal.model_modules.people import Committee, CommitteeMembership, Organiza
 from portal.models import CommitteeAssignment
 
 
+# Legacy CommitteeAssignment roles are IEA-scoped compatibility roles. They must
+# never imply organization-wide authority simply because the generalized
+# committee model can also represent barn-level committees.
 ROLE_MAP = {
     CommitteeAssignment.Role.UPPER_PARENT: ("IEA Program", "Upper Team Parent Committee", CommitteeMembership.Position.CHAIR),
     CommitteeAssignment.Role.FUTURES_PARENT: ("IEA Program", "Futures Team Parent Committee", CommitteeMembership.Position.CHAIR),
-    CommitteeAssignment.Role.TREASURER: (None, "Finance Committee", CommitteeMembership.Position.TREASURER),
+    CommitteeAssignment.Role.TREASURER: ("IEA Program", "IEA Finance Committee", CommitteeMembership.Position.TREASURER),
     CommitteeAssignment.Role.POINTS_SECRETARY: ("IEA Program", "IEA Points & Records", CommitteeMembership.Position.SECRETARY),
 }
 
