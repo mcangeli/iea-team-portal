@@ -32,6 +32,18 @@
 </section>
 {% endif %}
 
+{% if public_show.spectator_updates %}
+<section class="public-spectator-updates" aria-live="polite">
+  {% for update in public_show.spectator_updates %}
+    <article class="public-spectator-update public-spectator-update-{{ update.kind }}">
+      <div class="public-spectator-update-meta">{% if update.ring %}{{ update.ring }} · {% endif %}{{ update.kind_label }}</div>
+      <strong>{{ update.title }}</strong>
+      {% if update.message %}<p>{{ update.message }}</p>{% endif %}
+    </article>
+  {% endfor %}
+</section>
+{% endif %}
+
 <section class="public-detail-card">
   {% if public_show.summary %}<div class="public-summary">{{ public_show.summary|linebreaks }}</div>{% endif %}
   <dl>
