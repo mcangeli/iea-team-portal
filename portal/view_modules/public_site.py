@@ -6,6 +6,7 @@ from portal.publication import (
     get_public_site,
     public_show_payload,
     public_show_queryset,
+    public_show_results_payload,
     public_show_schedule_payload,
     public_site_payload,
 )
@@ -58,5 +59,6 @@ def public_show_detail(request, site_slug, show_slug):
             "public_site": public_site_payload(site),
             "public_show": public_show_payload(publication),
             "public_class_schedule": public_show_schedule_payload(publication),
+            "public_results": public_show_results_payload(publication),
         },
     )
