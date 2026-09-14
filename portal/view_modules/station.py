@@ -1,4 +1,5 @@
 import secrets
+from collections import defaultdict
 
 from django.contrib import messages
 from django.contrib.auth import logout
@@ -9,12 +10,14 @@ from django.utils import timezone
 
 from portal.model_modules.station import StationCredential, StationDevice, WorkShiftEntry
 from portal.model_modules.people import Person
+from portal.models import AuditEvent
 from portal.station_forms import (
     StationActivationForm,
     StationClockInForm,
     StationCredentialForm,
     StationDeviceForm,
     StationPinForm,
+    WorkShiftReviewForm,
 )
 from portal.view_modules.common import _require_manage, _team
 
@@ -53,6 +56,25 @@ def _station_person(request, device):
     return Person.objects.filter(pk=person_id, team=device.team, active=True).first()
 
 
+def _shift_minutes(shift):
+    if not shift.clock_out:
+        return 0
+    return max(0, int((shift.clock_out - shift.clock_in).total_seconds() // 60))
+
+
+def _audit_shift(team, actor, action, shift, details):
+    AuditEvent.objects.create(
+        team=team,
+        actor=actor,
+        action=action,
+        entity_type="WorkShiftEntry",
+        entity_id=shift.pk,
+        entity_label=str(shift),
+        summary=f"{action.replace('_', ' ').title()} — {shift.person.display_name}",
+        details=details,
+    )
+
+
 @login_required
 def station_manage(request):
     _require_manage(request.user)
@@ -61,11 +83,75 @@ def station_manage(request):
     people = Person.objects.filter(team=team, active=True).select_related("station_credential").order_by(
         "last_name", "first_name"
     )
-    return render(
-        request,
-        "portal/station/manage.html",
-        {"devices": devices, "people": people},
+    return render(request, "portal/station/manage.html", {"devices": devices, "people": people})
+
+
+@login_required
+def station_shift_review(request):
+    _require_manage(request.user)
+    team = _team(request.user)
+    shifts = list(
+        WorkShiftEntry.objects.filter(team=team)
+        .select_related("person", "station", "approved_by")
+        .order_by("-clock_in")[:250]
     )
+    totals = defaultdict(lambda: {"person": None, "minutes": 0, "approved_minutes": 0})
+    for shift in shifts:
+        shift.duration_minutes = _shift_minutes(shift)
+        row = totals[shift.person_id]
+        row["person"] = shift.person
+        row["minutes"] += shift.duration_minutes
+        if shift.approved_at:
+            row["approved_minutes"] += shift.duration_minutes
+    summary = sorted(totals.values(), key=lambda row: (row["person"].last_name, row["person"].first_name))
+    return render(request, "portal/station/shift_review.html", {"shifts": shifts, "summary": summary})
+
+
+@login_required
+def station_shift_edit(request, shift_pk):
+    _require_manage(request.user)
+    team = _team(request.user)
+    shift = get_object_or_404(WorkShiftEntry.objects.select_related("person"), pk=shift_pk, team=team)
+    before = {
+        "role": shift.role,
+        "clock_in": shift.clock_in.isoformat(),
+        "clock_out": shift.clock_out.isoformat() if shift.clock_out else None,
+        "notes": shift.notes,
+    }
+    form = WorkShiftReviewForm(request.POST or None, instance=shift)
+    if request.method == "POST" and form.is_valid():
+        shift = form.save(commit=False)
+        shift.full_clean()
+        shift.save()
+        after = {
+            "role": shift.role,
+            "clock_in": shift.clock_in.isoformat(),
+            "clock_out": shift.clock_out.isoformat() if shift.clock_out else None,
+            "notes": shift.notes,
+        }
+        _audit_shift(team, request.user, "station_shift_corrected", shift, {"before": before, "after": after})
+        messages.success(request, f"Updated shift for {shift.person.display_name}.")
+        return redirect("station_shift_review")
+    return render(request, "portal/station/shift_form.html", {"form": form, "shift": shift})
+
+
+@login_required
+def station_shift_approve(request, shift_pk):
+    _require_manage(request.user)
+    if request.method != "POST":
+        raise Http404
+    team = _team(request.user)
+    shift = get_object_or_404(WorkShiftEntry.objects.select_related("person"), pk=shift_pk, team=team)
+    if not shift.clock_out:
+        messages.error(request, "Open shifts must be clocked out before approval.")
+        return redirect("station_shift_review")
+    shift.approved_by = request.user
+    shift.approved_at = timezone.now()
+    shift.full_clean()
+    shift.save(update_fields=["approved_by", "approved_at", "updated_at"])
+    _audit_shift(team, request.user, "station_shift_approved", shift, {"approved_at": shift.approved_at.isoformat()})
+    messages.success(request, f"Approved shift for {shift.person.display_name}.")
+    return redirect("station_shift_review")
 
 
 @login_required
@@ -81,11 +167,7 @@ def station_device_add(request):
         device.set_secret(raw_secret)
         device.full_clean()
         device.save()
-        return render(
-            request,
-            "portal/station/provision.html",
-            {"device": device, "raw_secret": raw_secret},
-        )
+        return render(request, "portal/station/provision.html", {"device": device, "raw_secret": raw_secret})
     return render(request, "portal/station/device_form.html", {"form": form, "title": "Register Station device"})
 
 
@@ -112,11 +194,7 @@ def station_device_rotate_secret(request, device_pk):
     raw_secret = secrets.token_urlsafe(24)
     device.set_secret(raw_secret)
     device.save(update_fields=["secret_hash", "updated_at"])
-    return render(
-        request,
-        "portal/station/provision.html",
-        {"device": device, "raw_secret": raw_secret, "rotated": True},
-    )
+    return render(request, "portal/station/provision.html", {"device": device, "raw_secret": raw_secret, "rotated": True})
 
 
 @login_required
@@ -125,12 +203,7 @@ def station_person_pin(request, person_pk):
     team = _team(request.user)
     person = get_object_or_404(Person, pk=person_pk, team=team, active=True)
     credential = StationCredential.objects.filter(person=person, team=team).first()
-    form = StationCredentialForm(
-        request.POST or None,
-        team=team,
-        person=person,
-        initial={"active": credential.active if credential else True},
-    )
+    form = StationCredentialForm(request.POST or None, team=team, person=person, initial={"active": credential.active if credential else True})
     if request.method == "POST" and form.is_valid():
         credential = credential or StationCredential(team=team, person=person)
         credential.active = form.cleaned_data["active"]
@@ -139,11 +212,7 @@ def station_person_pin(request, person_pk):
         credential.save()
         messages.success(request, f"Station PIN updated for {person.display_name}.")
         return redirect("station_manage")
-    return render(
-        request,
-        "portal/station/pin_form.html",
-        {"form": form, "person": person, "credential": credential},
-    )
+    return render(request, "portal/station/pin_form.html", {"form": form, "person": person, "credential": credential})
 
 
 def station_activate(request):
@@ -151,9 +220,6 @@ def station_activate(request):
     if request.method == "POST" and form.is_valid():
         device = StationDevice.objects.filter(device_key=form.cleaned_data["device_key"], active=True).first()
         if device and device.check_secret(form.cleaned_data["secret"]):
-            # Station is a deliberately limited shared-device context. If a
-            # manager provisioned this browser while signed in, discard that
-            # full portal session before establishing the Station session.
             logout(request)
             request.session[STATION_DEVICE_SESSION_KEY] = device.pk
             _clear_station_person(request)
@@ -174,11 +240,7 @@ def station_home(request):
     if not device:
         return redirect("station_activate")
     _clear_station_person(request)
-    credentials = (
-        StationCredential.objects.filter(team=device.team, active=True, person__active=True)
-        .select_related("person")
-        .order_by("person__last_name", "person__first_name")
-    )
+    credentials = StationCredential.objects.filter(team=device.team, active=True, person__active=True).select_related("person").order_by("person__last_name", "person__first_name")
     return render(request, "portal/station/home.html", {"device": device, "credentials": credentials})
 
 
@@ -186,13 +248,7 @@ def station_identify(request, person_pk):
     device = _station_device(request)
     if not device:
         return redirect("station_activate")
-    credential = get_object_or_404(
-        StationCredential.objects.select_related("person"),
-        team=device.team,
-        person_id=person_pk,
-        active=True,
-        person__active=True,
-    )
+    credential = get_object_or_404(StationCredential.objects.select_related("person"), team=device.team, person_id=person_pk, active=True, person__active=True)
     form = StationPinForm(request.POST or None, initial={"person_id": credential.person_id})
     if request.method == "POST" and form.is_valid():
         if form.cleaned_data["person_id"] != credential.person_id:
@@ -203,11 +259,7 @@ def station_identify(request, person_pk):
             request.session[STATION_PERSON_AUTH_AT_KEY] = timezone.now().timestamp()
             return redirect("station_action")
         form.add_error("pin", "That PIN is not correct.")
-    return render(
-        request,
-        "portal/station/identify.html",
-        {"device": device, "person": credential.person, "form": form},
-    )
+    return render(request, "portal/station/identify.html", {"device": device, "person": credential.person, "form": form})
 
 
 def station_action(request):
@@ -217,10 +269,8 @@ def station_action(request):
     person = _station_person(request, device)
     if not person:
         return redirect("station_home")
-
     open_shift = WorkShiftEntry.objects.filter(team=device.team, person=person, clock_out__isnull=True).first()
     form = StationClockInForm(request.POST or None, person=person)
-
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "clock_out" and open_shift:
@@ -228,30 +278,11 @@ def station_action(request):
             open_shift.full_clean()
             open_shift.save(update_fields=["clock_out", "updated_at"])
             _clear_station_person(request)
-            return render(
-                request,
-                "portal/station/complete.html",
-                {"device": device, "person": person, "message": "You are clocked out."},
-            )
+            return render(request, "portal/station/complete.html", {"device": device, "person": person, "message": "You are clocked out."})
         if action == "clock_in" and not open_shift and form.is_valid():
-            shift = WorkShiftEntry(
-                team=device.team,
-                person=person,
-                station=device,
-                role=form.cleaned_data["role"],
-                clock_in=timezone.now(),
-            )
+            shift = WorkShiftEntry(team=device.team, person=person, station=device, role=form.cleaned_data["role"], clock_in=timezone.now())
             shift.full_clean()
             shift.save()
             _clear_station_person(request)
-            return render(
-                request,
-                "portal/station/complete.html",
-                {"device": device, "person": person, "message": "You are clocked in."},
-            )
-
-    return render(
-        request,
-        "portal/station/action.html",
-        {"device": device, "person": person, "open_shift": open_shift, "form": form},
-    )
+            return render(request, "portal/station/complete.html", {"device": device, "person": person, "message": "You are clocked in."})
+    return render(request, "portal/station/action.html", {"device": device, "person": person, "open_shift": open_shift, "form": form})
