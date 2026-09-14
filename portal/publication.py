@@ -67,3 +67,23 @@ def public_show_payload(publication):
         payload["iea_zone"] = show.iea_zone
         payload["iea_region"] = show.iea_region
     return payload
+
+
+def public_show_schedule_payload(publication):
+    """Return the deliberately allow-listed public class schedule for a show."""
+
+    if not publication.publish_schedule:
+        return []
+
+    classes = publication.show.classes.select_related("season_class").order_by(
+        "sort_order", "class_number", "name"
+    )
+    return [
+        {
+            "class_number": show_class.class_number,
+            "name": show_class.display_name,
+            "time": show_class.schedule_time,
+            "note": show_class.schedule_note,
+        }
+        for show_class in classes
+    ]
