@@ -2,14 +2,14 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from portal.models import Team
+from portal.models import GuardianContact, Rider, Team
 
 
 class Person(models.Model):
     """Canonical organization-scoped human identity for ArenaLine.
 
-    A Person may optionally have one login account and may participate in many
-    roles, relationships, groups, committees, and domain workflows at once.
+    A Person may optionally have one Django login account and may participate in
+    many roles, relationships, groups, committees, and domain workflows at once.
     Legacy Rider/Guardian records remain compatibility records during v3.2.
     """
 
@@ -20,6 +20,7 @@ class Person(models.Model):
         null=True,
         blank=True,
         related_name="arena_person",
+        help_text="Optional Django auth account used to sign in as this person.",
     )
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
@@ -58,6 +59,45 @@ class Person(models.Model):
 
     def __str__(self):
         return self.display_name
+
+
+class LegacyPersonLink(models.Model):
+    """Compatibility bridge from legacy identity records to one Person.
+
+    Rider and GuardianContact remain authoritative compatibility records during
+    v3.2 migration. A single Person may point to both when the same human was
+    historically represented in both domains.
+    """
+
+    person = models.OneToOneField(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="legacy_identity",
+    )
+    rider = models.OneToOneField(
+        Rider,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="person_bridge",
+    )
+    guardian = models.OneToOneField(
+        GuardianContact,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="person_bridge",
+    )
+
+    def clean(self):
+        super().clean()
+        if self.rider_id and self.rider.team_id != self.person.team_id:
+            raise ValidationError("Linked rider must belong to the person's organization.")
+        if self.guardian_id and self.guardian.team_id != self.person.team_id:
+            raise ValidationError("Linked guardian must belong to the person's organization.")
+
+    def __str__(self):
+        return f"Legacy identity — {self.person}"
 
 
 class PersonRelationship(models.Model):
