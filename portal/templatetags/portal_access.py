@@ -1,6 +1,8 @@
 from django import template
+from django.core.exceptions import ObjectDoesNotExist
 
 from portal.view_modules.common import _can_view_family_account
+from portal.view_modules.show_class_live import can_update_show_class_live_status
 from portal.view_modules.show_day_live import can_update_show_live_status
 
 register = template.Library()
@@ -26,6 +28,24 @@ def can_manage_live_show_status(context, show):
 
 
 @register.simple_tag
+def show_class_live_state(show_class):
+    if not show_class:
+        return None
+    try:
+        return show_class.live_state
+    except ObjectDoesNotExist:
+        return None
+
+
+@register.simple_tag(takes_context=True)
+def can_manage_live_class_status(context, show_class):
+    request = context.get("request")
+    if not request or not show_class:
+        return False
+    return can_update_show_class_live_status(request.user, show_class)
+
+
+@register.simple_tag
 def squad_hero(team, level):
     """Return squad-specific hero metadata, falling back to the program hero."""
     branding = getattr(team, "branding", None) if team else None
@@ -35,7 +55,7 @@ def squad_hero(team, level):
     if "future" in normalized and branding.futures_hero_image:
         return {"image": branding.futures_hero_image, "position": branding.futures_hero_image_position, "label": "Futures Team"}
     if "upper" in normalized and branding.upper_hero_image:
-        return {"image": branding.upper_hero_image, "position": branding.upper_hero_image_position, "label": "Upper Team"}
+        return {"image": branding.upper_hero_image, "position": branding.upper_hero_image_position, "label": "Upper School Team"}
     if branding.hero_image:
         return {"image": branding.hero_image, "position": branding.hero_image_position, "label": "Team"}
     return None
