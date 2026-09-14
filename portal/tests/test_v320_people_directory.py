@@ -121,3 +121,16 @@ class V320PeopleDirectoryTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("person_detail", args=[outsider_person.pk]))
         self.assertEqual(response.status_code, 404)
+
+    def test_manager_person_editor_uses_sectioned_profile_workspace(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("person_edit", args=[self.person.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Who they are")
+        self.assertContains(response, "Contact information")
+        self.assertContains(response, "Personal details")
+        self.assertContains(response, "Portal account")
+        self.assertContains(response, "Profile status")
+        self.assertContains(response, "Barn involvement")
+        self.assertContains(response, "Manage roles")
+        self.assertContains(response, "Rider")
