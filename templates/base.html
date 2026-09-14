@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="{% static 'css/arenaline-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/dashboard-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/people-v290.css' %}">
+  <link rel="stylesheet" href="{% static 'css/people-v320.css' %}">
   <link rel="stylesheet" href="{% static 'css/horses-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/competition-v290.css' %}">
   <link rel="stylesheet" href="{% static 'css/operations-v290.css' %}">
@@ -40,7 +41,7 @@
   <nav class="main-nav" id="primary-nav" aria-label="Primary navigation">
     <div class="nav-primary">
       {% if "core" in portal_enabled_modules %}<a href="/" data-module="core">Dashboard</a><a href="{% url 'my_team' %}" data-module="core">My Team</a>{% endif %}
-      {% if "people" in portal_enabled_modules %}<details class="nav-menu" data-module="people"><summary>People</summary><div class="nav-menu-panel"><span class="nav-menu-label">People & families</span><a href="{% url 'rider_list' %}">Riders</a>{% if user.is_staff or portal_role == 'admin' or portal_role == 'coach' %}<a href="{% url 'parent_list' %}">Parents & guardians</a>{% endif %}</div></details>{% endif %}
+      {% if "people" in portal_enabled_modules %}<details class="nav-menu" data-module="people"><summary>People</summary><div class="nav-menu-panel"><span class="nav-menu-label">People & families</span><a href="{% url 'people_directory' %}">People directory</a><a href="{% url 'rider_list' %}">Riders</a>{% if user.is_staff or portal_role == 'admin' or portal_role == 'coach' %}<a href="{% url 'parent_list' %}">Parents & guardians</a>{% endif %}</div></details>{% endif %}
       {% if "horses" in portal_enabled_modules %}<details class="nav-menu" data-module="horses"><summary>Horses</summary><div class="nav-menu-panel"><span class="nav-menu-label">Horse management</span><a href="{% url 'horse_list' %}">Horse registry</a></div></details>{% endif %}
       {% if "competition_iea" in portal_enabled_modules %}<details class="nav-menu" data-module="competition_iea"><summary>Competition</summary><div class="nav-menu-panel"><span class="nav-menu-label">IEA competition</span><a href="{% url 'show_list' %}">Shows</a><a href="{% url 'standings' %}">Standings</a><a href="{% url 'season_archive' %}">Season history</a><a href="{% url 'team_record_book' %}">Record book</a></div></details>{% endif %}
       {% if "operations" in portal_enabled_modules %}<details class="nav-menu" data-module="operations"><summary>Operations</summary><div class="nav-menu-panel"><span class="nav-menu-label">Everyday operations</span><a href="{% url 'calendar' %}">Calendar</a><a href="{% url 'action_item_list' %}">Action items</a><a href="{% url 'lesson_list' %}">Lessons</a><a href="{% url 'volunteer_dashboard' %}">Volunteer</a><a href="{% url 'committee_list' %}">Committees</a></div></details>{% endif %}
