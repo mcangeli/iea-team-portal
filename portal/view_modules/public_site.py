@@ -27,7 +27,11 @@ def _public_show_groups(site):
         for show in shows
         if show["date"] >= today and show["slug"] not in active_slugs
     ]
-    past = [show for show in shows if show["date"] < today]
+    past = [
+        show
+        for show in shows
+        if show["date"] < today and show["slug"] not in active_slugs
+    ]
     past.reverse()
     return active, upcoming, past
 
