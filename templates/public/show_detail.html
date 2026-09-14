@@ -1,0 +1,20 @@
+{% extends 'public/base.html' %}
+{% block title %}{{ public_show.name }} · {{ public_site.name }}{% endblock %}
+{% block content %}
+<a class="public-back" href="{% url 'public_site_home' public_site.slug %}">← Back to {{ public_site.name }}</a>
+<section class="public-hero public-show-hero">
+  <div class="public-kicker">{{ public_show.competition_level|upper }}</div>
+  <h1>{{ public_show.name }}</h1>
+  <p class="public-tagline">{{ public_show.date|date:"l, F j, Y" }}{% if public_show.time %} · {{ public_show.time|time:"g:i A" }}{% endif %}</p>
+</section>
+
+<section class="public-detail-card">
+  {% if public_show.summary %}<div class="public-summary">{{ public_show.summary|linebreaks }}</div>{% endif %}
+  <dl>
+    {% if public_show.venue %}<div><dt>Venue</dt><dd>{{ public_show.venue }}</dd></div>{% endif %}
+    {% if public_show.address %}<div><dt>Address</dt><dd>{{ public_show.address }}</dd></div>{% endif %}
+    {% if public_show.host_team %}<div><dt>Host</dt><dd>{{ public_show.host_team }}</dd></div>{% endif %}
+    {% if public_show.iea_zone or public_show.iea_region %}<div><dt>IEA area</dt><dd>{% if public_show.iea_zone %}Zone {{ public_show.iea_zone }}{% endif %}{% if public_show.iea_zone and public_show.iea_region %} · {% endif %}{% if public_show.iea_region %}Region {{ public_show.iea_region }}{% endif %}</dd></div>{% endif %}
+  </dl>
+</section>
+{% endblock %}
