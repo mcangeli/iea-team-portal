@@ -25,12 +25,13 @@ Foundation work started with:
 - a manager-only People Structure workspace for organization groups/programs and generalized committees;
 - a first barn-participation bridge linking canonical People to Horses as Owner, Boarder/Responsible Party, Full Lease, Half Lease, Partial Lease, Trainer, or Caretaker, with optional share and effective dates;
 - manager workflows on Horse profiles to add/edit those People↔Horse relationships, with mirrored horse participation shown on Person profiles;
-- a Barn Operations roster organizing active Trainers, Assistant Trainers, Barn Managers, Barn Staff, Working Students, Boarders, and Board Members into operational groups, with active horse responsibilities shown alongside each person;
+- a Barn Operations roster grouping trainers, barn management/staff, working students, boarders, and board members with linked horse responsibilities;
+- a traceable compatibility bridge from legacy season-scoped IEA `CommitteeAssignment` records into generalized `CommitteeMembership` records, while legacy assignments remain authoritative for existing permissions;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, cross-profile, and barn-operations safety;
+- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, and compatibility safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
 
-Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge ahead of the broader v3.3 Equine Care release. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
+Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge; `0068_v320_legacy_committee_bridge.py` adds the source-traceable legacy committee mirror. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, ShowLeadAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
 
 ## v3.1.0 — Public / Live Spectator Experience
 
