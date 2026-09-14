@@ -4,8 +4,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..horse_forms import HorseCogginsForm, HorseForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
+from ..horse_forms import HorseCogginsForm, HorseForm, HorsePersonRelationshipForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
 from ..horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
+from ..model_modules.barn_participation import HorsePersonRelationship
 from ..models import AuditEvent, Season, Show
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..show_readiness_views import _can_manage_show_horses, _require_show_horse_manage
@@ -46,6 +47,7 @@ def horse_detail(request, pk):
         "coggins_records": horse.coggins_records.all(),
         "season_profiles": horse.season_profiles.select_related("season").prefetch_related("eligible_classes"),
         "latest_coggins": horse.latest_coggins,
+        "person_relationships": horse.person_relationships.select_related("person").order_by("relationship_type", "person__last_name", "person__first_name"),
         "show_awards": HorseShowAward.objects.filter(assignment__horse=horse).select_related("show", "assignment").order_by("-show__show_date", "session"),
     })
 
@@ -72,6 +74,39 @@ def horse_edit(request, pk):
         messages.success(request, f"{horse.display_name} was updated.")
         return redirect("horse_detail", pk=horse.pk)
     return render(request, "portal/horse_form.html", {"form": form, "horse": horse, "title": f"Edit {horse.display_name}"})
+
+
+@login_required
+def horse_person_relationship_add(request, horse_pk):
+    _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk)
+    form = HorsePersonRelationshipForm(request.POST or None, team=horse.team, horse=horse)
+    if form.is_valid():
+        relationship = form.save(commit=False)
+        relationship.team = horse.team
+        relationship.horse = horse
+        relationship.full_clean()
+        relationship.save()
+        _audit_event(team=horse.team, actor=request.user, action=AuditEvent.Action.CREATED, obj=relationship, summary=f"Added {relationship.get_relationship_type_display()} relationship for {horse.display_name} and {relationship.person.display_name}")
+        messages.success(request, f"Added {relationship.person.display_name} as {relationship.get_relationship_type_display().lower()} for {horse.display_name}.")
+        return redirect("horse_detail", pk=horse.pk)
+    return render(request, "portal/horse_person_relationship_form.html", {"form": form, "horse": horse, "title": f"Add person relationship — {horse.display_name}"})
+
+
+@login_required
+def horse_person_relationship_edit(request, horse_pk, pk):
+    _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk)
+    relationship = get_object_or_404(HorsePersonRelationship, pk=pk, horse=horse, team=horse.team)
+    form = HorsePersonRelationshipForm(request.POST or None, instance=relationship, team=horse.team, horse=horse)
+    if form.is_valid():
+        relationship = form.save(commit=False)
+        relationship.team = horse.team
+        relationship.horse = horse
+        relationship.full_clean()
+        relationship.save()
+        _audit_event(team=horse.team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=relationship, summary=f"Updated {relationship.get_relationship_type_display()} relationship for {horse.display_name} and {relationship.person.display_name}")
+        messages.success(request, "Horse participation relationship updated.")
+        return redirect("horse_detail", pk=horse.pk)
+    return render(request, "portal/horse_person_relationship_form.html", {"form": form, "horse": horse, "relationship": relationship, "title": f"Edit relationship — {horse.display_name}"})
 
 
 @login_required
