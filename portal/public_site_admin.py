@@ -46,7 +46,6 @@ class PublicShowPublicationForm(forms.ModelForm):
             "publish_schedule",
             "publish_results",
             "publish_live_status",
-            "public_status",
             "current_class",
             "public_status_note",
         ]
@@ -56,8 +55,8 @@ class PublicShowPublicationForm(forms.ModelForm):
             "public_summary": "Optional public-facing summary. Private show notes are never copied here automatically.",
             "publish_schedule": "Publishes only class order, class number/name, public schedule time, and schedule note. Rider entries and internal strategy stay private.",
             "publish_results": "Publishes only finalized class placings and rider display names. Entry notes, points-rider strategy, and result notes stay private.",
-            "publish_live_status": "Publishes the spectator-facing show status and current class. It does not publish internal show-day operations.",
-            "current_class": "Choose the class spectators should see as currently running.",
+            "publish_live_status": "Publishes the show's lifecycle status and current class for spectators. Internal show-day operations remain private.",
+            "current_class": "Choose the class spectators should see as currently running when the show is In progress or Paused.",
             "public_status_note": "Optional short public update, for example 'Running about 15 minutes behind.'",
         }
 
@@ -70,16 +69,6 @@ class PublicShowPublicationForm(forms.ModelForm):
                 "sort_order", "class_number", "name"
             )
         self.fields["current_class"].queryset = queryset
-        # Preserve compatibility with existing publication POSTs that predate
-        # the spectator-status controls. Omitted live status should keep the
-        # model default/current value instead of making the form invalid.
-        self.fields["public_status"].required = False
-
-    def clean_public_status(self):
-        value = self.cleaned_data.get("public_status")
-        if value:
-            return value
-        return getattr(self.instance, "public_status", None) or PublicShowPublication.PublicStatus.UPCOMING
 
 
 def _default_site_slug(organization):
