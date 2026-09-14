@@ -219,6 +219,24 @@ This preserves a clean handoff into v3.3: veterinary, farrier, medication, feed,
 
 Focused regression coverage lives in `portal/tests/test_v320_barn_participation.py` for model rules and `portal/tests/test_v320_barn_participation_ui.py` for manager permissions, tenant isolation, form behavior, and mirrored Horse/Person profile presentation.
 
+## Implemented Barn Operations roster
+
+`/people/operations/` turns the multi-role model into a practical operational view rather than leaving Trainer, Staff, Working Student, Boarder, and Board Member as profile labels only.
+
+The roster groups active people into:
+
+- Training team — Trainer and Assistant Trainer;
+- Barn management & staff — Barn Manager and Barn Staff;
+- Working students;
+- Boarders;
+- Board members.
+
+Where a person also has active `HorsePersonRelationship` records, the roster surfaces the horse, relationship type, and optional share and links back to the Horse profile. This gives barn staff one operational directory while keeping horse relationships single-source.
+
+The roster is readable by authenticated organization members; management actions remain permission-aware and all queries are tenant-scoped. Work-shift clock-in/out and shared-device workflows are intentionally deferred to ArenaLine Station in v3.2.2.
+
+Focused regression coverage lives in `portal/tests/test_v320_barn_operations.py` and protects authenticated access, horse responsibility display, and tenant isolation.
+
 ## Planned v3.2 slices
 
 ### v3.2.0 foundation
