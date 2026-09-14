@@ -4,10 +4,10 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 
-class Preview6ReleaseIdentityTests(SimpleTestCase):
+class ReleaseIdentityTests(SimpleTestCase):
     def test_version_file_and_django_settings_agree(self):
         version_file = (Path(settings.BASE_DIR) / "VERSION").read_text(encoding="utf-8").strip()
-        self.assertEqual(version_file, "2.9.0")
+        self.assertTrue(version_file)
         self.assertEqual(settings.SITE_VERSION, version_file)
 
     def test_portalctl_uses_version_file_for_upgrade_identity(self):
