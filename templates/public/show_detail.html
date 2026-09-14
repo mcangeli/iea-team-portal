@@ -17,4 +17,25 @@
     {% if public_show.iea_zone or public_show.iea_region %}<div><dt>IEA area</dt><dd>{% if public_show.iea_zone %}Zone {{ public_show.iea_zone }}{% endif %}{% if public_show.iea_zone and public_show.iea_region %} · {% endif %}{% if public_show.iea_region %}Region {{ public_show.iea_region }}{% endif %}</dd></div>{% endif %}
   </dl>
 </section>
+
+{% if public_class_schedule %}
+<section class="public-section public-class-schedule">
+  <div class="public-section-heading">
+    <div class="public-kicker">PUBLISHED SCHEDULE</div>
+    <h2>Class order</h2>
+    <p>Times are current published estimates and may change during the show.</p>
+  </div>
+  <div class="public-class-list">
+    {% for item in public_class_schedule %}
+      <article class="public-class-row">
+        <div class="public-class-time">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}</div>
+        <div class="public-class-main">
+          <h3>{% if item.class_number %}<span>{{ item.class_number }}</span> {% endif %}{{ item.name }}</h3>
+          {% if item.note %}<p>{{ item.note }}</p>{% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}
