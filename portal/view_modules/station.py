@@ -308,7 +308,7 @@ def station_device_add(request):
         _audit_station(
             team=team,
             actor=request.user,
-            action="station_device_registered",
+            action="station_device_added",
             entity_type="StationDevice",
             entity_id=device.pk,
             entity_label=device.name,
@@ -356,7 +356,7 @@ def station_device_rotate_secret(request, device_pk):
     _audit_station(
         team=team,
         actor=request.user,
-        action="station_device_secret_rotated",
+        action="station_secret_rotated",
         entity_type="StationDevice",
         entity_id=device.pk,
         entity_label=device.name,
@@ -425,7 +425,7 @@ def station_deactivate(request):
     if device:
         _audit_station(
             team=device.team,
-            action="station_device_deactivated",
+            action="station_deactivated",
             entity_type="StationDevice",
             entity_id=device.pk,
             entity_label=device.name,
@@ -466,7 +466,7 @@ def station_identify(request, person_pk):
             request.session[STATION_PERSON_AUTH_AT_KEY] = timezone.now().timestamp()
             _audit_station(
                 team=device.team,
-                action="station_pin_authenticated",
+                action="station_pin_verified",
                 entity_type="Person",
                 entity_id=credential.person_id,
                 entity_label=credential.person.display_name,
