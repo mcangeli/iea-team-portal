@@ -581,6 +581,8 @@ class Show(models.Model):
         PLANNING = "planning", "Planning"
         REGISTRATION = "registration", "Registration open"
         ENTERED = "entered", "Entries submitted"
+        IN_PROGRESS = "in_progress", "In progress"
+        PAUSED = "paused", "Paused"
         COMPLETE = "complete", "Complete"
         CANCELLED = "cancelled", "Cancelled"
 
