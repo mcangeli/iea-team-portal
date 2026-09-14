@@ -52,6 +52,7 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..model_modules.competition_iea import team_points_enabled_for_show_class
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
@@ -183,7 +184,12 @@ def standings_export(request):
 def point_rider_set(request, entry_pk):
     _require_manage(request.user); team = _team(request.user)
     entry = get_object_or_404(
-        ShowEntry.objects.select_related("show_class__show", "rider"),
+        ShowEntry.objects.select_related(
+            "show_class__show",
+            "show_class__season_class__catalog_entry",
+            "show_class__catalog_entry",
+            "rider",
+        ),
         pk=entry_pk, show_class__show__team=team,
     )
     show = entry.show_class.show
@@ -194,12 +200,12 @@ def point_rider_set(request, entry_pk):
             "Finals use separate Individual and Team entries instead of regular-season point-rider designations."
         )
         return redirect("show_detail", pk=show.pk)
-    if _is_non_team_scoring_class(entry.show_class):
+    if not team_points_enabled_for_show_class(entry.show_class):
         entry.is_point_rider = False
         entry.save(update_fields=["is_point_rider"])
         messages.error(
             request,
-            f"{entry.show_class.display_name} is an H8/H14 Walk/Trot class and does not count toward team points."
+            f"{entry.show_class.display_name} does not award IEA team points and cannot have a points rider."
         )
         return redirect("show_detail", pk=show.pk)
     membership = SeasonMembership.objects.filter(rider=entry.rider, season=show.season).first()
