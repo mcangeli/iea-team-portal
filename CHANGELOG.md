@@ -21,8 +21,10 @@ Foundation work started with:
 - expanded Person profile fields for birth date, school, graduation year, bio, photo, website, and social links;
 - a new ArenaLine-branded People directory and canonical Person profile UI;
 - Admin/Coach Person create/edit workflows with tenant-safe linkage to available Django login accounts;
+- direct Person-profile management of multiple roles, relationships, and committee memberships;
+- a manager-only People Structure workspace for organization groups/programs and generalized committees;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive `people-v320.css` presentation and regression coverage for tenant, permission, and account-link safety;
+- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, and committee safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
 
 Migration work begins with `0066_v320_people_foundation.py`. Existing Rider, GuardianContact, UserProfile, and CommitteeAssignment models remain compatibility structures while callers are migrated and regression-tested.
