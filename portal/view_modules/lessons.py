@@ -52,13 +52,13 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import active_period_for_organization, organization_for_view_user
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _active_season,
     _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
@@ -87,7 +87,6 @@ from .common import (
     _rider_class_point_rows,
     _selected_team,
     _show_planning_allowed_levels,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -104,8 +103,8 @@ from .lessons_helpers import (
 
 @login_required
 def lesson_list(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season before scheduling lessons.")
         return redirect("season_setup")
@@ -122,7 +121,7 @@ def lesson_list(request):
 @login_required
 def lesson_group_list(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     groups = season.lesson_groups.prefetch_related("riders").select_related("coach")
@@ -132,7 +131,7 @@ def lesson_group_list(request):
 @friendly_integrity_errors
 def lesson_group_create(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     form = LessonGroupForm(request.POST or None, season=season, team=team)
@@ -144,7 +143,7 @@ def lesson_group_create(request):
 @login_required
 def lesson_group_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user); group = get_object_or_404(LessonGroup, pk=pk, season__team=team)
+    team = organization_for_view_user(request.user); group = get_object_or_404(LessonGroup, pk=pk, season__team=team)
     _ensure_season_open(group.season)
     form = LessonGroupForm(request.POST or None, instance=group, season=group.season, team=team)
     if form.is_valid():
@@ -154,7 +153,7 @@ def lesson_group_edit(request, pk):
 @login_required
 def lesson_create(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     form = LessonForm(request.POST or None, season=season, team=team)
@@ -178,7 +177,7 @@ def lesson_create(request):
 
 @login_required
 def lesson_detail(request, pk):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     lesson = get_object_or_404(Lesson.objects.select_related("season", "group", "coach"), pk=pk, team=team)
     visible = _visible_riders(request.user, team)
     attendance = lesson.attendance.select_related("rider")
@@ -191,7 +190,7 @@ def lesson_detail(request, pk):
 @login_required
 def lesson_edit(request, pk):
     _require_manage(request.user)
-    team = _team(request.user); lesson = get_object_or_404(Lesson, pk=pk, team=team)
+    team = organization_for_view_user(request.user); lesson = get_object_or_404(Lesson, pk=pk, team=team)
     _ensure_season_open(lesson.season)
     form = LessonForm(request.POST or None, instance=lesson, season=lesson.season, team=team)
     if form.is_valid():
@@ -202,7 +201,7 @@ def lesson_edit(request, pk):
 @login_required
 def lesson_delete(request, pk):
     _require_manage(request.user)
-    team = _team(request.user); lesson = get_object_or_404(Lesson, pk=pk, team=team)
+    team = organization_for_view_user(request.user); lesson = get_object_or_404(Lesson, pk=pk, team=team)
     _ensure_season_open(lesson.season)
     if request.method == "POST":
         lesson.delete(); messages.success(request, "Lesson deleted."); return redirect("lesson_list")
@@ -211,7 +210,7 @@ def lesson_delete(request, pk):
 @login_required
 def lesson_attendance_edit(request, attendance_pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     attendance = get_object_or_404(LessonAttendance.objects.select_related("lesson__season", "rider"), pk=attendance_pk, lesson__team=team)
     _ensure_season_open(attendance.lesson.season)
     form = LessonAttendanceForm(request.POST or None, instance=attendance)
@@ -221,7 +220,7 @@ def lesson_attendance_edit(request, attendance_pk):
 
 @login_required
 def show_availability(request, show_pk):
-    team = _team(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
     roster = Rider.objects.filter(team=team, active=True, memberships__season=show.season).distinct().order_by("last_name", "first_name")
     if not _can_manage(request.user):
         roster = roster.filter(pk__in=_visible_riders(request.user, team).values("pk"))
@@ -233,7 +232,7 @@ def show_availability(request, show_pk):
 
 @login_required
 def show_availability_edit(request, show_pk, rider_pk):
-    team = _team(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
     _ensure_season_open(show.season)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team, memberships__season=show.season)
     if not _can_manage(request.user) and not _visible_riders(request.user, team).filter(pk=rider.pk).exists():
@@ -248,7 +247,7 @@ def show_availability_edit(request, show_pk, rider_pk):
 
 @login_required
 def volunteer_dashboard(request):
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season before tracking volunteer hours."); return redirect("season_setup")
     riders = team.riders.filter(active=True, memberships__season=season).distinct() if _can_manage(request.user) else _visible_riders(request.user, team).filter(active=True, memberships__season=season).distinct()
@@ -261,7 +260,7 @@ def volunteer_dashboard(request):
 
 @login_required
 def volunteer_submit(request):
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     visible = team.riders.filter(active=True) if _can_manage(request.user) else _visible_riders(request.user, team).filter(active=True)
@@ -278,7 +277,7 @@ def volunteer_submit(request):
 @login_required
 def volunteer_review(request, pk):
     _require_manage(request.user)
-    team = _team(request.user); log = get_object_or_404(VolunteerLog.objects.select_related("rider", "season"), pk=pk, season__team=team)
+    team = organization_for_view_user(request.user); log = get_object_or_404(VolunteerLog.objects.select_related("rider", "season"), pk=pk, season__team=team)
     _ensure_season_open(log.season)
     form = VolunteerReviewForm(request.POST or None, instance=log)
     if form.is_valid():
@@ -293,7 +292,7 @@ def volunteer_review(request, pk):
 @login_required
 def volunteer_requirements(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     form = VolunteerRequirementForm(request.POST or None, instance=season)
@@ -304,7 +303,7 @@ def volunteer_requirements(request):
 @login_required
 def volunteer_export(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         return HttpResponse("No active season", status=400)
     response = HttpResponse(content_type="text/csv")
