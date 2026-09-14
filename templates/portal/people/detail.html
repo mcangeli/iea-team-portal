@@ -19,6 +19,18 @@
   </section>
 
   <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">HORSES</div><h2>Horse relationships</h2></div></div>
+    {% for relationship in person.horse_relationships.all %}
+      {% if relationship.active %}
+      <div class="people-structure-row">
+        <div><strong><a href="{% url 'horse_detail' relationship.horse.pk %}">{{ relationship.horse.display_name }}</a></strong><p class="muted">{{ relationship.get_relationship_type_display }}{% if relationship.share_percent %} · {{ relationship.share_percent }}%{% endif %}</p></div>
+        {% if can_manage_people %}<a href="{% url 'horse_person_relationship_edit' relationship.horse.pk relationship.pk %}">Edit</a>{% endif %}
+      </div>
+      {% endif %}
+    {% empty %}<p class="muted">No horse relationships have been recorded yet.</p>{% endfor %}
+  </section>
+
+  <section class="content-section">
     <div class="section-head"><div><div class="eyebrow">RELATIONSHIPS</div><h2>Family & contacts</h2></div>{% if can_manage_people %}<a href="{% url 'person_relationship_add' person.pk %}">Add relationship</a>{% endif %}</div>
     {% for relationship in person.outgoing_relationships.all %}{% if relationship.active %}<div class="people-structure-row"><div><strong>{{ relationship.to_person.display_name }}</strong><p class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}{% if relationship.primary_contact %} · Primary contact{% endif %}</p></div>{% if can_manage_people %}<a href="{% url 'person_relationship_edit' person.pk relationship.pk %}">Edit</a>{% endif %}</div>{% endif %}{% empty %}<p class="muted">No relationships have been recorded yet.</p>{% endfor %}
   </section>
