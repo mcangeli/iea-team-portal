@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Activate ArenaLine Station{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>Activate this device</h1><p>Enter the device key and one-time secret provided by a barn manager.</p></div></section>
+<section class="content-section people-form-shell">
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Activate Station</button></div></form>
+  <p class="muted">This activates only Station mode. It does not sign the device into a person’s ArenaLine account.</p>
+</section>
+{% endblock %}
