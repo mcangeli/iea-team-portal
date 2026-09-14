@@ -32,9 +32,15 @@ class PublicSiteManagementTests(TestCase):
             notes="Never publish this private note",
         )
         self.admin = User.objects.create_user(username="admin", password="testpass")
-        UserProfile.objects.create(user=self.admin, team=self.team, role=UserProfile.Role.ADMIN)
+        UserProfile.objects.update_or_create(
+            user=self.admin,
+            defaults={"team": self.team, "role": UserProfile.Role.ADMIN},
+        )
         self.rider_user = User.objects.create_user(username="rider", password="testpass")
-        UserProfile.objects.create(user=self.rider_user, team=self.team, role=UserProfile.Role.RIDER)
+        UserProfile.objects.update_or_create(
+            user=self.rider_user,
+            defaults={"team": self.team, "role": UserProfile.Role.RIDER},
+        )
 
     def test_manager_page_requires_authenticated_manager(self):
         response = self.client.get(reverse("public_site_manage"))
