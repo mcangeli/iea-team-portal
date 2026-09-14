@@ -11,8 +11,8 @@
 <section class="public-section">
   <div class="public-section-heading public-section-heading-row">
     <div>
-      <div class="public-kicker">UPCOMING SHOWS</div>
-      <h2>Next on the calendar</h2>
+      <div class="public-kicker">{% if active_shows %}LIVE & UPCOMING{% else %}UPCOMING SHOWS{% endif %}</div>
+      <h2>{% if active_shows %}Happening now and next{% else %}Next on the calendar{% endif %}</h2>
     </div>
     <a class="public-section-link" href="{% url 'public_schedule' public_site.slug %}">View full schedule →</a>
   </div>
@@ -21,6 +21,9 @@
       <a class="public-show-card" href="{% url 'public_show_detail' public_site.slug show.slug %}">
         <div class="public-date">{{ show.date|date:"M j" }}</div>
         <div>
+          {% if show.live_status %}
+            <div class="public-show-status public-show-status-{{ show.live_status.code }}">{{ show.live_status.label }}</div>
+          {% endif %}
           <h3>{{ show.name }}</h3>
           <p>{{ show.competition_level }}</p>
           {% if show.time %}<p>{{ show.time|time:"g:i A" }}</p>{% endif %}
