@@ -88,15 +88,18 @@ class V322StationReviewTests(TestCase):
             reverse("station_shift_edit", args=[self.shift.pk]),
             {
                 "role": WorkShiftEntry.Role.WORKING_STUDENT,
-                "clock_in": self.shift.clock_in.strftime("%Y-%m-%dT%H:%M"),
-                "clock_out": new_clock_out.strftime("%Y-%m-%dT%H:%M"),
+                "clock_in": timezone.localtime(self.shift.clock_in).strftime("%Y-%m-%dT%H:%M"),
+                "clock_out": timezone.localtime(new_clock_out).strftime("%Y-%m-%dT%H:%M"),
                 "notes": "Manager correction",
             },
         )
         self.assertEqual(response.status_code, 302)
         self.shift.refresh_from_db()
         self.assertEqual(self.shift.notes, "Manager correction")
-        self.assertEqual(self.shift.clock_out.replace(second=0, microsecond=0), new_clock_out.replace(second=0, microsecond=0))
+        self.assertEqual(
+            self.shift.clock_out.replace(second=0, microsecond=0),
+            new_clock_out.replace(second=0, microsecond=0),
+        )
         self.assertTrue(
             AuditEvent.objects.filter(
                 team=self.team,
