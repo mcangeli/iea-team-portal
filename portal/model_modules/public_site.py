@@ -1,6 +1,7 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
-from portal.models import Show, Team
+from portal.models import Show, ShowClass, Team
 
 
 class PublicSiteProfile(models.Model):
@@ -25,6 +26,12 @@ class PublicSiteProfile(models.Model):
 
 
 class PublicShowPublication(models.Model):
+    class PublicStatus(models.TextChoices):
+        UPCOMING = "upcoming", "Upcoming"
+        IN_PROGRESS = "in_progress", "In progress"
+        PAUSED = "paused", "Paused"
+        COMPLETE = "complete", "Complete"
+
     show = models.OneToOneField(Show, on_delete=models.CASCADE, related_name="public_publication")
     slug = models.SlugField(max_length=180, unique=True)
     is_published = models.BooleanField(
@@ -45,10 +52,37 @@ class PublicShowPublication(models.Model):
         default=False,
         help_text="Publishes only finalized class placings and rider display names. Entry strategy, internal notes, and points-rider status remain private.",
     )
+    publish_live_status = models.BooleanField(
+        default=False,
+        help_text="Publishes the spectator-facing show status and current class. Internal show-day operations remain private.",
+    )
+    public_status = models.CharField(
+        max_length=20,
+        choices=PublicStatus.choices,
+        default=PublicStatus.UPCOMING,
+    )
+    current_class = models.ForeignKey(
+        ShowClass,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        help_text="Optional class currently running for the public spectator view.",
+    )
+    public_status_note = models.CharField(
+        max_length=180,
+        blank=True,
+        help_text="Optional public update such as 'Running about 15 minutes behind.'",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["show__show_date", "show__name"]
+
+    def clean(self):
+        super().clean()
+        if self.current_class_id and self.show_id and self.current_class.show_id != self.show_id:
+            raise ValidationError({"current_class": "Current class must belong to this show."})
 
     def __str__(self):
         return f"{self.show} — {'Published' if self.is_published else 'Private'}"
