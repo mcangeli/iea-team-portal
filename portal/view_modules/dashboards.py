@@ -22,15 +22,14 @@ from ..models import (
     UserProfile,
     VolunteerLog,
 )
+from ..platform import active_period_for_organization, organization_for_view_user
 from .common import (
     _active_committee_roles,
-    _active_season,
     _can_manage,
     _can_manage_points,
     _is_admin,
     _is_show_lead,
     _qualification_rows,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -551,10 +550,10 @@ def _render_secretary(request, team, season):
 
 @login_required
 def dashboard(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    season = _active_season(team)
+    season = active_period_for_organization(team)
 
     preferred = _preferred_dashboard(request.user, team, season)
     if preferred == "coach":
@@ -572,40 +571,40 @@ def dashboard(request):
 
 @login_required
 def dashboard_general(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    season = _active_season(team)
+    season = active_period_for_organization(team)
     return render(request, "portal/dashboard.html", _general_context(request, team, season))
 
 
 @login_required
 def dashboard_coach(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    return _render_coach(request, team, _active_season(team))
+    return _render_coach(request, team, active_period_for_organization(team))
 
 
 @login_required
 def dashboard_team_parent(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    return _render_team_parent(request, team, _active_season(team))
+    return _render_team_parent(request, team, active_period_for_organization(team))
 
 
 @login_required
 def dashboard_show_lead(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    return _render_show_lead(request, team, _active_season(team))
+    return _render_show_lead(request, team, active_period_for_organization(team))
 
 
 @login_required
 def dashboard_secretary(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    return _render_secretary(request, team, _active_season(team))
+    return _render_secretary(request, team, active_period_for_organization(team))
