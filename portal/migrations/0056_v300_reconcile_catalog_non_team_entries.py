@@ -9,7 +9,16 @@ def reconcile_non_team_entries(apps, schema_editor):
         Q(show_class__season_class__catalog_entry__team_points_enabled=False)
         | Q(show_class__catalog_entry__team_points_enabled=False)
     )
-    non_team.update(is_point_rider=False, entry_type="individual")
+
+    regular = non_team.filter(show_class__show__competition_level="regular")
+    regular.update(is_point_rider=False, entry_type="individual")
+
+    finals = non_team.exclude(show_class__show__competition_level="regular")
+    finals.update(
+        is_point_rider=False,
+        entry_type="individual",
+        competition_track="individual",
+    )
 
 
 def noop_reverse(apps, schema_editor):
