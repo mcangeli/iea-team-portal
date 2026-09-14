@@ -150,9 +150,17 @@ class WorkShiftEntry(models.Model):
             raise ValidationError("Work shift and station must belong to the same organization.")
         if self.clock_in and self.clock_out and self.clock_out < self.clock_in:
             raise ValidationError("Clock-out time cannot be before clock-in time.")
-        if self.approved_by_id:
-            profile = getattr(self.approved_by, "profile", None)
-            if profile and profile.team_id and self.team_id and profile.team_id != self.team_id:
+        if self.approved_by_id and self.team_id:
+            # Query the persisted profile rather than relying on the reverse
+            # one-to-one cache on User, which can be stale after profile updates.
+            from portal.models import UserProfile
+
+            approver_team_id = (
+                UserProfile.objects.filter(user_id=self.approved_by_id)
+                .values_list("team_id", flat=True)
+                .first()
+            )
+            if approver_team_id != self.team_id:
                 raise ValidationError("Shift approver must belong to the same organization.")
 
     @property
