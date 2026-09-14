@@ -14,7 +14,11 @@
         {% if public_site.logo_url %}<img src="{{ public_site.logo_url }}" alt="{{ public_site.name }} logo">{% endif %}
         <span>{{ public_site.name }}</span>
       </a>
-      {% if public_site.website %}<a class="public-link" href="{{ public_site.website }}" rel="noopener noreferrer">Organization website</a>{% endif %}
+      <nav class="public-nav" aria-label="Public site navigation">
+        <a href="{% url 'public_site_home' public_site.slug %}">Home</a>
+        <a href="{% url 'public_schedule' public_site.slug %}">Schedule</a>
+        {% if public_site.website %}<a href="{{ public_site.website }}" rel="noopener noreferrer">Organization website</a>{% endif %}
+      </nav>
     </div>
   </header>
   <main class="public-wrap">
