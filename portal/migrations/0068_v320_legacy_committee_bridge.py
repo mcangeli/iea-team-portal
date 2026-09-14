@@ -5,7 +5,7 @@ import django.db.models.deletion
 ROLE_MAP = {
     "upper_parent": ("IEA Program", "Upper Team Parent Committee", "chair"),
     "futures_parent": ("IEA Program", "Futures Team Parent Committee", "chair"),
-    "treasurer": (None, "Finance Committee", "treasurer"),
+    "treasurer": ("IEA Program", "IEA Finance Committee", "treasurer"),
     "points_secretary": ("IEA Program", "IEA Points & Records", "secretary"),
 }
 
