@@ -27,6 +27,7 @@ Foundation work started with:
 - manager workflows on Horse profiles to add/edit those People↔Horse relationships, with mirrored horse participation shown on Person profiles;
 - a Barn Operations roster grouping trainers, barn management/staff, working students, boarders, and board members with linked horse responsibilities;
 - a traceable compatibility bridge from legacy season-scoped IEA `CommitteeAssignment` records into generalized `CommitteeMembership` records, while legacy assignments remain authoritative for existing permissions;
+- strict committee scoping so legacy IEA Treasurer mirrors to `IEA Program / IEA Finance Committee / Treasurer` and never implies barn-level Finance access;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
 - responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, and compatibility safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
