@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Barn Operations · People · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_directory' %}">← People</a></nav>
+<section class="page-intro people-intro">
+  <div>
+    <div class="eyebrow">BARN OPERATIONS</div>
+    <h1>Operations roster</h1>
+    <p>See who is serving in training, staff, working-student, boarding, and board roles, with active horse responsibilities alongside them.</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'people_directory' %}">People directory</a>
+    {% if can_manage_people %}<a class="btn" href="{% url 'person_create' %}">Add person</a>{% endif %}
+  </div>
+</section>
+
+<div class="people-profile-layout">
+  {% for section in sections %}
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">{{ section.key|upper }}</div><h2>{{ section.label }}</h2></div></div>
+    {% for row in section.rows %}
+      <div class="people-structure-row">
+        <div>
+          <strong><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></strong>
+          <p class="muted">{% for role in row.roles %}{{ role.get_role_display }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>
+          {% if row.horse_relationships %}
+            <div class="person-tags">
+              {% for rel in row.horse_relationships %}
+                <a class="people-tag-link" href="{% url 'horse_detail' rel.horse.pk %}">{{ rel.horse.display_name }} · {{ rel.get_relationship_type_display }}{% if rel.share_percent %} · {{ rel.share_percent }}%{% endif %}</a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        {% if can_manage_people %}<a href="{% url 'person_detail' row.person.pk %}">Manage</a>{% endif %}
+      </div>
+    {% empty %}
+      <p class="muted">No active {{ section.label|lower }} assignments yet.</p>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}
