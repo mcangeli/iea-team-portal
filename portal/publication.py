@@ -177,17 +177,36 @@ def public_show_schedule_payload(publication):
     return items
 
 
+def _ordinal_place(place):
+    value = int(place)
+    if 10 <= value % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(value % 10, "th")
+    return f"{value}{suffix}"
+
+
 def public_show_results_payload(publication):
-    """Return allow-listed placed results grouped by class for anonymous display."""
+    """Return explicitly published, allow-listed placed results grouped by class."""
 
     if not publication.publish_results:
         return []
 
-    classes = publication.show.classes.select_related("season_class").order_by(
+    classes = publication.show.classes.select_related("season_class", "live_state").order_by(
         "sort_order", "class_number", "name"
     )
     groups = []
     for show_class in classes:
+        # Backward compatibility: a class with no lifecycle record follows the legacy
+        # show-level result publication switch. Once a lifecycle record exists, the
+        # class must be explicitly published.
+        try:
+            live_state = show_class.live_state
+        except ObjectDoesNotExist:
+            live_state = None
+        if live_state is not None and not live_state.results_published:
+            continue
+
         entries = (
             show_class.entries.select_related("rider", "result")
             .filter(result__place__isnull=False)
@@ -196,6 +215,8 @@ def public_show_results_payload(publication):
         results = [
             {
                 "place": entry.result.place,
+                "place_label": _ordinal_place(entry.result.place),
+                "place_class": f"place-{entry.result.place}" if 1 <= entry.result.place <= 10 else "place-other",
                 "rider_name": f"{entry.rider.display_name} {entry.rider.last_name}".strip(),
             }
             for entry in entries
