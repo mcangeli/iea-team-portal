@@ -22,6 +22,7 @@ Foundation work started with:
 - expanded Person profile fields for birth date, school, graduation year, bio, photo, website, and social links;
 - a new ArenaLine-branded People directory and canonical Person profile UI;
 - Admin/Coach Person create/edit workflows with tenant-safe linkage to available Django login accounts;
+- a polished, sectioned Person create/edit workspace with clearer identity, contact, school/rider, profile, online, account, status, and barn-participation surfaces;
 - direct Person-profile management of multiple roles, relationships, and committee memberships;
 - a manager-only People Structure workspace for organization groups/programs and generalized committees;
 - a first barn-participation bridge linking canonical People to Horses as Owner, Boarder/Responsible Party, Full Lease, Half Lease, Partial Lease, Trainer, or Caretaker, with optional share and effective dates;
@@ -34,8 +35,12 @@ Foundation work started with:
 - manager Station setup for device registration, one-time device secrets, secret rotation, and Person PIN creation/reset;
 - a shared-device Station workflow that activates a tablet without reusing portal passwords, explicitly clears any full portal login on activation, lists only same-organization Station identities, verifies a Person PIN, and offers clock-in/out only for that Person's active work roles;
 - short-lived Person Station identity that is cleared after each clock action, plus multi-role shift selection for people who work in more than one barn role;
+- manager review/correction/approval of staff shifts with audit history and open-shift approval protection;
+- per-Person staff-hour summaries including approved and Working Student time plus tenant-scoped CSV export;
+- audit events for Station device/PIN/clock/export activity without recording raw secrets or PINs;
+- five-attempt temporary PIN lockout per Person/per Station session and tablet-oriented Station presentation polish;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive People presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, compatibility, Station foundation, and Station kiosk safety;
+- responsive People/Station presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, compatibility, Station foundation, kiosk, review, audit, export, and lockout safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
 
 Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge; `0068_v320_legacy_committee_bridge.py` adds the source-traceable legacy committee mirror; `0069_v322_station_foundation.py` adds Station devices, credentials, and work shifts; and `0070_v322_person_multi_roles.py` adds Parent/Guardian to the canonical role set and backfills it from active parent/guardian relationships. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, ShowLeadAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
