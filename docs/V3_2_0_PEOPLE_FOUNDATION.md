@@ -179,6 +179,24 @@ Implemented behavior:
 
 Focused regression coverage lives in `portal/tests/test_v320_people_directory.py` and includes private-field visibility, management permissions, tenant isolation, and Django account-link safety.
 
+## Implemented roles, relationships, groups & committees slice
+
+The Person experience now exposes the multi-role organization model directly rather than requiring Django admin.
+
+Implemented behavior:
+
+- Admin/Coach users may add and edit multiple concurrent `OrganizationRoleAssignment` records from a Person profile;
+- directional relationships are managed from the source Person profile, including Parent/Guardian, Spouse/Partner, Emergency Contact, labels, primary-contact state, and effective dates;
+- relationship selectors are organization-scoped and cannot attach a Person from another tenant;
+- committee memberships are Person-based and support Chair, Co-chair, Secretary, Treasurer, Member, and Liaison positions;
+- `/people/structure/` manages reusable Organization Groups / Programs and generalized Committees;
+- committees may be organization-wide or scoped to a Group/Program such as IEA, Shows, Lessons, or another barn function;
+- groups support one optional parent for modest subgroup hierarchy without making the UI an unrestricted org-chart editor;
+- People structure editing is manager-only;
+- legacy `CommitteeAssignment` remains authoritative for existing IEA authorization until those permission callers are explicitly migrated and regression-tested.
+
+Focused regression coverage lives in `portal/tests/test_v320_people_relationships.py` and protects multi-role behavior, directional parent/guardian relationships, tenant isolation, group-scoped committees, Person-based committee memberships, and manager-only structure editing.
+
 ## Planned v3.2 slices
 
 ### v3.2.0 foundation
