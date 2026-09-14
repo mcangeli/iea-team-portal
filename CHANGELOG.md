@@ -23,11 +23,12 @@ Foundation work started with:
 - Admin/Coach Person create/edit workflows with tenant-safe linkage to available Django login accounts;
 - direct Person-profile management of multiple roles, relationships, and committee memberships;
 - a manager-only People Structure workspace for organization groups/programs and generalized committees;
+- a first barn-participation bridge linking canonical People to Horses as Owner, Boarder/Responsible Party, Full Lease, Half Lease, Partial Lease, Trainer, or Caretaker, with optional share and effective dates;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, and committee safety;
+- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, committee, and horse-person safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
 
-Migration work begins with `0066_v320_people_foundation.py`. Existing Rider, GuardianContact, UserProfile, and CommitteeAssignment models remain compatibility structures while callers are migrated and regression-tested.
+Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge ahead of the broader v3.3 Equine Care release. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
 
 ## v3.1.0 — Public / Live Spectator Experience
 
