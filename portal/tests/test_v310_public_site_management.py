@@ -56,6 +56,12 @@ class PublicSiteManagementTests(TestCase):
         self.assertContains(response, "Public site")
         self.assertContains(response, "Autumn Invitational")
 
+    def test_manage_navigation_links_to_public_site_for_manager(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("public_site_manage"))
+        self.assertContains(response, 'href="{}"'.format(reverse("public_site_manage")))
+        self.assertContains(response, "Public Site")
+
     def test_public_site_profile_is_created_private_by_default(self):
         self.client.force_login(self.admin)
         self.client.get(reverse("public_site_manage"))
