@@ -14,7 +14,8 @@ Foundation work started with:
 - optional one-to-one linkage from `Person` to the Django `auth.User` login account;
 - compatibility bridging from existing Rider and GuardianContact records without deleting or rewriting legacy identities;
 - support for one Person to represent both a Rider and Parent/Guardian when those legacy records belong to the same human;
-- date-aware multi-role assignments for Rider, Boarder, Trainer, Assistant Trainer, Barn Manager, Barn Staff, Working Student, and Board Member;
+- date-aware multi-role assignments for Parent/Guardian, Rider, Boarder, Trainer, Assistant Trainer, Barn Manager, Barn Staff, Working Student, and Board Member;
+- checkbox-based current-role management so one Person can hold several roles simultaneously rather than being forced through a single-role dropdown;
 - directional Person relationships such as Parent/Guardian;
 - generic Organization Groups / Programs;
 - barn-wide or group-scoped Committees and Committee Memberships;
@@ -28,11 +29,14 @@ Foundation work started with:
 - a Barn Operations roster grouping trainers, barn management/staff, working students, boarders, and board members with linked horse responsibilities;
 - a traceable compatibility bridge from legacy season-scoped IEA `CommitteeAssignment` records into generalized `CommitteeMembership` records, while legacy assignments remain authoritative for existing permissions;
 - strict committee scoping so legacy IEA Treasurer mirrors to `IEA Program / IEA Finance Committee / Treasurer` and never implies barn-level Finance access;
+- mirrored IEA committee memberships are visibly labeled `Managed by IEA assignment` and cannot be edited through the generalized Person membership editor;
+- the first ArenaLine Station persistence/security foundation: registered shared devices, separately hashed Station PIN credentials tied to canonical Person records, and tenant-safe work-shift clock-in/out records;
+- Station credentials do not reuse portal passwords and do not require the Person to have a Django login;
 - privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive `people-v320.css` presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, and compatibility safety;
+- responsive People presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, compatibility, and Station foundation safety;
 - privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
 
-Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge; `0068_v320_legacy_committee_bridge.py` adds the source-traceable legacy committee mirror. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, ShowLeadAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
+Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge; `0068_v320_legacy_committee_bridge.py` adds the source-traceable legacy committee mirror; `0069_v322_station_foundation.py` adds Station devices, credentials, and work shifts; and `0070_v322_person_multi_roles.py` adds Parent/Guardian to the canonical role set and backfills it from active parent/guardian relationships. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, ShowLeadAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
 
 ## v3.1.0 — Public / Live Spectator Experience
 
