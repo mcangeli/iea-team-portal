@@ -32,18 +32,75 @@ class V320PeopleRelationshipsTests(TestCase):
         profile.save(update_fields=["team", "role"])
         return profile
 
-    def test_person_can_hold_multiple_roles(self):
-        for role in (
-            OrganizationRoleAssignment.Role.RIDER,
-            OrganizationRoleAssignment.Role.BOARDER,
-            OrganizationRoleAssignment.Role.BOARD_MEMBER,
-        ):
-            response = self.client.post(
-                reverse("person_role_add", args=[self.person.pk]),
-                {"role": role, "active": "on"},
-            )
-            self.assertEqual(response.status_code, 302)
-        self.assertEqual(self.person.role_assignments.filter(active=True).count(), 3)
+    def test_person_can_hold_parent_rider_and_boarder_roles_together(self):
+        response = self.client.post(
+            reverse("person_role_add", args=[self.person.pk]),
+            {
+                "roles": [
+                    OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                    OrganizationRoleAssignment.Role.RIDER,
+                    OrganizationRoleAssignment.Role.BOARDER,
+                ]
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        active_roles = set(
+            self.person.role_assignments.filter(active=True).values_list("role", flat=True)
+        )
+        self.assertEqual(
+            active_roles,
+            {
+                OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                OrganizationRoleAssignment.Role.RIDER,
+                OrganizationRoleAssignment.Role.BOARDER,
+            },
+        )
+
+    def test_unchecking_one_role_ends_only_that_role(self):
+        self.client.post(
+            reverse("person_role_add", args=[self.person.pk]),
+            {
+                "roles": [
+                    OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                    OrganizationRoleAssignment.Role.RIDER,
+                    OrganizationRoleAssignment.Role.BOARDER,
+                ]
+            },
+        )
+        response = self.client.post(
+            reverse("person_role_add", args=[self.person.pk]),
+            {
+                "roles": [
+                    OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                    OrganizationRoleAssignment.Role.BOARDER,
+                ]
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            self.person.role_assignments.filter(
+                role=OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                active=True,
+            ).exists()
+        )
+        self.assertTrue(
+            self.person.role_assignments.filter(
+                role=OrganizationRoleAssignment.Role.BOARDER,
+                active=True,
+            ).exists()
+        )
+        rider = self.person.role_assignments.get(role=OrganizationRoleAssignment.Role.RIDER)
+        self.assertFalse(rider.active)
+        self.assertIsNotNone(rider.end_date)
+
+    def test_role_manager_uses_checkbox_multi_select(self):
+        response = self.client.get(reverse("person_role_add", args=[self.person.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="checkbox"')
+        self.assertContains(response, "Parent / Guardian")
+        self.assertContains(response, "Rider")
+        self.assertContains(response, "Boarder")
+        self.assertNotContains(response, '<select name="role"')
 
     def test_parent_relationship_is_directional(self):
         response = self.client.post(
