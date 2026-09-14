@@ -16,9 +16,6 @@ class PersonForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
         if team is not None:
-            # The organization is trusted request context, not user-editable form
-            # data. Set it before ModelForm validation so Person.clean() can
-            # validate an attached Django account against the correct tenant.
             self.instance.team = team
         user_field = self.fields["user"]
         if team is None:
@@ -27,14 +24,10 @@ class PersonForm(forms.ModelForm):
             available = User.objects.filter(profile__team=team)
             current_user_id = getattr(self.instance, "user_id", None)
             if current_user_id:
-                available = available.filter(
-                    Q(arena_person__isnull=True) | Q(pk=current_user_id)
-                )
+                available = available.filter(Q(arena_person__isnull=True) | Q(pk=current_user_id))
             else:
                 available = available.filter(arena_person__isnull=True)
-            user_field.queryset = available.order_by(
-                "last_name", "first_name", "username"
-            )
+            user_field.queryset = available.order_by("last_name", "first_name", "username")
         user_field.required = False
         user_field.help_text = (
             "Optional Django login for this person. One login can be connected to only one ArenaLine Person."
@@ -43,24 +36,10 @@ class PersonForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = [
-            "user",
-            "first_name",
-            "last_name",
-            "preferred_name",
-            "email",
-            "phone",
-            "birth_date",
-            "school",
-            "graduation_year",
-            "bio",
-            "photo",
-            "website_url",
-            "instagram_url",
-            "facebook_url",
-            "tiktok_url",
-            "youtube_url",
-            "public_profile_enabled",
-            "active",
+            "user", "first_name", "last_name", "preferred_name", "email", "phone",
+            "birth_date", "school", "graduation_year", "bio", "photo", "website_url",
+            "instagram_url", "facebook_url", "tiktok_url", "youtube_url",
+            "public_profile_enabled", "active",
         ]
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
@@ -68,10 +47,19 @@ class PersonForm(forms.ModelForm):
         }
 
 
+class PersonRolesForm(forms.Form):
+    roles = forms.MultipleChoiceField(
+        choices=OrganizationRoleAssignment.Role.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Choose every role this person currently holds. Multiple roles may be active at the same time.",
+    )
+
+
 class OrganizationRoleAssignmentForm(forms.ModelForm):
     class Meta:
         model = OrganizationRoleAssignment
-        fields = ["role", "start_date", "end_date", "active", "notes"]
+        fields = ["start_date", "end_date", "active", "notes"]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
@@ -92,14 +80,8 @@ class PersonRelationshipForm(forms.ModelForm):
     class Meta:
         model = PersonRelationship
         fields = [
-            "to_person",
-            "relationship_type",
-            "label",
-            "primary_contact",
-            "start_date",
-            "end_date",
-            "active",
-            "notes",
+            "to_person", "relationship_type", "label", "primary_contact",
+            "start_date", "end_date", "active", "notes",
         ]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
@@ -111,8 +93,6 @@ class OrganizationGroupForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
         if team is not None:
-            # Group.clean() validates parent-group tenant boundaries. Supply the
-            # request-derived organization before ModelForm validation.
             self.instance.team = team
         qs = OrganizationGroup.objects.none()
         if team is not None:
@@ -131,8 +111,6 @@ class CommitteeForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
         if team is not None:
-            # Committee.clean() checks that its optional group belongs to the
-            # same organization, so bind that trusted context before validation.
             self.instance.team = team
         self.fields["group"].queryset = (
             OrganizationGroup.objects.filter(team=team, active=True).order_by("sort_order", "name")
