@@ -52,7 +52,10 @@
   <div class="public-class-list">
     {% for item in public_class_schedule %}
       <article class="public-class-row{% if item.state %} public-class-{{ item.state }}{% endif %}">
-        <div class="public-class-time">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}<span class="public-class-ring">{{ item.ring }}</span></div>
+        <div class="public-class-time">
+          <span class="public-class-clock">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}</span>
+          <span class="public-class-ring">{{ item.ring }}</span>
+        </div>
         <div class="public-class-main">
           <div class="public-class-heading-row">
             <h3>{% if item.class_number %}<span>{{ item.class_number }}</span> {% endif %}{{ item.name }}</h3>
