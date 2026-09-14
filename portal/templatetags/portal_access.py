@@ -42,7 +42,8 @@ def show_day_schedule_rows(context, show, existing_rows):
     scheduled class, even when the organization has no rider entered. Squad-scoped
     operational users (Futures/Upper Team Parents) keep their squad boundary while
     still receiving no-entry classes explicitly linked to their squad's SeasonClass.
-    Ordinary family/rider views retain only rows already allowed by the view layer.
+    Non-operational family/rider users retain a read-only view of the complete class
+    order while rider/entry details remain filtered by the view layer.
     """
     if not show:
         return existing_rows or []
@@ -77,10 +78,16 @@ def show_day_schedule_rows(context, show, existing_rows):
             merged.append({"class": show_class, "entries": [], "missing_results": 0})
             continue
 
+        # Ordinary family/rider users may see the class order but not hidden rider
+        # entries or live-management controls. The view layer already filtered those.
+        if not operational:
+            merged.append({"class": show_class, "entries": [], "missing_results": 0})
+            continue
+
         # Squad-scoped operators may receive no-entry classes only when ArenaLine
         # has explicit season-class metadata proving the class belongs to their
         # squad. Unlinked legacy classes are not guessed into a squad.
-        if operational and operational_levels and show_class.season_class_id:
+        if operational_levels and show_class.season_class_id:
             team_level = show_class.season_class.team_level
             if (
                 team_level == SeasonClass.TeamLevel.BOTH
