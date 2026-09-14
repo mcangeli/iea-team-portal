@@ -13,6 +13,7 @@ class PortalConfig(AppConfig):
         from .model_modules import hoofprint  # noqa: F401
         from .model_modules import show_readiness  # noqa: F401
         from .model_modules import competition_iea  # noqa: F401
+        from .model_modules import public_site  # noqa: F401
         from . import course_models  # noqa: F401
         from .model_modules import post_show_horses  # noqa: F401
         from . import host_show_models  # noqa: F401
