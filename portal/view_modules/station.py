@@ -75,6 +75,7 @@ def station_device_add(request):
     if request.method == "POST" and form.is_valid():
         device = form.save(commit=False)
         device.team = team
+        device.device_key = secrets.token_urlsafe(32)
         raw_secret = secrets.token_urlsafe(24)
         device.set_secret(raw_secret)
         device.full_clean()
