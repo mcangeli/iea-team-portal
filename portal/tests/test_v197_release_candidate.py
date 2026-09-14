@@ -8,6 +8,7 @@ from portal.models import (
     CommitteeAssignment,
     Rider,
     Season,
+    SeasonClass,
     SeasonMembership,
     Show,
     ShowClass,
@@ -116,6 +117,40 @@ class V197ReleaseCandidateTests(TestCase):
         self.assertContains(response, "Futures Flat")
         self.assertNotContains(response, "Taylor")
         self.assertNotContains(response, "Upper Flat")
+
+    def test_futures_team_parent_sees_no_entry_futures_class_but_not_upper(self):
+        futures_season_class = SeasonClass.objects.create(
+            season=self.season,
+            name="Futures No Entry",
+            team_level=SeasonClass.TeamLevel.FUTURES,
+            sort_order=30,
+        )
+        upper_season_class = SeasonClass.objects.create(
+            season=self.season,
+            name="Upper No Entry",
+            team_level=SeasonClass.TeamLevel.UPPER,
+            sort_order=40,
+        )
+        ShowClass.objects.create(
+            show=self.show,
+            season_class=futures_season_class,
+            class_number="H13",
+            sort_order=30,
+        )
+        ShowClass.objects.create(
+            show=self.show,
+            season_class=upper_season_class,
+            class_number="H21",
+            sort_order=40,
+        )
+
+        self.client.force_login(self.futures_parent)
+        response = self.client.get(
+            reverse("show_day_dashboard", args=[self.show.pk])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Futures No Entry")
+        self.assertNotContains(response, "Upper No Entry")
 
     def test_secretary_dashboard_retains_full_team_scope(self):
         self.client.force_login(self.secretary)
