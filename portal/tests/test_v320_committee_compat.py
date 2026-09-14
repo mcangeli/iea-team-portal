@@ -50,7 +50,7 @@ class V320CommitteeCompatibilityTests(TestCase):
         self.assertEqual(membership.end_date, self.season.end_date)
         self.assertTrue(membership.active)
 
-    def test_treasurer_maps_to_organization_finance_committee(self):
+    def test_treasurer_maps_to_iea_finance_committee_not_barn_finance(self):
         assignment = CommitteeAssignment.objects.create(
             team=self.team,
             season=self.season,
@@ -59,8 +59,33 @@ class V320CommitteeCompatibilityTests(TestCase):
         )
         membership = CommitteeMembership.objects.get(legacy_committee_assignment=assignment)
         self.assertEqual(membership.position, CommitteeMembership.Position.TREASURER)
-        self.assertEqual(membership.committee.name, "Finance Committee")
-        self.assertIsNone(membership.committee.group)
+        self.assertEqual(membership.committee.name, "IEA Finance Committee")
+        self.assertIsNotNone(membership.committee.group)
+        self.assertEqual(membership.committee.group.name, "IEA Program")
+        self.assertFalse(
+            CommitteeMembership.objects.filter(
+                person=self.person,
+                committee__name="Finance Committee",
+                committee__group__isnull=True,
+            ).exists()
+        )
+
+    def test_barn_finance_membership_remains_separate_from_iea_treasurer(self):
+        barn_finance = Committee.objects.create(team=self.team, name="Finance Committee")
+        barn_membership = CommitteeMembership.objects.create(
+            committee=barn_finance,
+            person=self.person,
+            position=CommitteeMembership.Position.MEMBER,
+        )
+        assignment = CommitteeAssignment.objects.create(
+            team=self.team,
+            season=self.season,
+            user=self.user,
+            role=CommitteeAssignment.Role.TREASURER,
+        )
+        legacy_membership = CommitteeMembership.objects.get(legacy_committee_assignment=assignment)
+        self.assertNotEqual(legacy_membership.committee_id, barn_finance.id)
+        self.assertTrue(CommitteeMembership.objects.filter(pk=barn_membership.pk).exists())
 
     def test_legacy_deactivation_updates_mirrored_membership(self):
         assignment = CommitteeAssignment.objects.create(
