@@ -1,5 +1,7 @@
 """IEA-specific reference models for ArenaLine competition workflows."""
 
+import re
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import pre_save
@@ -127,6 +129,48 @@ _show_catalog_entry_field = models.ForeignKey(
 _show_catalog_entry_field.contribute_to_class(ShowClass, "catalog_entry")
 
 
+def catalog_entry_for_show_class(show_class):
+    """Return the effective official catalog definition for a ShowClass, if linked."""
+    if getattr(show_class, "catalog_entry_id", None):
+        return show_class.catalog_entry
+    season_class = getattr(show_class, "season_class", None)
+    if season_class is not None and getattr(season_class, "catalog_entry_id", None):
+        return season_class.catalog_entry
+    return None
+
+
+def _legacy_hunt_seat_non_team_class(show_class):
+    """Compatibility fallback for historical unlinked H8/H14 rows."""
+    candidates = [
+        getattr(show_class, "class_number", "") or "",
+        getattr(show_class, "display_name", "") or "",
+        getattr(show_class, "name", "") or "",
+    ]
+    for value in candidates:
+        normalized = re.sub(r"[^A-Z0-9]+", "", value.upper())
+        if normalized in {"H8", "H14"}:
+            return True
+        if re.match(r"^\s*H(?:8|14)\b", value.upper()):
+            return True
+    return False
+
+
+def team_points_enabled_for_show_class(show_class):
+    """Catalog-first team-scoring policy with a narrow legacy compatibility fallback."""
+    entry = catalog_entry_for_show_class(show_class)
+    if entry is not None:
+        return bool(entry.team_points_enabled)
+    return not _legacy_hunt_seat_non_team_class(show_class)
+
+
+def individual_points_enabled_for_show_class(show_class):
+    """Catalog-first individual-scoring policy; legacy rows remain scoring by default."""
+    entry = catalog_entry_for_show_class(show_class)
+    if entry is not None:
+        return bool(entry.individual_points_enabled)
+    return True
+
+
 def _catalog_aware_show_class_team_level(instance):
     if instance.season_class_id:
         return instance.season_class.team_level
@@ -136,6 +180,8 @@ def _catalog_aware_show_class_team_level(instance):
 
 
 ShowClass.team_level = property(_catalog_aware_show_class_team_level)
+ShowClass.team_points_enabled = property(team_points_enabled_for_show_class)
+ShowClass.individual_points_enabled = property(individual_points_enabled_for_show_class)
 
 
 WARMUP_PREREQUISITE_CODES = {
@@ -155,7 +201,24 @@ def _catalog_aware_show_entry_clean(instance):
     _original_show_entry_clean(instance)
     if not instance.show_class_id or not instance.rider_id:
         return
+
     show_class = instance.show_class
+    show = show_class.show
+
+    if instance.is_point_rider and not team_points_enabled_for_show_class(show_class):
+        raise ValidationError(
+            f"{show_class.display_name} does not award team points and cannot have a points rider."
+        )
+
+    if (
+        show.competition_level != "regular"
+        and instance.competition_track == ShowEntry.CompetitionTrack.TEAM
+        and not team_points_enabled_for_show_class(show_class)
+    ):
+        raise ValidationError(
+            f"{show_class.display_name} is individual-only and does not award team points."
+        )
+
     if show_class.season_class_id or not getattr(show_class, "catalog_entry_id", None):
         return
 
@@ -163,7 +226,6 @@ def _catalog_aware_show_entry_clean(instance):
     if catalog.season_assignable:
         return
 
-    show = show_class.show
     if show.competition_level != "regular":
         raise ValidationError("Official IEA show-only classes are regular-season offerings.")
 
@@ -225,11 +287,10 @@ def snapshot_direct_iea_show_class(sender, instance, **kwargs):
 
 @receiver(pre_save, sender=ShowResult)
 def suppress_points_for_non_scoring_catalog_class(sender, instance, **kwargs):
-    """Official show-only warm-ups and VOC never earn ArenaLine points."""
+    """Respect catalog individual-points policy for both season and show-only classes."""
     if not instance.entry_id:
         return
     show_class = instance.entry.show_class
-    entry = getattr(show_class, "catalog_entry", None)
-    if entry and not entry.individual_points_enabled and not entry.team_points_enabled:
+    if not individual_points_enabled_for_show_class(show_class):
         instance.points = None
         instance.manual_points = False
