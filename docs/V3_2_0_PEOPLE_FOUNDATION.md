@@ -159,6 +159,26 @@ It creates the new people/group/committee tables and then performs conservative 
 
 The migration does not infer identity from names.
 
+## Implemented People directory/profile slice
+
+The first management UI is now built on the canonical Person layer rather than the legacy Rider/Guardian tables.
+
+Implemented behavior:
+
+- `/people/` is the canonical authenticated organization People directory;
+- Person cards use the established ArenaLine People branding and responsive card language;
+- `/people/<id>/` provides a canonical profile view;
+- Admin/Coach users can add and edit Person profiles;
+- organization members may browse organization-safe Person identity/role information;
+- private contact/account/birth-date information is visible only to Admin/Coach or the Person's own linked Django account;
+- Person profile creation/editing may attach an existing Django `auth.User` account;
+- account choices are restricted to the current organization and to logins not already attached to another Person, while an existing Person retains its current account as an editable choice;
+- tenant scoping is enforced in the service/view layer rather than only in presentation;
+- existing Riders and Parents/Guardians remain available as compatibility navigation/workflows while the canonical People experience is introduced;
+- `people-v320.css` provides ArenaLine-consistent desktop/tablet/mobile profile and directory presentation.
+
+Focused regression coverage lives in `portal/tests/test_v320_people_directory.py` and includes private-field visibility, management permissions, tenant isolation, and Django account-link safety.
+
 ## Planned v3.2 slices
 
 ### v3.2.0 foundation
