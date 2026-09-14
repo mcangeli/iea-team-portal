@@ -35,9 +35,17 @@ class ArenaLinePreview4OperationsTests(SimpleTestCase):
         self.assertIn("volunteer_review", volunteer)
         self.assertIn("Delegated, not administrative", committees)
 
-    def test_calendar_legacy_inline_style_is_explicitly_overridden_not_rewritten(self):
+    def test_calendar_presentation_is_owned_by_operations_stylesheet(self):
         calendar = (Path(settings.BASE_DIR) / "templates/portal/calendar_v2.html").read_text()
         css = (Path(settings.BASE_DIR) / "static/css/operations-v290.css").read_text()
 
-        self.assertIn("<style>", calendar)
-        self.assertIn("Calendar: scoped ArenaLine overrides", css)
+        self.assertNotIn("<style>", calendar)
+        for selector in (
+            ".section-calendar .calendar-toolbar",
+            ".section-calendar .calendar-period-nav",
+            ".section-calendar .calendar-view-switch",
+            ".section-calendar .calendar-filters",
+            ".section-calendar .month-grid",
+            ".section-calendar .agenda-event",
+        ):
+            self.assertIn(selector, css)
