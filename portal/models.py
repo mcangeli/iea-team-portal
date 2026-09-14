@@ -216,7 +216,7 @@ class SeasonClass(models.Model):
 
     class Meta:
         ordering = ["team_level", "sort_order", "name"]
-        constraints = [models.UniqueConstraint(fields=["season", "name", "team_level"], name="unique_season_class_by_team")]
+        constraints = [models.UniqueConstraint(fields=["season", "discipline", "name", "team_level"], name="unique_season_class_by_team")]
 
     def __str__(self):
         return f"{self.get_team_level_display()} — {self.name}"
