@@ -70,6 +70,16 @@ class PublicShowPublicationForm(forms.ModelForm):
                 "sort_order", "class_number", "name"
             )
         self.fields["current_class"].queryset = queryset
+        # Preserve compatibility with existing publication POSTs that predate
+        # the spectator-status controls. Omitted live status should keep the
+        # model default/current value instead of making the form invalid.
+        self.fields["public_status"].required = False
+
+    def clean_public_status(self):
+        value = self.cleaned_data.get("public_status")
+        if value:
+            return value
+        return getattr(self.instance, "public_status", None) or PublicShowPublication.PublicStatus.UPCOMING
 
 
 def _default_site_slug(organization):
