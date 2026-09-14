@@ -1,7 +1,7 @@
 {% extends 'public/base.html' %}
 {% block title %}{{ public_show.name }} · {{ public_site.name }}{% endblock %}
 {% block content %}
-<a class="public-back" href="{% url 'public_site_home' public_site.slug %}">← Back to {{ public_site.name }}</a>
+<a class="public-back" href="{% url 'public_schedule' public_site.slug %}">← Back to schedule</a>
 <section class="public-hero public-show-hero">
   <div class="public-kicker">{{ public_show.competition_level|upper }}</div>
   <h1>{{ public_show.name }}</h1>
