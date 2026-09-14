@@ -1,10 +1,12 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
 from portal.models import Season, Show, Team
+from portal.view_modules.public_site import _public_show_groups
 
 
 class PublicLiveBoardUrlTests(TestCase):
@@ -71,3 +73,13 @@ class PublicLiveBoardUrlTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("public_live_board", args=[self.site.slug]))
         self.assertContains(response, ">Live<")
+
+    def test_active_past_dated_show_is_not_duplicated_in_past_group(self):
+        self.show.show_date = timezone.localdate() - timedelta(days=1)
+        self.show.save(update_fields=["show_date"])
+
+        active, upcoming, past = _public_show_groups(self.site)
+
+        self.assertEqual([item["slug"] for item in active], [self.publication.slug])
+        self.assertNotIn(self.publication.slug, [item["slug"] for item in upcoming])
+        self.assertNotIn(self.publication.slug, [item["slug"] for item in past])
