@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ person.display_name }} · People · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_directory' %}">← People</a></nav>
+<section class="page-intro people-profile-intro">
+  <div class="people-profile-heading">
+    <div class="person-profile-photo">{% if person.photo %}<img src="{{ person.photo.url }}" alt="">{% else %}<span>{{ person.first_name|first }}{{ person.last_name|first }}</span>{% endif %}</div>
+    <div><div class="eyebrow">PERSON PROFILE</div><h1>{{ person.display_name }}</h1><p>{% if person.school %}{{ person.school }}{% if person.graduation_year %} · Class of {{ person.graduation_year }}{% endif %}{% else %}ArenaLine organization profile{% endif %}</p></div>
+  </div>
+  {% if can_manage_people %}<div class="actions"><a class="btn" href="{% url 'person_edit' person.pk %}">Edit profile</a></div>{% endif %}
+</section>
+
+<div class="people-profile-layout">
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div></div>
+    <div class="person-tags person-tags-large">
+      {% for role in person.role_assignments.all %}{% if role.active %}<span>{{ role.get_role_display }}</span>{% endif %}{% empty %}<span class="muted">No organization roles assigned yet.</span>{% endfor %}
+    </div>
+    {% if person.committee_memberships.all %}<div class="people-subsection"><h3>Committees</h3>{% for membership in person.committee_memberships.all %}{% if membership.active %}<p><strong>{{ membership.committee.name }}</strong> · {{ membership.get_position_display }}</p>{% endif %}{% endfor %}</div>{% endif %}
+  </section>
+
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">PROFILE</div><h2>About</h2></div></div>
+    {% if person.bio %}<p class="profile-bio">{{ person.bio|linebreaksbr }}</p>{% else %}<p class="muted">No profile bio has been added yet.</p>{% endif %}
+    {% if person.website_url or person.instagram_url or person.facebook_url or person.tiktok_url or person.youtube_url %}
+    <div class="people-links">
+      {% if person.website_url %}<a href="{{ person.website_url }}" target="_blank" rel="noopener">Website</a>{% endif %}
+      {% if person.instagram_url %}<a href="{{ person.instagram_url }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      {% if person.facebook_url %}<a href="{{ person.facebook_url }}" target="_blank" rel="noopener">Facebook</a>{% endif %}
+      {% if person.tiktok_url %}<a href="{{ person.tiktok_url }}" target="_blank" rel="noopener">TikTok</a>{% endif %}
+      {% if person.youtube_url %}<a href="{{ person.youtube_url }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  {% if can_view_private %}
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">PRIVATE</div><h2>Account & contact</h2></div></div>
+    <dl class="people-detail-list">
+      <div><dt>Django account</dt><dd>{% if person.user %}{{ person.user.username }}{% else %}No login attached{% endif %}</dd></div>
+      <div><dt>Email</dt><dd>{{ person.email|default:"—" }}</dd></div>
+      <div><dt>Phone</dt><dd>{{ person.phone|default:"—" }}</dd></div>
+      <div><dt>Birth date</dt><dd>{{ person.birth_date|date:"F j, Y"|default:"—" }}</dd></div>
+      <div><dt>Public profile</dt><dd>{% if person.public_profile_enabled %}Enabled{% else %}Not published{% endif %}</dd></div>
+    </dl>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
