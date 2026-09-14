@@ -4,6 +4,25 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.2.0 — People, Relationships & Barn Operations
+
+**Unreleased — active development.**
+
+Foundation work started with:
+
+- a canonical organization-scoped `Person` identity;
+- optional one-to-one linkage from `Person` to the Django `auth.User` login account;
+- compatibility bridging from existing Rider and GuardianContact records without deleting or rewriting legacy identities;
+- support for one Person to represent both a Rider and Parent/Guardian when those legacy records belong to the same human;
+- date-aware multi-role assignments for Rider, Boarder, Trainer, Assistant Trainer, Barn Manager, Barn Staff, Working Student, and Board Member;
+- directional Person relationships such as Parent/Guardian;
+- generic Organization Groups / Programs;
+- barn-wide or group-scoped Committees and Committee Memberships;
+- expanded Person profile fields for birth date, school, graduation year, bio, photo, website, and social links;
+- privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
+
+Migration work begins with `0066_v320_people_foundation.py`. Existing Rider, GuardianContact, UserProfile, and CommitteeAssignment models remain compatibility structures while callers are migrated and regression-tested.
+
 ## v3.1.0 — Public / Live Spectator Experience
 
 Released September 2026.
