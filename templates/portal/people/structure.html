@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}People structure · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_directory' %}">← People</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">ORGANIZATION</div><h1>People structure</h1><p>Programs, operational groups, and committees for the organization.</p></div>
+</section>
+<div class="people-profile-layout">
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">GROUPS & PROGRAMS</div><h2>Organization groups</h2></div><a class="btn" href="{% url 'organization_group_add' %}">Add group</a></div>
+  {% for group in groups %}<div class="people-structure-row"><div><strong>{{ group.name }}</strong><p class="muted">{{ group.get_group_type_display }}{% if group.parent %} · under {{ group.parent.name }}{% endif %}</p></div><a href="{% url 'organization_group_edit' group.pk %}">Edit</a></div>{% empty %}<p class="muted">No groups have been created yet.</p>{% endfor %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committees</h2></div><a class="btn" href="{% url 'committee_add' %}">Add committee</a></div>
+  {% for committee in committees %}<div class="people-structure-row"><div><strong>{{ committee.name }}</strong><p class="muted">{% if committee.group %}{{ committee.group.name }}{% else %}Organization-wide{% endif %}</p>{% if committee.purpose %}<p>{{ committee.purpose }}</p>{% endif %}</div><a href="{% url 'committee_edit' committee.pk %}">Edit</a></div>{% empty %}<p class="muted">No committees have been created yet.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}
