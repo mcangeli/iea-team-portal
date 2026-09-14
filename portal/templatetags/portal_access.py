@@ -1,6 +1,7 @@
 from django import template
 
 from portal.view_modules.common import _can_view_family_account
+from portal.view_modules.show_day_live import can_update_show_live_status
 
 register = template.Library()
 
@@ -14,6 +15,14 @@ def family_account_membership(context, rider, season):
     if membership and _can_view_family_account(request.user, membership):
         return membership
     return None
+
+
+@register.simple_tag(takes_context=True)
+def can_manage_live_show_status(context, show):
+    request = context.get("request")
+    if not request or not show:
+        return False
+    return can_update_show_live_status(request.user, show)
 
 
 @register.simple_tag
