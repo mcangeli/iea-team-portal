@@ -70,7 +70,7 @@
         <ol class="public-result-list">
           {% for result in group.results %}
             <li>
-              <span class="public-result-place">{{ result.place }}</span>
+              <span class="public-result-place {{ result.place_class }}" aria-label="{{ result.place_label }} place">{{ result.place_label }}</span>
               <span class="public-result-rider">{{ result.rider_name }}</span>
             </li>
           {% endfor %}
