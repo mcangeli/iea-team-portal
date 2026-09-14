@@ -50,9 +50,15 @@ Managers can open **People → ArenaLine Station** to:
 - receive the generated device key and one-time raw secret after registration;
 - rotate a device secret when needed;
 - set or reset a Person's 4–8 digit Station PIN;
-- enable or disable a Person's Station credential.
+- enable or disable a Person's Station credential;
+- review recent Station shifts;
+- correct role, clock-in, clock-out, and notes;
+- approve completed shifts;
+- view total and approved work minutes by Person.
 
 The raw device secret is displayed only during registration/rotation and is not stored in clear text.
+
+Open shifts cannot be approved. Corrections and approvals create `AuditEvent` records. Correction events capture before/after values so the operational history remains traceable.
 
 ## Implemented kiosk workflow
 
@@ -93,13 +99,14 @@ Those mirrored memberships are read-only in the generalized membership editor. T
 
 `portal/tests/test_v322_station_ui.py` protects manager-only setup, one-time device provisioning, PIN creation, full-session logout on Station activation, organization-scoped kiosk identities, wrong-PIN rejection, multi-role shift selection, clock-in, and clock-out.
 
+`portal/tests/test_v322_station_review.py` protects manager-only shift review, tenant isolation, completed-shift approval, open-shift rejection, manager corrections, and audit-event creation.
+
 ## Next Station slices
 
-The next v3.2.2 work should add:
+The remaining v3.2.2 work should add:
 
-- manager review/correction of work-shift history;
-- approval workflow and working-student hour totals;
 - operational audit events for device/PIN/clock actions;
 - PIN-attempt throttling / abuse protection appropriate for a shared physical kiosk;
 - additional Station presentation polish for mounted tablets;
+- reporting/export refinements for working-student hours;
 - later lesson check-in/out once the lesson-program domain is ready.
