@@ -12,7 +12,7 @@
 
 <div class="people-profile-layout">
   <section class="content-section">
-    <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div>{% if can_manage_people %}<a href="{% url 'person_role_add' person.pk %}">Add role</a>{% endif %}</div>
+    <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div>{% if can_manage_people %}<a href="{% url 'person_role_add' person.pk %}">Manage roles</a>{% endif %}</div>
     <div class="person-tags person-tags-large">
       {% for role in person.role_assignments.all %}{% if role.active %}<a class="people-tag-link" {% if can_manage_people %}href="{% url 'person_role_edit' person.pk role.pk %}"{% endif %}>{{ role.get_role_display }}</a>{% endif %}{% empty %}<span class="muted">No organization roles assigned yet.</span>{% endfor %}
     </div>
