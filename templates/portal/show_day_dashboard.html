@@ -132,14 +132,15 @@
 
 <section class="content-section">
   <div class="section-head">
-    <div><div class="eyebrow">UPCOMING</div><h2>Class schedule</h2><p class="muted">Times are estimates; official show announcements remain authoritative.</p></div>
+    <div><div class="eyebrow">SHOW ORDER</div><h2>Class schedule</h2><p class="muted">The full show order is shown even when our team has no rider in a class. Times are estimates; official show announcements remain authoritative.</p></div>
     <a class="text-link" href="{% url 'show_schedule' show.pk %}">Full schedule →</a>
   </div>
+  {% show_day_schedule_rows show schedule_rows as show_day_rows %}
   <div class="entry-table-wrap">
     <table class="entry-table">
-      <thead><tr><th>Time</th><th>Class</th><th>Status</th><th>Riders</th>{% if can_manage_points %}<th>Results</th>{% endif %}</tr></thead>
+      <thead><tr><th>Time</th><th>Class</th><th>Status</th><th>Our riders</th>{% if can_manage_points %}<th>Results</th>{% endif %}</tr></thead>
       <tbody>
-      {% for row in schedule_rows %}
+      {% for row in show_day_rows %}
         {% show_class_live_state row.class as class_live_state %}
         {% can_manage_live_class_status row.class as can_manage_class_live %}
         <tr>
@@ -179,18 +180,22 @@
           <td>
             {% for entry in row.entries %}
               <div>{{ entry.rider.display_name }}{% if can_manage_points and entry.is_point_rider %} ★{% endif %}</div>
+            {% empty %}
+              <span class="muted">No team rider</span>
             {% endfor %}
           </td>
           {% if can_manage_points %}
           <td>
             {% for entry in row.entries %}
               <div><a href="{% url 'show_result_edit' entry.pk %}">Enter/edit {{ entry.rider.first_name }}</a></div>
+            {% empty %}
+              <span class="muted">—</span>
             {% endfor %}
           </td>
           {% endif %}
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="muted">No scheduled classes with entries yet.</td></tr>
+        <tr><td colspan="5" class="muted">No classes have been added to this show yet.</td></tr>
       {% endfor %}
       </tbody>
     </table>
