@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load portal_access %}
 {% block title %}{{ show.name }} · Show Day{% endblock %}
 {% block content %}
 <nav class="page-back-nav"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
@@ -16,6 +17,42 @@
     <a class="btn secondary" href="{% url 'show_day_updates' show.pk %}">Updates</a>
   </div>
 </section>
+
+{% can_manage_live_show_status show as can_manage_live_status %}
+{% if can_manage_live_status %}
+<section class="content-section">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">LIVE SHOW STATUS</div>
+      <h2>{{ show.get_status_display }}</h2>
+      <p class="muted">Use these quick controls during the show. When public live status is enabled, the spectator site follows this status automatically.</p>
+    </div>
+    <span class="status-pill">{{ show.get_status_display }}</span>
+  </div>
+  <div class="actions">
+    <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="entered">
+      <button class="btn secondary" type="submit" {% if show.status == 'entered' %}disabled{% endif %}>Ready / Upcoming</button>
+    </form>
+    <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="in_progress">
+      <button class="btn" type="submit" {% if show.status == 'in_progress' %}disabled{% endif %}>{% if show.status == 'paused' %}Resume show{% else %}Start show{% endif %}</button>
+    </form>
+    <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="paused">
+      <button class="btn secondary" type="submit" {% if show.status == 'paused' %}disabled{% endif %}>Pause</button>
+    </form>
+    <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="complete">
+      <button class="btn secondary" type="submit" {% if show.status == 'complete' %}disabled{% endif %}>Complete show</button>
+    </form>
+  </div>
+</section>
+{% endif %}
 
 {% if operational %}
 <section class="finance-stat-grid">
