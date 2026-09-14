@@ -87,3 +87,37 @@ def public_show_schedule_payload(publication):
         }
         for show_class in classes
     ]
+
+
+def public_show_results_payload(publication):
+    """Return allow-listed placed results grouped by class for anonymous display."""
+
+    if not publication.publish_results:
+        return []
+
+    classes = publication.show.classes.select_related("season_class").order_by(
+        "sort_order", "class_number", "name"
+    )
+    groups = []
+    for show_class in classes:
+        entries = (
+            show_class.entries.select_related("rider", "result")
+            .filter(result__place__isnull=False)
+            .order_by("result__place", "rider__last_name", "rider__first_name")
+        )
+        results = [
+            {
+                "place": entry.result.place,
+                "rider_name": f"{entry.rider.display_name} {entry.rider.last_name}".strip(),
+            }
+            for entry in entries
+        ]
+        if results:
+            groups.append(
+                {
+                    "class_number": show_class.class_number,
+                    "name": show_class.display_name,
+                    "results": results,
+                }
+            )
+    return groups
