@@ -8,7 +8,18 @@ v3.1.0 adds the first ArenaLine public/external layer: opt-in public program pag
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
-For release history, see `docs/releases/v3.1.0.md`. For architecture, see `ARCHITECTURE.md`. For release promotion requirements, see `RELEASE_CHECKLIST.md`.
+## Documentation map
+
+- `README.md` — product overview, installation, setup, operation, updating, and troubleshooting.
+- `ROADMAP.md` — canonical product roadmap and committed future release direction.
+- `CHANGELOG.md` — concise release history/changelog.
+- `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
+- `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.1.0.md`.
+- `RELEASE_CHECKLIST.md` — release-promotion gates.
+- `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
+
+The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
 ## v3.1.0 highlights
 
@@ -265,13 +276,13 @@ Generic platform domains include Core, People, Horses, Operations, Finance, and 
 
 The public/external layer is a separate publication boundary. Anonymous routes consume explicit allow-listed publication payloads rather than authenticated internal views.
 
-See `ARCHITECTURE.md` and `docs/releases/v3.1.0.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.1.0.md`.
 
 ## Release process
 
 Before any release is promoted to `main`, use `RELEASE_CHECKLIST.md`.
 
-The release is not promotion-ready until code, tests, `VERSION`, README, release notes, roadmap, architecture/supporting documentation, and release tagging plan are consistent.
+The release is not promotion-ready until code, tests, presentation, privacy/permissions, `VERSION`, README, changelog, roadmap, architecture/supporting documentation, and release tagging plan are consistent.
 
 ## Troubleshooting
 
