@@ -100,6 +100,14 @@ class V322StationUITests(TestCase):
         self.assertTrue(credential.check_pin("8642"))
         self.assertNotEqual(credential.pin_hash, "8642")
 
+    def test_station_activation_discards_full_portal_login(self):
+        device = self._device()
+        self.client.force_login(self.admin)
+        self.assertIn("_auth_user_id", self.client.session)
+        self._activate(device)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(self.client.session.get("arenaline_station_device_id"), device.pk)
+
     def test_device_activation_and_home_are_tenant_scoped(self):
         device = self._device()
         self._credential()
