@@ -42,14 +42,29 @@ def get_public_show(site, show_slug):
     return get_object_or_404(public_show_queryset(site), slug=show_slug)
 
 
+def _spectator_status_for_show(show):
+    if show.status in {"planning", "registration", "entered"}:
+        return "upcoming", "Upcoming"
+    if show.status == "in_progress":
+        return "in_progress", "In progress"
+    if show.status == "paused":
+        return "paused", "Paused"
+    if show.status == "complete":
+        return "complete", "Complete"
+    if show.status == "cancelled":
+        return "cancelled", "Cancelled"
+    return "upcoming", "Upcoming"
+
+
 def _public_live_status(publication):
     if not publication.publish_live_status:
         return None
 
+    code, label = _spectator_status_for_show(publication.show)
     current_class = publication.current_class
     return {
-        "code": publication.public_status,
-        "label": publication.get_public_status_display(),
+        "code": code,
+        "label": label,
         "note": publication.public_status_note,
         "current_class": (
             {
@@ -110,20 +125,21 @@ def public_show_schedule_payload(publication):
                 current_index = index
                 break
 
+    spectator_code, _spectator_label = _spectator_status_for_show(publication.show)
     items = []
     for index, show_class in enumerate(classes):
         state = None
         state_label = None
         if publication.publish_live_status:
-            if publication.public_status == PublicShowPublication.PublicStatus.COMPLETE:
+            if spectator_code == "complete":
                 state, state_label = "complete", "Complete"
-            elif publication.public_status == PublicShowPublication.PublicStatus.UPCOMING:
+            elif spectator_code in {"upcoming", "cancelled"}:
                 state, state_label = "upcoming", "Upcoming"
             elif current_index is not None:
                 if index < current_index:
                     state, state_label = "complete", "Complete"
                 elif index == current_index:
-                    if publication.public_status == PublicShowPublication.PublicStatus.PAUSED:
+                    if spectator_code == "paused":
                         state, state_label = "paused", "Paused"
                     else:
                         state, state_label = "current", "Now"
