@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
-from portal.models import Show
+from portal.models import Show, ShowClass
 from portal.platform import organization_for_user
 from portal.publication import public_show_payload, public_site_payload
 from portal.view_modules.common import _require_manage
@@ -45,6 +45,10 @@ class PublicShowPublicationForm(forms.ModelForm):
             "publish_iea_area",
             "publish_schedule",
             "publish_results",
+            "publish_live_status",
+            "public_status",
+            "current_class",
+            "public_status_note",
         ]
         help_texts = {
             "is_published": "The show is public only when both this and the organization public site are enabled.",
@@ -52,7 +56,20 @@ class PublicShowPublicationForm(forms.ModelForm):
             "public_summary": "Optional public-facing summary. Private show notes are never copied here automatically.",
             "publish_schedule": "Publishes only class order, class number/name, public schedule time, and schedule note. Rider entries and internal strategy stay private.",
             "publish_results": "Publishes only finalized class placings and rider display names. Entry notes, points-rider strategy, and result notes stay private.",
+            "publish_live_status": "Publishes the spectator-facing show status and current class. It does not publish internal show-day operations.",
+            "current_class": "Choose the class spectators should see as currently running.",
+            "public_status_note": "Optional short public update, for example 'Running about 15 minutes behind.'",
         }
+
+    def __init__(self, *args, show=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        show = show or getattr(self.instance, "show", None)
+        queryset = ShowClass.objects.none()
+        if show and getattr(show, "pk", None):
+            queryset = show.classes.select_related("season_class").order_by(
+                "sort_order", "class_number", "name"
+            )
+        self.fields["current_class"].queryset = queryset
 
 
 def _default_site_slug(organization):
@@ -121,7 +138,7 @@ def public_show_publication_edit(request, show_pk):
         show=show,
         defaults={"slug": _default_show_slug(show)},
     )
-    form = PublicShowPublicationForm(request.POST or None, instance=publication)
+    form = PublicShowPublicationForm(request.POST or None, instance=publication, show=show)
     if request.method == "POST" and form.is_valid():
         publication = form.save()
         messages.success(request, f"Public settings updated for {show.name}.")
