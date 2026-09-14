@@ -10,7 +10,7 @@ This roadmap is a living product-direction document. Completed releases are summ
 - **2.5.x — Show Host Operations:** released.
 - **2.9.x — ArenaLine Platform Foundation:** released.
 - **3.0.0 — IEA Class Catalog & Competition Foundation:** released.
-- **3.1.0 — Public / Live Spectator Experience:** release candidate / promotion-ready pending final staging gate.
+- **3.1.0 — Public / Live Spectator Experience:** released.
 - **Next 3.x — Broader ArenaLine growth:** additional competition modules, broader program-management capabilities, richer public/history experiences, and future live-show enhancements.
 
 ---
@@ -81,15 +81,93 @@ IEA competition remains isolated in `competition_iea`.
 
 v3.0.0 replaced repeated manual definition of official IEA classes with versioned official rulebook reference data and made catalog metadata authoritative for class/scoring behavior where supported.
 
-Major outcomes:
+### Official catalog
 
-- versioned official H1–H14, W1–W14, and D1–D14 catalog data;
-- season-level rulebook/discipline configuration;
-- linked official `SeasonClass` records while preserving historical/manual exceptions;
-- show-only warm-up classes and Hunt Seat VOC support;
-- catalog-driven individual/team scoring eligibility;
-- compatibility fallback for historical unlinked rows;
-- architecture and presentation cleanup before external/public work.
+The initial 2026–2027 catalog includes Hunt Seat, Western, and Dressage youth classes:
+
+- H1–H14
+- W1–W14
+- D1–D14
+
+Catalog metadata includes:
+
+- rulebook season;
+- discipline;
+- official class code/name;
+- team level;
+- ability/class family;
+- individual/team scoring eligibility;
+- season assignability;
+- active/display order;
+- verified source rule and revision date.
+
+### Season workflow
+
+Administrator/Coach flow:
+
+1. Create/activate the season.
+2. Configure the IEA rulebook season and participating disciplines.
+3. Create/link the official season classes from the catalog.
+4. Preserve manual/historical classes as deliberate exceptions.
+5. Assign season classes to riders.
+
+`SeasonClass` remains organization-specific.
+
+### Show workflow
+
+Normal classes flow through:
+
+```text
+IEAClassCatalogEntry
+        ↓
+SeasonClass
+        ↓
+ShowClass
+        ↓
+Entries/results
+```
+
+Official show-only classes may link directly from the catalog.
+
+v3.0.0 adds official show-only warm-ups:
+
+- H7x/H8x and H13x/H14x
+- W7x/W8x and W13x/W14x
+- D7x/D8x and D13x/D14x
+
+These remain outside season assignments and never award individual/team points.
+
+### Hunt Seat VOC
+
+Hunt Seat Varsity Open Championship is modeled as an official show-only class.
+
+Eligibility is derived from same-show H1/H2 participation/results. ArenaLine ranks candidates using combined H1/H2 points and H1 placing and does not invent judge-card tie-break data it does not store.
+
+VOC remains regular-season-only and non-scoring.
+
+### Catalog-driven scoring
+
+Scoring policy now resolves from effective catalog metadata rather than Hunt Seat-only hard-coded exclusions.
+
+Standard no-team-points classes:
+
+- H8 / H14
+- W8 / W14
+- D8 / D14
+
+Catalog metadata also governs show-only warm-ups, VOC, and future official classes.
+
+A historical H8/H14 heuristic remains only as a compatibility fallback for unlinked legacy records.
+
+### Presentation/architecture cleanup
+
+- Removed the legacy Calendar inline-style block.
+- Consolidated Calendar presentation into the shared Operations stylesheet.
+- Preserved Month/Agenda/filter/mobile behavior.
+- Refreshed `ARCHITECTURE.md` for the ArenaLine v3 platform/IEA boundary.
+- Added v3 cleanup closeout documentation.
+
+### Validation
 
 The v3.0.0 staging baseline completed with **425 portal tests passing** before production promotion.
 
@@ -103,129 +181,45 @@ Supporting docs:
 
 # 3.1.0 — Public / Live Spectator Experience
 
-**Status: release candidate.**
+**Status: released.**
 
-v3.1.0 establishes ArenaLine's first anonymous/public experience while preserving a strict explicit-publication boundary.
+v3.1.0 adds ArenaLine's first deliberate anonymous/public experience while preserving a strict private-by-default boundary.
 
-## Publication foundation
+Major outcomes:
 
-Delivered:
+- explicit public-site and public-show publication controls;
+- separate allow-listed anonymous payload services;
+- public organization/program landing pages;
+- published upcoming/active/past show lists;
+- public show detail pages and schedules;
+- live show lifecycle and class lifecycle;
+- structured ring assignments and multi-ring live operation;
+- class-level public result publication;
+- spectator-safe notices and ring delays;
+- stable `/public/<program>/live/` links suitable for reusable QR codes;
+- polished public spectator presentation;
+- responsive Show Day command-center layout for desktop, tablet, and mobile;
+- squad-scoped Show Day behavior preserved for Futures/Upper Team Parents while ordinary family views remain read-only.
 
-- `PublicSiteProfile` for organization-level public identity;
-- `PublicShowPublication` for explicit show publication and field-category controls;
-- separate anonymous/public routes and payload services;
-- allow-listed public fields;
-- reversible publication without deleting internal history;
-- tenant isolation and regression coverage.
+Release validation completed with **486 portal tests passing** on the final release candidate, plus clean Django system and migration-drift checks.
 
-Private by default remains:
-
-- rider/guardian contact information;
-- private rider notes;
-- horse medical/Coggins/internal notes;
-- Finance data;
-- committee/admin records;
-- points-rider strategy;
-- internal entry/show notes and private files.
-
-## Public identity and shows
-
-Delivered:
-
-- public organization/program landing page;
-- selected logo/website publication;
-- published show landing pages;
-- published show date/location/basic information;
-- active/upcoming/past grouping;
-- published class order, ring, and current estimated time;
-- mobile spectator presentation.
-
-## Live Show Day
-
-Delivered:
-
-- show-level lifecycle controls for Ready/Upcoming, In progress, Paused, Complete;
-- per-class lifecycle for Not started, In progress, Paused, Complete;
-- full show order independent of team entries;
-- structured ring assignments;
-- simultaneous active classes across different rings;
-- one active/paused class per ring;
-- responsive Show Day command-center presentation for desktop/tablet/mobile.
-
-## Public results
-
-Delivered:
-
-- explicit class-level publish/unpublish after completion;
-- public result payload restricted to approved placing information;
-- 1st–10th ordinal presentation;
-- traditional equestrian ribbon colors;
-- no public points-rider/internal strategy leakage.
-
-## Spectator updates
-
-Delivered:
-
-- separate public-safe spectator notice stream;
-- whole-show and ring-specific announcements;
-- break/schedule notices;
-- +15 / +30 / +45 / +60 ring-delay controls;
-- clear/dismiss workflow;
-- publication only when live status is explicitly enabled.
-
-## Stable live link
-
-Delivered:
-
-- `/public/<program>/live/` stable season-long link;
-- redirect to the active published show when one exists;
-- safe fallback to public schedule when nothing is live;
-- suitable for reusable QR codes/printed materials.
-
-## Presentation polish
-
-Delivered:
-
-- ArenaLine public spectator styling using navy/hunter/gold/cream visual language;
-- live-ring cards and clearer current/paused states;
-- polished result cards/badges;
-- ring shown separately beneath schedule time;
-- tablet/mobile Show Day conversion from wide table to stacked class cards;
-- retained dark-mode support on authenticated Show Day.
-
-## v3.1 migrations
-
-- `0057_v310_public_site_foundation.py`
-- `0058_v310_public_show_schedule.py`
-- `0059_v310_public_show_results.py`
-- `0060_v310_public_live_status.py`
-- `0061_v310_show_live_lifecycle.py`
-- `0062_v310_show_class_live_state.py`
-- `0063_v310_class_result_publication.py`
-- `0064_v310_show_class_ring_assignment.py`
-- `0065_v310_spectator_show_updates.py`
-
-Supporting release document:
+Supporting doc:
 
 - `docs/releases/v3.1.0.md`
 
 ---
 
-# Next 3.x direction
+# Longer-term ArenaLine direction
 
-Near-term candidates after v3.1.0 release include:
+Longer-term ideas not yet assigned to a specific release include:
 
-- richer public historical archives;
-- multi-ring enhancements beyond the current single active class per ring model;
-- optional “advance to next class” operational shortcuts;
-- additional live/show-day reporting and analytics;
-- broader program-management capabilities outside IEA competition;
 - additional competition modules with their own official rule/class catalogs;
+- broader barn/program management outside competition operations;
 - temporary show-specific horse pools from host-provided lists without polluting the permanent Horse Registry;
 - richer cross-season rider/horse/show analytics;
-- additional organization types beyond IEA programs.
-
-These are directional items, not commitments to a specific release number until the next release line is opened.
+- controlled public historical archives;
+- additional organization types beyond IEA programs;
+- richer multi-ring spectator boards, announcements, and live-event tooling.
 
 ---
 
@@ -237,7 +231,9 @@ These are directional items, not commitments to a specific release number until 
 - Platform cleanup must not trigger destructive schema changes solely for naming aesthetics.
 - Security, privacy, tenant boundaries, and explicit publication remain release gates.
 - Completed behavior remains regression-tested before compatibility paths are removed.
-- Before promotion to `main`, follow `RELEASE_CHECKLIST.md` and update `VERSION`, README, release notes/version-specific release doc, roadmap, architecture/supporting documentation, and the stable-tag plan together.
+- **Before promotion to `main`, follow `RELEASE_CHECKLIST.md` and update `VERSION`, `README.md`, release notes, roadmap, architecture/supporting documentation, and the stable-tag plan together.**
+
+---
 
 ## Maintaining this roadmap
 
@@ -249,4 +245,4 @@ When direction changes:
 - preserve concise summaries of completed release families;
 - keep detailed implementation notes under `docs/`;
 - distinguish committed near-term work from directional ideas;
-- update documentation before promotion to `main`, not afterward.
+- update documentation **before** promotion to `main`, not afterward.
