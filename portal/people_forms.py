@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from portal.model_modules.people import Person
 
@@ -11,9 +12,16 @@ class PersonForm(forms.ModelForm):
         if team is None:
             user_field.queryset = User.objects.none()
         else:
-            user_field.queryset = (
-                User.objects.filter(profile__team=team)
-                .order_by("last_name", "first_name", "username")
+            available = User.objects.filter(profile__team=team)
+            current_user_id = getattr(self.instance, "user_id", None)
+            if current_user_id:
+                available = available.filter(
+                    Q(arena_person__isnull=True) | Q(pk=current_user_id)
+                )
+            else:
+                available = available.filter(arena_person__isnull=True)
+            user_field.queryset = available.order_by(
+                "last_name", "first_name", "username"
             )
         user_field.required = False
         user_field.help_text = (
