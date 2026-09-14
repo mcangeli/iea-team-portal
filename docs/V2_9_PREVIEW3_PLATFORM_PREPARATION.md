@@ -83,18 +83,21 @@ Implemented:
 - changed generic audit-log presentation from “Team audit log” to “Organization audit log” while keeping stored Team-backed audit data unchanged;
 - added focused regression coverage for the compatibility semantics and administration-domain boundary.
 
-## Preview 3G — People / roster compatibility seam
+## Preview 3G — People / roster organization boundary
 
 Implemented:
 
 - routed the shared legacy `_team()` compatibility helper through `organization_for_view_user()`;
 - removed direct `UserProfile.team` storage knowledge from the shared tenant resolver;
-- allowed People/Roster and remaining legacy callers to inherit the ArenaLine organization boundary without a broad behavioral rewrite;
-- preserved the existing superuser/no-profile behavior and ordinary-user assignment requirement through the platform service;
-- retained persisted `team` relationships and explicit IEA roster semantics such as Futures/Upper assignments and IEA member identifiers;
-- added focused People regression coverage preventing the shared resolver or roster module from drifting back to direct profile storage access.
+- moved People/Roster entry points themselves directly to `organization_for_view_user()` rather than leaving the domain dependent on the compatibility alias;
+- moved active-period lookup in People/Roster to `active_period_for_organization()`;
+- preserved the existing dashboard no-organization behavior, superuser/no-profile behavior, and ordinary-user assignment requirement;
+- retained rider/guardian privacy and visibility services, family-account visibility, and roster query behavior;
+- retained persisted `team` / `season` relationships behind the boundary;
+- deliberately preserved explicit IEA semantics including Futures/Upper assignments, IEA member identifiers, season classes, and team/class assignment language;
+- expanded focused People regression coverage to prevent direct `_team(request.user)` / `_active_season()` usage from returning while also protecting the IEA-specific vocabulary and privacy seams.
 
-This deliberately treats `_team()` as a compatibility API rather than deleting it in one pass. Generic domains can continue migrating directly to the platform services over time, while IEA-specific code can keep team semantics where they are meaningful.
+The shared `_team()` helper remains available as a compatibility API for legacy modules, but the People domain now consumes the ArenaLine platform services directly.
 
 ## Architectural rules
 
@@ -139,7 +142,8 @@ Preview 3 adds focused tests for:
 - generic Operations / Communications organization-context resolution;
 - Finance organization / operating-period resolution;
 - Administration organization / operating-period resolution;
-- People/Roster resolution through the shared organization-context compatibility seam;
+- direct People/Roster organization / operating-period resolution;
+- preservation of rider/guardian privacy and roster visibility services;
 - preservation of IEA roster terminology and team-level semantics;
 - compatibility use of persisted team/season fields behind those boundaries;
 - preservation of finance and administration permission/audit services;
