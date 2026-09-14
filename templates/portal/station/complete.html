@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}ArenaLine Station{% endblock %}
 {% block content %}
+<div class="station-shell station-complete">
 <section class="page-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>{{ message }}</h1><p>{{ person.display_name }}</p></div></section>
-<section class="content-section"><div class="actions"><a class="btn" href="{% url 'station_home' %}">Back to Station</a></div></section>
+<section class="content-section"><a class="btn station-primary-action" href="{% url 'station_home' %}">Back to Station</a></section>
+</div>
 {% endblock %}
