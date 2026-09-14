@@ -13,7 +13,17 @@
 <section class="public-live-banner public-live-{{ public_show.live_status.code }}" aria-live="polite">
   <div>
     <div class="public-live-label">{{ public_show.live_status.label }}</div>
-    {% if public_show.live_status.current_class %}
+    {% if public_show.live_status.active_classes %}
+      <div class="public-live-rings">
+        {% for active in public_show.live_status.active_classes %}
+          <article class="public-live-ring public-live-ring-{{ active.state }}">
+            <span class="public-live-ring-name">{{ active.ring }}</span>
+            <strong>{% if active.class_number %}{{ active.class_number }} · {% endif %}{{ active.name }}</strong>
+            <span class="public-live-ring-state">{{ active.state_label }}</span>
+          </article>
+        {% endfor %}
+      </div>
+    {% elif public_show.live_status.current_class %}
       <div class="public-live-current">Now: {% if public_show.live_status.current_class.class_number %}{{ public_show.live_status.current_class.class_number }} · {% endif %}{{ public_show.live_status.current_class.name }}</div>
     {% endif %}
     {% if public_show.live_status.note %}<p>{{ public_show.live_status.note }}</p>{% endif %}
@@ -42,7 +52,7 @@
   <div class="public-class-list">
     {% for item in public_class_schedule %}
       <article class="public-class-row{% if item.state %} public-class-{{ item.state }}{% endif %}">
-        <div class="public-class-time">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}</div>
+        <div class="public-class-time">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}<span class="public-class-ring">{{ item.ring }}</span></div>
         <div class="public-class-main">
           <div class="public-class-heading-row">
             <h3>{% if item.class_number %}<span>{{ item.class_number }}</span> {% endif %}{{ item.name }}</h3>
