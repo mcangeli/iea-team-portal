@@ -69,6 +69,11 @@ class V320PeopleDirectoryTests(TestCase):
         self.assertNotContains(response, "555-0100")
         self.assertNotContains(response, "member-v320")
 
+    def test_non_manager_cannot_create_people(self):
+        self.client.force_login(self.member)
+        response = self.client.get(reverse("person_create"))
+        self.assertEqual(response.status_code, 403)
+
     def test_manager_can_create_person_and_attach_same_team_django_account(self):
         unused_user = User.objects.create_user(username="new-person-v320", password="pass12345")
         UserProfile.objects.create(user=unused_user, team=self.team, role=UserProfile.Role.PARENT)
@@ -88,12 +93,16 @@ class V320PeopleDirectoryTests(TestCase):
         self.assertEqual(created.user, unused_user)
         self.assertEqual(created.team, self.team)
 
-    def test_person_form_never_offers_other_organization_django_accounts(self):
+    def test_person_form_only_offers_available_same_organization_accounts(self):
         form = PersonForm(team=self.team)
         user_ids = set(form.fields["user"].queryset.values_list("id", flat=True))
         self.assertIn(self.admin.id, user_ids)
-        self.assertIn(self.member.id, user_ids)
+        self.assertNotIn(self.member.id, user_ids)
         self.assertNotIn(self.other_user.id, user_ids)
+
+        edit_form = PersonForm(team=self.team, instance=self.person)
+        edit_user_ids = set(edit_form.fields["user"].queryset.values_list("id", flat=True))
+        self.assertIn(self.member.id, edit_user_ids)
 
     def test_person_routes_are_tenant_scoped(self):
         outsider_person = Person.objects.create(
