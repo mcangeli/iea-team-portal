@@ -9,9 +9,12 @@
 </section>
 
 <section class="public-section">
-  <div class="public-section-heading">
-    <div class="public-kicker">PUBLISHED SHOWS</div>
-    <h2>Upcoming & published competition</h2>
+  <div class="public-section-heading public-section-heading-row">
+    <div>
+      <div class="public-kicker">UPCOMING SHOWS</div>
+      <h2>Next on the calendar</h2>
+    </div>
+    <a class="public-section-link" href="{% url 'public_schedule' public_site.slug %}">View full schedule →</a>
   </div>
   <div class="public-show-grid">
     {% for show in public_shows %}
@@ -20,12 +23,14 @@
         <div>
           <h3>{{ show.name }}</h3>
           <p>{{ show.competition_level }}</p>
+          {% if show.time %}<p>{{ show.time|time:"g:i A" }}</p>{% endif %}
           {% if show.venue %}<p>{{ show.venue }}</p>{% endif %}
         </div>
       </a>
     {% empty %}
-      <div class="public-empty">No shows are currently published.</div>
+      <div class="public-empty">No upcoming shows are currently published.</div>
     {% endfor %}
   </div>
+  {% if has_more_shows %}<div class="public-more"><a class="public-section-link" href="{% url 'public_schedule' public_site.slug %}">See all published shows →</a></div>{% endif %}
 </section>
 {% endblock %}
