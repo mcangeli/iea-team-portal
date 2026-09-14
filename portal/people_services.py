@@ -14,7 +14,11 @@ def people_for_user(user):
     return (
         Person.objects.filter(team=team, active=True)
         .select_related("user")
-        .prefetch_related("role_assignments", "committee_memberships__committee")
+        .prefetch_related(
+            "role_assignments",
+            "committee_memberships__committee",
+            "horse_relationships__horse",
+        )
         .order_by("last_name", "first_name", "id")
     )
 
