@@ -1,10 +1,20 @@
 from django.urls import path
 
-from portal.view_modules.public_site import public_schedule, public_show_detail, public_site_home
+from portal.view_modules.public_site import (
+    public_live_board,
+    public_schedule,
+    public_show_detail,
+    public_site_home,
+)
 
 
 urlpatterns = [
     path("public/<slug:site_slug>/", public_site_home, name="public_site_home"),
+    path(
+        "public/<slug:site_slug>/live/",
+        public_live_board,
+        name="public_live_board",
+    ),
     path(
         "public/<slug:site_slug>/schedule/",
         public_schedule,
