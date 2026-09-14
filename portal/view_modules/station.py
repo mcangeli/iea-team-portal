@@ -1,6 +1,7 @@
 import secrets
 
 from django.contrib import messages
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -150,6 +151,10 @@ def station_activate(request):
     if request.method == "POST" and form.is_valid():
         device = StationDevice.objects.filter(device_key=form.cleaned_data["device_key"], active=True).first()
         if device and device.check_secret(form.cleaned_data["secret"]):
+            # Station is a deliberately limited shared-device context. If a
+            # manager provisioned this browser while signed in, discard that
+            # full portal session before establishing the Station session.
+            logout(request)
             request.session[STATION_DEVICE_SESSION_KEY] = device.pk
             _clear_station_person(request)
             StationDevice.objects.filter(pk=device.pk).update(last_seen_at=timezone.now())
