@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ArenaLine{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/public-v310.css' %}">
+</head>
+<body>
+  <header class="public-header">
+    <div class="public-wrap public-header-inner">
+      <a class="public-brand" href="{% url 'public_site_home' public_site.slug %}">
+        {% if public_site.logo_url %}<img src="{{ public_site.logo_url }}" alt="{{ public_site.name }} logo">{% endif %}
+        <span>{{ public_site.name }}</span>
+      </a>
+      {% if public_site.website %}<a class="public-link" href="{{ public_site.website }}" rel="noopener noreferrer">Organization website</a>{% endif %}
+    </div>
+  </header>
+  <main class="public-wrap">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="public-footer public-wrap">
+    <span>Published through ArenaLine</span>
+    <span>Public information only</span>
+  </footer>
+</body>
+</html>
