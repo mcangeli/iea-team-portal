@@ -47,7 +47,7 @@ def person_detail(request, pk):
 def person_create(request):
     require_people_manager(request.user)
     team = _team(request.user)
-    form = PersonForm(request.POST or None, request.FILES or None)
+    form = PersonForm(request.POST or None, request.FILES or None, team=team)
     if request.method == "POST" and form.is_valid():
         person = form.save(commit=False)
         person.team = team
@@ -64,7 +64,12 @@ def person_edit(request, pk):
     person = person_for_user(request.user, pk)
     if not person:
         raise Http404
-    form = PersonForm(request.POST or None, request.FILES or None, instance=person)
+    form = PersonForm(
+        request.POST or None,
+        request.FILES or None,
+        instance=person,
+        team=person.team,
+    )
     if request.method == "POST" and form.is_valid():
         person = form.save(commit=False)
         person.full_clean()
