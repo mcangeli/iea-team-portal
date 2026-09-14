@@ -99,6 +99,20 @@ Implemented:
 
 The shared `_team()` helper remains available as a compatibility API for legacy modules, but the People domain now consumes the ArenaLine platform services directly.
 
+## Preview 3H — remaining generic-domain closure
+
+Implemented:
+
+- moved the horse registry and horse/show access entry points to `organization_for_view_user()`;
+- moved horse active-period lookup to `active_period_for_organization()` while keeping persisted horse/team/show relationships unchanged;
+- moved lesson scheduling, lesson groups, attendance, show availability, volunteer tracking, and volunteer exports directly to the platform organization/operating-period services;
+- moved role-dashboard entry points directly to the platform services while preserving the existing no-organization behavior and all role/committee authorization logic;
+- preserved genuine IEA concepts in those surfaces, including Futures/Upper, Team Parent, Points Secretary, show leadership, team-level CSV output, and qualification/scoring summaries;
+- audited the older split Finance modules (`finance_core`, `finance_reports`, `show_finance`, and `fundraising`) and intentionally left them on the `_team()` / `_active_season()` compatibility API because those helpers already delegate through the platform boundary and the transaction-heavy modules do not directly depend on profile tenant storage;
+- added a Preview 3 closure regression protecting Horses, Lessons/volunteers, dashboards, and the shared compatibility seam.
+
+Preview 3 is considered functionally complete once the staging validation gate below is green.
+
 ## Architectural rules
 
 1. `Team` remains the database tenant in v2.9.
@@ -143,10 +157,12 @@ Preview 3 adds focused tests for:
 - Finance organization / operating-period resolution;
 - Administration organization / operating-period resolution;
 - direct People/Roster organization / operating-period resolution;
+- direct Horse, Lessons/volunteer, and role-dashboard organization / operating-period resolution;
 - preservation of rider/guardian privacy and roster visibility services;
-- preservation of IEA roster terminology and team-level semantics;
+- preservation of IEA roster, team-level, dashboard-role, and volunteer export semantics;
 - compatibility use of persisted team/season fields behind those boundaries;
 - preservation of finance and administration permission/audit services;
+- compatibility routing for legacy split Finance modules;
 - theme-aware footer mark contrast;
 - generic ArenaLine login branding and signature treatment.
 
@@ -158,7 +174,7 @@ Run on staging after pulling the feature branch:
 ./portalctl upgrade
 ./portalctl exec web python manage.py check
 ./portalctl exec web python manage.py makemigrations portal --check --dry-run
-./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_administration_context portal.tests.test_v290_people_context portal.tests.test_v290_product_identity
+./portalctl exec web python manage.py test portal.tests.test_v290_module_enablement portal.tests.test_v290_platform_boundaries portal.tests.test_v290_organization_shell portal.tests.test_v290_generic_domain_context portal.tests.test_v290_finance_context portal.tests.test_v290_administration_context portal.tests.test_v290_people_context portal.tests.test_v290_preview3_closure portal.tests.test_v290_product_identity
 ./portalctl exec web python manage.py test portal
 ```
 
