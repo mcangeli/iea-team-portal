@@ -119,3 +119,36 @@ class V320CommitteeCompatibilityTests(TestCase):
         self.assertFalse(CommitteeMembership.objects.filter(pk=mirrored_id).exists())
         self.assertTrue(CommitteeMembership.objects.filter(pk=manual_membership.pk).exists())
         self.assertTrue(OrganizationGroup.objects.filter(team=self.team, name="IEA Program").exists())
+
+    def test_legacy_membership_is_marked_managed_by_iea_assignment(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.role = UserProfile.Role.ADMIN
+        profile.save(update_fields=["role"])
+        assignment = CommitteeAssignment.objects.create(
+            team=self.team,
+            season=self.season,
+            user=self.user,
+            role=CommitteeAssignment.Role.POINTS_SECRETARY,
+        )
+        membership = CommitteeMembership.objects.get(legacy_committee_assignment=assignment)
+        self.client.force_login(self.user)
+        response = self.client.get(f"/people/{self.person.pk}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Managed by IEA assignment")
+        self.assertNotContains(response, f"/people/{self.person.pk}/committees/{membership.pk}/edit/")
+
+    def test_legacy_membership_edit_route_redirects_to_person(self):
+        profile = UserProfile.objects.get(user=self.user)
+        profile.role = UserProfile.Role.ADMIN
+        profile.save(update_fields=["role"])
+        assignment = CommitteeAssignment.objects.create(
+            team=self.team,
+            season=self.season,
+            user=self.user,
+            role=CommitteeAssignment.Role.UPPER_PARENT,
+        )
+        membership = CommitteeMembership.objects.get(legacy_committee_assignment=assignment)
+        self.client.force_login(self.user)
+        response = self.client.get(f"/people/{self.person.pk}/committees/{membership.pk}/edit/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"/people/{self.person.pk}/")
