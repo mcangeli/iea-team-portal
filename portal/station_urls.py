@@ -13,6 +13,7 @@ from portal.view_modules.station import (
     station_person_pin,
     station_shift_approve,
     station_shift_edit,
+    station_shift_export,
     station_shift_review,
 )
 
@@ -24,6 +25,7 @@ urlpatterns = [
     path("station/action/", station_action, name="station_action"),
     path("people/station/", station_manage, name="station_manage"),
     path("people/station/shifts/", station_shift_review, name="station_shift_review"),
+    path("people/station/shifts/export/", station_shift_export, name="station_shift_export"),
     path("people/station/shifts/<int:shift_pk>/edit/", station_shift_edit, name="station_shift_edit"),
     path("people/station/shifts/<int:shift_pk>/approve/", station_shift_approve, name="station_shift_approve"),
     path("people/station/devices/add/", station_device_add, name="station_device_add"),
