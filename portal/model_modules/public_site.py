@@ -37,6 +37,10 @@ class PublicShowPublication(models.Model):
     publish_address = models.BooleanField(default=False)
     publish_host_team = models.BooleanField(default=False)
     publish_iea_area = models.BooleanField(default=False)
+    publish_schedule = models.BooleanField(
+        default=False,
+        help_text="Publishes only the show's allow-listed class order and public schedule fields. Entries and internal strategy remain private.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
