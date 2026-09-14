@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Station PIN · {{ person.display_name }}{% endblock %}
 {% block content %}
+<div class="station-shell">
 <nav class="page-back-nav"><a href="{% url 'station_home' %}">← Station</a></nav>
-<section class="page-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>{{ person.display_name }}</h1><p>Enter your Station PIN.</p></div></section>
-<section class="content-section people-form-shell">
-  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Continue</button><a class="btn btn-secondary" href="{% url 'station_home' %}">Cancel</a></div></form>
+<section class="page-intro station-kiosk-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>{{ person.display_name }}</h1><p>Enter your Station PIN to continue.</p></div></section>
+<section class="content-section station-kiosk-panel">
+  {% if lock_remaining %}<div class="station-lock-note"><strong>PIN temporarily locked.</strong><br>Too many incorrect attempts were entered on this Station. Try again shortly.</div>{% endif %}
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="station-kiosk-actions"><button class="btn station-primary-action" type="submit">Continue</button><a class="btn btn-secondary" href="{% url 'station_home' %}">Cancel</a></div></form>
 </section>
+</div>
 {% endblock %}
