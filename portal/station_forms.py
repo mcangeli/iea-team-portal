@@ -80,3 +80,19 @@ class StationClockInForm(forms.Form):
         if role not in dict(self.fields["role"].choices):
             raise forms.ValidationError("Choose one of this person's active work roles.")
         return role
+
+
+class WorkShiftReviewForm(forms.ModelForm):
+    class Meta:
+        model = WorkShiftEntry
+        fields = ["role", "clock_in", "clock_out", "notes"]
+        widgets = {
+            "clock_in": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "clock_out": forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["clock_in"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["clock_out"].input_formats = ["%Y-%m-%dT%H:%M"]
