@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Public Site · ArenaLine{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <div class="eyebrow">PUBLICATION</div>
+    <h1>Public site</h1>
+    <p>Choose exactly what your organization publishes outside the private ArenaLine portal.</p>
+  </div>
+  {% if profile.enabled %}<a class="btn" href="{% url 'public_site_home' profile.slug %}" target="_blank" rel="noopener">Open public site</a>{% endif %}
+</div>
+
+<div class="grid two-col">
+  <section class="card">
+    <div class="eyebrow">ORGANIZATION</div>
+    <h2>Public identity</h2>
+    <p class="muted">Nothing here becomes public unless <strong>Enable public site</strong> is checked. Logo and website each have their own publication control.</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn" type="submit">Save public site settings</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="eyebrow">PREVIEW</div>
+    <h2>{{ preview_site.name }}</h2>
+    {% if preview_site.tagline %}<p><strong>{{ preview_site.tagline }}</strong></p>{% endif %}
+    {% if preview_site.introduction %}<p>{{ preview_site.introduction|linebreaksbr }}</p>{% else %}<p class="muted">Add an introduction to give visitors context about your program.</p>{% endif %}
+    <dl class="detail-list">
+      <div><dt>Public URL</dt><dd>/public/{{ profile.slug }}/</dd></div>
+      <div><dt>Status</dt><dd>{% if profile.enabled %}<span class="status-pill">Published</span>{% else %}<span class="status-pill">Private</span>{% endif %}</dd></div>
+      <div><dt>Logo</dt><dd>{% if preview_site.logo_url %}Published{% else %}Not published{% endif %}</dd></div>
+      <div><dt>Website</dt><dd>{% if preview_site.website %}Published{% else %}Not published{% endif %}</dd></div>
+    </dl>
+  </section>
+</div>
+
+<section class="card" style="margin-top:1rem">
+  <div class="page-title">
+    <div><div class="eyebrow">SHOWS</div><h2>Show publication</h2><p>Publishing a show exposes only the fields you explicitly enable for that show.</p></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Show</th><th>Date</th><th>Season</th><th>Public status</th><th></th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.show.name }}</strong></td>
+          <td>{{ row.show.show_date|date:"M j, Y" }}</td>
+          <td>{{ row.show.season.name }}</td>
+          <td>{% if row.is_published %}<span class="status-pill">Published</span>{% else %}<span class="muted">Private</span>{% endif %}</td>
+          <td><a class="text-link" href="{% url 'public_show_publication_edit' row.show.pk %}">{% if row.publication %}Edit publication{% else %}Set up publication{% endif %}</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No shows are available yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
