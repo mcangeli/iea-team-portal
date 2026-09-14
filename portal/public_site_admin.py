@@ -43,11 +43,13 @@ class PublicShowPublicationForm(forms.ModelForm):
             "publish_address",
             "publish_host_team",
             "publish_iea_area",
+            "publish_schedule",
         ]
         help_texts = {
             "is_published": "The show is public only when both this and the organization public site are enabled.",
             "slug": "Public URL identifier for this show.",
             "public_summary": "Optional public-facing summary. Private show notes are never copied here automatically.",
+            "publish_schedule": "Publishes only class order, class number/name, public schedule time, and schedule note. Rider entries and internal strategy stay private.",
         }
 
 
