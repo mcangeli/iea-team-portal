@@ -20,6 +20,10 @@ class ShowClassLiveState(models.Model):
         choices=Status.choices,
         default=Status.NOT_STARTED,
     )
+    results_published = models.BooleanField(
+        default=False,
+        help_text="Publishes finalized placings for this class when public show results are enabled.",
+    )
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     updated_by = models.ForeignKey(
