@@ -1,4 +1,4 @@
-/* ArenaLine v2.9 Preview 4F — Operations & Communications presentation. */
+/* ArenaLine operations & communications presentation. */
 .action-stack,.ops-list,.agenda-events,.notification-list{display:grid;gap:.85rem}
 .action-row,.ops-row,.committee-card,.volunteer-card,.notification-card,.announcement-card{
   border-color:color-mix(in srgb,var(--arena-gold) 14%,var(--line));
@@ -25,28 +25,64 @@
 .notification-nav .notification-count{background:var(--arena-gold);color:var(--arena-navy);font-weight:800}
 .notification-card.is-unread,.announcement-card.is-unread{border-left:3px solid var(--arena-gold)}
 
-/* Calendar: scoped ArenaLine overrides for the legacy inline calendar presentation. */
-.section-calendar .calendar-toolbar{background:var(--surface);border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line));box-shadow:var(--arena-shadow)}
-.section-calendar .calendar-period-nav h2,.section-calendar .agenda-day-heading h2,.section-calendar .agenda-date-block strong,.section-calendar .month-day>header>span{font-family:var(--arena-serif)}
-.section-calendar .calendar-nav-button{background:var(--surface);color:var(--heading);border-color:color-mix(in srgb,var(--arena-gold) 18%,var(--line))}
+/* Calendar layout and ArenaLine presentation. */
+.section-calendar .calendar-page-title{align-items:flex-end}
+.section-calendar .calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:4px 0 14px;padding:16px 18px;background:var(--surface);border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line));box-shadow:var(--arena-shadow)}
+.section-calendar .calendar-period-nav{display:flex;align-items:center;gap:12px}
+.section-calendar .calendar-period-nav h2{margin:.05em 0 0;font-family:var(--arena-serif);font-size:1.65rem;font-weight:600}
+.section-calendar .calendar-nav-button{width:38px;height:38px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--arena-gold) 18%,var(--line));border-radius:11px;text-decoration:none;background:var(--surface);color:var(--heading);font-size:1.15rem;font-weight:800}
 .section-calendar .calendar-nav-button:hover{border-color:var(--arena-gold);color:var(--heading)}
-.section-calendar .calendar-view-switch{background:var(--surface-soft);border-color:color-mix(in srgb,var(--arena-gold) 16%,var(--line))}
-.section-calendar .calendar-view-switch a{color:var(--nav-text)}
-.section-calendar .calendar-view-switch a.active{background:var(--arena-blue);color:white}
-.section-calendar .calendar-filters select{background:var(--control-bg);color:var(--ink);border-color:var(--control-border)}
-.section-calendar .month-calendar,.section-calendar .month-day,.section-calendar .agenda-date-block{background:var(--surface);border-color:color-mix(in srgb,var(--arena-gold) 12%,var(--line))}
-.section-calendar .month-weekdays{background:var(--surface-soft);border-color:var(--line)}
+.section-calendar .calendar-today-link{margin-left:4px}
+.section-calendar .calendar-view-switch{display:inline-flex;border:1px solid color-mix(in srgb,var(--arena-gold) 16%,var(--line));border-radius:12px;overflow:hidden;background:var(--surface-soft)}
+.section-calendar .calendar-view-switch a{padding:8px 13px;text-decoration:none;color:var(--nav-text);font-size:.84rem;font-weight:800}
+.section-calendar .calendar-view-switch a.active{background:var(--arena-blue);color:#fff}
+.section-calendar .calendar-filters{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.section-calendar .calendar-filters label{display:grid;gap:5px;min-width:190px}
+.section-calendar .calendar-filters label span{color:var(--muted);font-size:.68rem;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+.section-calendar .calendar-filters select{padding:9px 11px;border:1px solid var(--control-border);border-radius:10px;background:var(--control-bg);color:var(--ink);font:inherit}
+.section-calendar .month-calendar{border:1px solid color-mix(in srgb,var(--arena-gold) 12%,var(--line));border-radius:18px;overflow:hidden;background:var(--surface)}
+.section-calendar .month-weekdays{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface-soft);border-bottom:1px solid var(--line)}
+.section-calendar .month-weekdays div{padding:9px 10px;text-align:center;color:var(--muted);font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.section-calendar .month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.section-calendar .month-day{min-height:150px;padding:8px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}
+.section-calendar .month-day:nth-child(7n){border-right:0}
 .section-calendar .month-day.outside-month{background:color-mix(in srgb,var(--surface-soft) 58%,var(--surface));color:var(--muted)}
 .section-calendar .month-day.today{box-shadow:inset 0 0 0 2px var(--arena-gold)}
-.section-calendar .month-event{background:color-mix(in srgb,var(--arena-blue) 8%,var(--surface));border-left-color:var(--arena-blue);color:var(--ink)}
-.section-calendar .month-event.kind-lesson{background:color-mix(in srgb,var(--arena-gold) 12%,var(--surface));border-left-color:var(--arena-gold)}
-.section-calendar .month-event.kind-deadline{background:color-mix(in srgb,#b64d4d 9%,var(--surface));border-left-color:#b64d4d}
-.section-calendar .month-event.kind-meeting{background:color-mix(in srgb,#5575a2 10%,var(--surface))}
-.section-calendar .month-event.kind-social{background:color-mix(in srgb,#7b5a91 10%,var(--surface))}
-.section-calendar .agenda-date-block span{background:var(--arena-blue)}
+.section-calendar .month-day>header{min-height:25px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.section-calendar .month-day>header>span{font-family:var(--arena-serif);font-size:1rem;font-weight:700}
+.section-calendar .month-day>header small{color:var(--arena-blue);font-size:.58rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.section-calendar .month-day-events{display:grid;gap:5px}
+.section-calendar .month-event{display:block;min-width:0;padding:6px 7px 7px 9px;border-left:3px solid var(--arena-blue);border-radius:8px;background:color-mix(in srgb,var(--arena-blue) 8%,var(--surface));color:var(--ink);text-decoration:none;font-size:.72rem;line-height:1.22}
+.section-calendar .month-event-time{display:block;color:var(--muted);font-size:.62rem;font-weight:800}
+.section-calendar .month-event strong,.section-calendar .month-event small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.section-calendar .month-event small{margin-top:2px;color:var(--muted)}
+.section-calendar .month-event.kind-lesson{border-left-color:var(--arena-gold);background:color-mix(in srgb,var(--arena-gold) 12%,var(--surface))}
+.section-calendar .month-event.kind-deadline{border-left-color:#b64d4d;background:color-mix(in srgb,#b64d4d 9%,var(--surface))}
+.section-calendar .month-event.kind-meeting{border-left-color:#5575a2;background:color-mix(in srgb,#5575a2 10%,var(--surface))}
+.section-calendar .month-event.kind-social{border-left-color:#7b5a91;background:color-mix(in srgb,#7b5a91 10%,var(--surface))}
+.section-calendar .calendar-agenda-view{margin-top:8px}
+.section-calendar .desktop-agenda-hidden,.section-calendar .force-hidden{display:none}
+.section-calendar .agenda-day{margin:0 0 28px}
+.section-calendar .agenda-day-heading{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.section-calendar .agenda-day-heading h2{margin:.04em 0;font-family:var(--arena-serif);font-size:1.45rem;font-weight:600}
+.section-calendar .agenda-date-block{width:54px;flex:0 0 54px;text-align:center;border:1px solid color-mix(in srgb,var(--arena-gold) 12%,var(--line));border-radius:12px;overflow:hidden;background:var(--surface)}
+.section-calendar .agenda-date-block span{display:block;padding:3px 4px;background:var(--arena-blue);color:#fff;font-size:.62rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.section-calendar .agenda-date-block strong{display:block;padding:3px 4px 5px;font-family:var(--arena-serif);font-size:1.45rem}
 .section-calendar .agenda-day.today .agenda-date-block{box-shadow:0 0 0 2px var(--arena-gold)}
-.section-calendar .agenda-event-marker{background:var(--arena-blue)}
-.section-calendar .agenda-event-main small,.section-calendar .agenda-event-arrow{color:var(--arena-blue)}
+.section-calendar .agenda-events{display:grid;gap:9px}
+.section-calendar .agenda-event{position:relative;display:grid;grid-template-columns:5px 92px 1fr auto;align-items:center;gap:14px;padding:16px 18px;text-decoration:none}
+.section-calendar .agenda-event-marker{align-self:stretch;border-radius:999px;background:var(--arena-blue)}
+.section-calendar .agenda-event.kind-lesson .agenda-event-marker{background:var(--arena-gold)}
+.section-calendar .agenda-event.kind-deadline .agenda-event-marker{background:var(--danger)}
+.section-calendar .agenda-event.kind-meeting .agenda-event-marker{background:#5575a2}
+.section-calendar .agenda-event.kind-social .agenda-event-marker{background:#7b5a91}
+.section-calendar .agenda-event-time{display:grid;gap:2px}
+.section-calendar .agenda-event-time strong{font-size:.86rem}
+.section-calendar .agenda-event-time small{color:var(--muted);font-size:.72rem}
+.section-calendar .agenda-event-main small{color:var(--arena-blue);font-size:.65rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.section-calendar .agenda-event-main h3{margin:.18em 0 .12em}
+.section-calendar .agenda-event-main p{margin:0;color:var(--muted);font-size:.86rem}
+.section-calendar .agenda-event-arrow{color:var(--arena-blue);font-weight:900}
 
 html[data-theme="dark"] .action-row,
 html[data-theme="dark"] .ops-row,
@@ -63,4 +99,20 @@ html[data-theme="dark"] .announcement-card{box-shadow:0 14px 34px rgba(0,0,0,.14
   .ops-row{grid-template-columns:auto minmax(0,1fr)}
   .ops-meta{grid-column:2;text-align:left}
   .committee-card,.volunteer-head{align-items:flex-start;flex-direction:column}
+  .section-calendar .calendar-toolbar{align-items:stretch;flex-direction:column}
+  .section-calendar .calendar-period-nav{display:grid;grid-template-columns:auto 1fr auto}
+  .section-calendar .calendar-today-link{grid-column:1/-1;justify-self:start;margin-left:0}
+  .section-calendar .calendar-view-switch{align-self:stretch}
+  .section-calendar .calendar-view-switch a{flex:1;text-align:center}
+  .section-calendar .calendar-filters{display:grid;grid-template-columns:1fr 1fr}
+  .section-calendar .calendar-filters label{min-width:0}
+  .section-calendar .agenda-event{grid-template-columns:4px 76px 1fr;gap:10px;padding:13px 12px}
+  .section-calendar .agenda-event-arrow{display:none}
+}
+
+@media(max-width:480px){
+  .section-calendar .calendar-filters{grid-template-columns:1fr}
+  .section-calendar .agenda-event{grid-template-columns:4px 1fr}
+  .section-calendar .agenda-event-time{grid-column:2;display:flex;gap:6px;align-items:baseline}
+  .section-calendar .agenda-event-main{grid-column:2}
 }
