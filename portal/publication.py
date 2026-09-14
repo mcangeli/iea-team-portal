@@ -30,7 +30,9 @@ def public_site_payload(site):
 
 def public_show_queryset(site):
     return (
-        PublicShowPublication.objects.select_related("show", "show__season")
+        PublicShowPublication.objects.select_related(
+            "show", "show__season", "current_class", "current_class__season_class"
+        )
         .filter(show__team=site.team, is_published=True)
         .order_by("show__show_date", "show__name")
     )
@@ -38,6 +40,26 @@ def public_show_queryset(site):
 
 def get_public_show(site, show_slug):
     return get_object_or_404(public_show_queryset(site), slug=show_slug)
+
+
+def _public_live_status(publication):
+    if not publication.publish_live_status:
+        return None
+
+    current_class = publication.current_class
+    return {
+        "code": publication.public_status,
+        "label": publication.get_public_status_display(),
+        "note": publication.public_status_note,
+        "current_class": (
+            {
+                "class_number": current_class.class_number,
+                "name": current_class.display_name,
+            }
+            if current_class and current_class.show_id == publication.show_id
+            else None
+        ),
+    }
 
 
 def public_show_payload(publication):
@@ -54,6 +76,7 @@ def public_show_payload(publication):
         "host_team": None,
         "iea_zone": None,
         "iea_region": None,
+        "live_status": _public_live_status(publication),
     }
     if publication.publish_time:
         payload["time"] = show.start_time
@@ -75,18 +98,49 @@ def public_show_schedule_payload(publication):
     if not publication.publish_schedule:
         return []
 
-    classes = publication.show.classes.select_related("season_class").order_by(
-        "sort_order", "class_number", "name"
+    classes = list(
+        publication.show.classes.select_related("season_class").order_by(
+            "sort_order", "class_number", "name"
+        )
     )
-    return [
-        {
-            "class_number": show_class.class_number,
-            "name": show_class.display_name,
-            "time": show_class.schedule_time,
-            "note": show_class.schedule_note,
-        }
-        for show_class in classes
-    ]
+    current_index = None
+    if publication.publish_live_status and publication.current_class_id:
+        for index, show_class in enumerate(classes):
+            if show_class.pk == publication.current_class_id:
+                current_index = index
+                break
+
+    items = []
+    for index, show_class in enumerate(classes):
+        state = None
+        state_label = None
+        if publication.publish_live_status:
+            if publication.public_status == PublicShowPublication.PublicStatus.COMPLETE:
+                state, state_label = "complete", "Complete"
+            elif publication.public_status == PublicShowPublication.PublicStatus.UPCOMING:
+                state, state_label = "upcoming", "Upcoming"
+            elif current_index is not None:
+                if index < current_index:
+                    state, state_label = "complete", "Complete"
+                elif index == current_index:
+                    if publication.public_status == PublicShowPublication.PublicStatus.PAUSED:
+                        state, state_label = "paused", "Paused"
+                    else:
+                        state, state_label = "current", "Now"
+                else:
+                    state, state_label = "upcoming", "Upcoming"
+
+        items.append(
+            {
+                "class_number": show_class.class_number,
+                "name": show_class.display_name,
+                "time": show_class.schedule_time,
+                "note": show_class.schedule_note,
+                "state": state,
+                "state_label": state_label,
+            }
+        )
+    return items
 
 
 def public_show_results_payload(publication):
