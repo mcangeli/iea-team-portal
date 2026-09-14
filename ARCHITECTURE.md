@@ -19,26 +19,31 @@ IEA-specific competition behavior lives under `competition_iea` and should not l
 
 The Django view layer is organized by functional domain under `portal/view_modules/`.
 
-`portal/views.py` remains a compatibility namespace so existing URL configuration and imports continue to work while implementations live in smaller domain modules.
+`portal/views.py` remains a compatibility namespace so existing URL configuration and imports such as `portal.views.show_detail` continue to work while implementations live in smaller domain modules.
 
-Important v3.1 domains include:
+### Domain modules
 
 | Module | Responsibility |
 | --- | --- |
 | `dashboards.py` | Role-aware dashboard entry points |
 | `roster.py` | Team roster, riders, parents/guardians, season membership/classes |
+| `communications.py` | Calendar, events/RSVPs, announcements, action items, notifications |
 | `competitions.py` | Shows, show classes, entries, and result editing |
-| `show_day.py` | Authenticated Show Day operations and family/team show-day views |
-| `show_day_live.py` | Show-level live lifecycle control |
-| `show_class_live.py` | Per-class lifecycle, ring assignment, result publication |
-| `spectator_updates.py` | Public-safe show-day announcements and ring delays |
-| `public_site.py` | Anonymous public program/show views and stable live resolver |
+| `show_day.py` | My Show Day, rider status, schedule, updates, weekly summary |
 | `scoring.py` | Standings, qualification, scoring configuration, points-rider operations |
 | `show_planning.py` | Show planning, Show Lead assignments, planning items |
+| `lessons.py` | Lessons, attendance, availability, volunteer workflows |
 | `history.py` | Season archive/review, historical import/corrections, awards, Record Book |
-| `finance_*` | Restricted finance domains and reporting |
+| `administration.py` | Users, committee assignments, general audit log |
+| `finance_core.py` | Finance dashboard, ledger, accounts, categories, budgets |
+| `family_finance.py` | Dues, family accounts, payments/charges/credits, assistance |
+| `fundraising.py` | Fundraising policy, campaigns, contributions, family fundraising |
+| `finance_reports.py` | Financial reporting and CSV exports |
+| `show_finance.py` | Show budgets, allocations, funding policy, reimbursements |
 
-Most domains also have matching helper modules containing private logic used only by that domain.
+Most domains also have a matching `*_helpers.py` containing private logic used only by that domain.
+
+`common.py` is limited to helpers shared across multiple domains, including permissions, audit utilities, organization/season visibility, and shared scoring/query calculations.
 
 ## IEA competition boundary
 
@@ -51,7 +56,7 @@ Official IEA rulebook
         ↓
 IEAClassCatalogEntry
         ↓
-SeasonClass
+SeasonClass (normal rider/season placement classes)
         ↓
 ShowClass
         ↓
@@ -60,27 +65,27 @@ ShowEntry / ShowResult
 Scoring / qualification
 ```
 
-Official show-only offerings such as warm-ups and VOC may link directly from catalog data to `ShowClass` without creating `SeasonClass` rows.
+Official show-only offerings such as warm-ups and VOC use a direct catalog relationship:
 
-Catalog metadata is authoritative for scoring eligibility where available. Legacy code/name heuristics remain only as compatibility fallbacks for historical rows that are not linked to catalog data.
+```text
+IEAClassCatalogEntry
+        ↓
+ShowClass
+        ↓
+ShowEntry / ShowResult
+```
 
-## Live Show Day model
+They do not create `SeasonClass` records and therefore do not enter normal rider season assignments.
 
-v3.1 adds explicit show-day state without rewriting the legacy `ShowClass` model.
+Catalog metadata is authoritative for scoring eligibility where available:
 
-Companion models under `portal/model_modules/show_day_state.py` provide:
+- `individual_points_enabled`
+- `team_points_enabled`
+- `season_assignable`
 
-- `ShowClassLiveState` — Not started / In progress / Paused / Complete plus result publication state;
-- `ShowClassRingAssignment` — structured ring assignment while preserving old schedule-note data;
-- `SpectatorShowUpdate` — public-safe announcements, breaks, schedule notices, and ring delays.
+Legacy code/name heuristics may remain only as compatibility fallbacks for historical rows that are not linked to catalog data.
 
-The design intentionally supports multiple simultaneous active classes as long as they are in different rings. A ring may have only one active/paused class at a time.
-
-Show-level lifecycle remains on `Show.status`. Completing a class does not complete the show. Pausing a class does not pause the entire show.
-
-## Public publication boundary
-
-Nothing becomes public merely because it exists inside ArenaLine.
+## Public-facing boundary
 
 The v3.1 public layer uses explicit publication records under `portal/model_modules/public_site.py`:
 
@@ -119,6 +124,20 @@ The public layer must not expose:
 ### Stable live URL
 
 `/public/<site-slug>/live/` is a stable season-long spectator entry point. It resolves to a currently active published show and otherwise falls back to the public schedule. This lets organizations reuse one QR code/link without weakening the publication boundary.
+
+## Show Day lifecycle and ring model
+
+Show-level lifecycle is persisted on `Show.status` (`planning`, `registration`, `entered`, `in_progress`, `paused`, `complete`, `cancelled`).
+
+Class-level lifecycle is persisted separately in `ShowClassLiveState` so a class can be started, paused, resumed, and completed independently from the show itself.
+
+Structured ring assignment lives in a companion model (`ShowClassRingAssignment`) rather than rewriting the legacy `ShowClass` schema. Multiple rings may run simultaneously, while a given ring may have only one active/paused class at a time.
+
+Show Day row visibility is role-aware:
+
+- full-team operational roles receive the complete show order;
+- squad-scoped operational roles receive complete no-entry rows only where explicit Season Class metadata proves the class belongs to their squad;
+- ordinary family/rider views can retain read-only class-order visibility without inheriting operational controls or hidden rider data.
 
 ## Result publication
 
