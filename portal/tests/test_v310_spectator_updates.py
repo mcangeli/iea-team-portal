@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.model_modules.public_site import PublicShowPublication
+from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
 from portal.model_modules.show_day_state import SpectatorShowUpdate
 from portal.models import Season, Show, ShowLeadAssignment, Team, UserProfile
 from portal.publication import public_spectator_updates_payload
@@ -13,6 +13,12 @@ from portal.publication import public_spectator_updates_payload
 class SpectatorShowUpdateTests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="Blue Skies Riding Academy")
+        self.site = PublicSiteProfile.objects.create(
+            team=self.team,
+            slug="blue-skies-riding-academy",
+            enabled=True,
+            display_name="Blue Skies Riding Academy",
+        )
         self.season = Season.objects.create(
             team=self.team,
             name="2026-2027",
@@ -109,10 +115,8 @@ class SpectatorShowUpdateTests(TestCase):
             created_by=self.admin,
         )
         response = self.client.get(
-            reverse("public_show_detail", args=[self.team.public_site.slug, self.publication.slug])
-        ) if hasattr(self.team, "public_site") else None
-        # Payload rendering is covered independently because a public site profile is
-        # not required for the show-day publication boundary itself.
-        payload = public_spectator_updates_payload(self.publication)
-        self.assertEqual(payload[0]["ring"], "Ring 1")
-        self.assertIn("15 minutes", payload[0]["title"])
+            reverse("public_show_detail", args=[self.site.slug, self.publication.slug])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ring 1 running about 15 minutes behind")
+        self.assertContains(response, "Published show times are estimates.")
