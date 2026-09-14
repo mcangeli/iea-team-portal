@@ -69,8 +69,15 @@ class IEAShowOnlyCatalogTests(TestCase):
     def test_show_setup_offers_only_configured_discipline_show_only_classes(self):
         form = ShowClassForm(show=self.show)
         choices = form.fields["official_show_only_class"].queryset
-        self.assertEqual(choices.count(), 2)
-        self.assertEqual(set(choices.values_list("class_code", flat=True)), {"H7x/H8x", "H13x/H14x"})
+        self.assertEqual(choices.count(), 3)
+        self.assertEqual(
+            set(choices.values_list("class_code", flat=True)),
+            {"H7x/H8x", "H13x/H14x", "VOC"},
+        )
+        self.assertEqual(
+            set(choices.values_list("discipline", flat=True)),
+            {"hunt_seat"},
+        )
 
     def test_show_only_selection_creates_direct_catalog_show_class(self):
         warmup = IEAClassCatalogEntry.objects.get(
