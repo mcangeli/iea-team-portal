@@ -268,6 +268,14 @@ class CommitteeMembership(models.Model):
 
     committee = models.ForeignKey(Committee, on_delete=models.CASCADE, related_name="memberships")
     person = models.ForeignKey(Person, on_delete=models.CASCADE, related_name="committee_memberships")
+    legacy_committee_assignment = models.OneToOneField(
+        "portal.CommitteeAssignment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="canonical_membership",
+        help_text="Compatibility source when this membership mirrors a legacy IEA committee assignment.",
+    )
     position = models.CharField(max_length=20, choices=Position.choices, default=Position.MEMBER)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
@@ -287,6 +295,10 @@ class CommitteeMembership(models.Model):
         super().clean()
         if self.committee_id and self.person_id and self.committee.team_id != self.person.team_id:
             raise ValidationError("Committee membership must remain within one organization.")
+        if self.legacy_committee_assignment_id:
+            legacy = self.legacy_committee_assignment
+            if legacy.team_id != self.committee.team_id or legacy.team_id != self.person.team_id:
+                raise ValidationError("Legacy committee source must belong to the same organization.")
         if self.start_date and self.end_date and self.end_date < self.start_date:
             raise ValidationError("Committee membership end date cannot be before the start date.")
 
