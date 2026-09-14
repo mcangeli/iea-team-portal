@@ -10,7 +10,7 @@
   </div>
   <div class="actions">
     <a class="btn secondary" href="{% url 'barn_operations' %}">Barn operations</a>
-    {% if can_manage_people %}<a class="btn" href="{% url 'person_create' %}">Add person</a>{% endif %}
+    {% if can_manage_people %}<a class="btn secondary" href="{% url 'station_manage' %}">ArenaLine Station</a><a class="btn" href="{% url 'person_create' %}">Add person</a>{% endif %}
   </div>
 </section>
 
