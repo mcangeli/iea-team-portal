@@ -15,6 +15,11 @@ from portal.model_modules.people import (
 class PersonForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if team is not None:
+            # The organization is trusted request context, not user-editable form
+            # data. Set it before ModelForm validation so Person.clean() can
+            # validate an attached Django account against the correct tenant.
+            self.instance.team = team
         user_field = self.fields["user"]
         if team is None:
             user_field.queryset = User.objects.none()
@@ -105,6 +110,10 @@ class PersonRelationshipForm(forms.ModelForm):
 class OrganizationGroupForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if team is not None:
+            # Group.clean() validates parent-group tenant boundaries. Supply the
+            # request-derived organization before ModelForm validation.
+            self.instance.team = team
         qs = OrganizationGroup.objects.none()
         if team is not None:
             qs = OrganizationGroup.objects.filter(team=team, active=True)
@@ -121,6 +130,10 @@ class OrganizationGroupForm(forms.ModelForm):
 class CommitteeForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if team is not None:
+            # Committee.clean() checks that its optional group belongs to the
+            # same organization, so bind that trusted context before validation.
+            self.instance.team = team
         self.fields["group"].queryset = (
             OrganizationGroup.objects.filter(team=team, active=True).order_by("sort_order", "name")
             if team is not None
