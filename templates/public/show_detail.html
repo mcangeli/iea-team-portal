@@ -38,4 +38,29 @@
   </div>
 </section>
 {% endif %}
+
+{% if public_results %}
+<section class="public-section public-results-section">
+  <div class="public-section-heading">
+    <div class="public-kicker">PUBLISHED RESULTS</div>
+    <h2>Results</h2>
+    <p>Only finalized placings deliberately approved for public display are shown.</p>
+  </div>
+  <div class="public-results-groups">
+    {% for group in public_results %}
+      <article class="public-results-card">
+        <h3>{% if group.class_number %}<span>{{ group.class_number }}</span> {% endif %}{{ group.name }}</h3>
+        <ol class="public-result-list">
+          {% for result in group.results %}
+            <li>
+              <span class="public-result-place">{{ result.place }}</span>
+              <span class="public-result-rider">{{ result.rider_name }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 {% endblock %}
