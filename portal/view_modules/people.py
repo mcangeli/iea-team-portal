@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from portal.model_modules.barn_participation import HorsePersonRelationship
 from portal.model_modules.people import (
@@ -18,6 +19,7 @@ from portal.people_forms import (
     OrganizationRoleAssignmentForm,
     PersonForm,
     PersonRelationshipForm,
+    PersonRolesForm,
 )
 from portal.people_services import (
     can_manage_people,
@@ -35,10 +37,7 @@ def people_directory(request):
     return render(
         request,
         "portal/people/directory.html",
-        {
-            "people": people,
-            "can_manage_people": can_manage_people(request.user),
-        },
+        {"people": people, "can_manage_people": can_manage_people(request.user)},
     )
 
 
@@ -85,10 +84,7 @@ def barn_operations(request):
     return render(
         request,
         "portal/people/barn_operations.html",
-        {
-            "sections": sections,
-            "can_manage_people": can_manage,
-        },
+        {"sections": sections, "can_manage_people": can_manage},
     )
 
 
@@ -129,23 +125,14 @@ def person_edit(request, pk):
     person = person_for_user(request.user, pk)
     if not person:
         raise Http404
-    form = PersonForm(
-        request.POST or None,
-        request.FILES or None,
-        instance=person,
-        team=person.team,
-    )
+    form = PersonForm(request.POST or None, request.FILES or None, instance=person, team=person.team)
     if request.method == "POST" and form.is_valid():
         person = form.save(commit=False)
         person.full_clean()
         person.save()
         messages.success(request, f"Updated {person.display_name}.")
         return redirect("person_detail", pk=person.pk)
-    return render(
-        request,
-        "portal/people/form.html",
-        {"form": form, "mode": "edit", "person": person},
-    )
+    return render(request, "portal/people/form.html", {"form": form, "mode": "edit", "person": person})
 
 
 def _managed_person(request, pk):
@@ -156,7 +143,7 @@ def _managed_person(request, pk):
     return person
 
 
-def _person_subrecord_form(request, *, person, form, title, eyebrow):
+def _person_subrecord_form(request, *, person, form, title, eyebrow, description=""):
     if request.method == "POST" and form.is_valid():
         record = form.save(commit=False)
         record.full_clean()
@@ -166,25 +153,64 @@ def _person_subrecord_form(request, *, person, form, title, eyebrow):
     return render(
         request,
         "portal/people/subrecord_form.html",
-        {"person": person, "form": form, "title": title, "eyebrow": eyebrow},
+        {"person": person, "form": form, "title": title, "eyebrow": eyebrow, "description": description},
     )
 
 
 @login_required
 def person_role_add(request, pk):
+    """Manage the complete set of current roles for one Person."""
     person = _managed_person(request, pk)
-    form = OrganizationRoleAssignmentForm(request.POST or None)
+    current_roles = set(
+        person.role_assignments.filter(active=True).values_list("role", flat=True)
+    )
+    form = PersonRolesForm(
+        request.POST or None,
+        initial={"roles": sorted(current_roles)},
+    )
     if request.method == "POST" and form.is_valid():
-        role = form.save(commit=False)
-        role.team = person.team
-        role.person = person
-        role.full_clean()
-        role.save()
-        messages.success(request, f"Added {role.get_role_display()} role to {person.display_name}.")
+        selected_roles = set(form.cleaned_data["roles"])
+        today = timezone.localdate()
+        active_assignments = list(person.role_assignments.filter(active=True))
+        active_by_role = {}
+        for assignment in active_assignments:
+            active_by_role.setdefault(assignment.role, []).append(assignment)
+
+        for role in selected_roles - set(active_by_role):
+            assignment = OrganizationRoleAssignment(
+                team=person.team,
+                person=person,
+                role=role,
+                start_date=today,
+                active=True,
+            )
+            assignment.full_clean()
+            assignment.save()
+
+        for role, assignments in active_by_role.items():
+            if role in selected_roles:
+                continue
+            for assignment in assignments:
+                assignment.active = False
+                if assignment.end_date is None:
+                    assignment.end_date = today
+                assignment.full_clean()
+                assignment.save(update_fields=["active", "end_date"])
+
+        messages.success(request, f"Updated current roles for {person.display_name}.")
         return redirect("person_detail", pk=person.pk)
-    return render(request, "portal/people/subrecord_form.html", {
-        "person": person, "form": form, "title": "Add role", "eyebrow": "PARTICIPATION"
-    })
+
+    return render(
+        request,
+        "portal/people/subrecord_form.html",
+        {
+            "person": person,
+            "form": form,
+            "title": "Manage roles",
+            "eyebrow": "PARTICIPATION",
+            "description": "Select every role this person currently holds. Roles are independent, so Parent / Guardian, Rider, Boarder, and other responsibilities can be active together.",
+        },
+    )
 
 
 @login_required
@@ -193,16 +219,19 @@ def person_role_edit(request, pk, role_pk):
     role = get_object_or_404(OrganizationRoleAssignment, pk=role_pk, person=person, team=person.team)
     form = OrganizationRoleAssignmentForm(request.POST or None, instance=role)
     return _person_subrecord_form(
-        request, person=person, form=form, title="Edit role", eyebrow="PARTICIPATION"
+        request,
+        person=person,
+        form=form,
+        title=f"Edit {role.get_role_display()} details",
+        eyebrow="PARTICIPATION",
+        description="The role itself is managed from Manage roles. Use this page for dates, status, and notes for this specific role assignment.",
     )
 
 
 @login_required
 def person_relationship_add(request, pk):
     person = _managed_person(request, pk)
-    form = PersonRelationshipForm(
-        request.POST or None, team=person.team, source_person=person
-    )
+    form = PersonRelationshipForm(request.POST or None, team=person.team, source_person=person)
     if request.method == "POST" and form.is_valid():
         relationship = form.save(commit=False)
         relationship.from_person = person
@@ -218,18 +247,9 @@ def person_relationship_add(request, pk):
 @login_required
 def person_relationship_edit(request, pk, relationship_pk):
     person = _managed_person(request, pk)
-    relationship = get_object_or_404(
-        PersonRelationship, pk=relationship_pk, from_person=person
-    )
-    form = PersonRelationshipForm(
-        request.POST or None,
-        instance=relationship,
-        team=person.team,
-        source_person=person,
-    )
-    return _person_subrecord_form(
-        request, person=person, form=form, title="Edit relationship", eyebrow="RELATIONSHIPS"
-    )
+    relationship = get_object_or_404(PersonRelationship, pk=relationship_pk, from_person=person)
+    form = PersonRelationshipForm(request.POST or None, instance=relationship, team=person.team, source_person=person)
+    return _person_subrecord_form(request, person=person, form=form, title="Edit relationship", eyebrow="RELATIONSHIPS")
 
 
 @login_required
@@ -251,21 +271,12 @@ def person_committee_add(request, pk):
 @login_required
 def person_committee_edit(request, pk, membership_pk):
     person = _managed_person(request, pk)
-    membership = get_object_or_404(
-        CommitteeMembership, pk=membership_pk, person=person, committee__team=person.team
-    )
+    membership = get_object_or_404(CommitteeMembership, pk=membership_pk, person=person, committee__team=person.team)
     if membership.legacy_committee_assignment_id:
-        messages.info(
-            request,
-            "This membership is managed by its IEA assignment and cannot be edited here.",
-        )
+        messages.info(request, "This membership is managed by its IEA assignment and cannot be edited here.")
         return redirect("person_detail", pk=person.pk)
-    form = CommitteeMembershipForm(
-        request.POST or None, instance=membership, team=person.team
-    )
-    return _person_subrecord_form(
-        request, person=person, form=form, title="Edit committee membership", eyebrow="COMMITTEES"
-    )
+    form = CommitteeMembershipForm(request.POST or None, instance=membership, team=person.team)
+    return _person_subrecord_form(request, person=person, form=form, title="Edit committee membership", eyebrow="COMMITTEES")
 
 
 @login_required
