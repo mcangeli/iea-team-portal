@@ -20,6 +20,7 @@ urlpatterns = [
     path("", include("portal.host_show_urls")),
     path("", include("portal.show_day_live_urls")),
     path("", include("portal.show_class_live_urls")),
+    path("", include("portal.spectator_update_urls")),
     path("", include("portal.urls")),
 ]
 
