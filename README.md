@@ -100,8 +100,9 @@ Administrators can open all role workspaces. Coaches receive the Coach workspace
 9. Open **Manage → Users** and create logins linked to the appropriate Rider or Parent record.
 10. Assign committee responsibilities such as Team Parent, Treasurer, and Secretary/Points Secretary.
 11. Add Shows, official show classes, availability, entries, and Show Lead assignments.
-12. Configure Horse/Hoofprint, Course, Calendar, communication, volunteer, and Finance workflows as needed.
-13. If using the public site, open **Manage → Public Site**, enable the organization site, then explicitly publish only the shows/fields intended for anonymous access.
+12. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
+13. If using Finance, configure its accounts/categories/rates before entering family activity.
+14. Add prior-season information through the historical-data tools when desired.
 
 ## Core workflows
 
@@ -115,25 +116,13 @@ Parent/Guardian records are separate from Riders and one parent may be linked to
 
 ### Shows and Show Day
 
-Create the Show first, then configure its classes/schedule, rider availability, entries, rings, and results.
+Create the Show first, then configure its classes/schedule, rider availability, and entries. Results are recorded against the appropriate rider and class.
 
-Show Day supports rider check-in, live show/class state, ring assignment, result entry/publication, spectator updates, show planning, Course Information, and family/team communication.
+A show can include availability, entries, points-rider designation, results, Show Lead assignment, planning/checklists, volunteers, Show Week communication, Show Day status, Prize List/Schedule, Horse & Hoofprint workflows, show finance, and deliberate public publication where enabled.
 
-**Points-rider designation is staff strategy and is intentionally hidden from Rider, Parent, and public users.**
+**Points-rider designation is staff strategy and is intentionally hidden from Rider and Parent accounts.**
 
-### Public spectator workflow
-
-A public show must be explicitly published. Live visibility is independently controlled by **Publish live status**.
-
-Typical live workflow:
-
-1. Publish the organization public site and selected show.
-2. Publish the show schedule and/or results as desired.
-3. Mark the show **In progress** from Show Day.
-4. Assign rings and start/pause/complete classes.
-5. Enter and explicitly publish finalized class results.
-6. Post spectator-safe notices/delays when needed.
-7. Share the stable `/public/<program>/live/` URL or show-specific public URL.
+Show Day is designed for phone/tablet use at the ring. Full-team operators can use the complete class order, squad Team Parents remain Futures/Upper scoped, and ordinary family/rider views remain read-only for operational controls.
 
 ### Points and qualification
 
@@ -145,7 +134,15 @@ Use **Competition → Standings** for individual progress and team scoring. Post
 
 ### Horses and Hoofprint
 
-ArenaLine includes Horse Registry, Coggins tracking, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, and post-show horse history.
+ArenaLine includes Horse Registry, Coggins tracking, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, and post-show horse history/Record Book summaries.
+
+### Calendar, communication, lessons, and volunteers
+
+Calendar supports Month and Agenda views, event-type filtering, RSVP-enabled events, and Futures/Upper filtering where the source record carries a squad.
+
+Announcements are for organization communication. Action Items are for work needing an owner, response, or completion state. Notifications surface relevant ArenaLine activity.
+
+Lessons support groups, scheduled lessons, and rider attendance. Volunteer requirements/logs support service tracking and approval. Committee assignments delegate operational responsibility without granting full Administrator access.
 
 ### Finance
 
@@ -156,13 +153,19 @@ Finance is intentionally restricted:
 - **Rider:** no Finance access.
 - **Coach alone:** does not automatically grant Finance access.
 
+Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising, and reporting.
+
+### History and Record Book
+
+Use **Competition → Season History** for prior seasons and Season Review. Use **Competition → Record Book** for honors/archive presentation. Preserve historical Riders rather than recreating them as current Riders.
+
 ## Production installation
 
 ### Requirements
 
 - Linux server
 - Docker Engine and Docker Compose v2
-- Git with SSH access to GitHub
+- Git
 - DNS hostname and an existing reverse proxy/web server for public HTTPS access
 
 Supported layout:
