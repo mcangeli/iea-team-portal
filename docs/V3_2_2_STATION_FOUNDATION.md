@@ -19,6 +19,8 @@ Successful Station activation explicitly ends any normal Django login session on
 
 Person-level Station identity is intentionally short-lived. After successful PIN verification, the limited Person context expires after two minutes and is cleared immediately after clock-in or clock-out.
 
+Repeated incorrect PIN attempts are throttled per Person/per Station browser session. Five incorrect attempts temporarily lock that Person's PIN on that Station for five minutes. The lock does not expose or store the PIN and produces an operational audit event.
+
 ## Initial models
 
 ### StationDevice
@@ -54,11 +56,14 @@ Managers can open **People → ArenaLine Station** to:
 - review recent Station shifts;
 - correct role, clock-in, clock-out, and notes;
 - approve completed shifts;
-- view total and approved work minutes by Person.
+- view completed-shift, total, approved, and Working Student hours by Person;
+- export the complete organization-scoped shift history to CSV.
 
 The raw device secret is displayed only during registration/rotation and is not stored in clear text.
 
 Open shifts cannot be approved. Corrections and approvals create `AuditEvent` records. Correction events capture before/after values so the operational history remains traceable.
+
+The CSV export includes Person, role, local clock times, minutes/hours, approval state, approver, Station, and notes. Export activity itself is audited.
 
 ## Implemented kiosk workflow
 
@@ -76,6 +81,24 @@ After activation:
 8. Clock-in/out clears the Person context and returns the device to shared-kiosk mode.
 
 PINs are not used as reversible lookup keys and do not need to be globally unique. Station identifies the Person first, then verifies that Person's hashed PIN.
+
+The kiosk presentation is optimized for mounted tablets with larger identity cards, larger clock actions, simplified PIN entry, responsive layout, and clearer completion/lockout states.
+
+## Audit coverage
+
+ArenaLine Station now emits operational `AuditEvent` records for:
+
+- device registration and device setting changes;
+- device secret rotation;
+- Station device activation/deactivation;
+- Station PIN setup/reset state changes, without recording the raw PIN;
+- successful Station PIN authentication;
+- temporary PIN lockouts;
+- Station clock-in and clock-out;
+- manager shift correction and approval;
+- staff-hours CSV export.
+
+Device secrets and Person PINs are deliberately excluded from audit details.
 
 ## Multi-role People behavior
 
@@ -101,12 +124,8 @@ Those mirrored memberships are read-only in the generalized membership editor. T
 
 `portal/tests/test_v322_station_review.py` protects manager-only shift review, tenant isolation, completed-shift approval, open-shift rejection, manager corrections, and audit-event creation.
 
-## Next Station slices
+`portal/tests/test_v322_station_hardening.py` protects temporary PIN lockout, device/PIN audit safety, clock-in/out audit creation, and tenant-scoped CSV export.
 
-The remaining v3.2.2 work should add:
+## Remaining v3.2.2 boundary
 
-- operational audit events for device/PIN/clock actions;
-- PIN-attempt throttling / abuse protection appropriate for a shared physical kiosk;
-- additional Station presentation polish for mounted tablets;
-- reporting/export refinements for working-student hours;
-- later lesson check-in/out once the lesson-program domain is ready.
+The core Station/staff-time workflow is now implemented. Remaining v3.2.2 work should focus on stabilization and presentation rather than expanding the domain: full focused regression, live tablet review, and any small usability fixes discovered during staging. Lesson check-in/out remains deferred until the Lesson Program domain is ready.
