@@ -57,20 +57,50 @@ def _spectator_status_for_show(show):
     return "upcoming", "Upcoming"
 
 
+def _ring_name(show_class):
+    try:
+        return show_class.ring_assignment.display_name
+    except ObjectDoesNotExist:
+        return "Main ring"
+
+
 def _public_live_status(publication):
     if not publication.publish_live_status:
         return None
 
     code, label = _spectator_status_for_show(publication.show)
+    active_classes = []
+    classes = publication.show.classes.select_related(
+        "season_class", "live_state", "ring_assignment"
+    ).order_by("sort_order", "class_number", "name")
+    for show_class in classes:
+        try:
+            live_state = show_class.live_state
+        except ObjectDoesNotExist:
+            continue
+        if live_state.status not in {"in_progress", "paused"}:
+            continue
+        active_classes.append(
+            {
+                "class_number": show_class.class_number,
+                "name": show_class.display_name,
+                "ring": _ring_name(show_class),
+                "state": live_state.status,
+                "state_label": "Now" if live_state.status == "in_progress" else "Paused",
+            }
+        )
+
     current_class = publication.current_class
     return {
         "code": code,
         "label": label,
         "note": publication.public_status_note,
+        "active_classes": active_classes,
         "current_class": (
             {
                 "class_number": current_class.class_number,
                 "name": current_class.display_name,
+                "ring": _ring_name(current_class),
             }
             if current_class and current_class.show_id == publication.show_id
             else None
@@ -129,12 +159,25 @@ def public_show_schedule_payload(publication):
         return []
 
     classes = list(
-        publication.show.classes.select_related("season_class", "live_state").order_by(
-            "sort_order", "class_number", "name"
-        )
+        publication.show.classes.select_related(
+            "season_class", "live_state", "ring_assignment"
+        ).order_by("sort_order", "class_number", "name")
     )
+    has_explicit_live_state = False
+    for show_class in classes:
+        try:
+            show_class.live_state
+            has_explicit_live_state = True
+            break
+        except ObjectDoesNotExist:
+            continue
+
     current_index = None
-    if publication.publish_live_status and publication.current_class_id:
+    if (
+        publication.publish_live_status
+        and publication.current_class_id
+        and not has_explicit_live_state
+    ):
         for index, show_class in enumerate(classes):
             if show_class.pk == publication.current_class_id:
                 current_index = index
@@ -153,6 +196,8 @@ def public_show_schedule_payload(publication):
                 state, state_label = "complete", "Complete"
             elif spectator_code in {"upcoming", "cancelled"}:
                 state, state_label = "upcoming", "Upcoming"
+            elif has_explicit_live_state:
+                state, state_label = "upcoming", "Upcoming"
             elif current_index is not None:
                 if index < current_index:
                     state, state_label = "complete", "Complete"
@@ -168,6 +213,7 @@ def public_show_schedule_payload(publication):
             {
                 "class_number": show_class.class_number,
                 "name": show_class.display_name,
+                "ring": _ring_name(show_class),
                 "time": show_class.schedule_time,
                 "note": show_class.schedule_note,
                 "state": state,
@@ -197,9 +243,6 @@ def public_show_results_payload(publication):
     )
     groups = []
     for show_class in classes:
-        # Backward compatibility: a class with no lifecycle record follows the legacy
-        # show-level result publication switch. Once a lifecycle record exists, the
-        # class must be explicitly published.
         try:
             live_state = show_class.live_state
         except ObjectDoesNotExist:
