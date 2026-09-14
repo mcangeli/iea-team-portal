@@ -7,16 +7,25 @@
     <div class="person-profile-photo">{% if person.photo %}<img src="{{ person.photo.url }}" alt="">{% else %}<span>{{ person.first_name|first }}{{ person.last_name|first }}</span>{% endif %}</div>
     <div><div class="eyebrow">PERSON PROFILE</div><h1>{{ person.display_name }}</h1><p>{% if person.school %}{{ person.school }}{% if person.graduation_year %} · Class of {{ person.graduation_year }}{% endif %}{% else %}ArenaLine organization profile{% endif %}</p></div>
   </div>
-  {% if can_manage_people %}<div class="actions"><a class="btn" href="{% url 'person_edit' person.pk %}">Edit profile</a></div>{% endif %}
+  {% if can_manage_people %}<div class="actions"><a class="btn" href="{% url 'person_edit' person.pk %}">Edit profile</a><a class="btn btn-secondary" href="{% url 'people_structure' %}">People structure</a></div>{% endif %}
 </section>
 
 <div class="people-profile-layout">
   <section class="content-section">
-    <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div></div>
+    <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div>{% if can_manage_people %}<a href="{% url 'person_role_add' person.pk %}">Add role</a>{% endif %}</div>
     <div class="person-tags person-tags-large">
-      {% for role in person.role_assignments.all %}{% if role.active %}<span>{{ role.get_role_display }}</span>{% endif %}{% empty %}<span class="muted">No organization roles assigned yet.</span>{% endfor %}
+      {% for role in person.role_assignments.all %}{% if role.active %}<a class="people-tag-link" {% if can_manage_people %}href="{% url 'person_role_edit' person.pk role.pk %}"{% endif %}>{{ role.get_role_display }}</a>{% endif %}{% empty %}<span class="muted">No organization roles assigned yet.</span>{% endfor %}
     </div>
-    {% if person.committee_memberships.all %}<div class="people-subsection"><h3>Committees</h3>{% for membership in person.committee_memberships.all %}{% if membership.active %}<p><strong>{{ membership.committee.name }}</strong> · {{ membership.get_position_display }}</p>{% endif %}{% endfor %}</div>{% endif %}
+  </section>
+
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">RELATIONSHIPS</div><h2>Family & contacts</h2></div>{% if can_manage_people %}<a href="{% url 'person_relationship_add' person.pk %}">Add relationship</a>{% endif %}</div>
+    {% for relationship in person.outgoing_relationships.all %}{% if relationship.active %}<div class="people-structure-row"><div><strong>{{ relationship.to_person.display_name }}</strong><p class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}{% if relationship.primary_contact %} · Primary contact{% endif %}</p></div>{% if can_manage_people %}<a href="{% url 'person_relationship_edit' person.pk relationship.pk %}">Edit</a>{% endif %}</div>{% endif %}{% empty %}<p class="muted">No relationships have been recorded yet.</p>{% endfor %}
+  </section>
+
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committee memberships</h2></div>{% if can_manage_people %}<a href="{% url 'person_committee_add' person.pk %}">Add membership</a>{% endif %}</div>
+    {% for membership in person.committee_memberships.all %}{% if membership.active %}<div class="people-structure-row"><div><strong>{{ membership.committee.name }}</strong><p class="muted">{{ membership.get_position_display }}{% if membership.committee.group %} · {{ membership.committee.group.name }}{% else %} · Organization-wide{% endif %}</p></div>{% if can_manage_people %}<a href="{% url 'person_committee_edit' person.pk membership.pk %}">Edit</a>{% endif %}</div>{% endif %}{% empty %}<p class="muted">No committee memberships assigned yet.</p>{% endfor %}
   </section>
 
   <section class="content-section">
