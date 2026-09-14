@@ -237,6 +237,25 @@ The roster is readable by authenticated organization members; management actions
 
 Focused regression coverage lives in `portal/tests/test_v320_barn_operations.py` and protects authenticated access, horse responsibility display, and tenant isolation.
 
+## Implemented legacy committee compatibility bridge
+
+Migration `0068_v320_legacy_committee_bridge.py` gives legacy IEA committee assignments a traceable path into the generalized committee model without changing the authorization source used by existing IEA workflows.
+
+Each mirrored `CommitteeMembership` may carry an optional one-to-one `legacy_committee_assignment` reference. This source link prevents ArenaLine from confusing migrated compatibility rows with committee memberships created directly in the new People Structure experience.
+
+Legacy role mapping is:
+
+- Upper Team Parent → IEA Program / Upper Team Parent Committee / Chair;
+- Futures Team Parent → IEA Program / Futures Team Parent Committee / Chair;
+- Treasurer → organization-wide Finance Committee / Treasurer;
+- Secretary / Points Secretary → IEA Program / IEA Points & Records / Secretary.
+
+The mirrored membership inherits the legacy season start/end dates and active state. A compatibility signal keeps later legacy creates, edits, deactivations, and deletes synchronized to the source-linked canonical membership. Deleting a legacy assignment removes only its mirrored membership; manually created generalized committee memberships are not touched.
+
+Existing IEA permission checks continue to read `CommitteeAssignment` during this transition. `ShowLeadAssignment` remains a separate show-specific operational assignment and is intentionally not converted into a committee membership.
+
+Focused regression coverage lives in `portal/tests/test_v320_committee_compat.py` and protects mapping, season dates, deactivation, source tracing, and manual-membership isolation.
+
 ## Planned v3.2 slices
 
 ### v3.2.0 foundation
