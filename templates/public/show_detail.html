@@ -1,5 +1,6 @@
 {% extends 'public/base.html' %}
 {% block title %}{{ public_show.name }} · {{ public_site.name }}{% endblock %}
+{% block head_extra %}{% if public_show.live_status and public_show.live_status.code != 'complete' and public_show.live_status.code != 'upcoming' %}<meta http-equiv="refresh" content="30">{% endif %}{% endblock %}
 {% block content %}
 <a class="public-back" href="{% url 'public_schedule' public_site.slug %}">← Back to schedule</a>
 <section class="public-hero public-show-hero">
@@ -7,6 +8,19 @@
   <h1>{{ public_show.name }}</h1>
   <p class="public-tagline">{{ public_show.date|date:"l, F j, Y" }}{% if public_show.time %} · {{ public_show.time|time:"g:i A" }}{% endif %}</p>
 </section>
+
+{% if public_show.live_status %}
+<section class="public-live-banner public-live-{{ public_show.live_status.code }}" aria-live="polite">
+  <div>
+    <div class="public-live-label">{{ public_show.live_status.label }}</div>
+    {% if public_show.live_status.current_class %}
+      <div class="public-live-current">Now: {% if public_show.live_status.current_class.class_number %}{{ public_show.live_status.current_class.class_number }} · {% endif %}{{ public_show.live_status.current_class.name }}</div>
+    {% endif %}
+    {% if public_show.live_status.note %}<p>{{ public_show.live_status.note }}</p>{% endif %}
+  </div>
+  {% if public_show.live_status.code == 'in_progress' or public_show.live_status.code == 'paused' %}<span class="public-live-refresh">Auto-refreshes every 30 seconds</span>{% endif %}
+</section>
+{% endif %}
 
 <section class="public-detail-card">
   {% if public_show.summary %}<div class="public-summary">{{ public_show.summary|linebreaks }}</div>{% endif %}
@@ -27,10 +41,13 @@
   </div>
   <div class="public-class-list">
     {% for item in public_class_schedule %}
-      <article class="public-class-row">
+      <article class="public-class-row{% if item.state %} public-class-{{ item.state }}{% endif %}">
         <div class="public-class-time">{% if item.time %}{{ item.time|time:"g:i A" }}{% else %}—{% endif %}</div>
         <div class="public-class-main">
-          <h3>{% if item.class_number %}<span>{{ item.class_number }}</span> {% endif %}{{ item.name }}</h3>
+          <div class="public-class-heading-row">
+            <h3>{% if item.class_number %}<span>{{ item.class_number }}</span> {% endif %}{{ item.name }}</h3>
+            {% if item.state_label %}<span class="public-class-state">{{ item.state_label }}</span>{% endif %}
+          </div>
           {% if item.note %}<p>{{ item.note }}</p>{% endif %}
         </div>
       </article>
