@@ -150,6 +150,7 @@ class PersonRelationship(models.Model):
 
 class OrganizationRoleAssignment(models.Model):
     class Role(models.TextChoices):
+        PARENT_GUARDIAN = "parent_guardian", "Parent / Guardian"
         RIDER = "rider", "Rider"
         BOARDER = "boarder", "Boarder"
         TRAINER = "trainer", "Trainer"
