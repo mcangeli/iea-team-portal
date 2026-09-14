@@ -40,3 +40,34 @@ class ShowClassLiveState(models.Model):
 
     def __str__(self):
         return f"{self.show_class} — {self.get_status_display()}"
+
+
+class ShowClassRingAssignment(models.Model):
+    show_class = models.OneToOneField(
+        ShowClass,
+        on_delete=models.CASCADE,
+        related_name="ring_assignment",
+    )
+    ring = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="Show-day ring name, such as 'Ring 1', 'Ring 2', or 'Main Arena'. Blank uses Main ring.",
+    )
+    updated_by = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="show_class_ring_assignments_updated",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["ring", "show_class__sort_order", "show_class_id"]
+
+    @property
+    def display_name(self):
+        return self.ring.strip() or "Main ring"
+
+    def __str__(self):
+        return f"{self.show_class} — {self.display_name}"
