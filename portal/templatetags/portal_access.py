@@ -1,9 +1,11 @@
 from django import template
 from django.core.exceptions import ObjectDoesNotExist
 
+from portal.model_modules.show_day_state import SpectatorShowUpdate
 from portal.view_modules.common import _can_view_family_account
 from portal.view_modules.show_class_live import can_update_show_class_live_status
 from portal.view_modules.show_day_live import can_update_show_live_status
+from portal.view_modules.spectator_updates import can_manage_spectator_updates
 
 register = template.Library()
 
@@ -77,6 +79,46 @@ def can_manage_live_class_status(context, show_class):
     if not request or not show_class:
         return False
     return can_update_show_class_live_status(request.user, show_class)
+
+
+@register.simple_tag(takes_context=True)
+def can_manage_spectator_show_updates(context, show):
+    request = context.get("request")
+    if not request or not show:
+        return False
+    return can_manage_spectator_updates(request.user, show)
+
+
+@register.simple_tag
+def show_day_rings(show):
+    if not show:
+        return []
+    names = []
+    seen = set()
+    classes = show.classes.select_related("ring_assignment").order_by(
+        "sort_order", "class_number", "name"
+    )
+    for show_class in classes:
+        try:
+            name = show_class.ring_assignment.display_name
+        except ObjectDoesNotExist:
+            name = "Main ring"
+        key = name.casefold()
+        if key not in seen:
+            seen.add(key)
+            names.append(name)
+    return names
+
+
+@register.simple_tag
+def active_spectator_updates(show):
+    if not show:
+        return []
+    return list(
+        SpectatorShowUpdate.objects.filter(show=show, active=True)
+        .select_related("created_by")
+        .order_by("-updated_at", "-id")[:8]
+    )
 
 
 @register.simple_tag
