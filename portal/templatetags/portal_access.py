@@ -28,6 +28,36 @@ def can_manage_live_show_status(context, show):
 
 
 @register.simple_tag
+def show_day_schedule_rows(show, existing_rows):
+    """Merge filtered rider rows with every scheduled class for the show.
+
+    A team may not have a rider entered in every class. The Show Day class board
+    still needs the complete show order so live class state can be managed for
+    classes with zero team entries. Existing rows retain their visibility-filtered
+    rider lists; missing classes are added with an empty rider list.
+    """
+    if not show:
+        return existing_rows or []
+
+    existing_by_class_id = {
+        row["class"].pk: row
+        for row in (existing_rows or [])
+        if row.get("class")
+    }
+    merged = []
+    for show_class in show.classes.select_related("season_class").order_by(
+        "sort_order", "class_number", "name"
+    ):
+        merged.append(
+            existing_by_class_id.get(
+                show_class.pk,
+                {"class": show_class, "entries": [], "missing_results": 0},
+            )
+        )
+    return merged
+
+
+@register.simple_tag
 def show_class_live_state(show_class):
     if not show_class:
         return None
