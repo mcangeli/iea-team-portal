@@ -254,6 +254,12 @@ def person_committee_edit(request, pk, membership_pk):
     membership = get_object_or_404(
         CommitteeMembership, pk=membership_pk, person=person, committee__team=person.team
     )
+    if membership.legacy_committee_assignment_id:
+        messages.info(
+            request,
+            "This membership is managed by its IEA assignment and cannot be edited here.",
+        )
+        return redirect("person_detail", pk=person.pk)
     form = CommitteeMembershipForm(
         request.POST or None, instance=membership, team=person.team
     )
