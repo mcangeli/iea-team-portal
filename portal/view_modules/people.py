@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
+from portal.model_modules.barn_participation import HorsePersonRelationship
 from portal.model_modules.people import (
     Committee,
     CommitteeMembership,
@@ -37,6 +38,56 @@ def people_directory(request):
         {
             "people": people,
             "can_manage_people": can_manage_people(request.user),
+        },
+    )
+
+
+@login_required
+def barn_operations(request):
+    team = _team(request.user)
+    can_manage = can_manage_people(request.user)
+    assignments = (
+        OrganizationRoleAssignment.objects.filter(team=team, active=True, person__active=True)
+        .select_related("person")
+        .order_by("person__last_name", "person__first_name", "role")
+    )
+    horse_links = (
+        HorsePersonRelationship.objects.filter(team=team, active=True, person__active=True, horse__active=True)
+        .select_related("person", "horse")
+        .order_by("horse__name", "relationship_type")
+    )
+    links_by_person = {}
+    for relationship in horse_links:
+        links_by_person.setdefault(relationship.person_id, []).append(relationship)
+
+    role_sections = [
+        ("training", "Training team", (OrganizationRoleAssignment.Role.TRAINER, OrganizationRoleAssignment.Role.ASSISTANT_TRAINER)),
+        ("staff", "Barn management & staff", (OrganizationRoleAssignment.Role.BARN_MANAGER, OrganizationRoleAssignment.Role.BARN_STAFF)),
+        ("working_students", "Working students", (OrganizationRoleAssignment.Role.WORKING_STUDENT,)),
+        ("boarders", "Boarders", (OrganizationRoleAssignment.Role.BOARDER,)),
+        ("board", "Board members", (OrganizationRoleAssignment.Role.BOARD_MEMBER,)),
+    ]
+    sections = []
+    for key, label, roles in role_sections:
+        rows = []
+        seen = set()
+        for assignment in assignments:
+            if assignment.role not in roles or assignment.person_id in seen:
+                continue
+            seen.add(assignment.person_id)
+            rows.append({
+                "person": assignment.person,
+                "roles": [item for item in assignments if item.person_id == assignment.person_id and item.role in roles],
+                "horse_relationships": links_by_person.get(assignment.person_id, []),
+            })
+        sections.append({"key": key, "label": label, "rows": rows})
+
+    return render(
+        request,
+        "portal/people/barn_operations.html",
+        {
+            "sections": sections,
+            "can_manage_people": can_manage,
         },
     )
 
