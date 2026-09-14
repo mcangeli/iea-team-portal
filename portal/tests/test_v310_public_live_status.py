@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
+from portal.forms import ShowForm
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
 from portal.models import Season, Show, ShowClass, Team
 from portal.public_site_admin import PublicShowPublicationForm
@@ -64,8 +65,15 @@ class PublicLiveStatusTests(TestCase):
             reverse("public_show_detail", args=[self.site.slug, self.publication.slug])
         )
 
+    def test_show_form_exposes_live_lifecycle_statuses(self):
+        form = ShowForm(instance=self.show)
+        choices = dict(form.fields["status"].choices)
+        self.assertEqual(choices["in_progress"], "In progress")
+        self.assertEqual(choices["paused"], "Paused")
+
     def test_live_status_is_private_by_default(self):
-        self.publication.public_status = PublicShowPublication.PublicStatus.IN_PROGRESS
+        self.show.status = "in_progress"
+        self.show.save(update_fields=["status"])
         self.publication.current_class = self.current
         self.publication.public_status_note = "Running about 15 minutes behind."
         self.publication.save()
@@ -78,8 +86,9 @@ class PublicLiveStatusTests(TestCase):
         self.assertNotContains(response, "Auto-refreshes every 30 seconds")
 
     def test_published_live_status_derives_completed_current_and_upcoming_classes(self):
+        self.show.status = "in_progress"
+        self.show.save(update_fields=["status"])
         self.publication.publish_live_status = True
-        self.publication.public_status = PublicShowPublication.PublicStatus.IN_PROGRESS
         self.publication.current_class = self.current
         self.publication.public_status_note = "Running about 15 minutes behind."
         self.publication.save()
@@ -96,8 +105,9 @@ class PublicLiveStatusTests(TestCase):
         self.assertContains(response, "Upcoming", count=1)
 
     def test_complete_show_marks_all_published_classes_complete_without_refresh(self):
+        self.show.status = "complete"
+        self.show.save(update_fields=["status"])
         self.publication.publish_live_status = True
-        self.publication.public_status = PublicShowPublication.PublicStatus.COMPLETE
         self.publication.current_class = self.current
         self.publication.save()
 
@@ -106,6 +116,28 @@ class PublicLiveStatusTests(TestCase):
         self.assertContains(response, "Complete", count=4)
         self.assertNotContains(response, "Auto-refreshes every 30 seconds")
         self.assertNotContains(response, 'http-equiv="refresh"')
+
+    def test_pre_show_internal_states_publish_as_upcoming(self):
+        self.publication.publish_live_status = True
+        self.publication.save(update_fields=["publish_live_status", "updated_at"])
+
+        for status in ("planning", "registration", "entered"):
+            self.show.status = status
+            self.show.save(update_fields=["status"])
+            response = self._detail()
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Upcoming")
+
+    def test_cancelled_show_publishes_cancelled_state(self):
+        self.show.status = "cancelled"
+        self.show.save(update_fields=["status"])
+        self.publication.publish_live_status = True
+        self.publication.save(update_fields=["publish_live_status", "updated_at"])
+
+        response = self._detail()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cancelled")
+        self.assertNotContains(response, "Auto-refreshes every 30 seconds")
 
     def test_current_class_must_belong_to_published_show(self):
         other_show = Show.objects.create(
@@ -141,3 +173,4 @@ class PublicLiveStatusTests(TestCase):
         choices = form.fields["current_class"].queryset
         self.assertIn(self.current, choices)
         self.assertNotIn(foreign_class, choices)
+        self.assertNotIn("public_status", form.fields)
