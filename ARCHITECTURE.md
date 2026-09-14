@@ -148,13 +148,62 @@ Result publication has two layers for compatibility:
 
 Completing a class does not automatically publish results. Publication remains explicit and reversible.
 
+## v3.2 identity and organization direction
+
+v3.2 introduces a compatibility-first People foundation for broader barn operations.
+
+The target model separates four concepts that older portal structures sometimes conflated:
+
+1. **Person identity** — the human being.
+2. **Relationships / participation** — parent/guardian/dependent links, rider participation, boarding, leasing, staff/trainer relationships, and other domain relationships.
+3. **Authorization** — what the signed-in account is allowed to view or change.
+4. **Public identity** — the explicitly published subset of profile information suitable for anonymous/public presentation.
+
+The intended direction is:
+
+```text
+User account (optional login)
+        ↓
+Person
+ ├── person-to-person relationships
+ ├── organization role assignments
+ ├── group/program memberships
+ ├── committee memberships/positions
+ ├── rider/barn participation
+ └── public profile publication (optional)
+```
+
+A single Person may hold multiple simultaneous roles (for example adult rider + parent + boarder + committee member + assistant trainer). Role labels must not automatically become permissions.
+
+### Groups / Programs
+
+ArenaLine should support generic organization groups/programs as scopes for functions such as IEA, Lesson Program, Boarding, Staff, Shows, or future disciplines/programs. The persisted model should be flexible enough to support parent/subgroup relationships, while the normal UI should remain simple and avoid exposing an unnecessarily deep enterprise-style hierarchy.
+
+### Committees
+
+Committees become generic organization structures rather than IEA-only responsibilities. A committee may be organization-wide or optionally scoped to a Group/Program. Committee membership/position (Chair, Treasurer, Member, etc.) is distinct from login authorization.
+
+Assignment-specific responsibilities such as a Show Lead for one event remain event/domain assignments rather than being forced into a committee model.
+
+### Public person/rider profiles
+
+Public rider/person cards must follow the v3.1 publication model. The internal Person/Profile object is never serialized directly to anonymous users. Each public field is allow-listed and deliberately published, with especially conservative handling for minors. Exact date of birth and private contact information remain private by default.
+
 ## Presentation boundary
 
 Shared presentation belongs in static stylesheets and common components rather than template-local style blocks.
 
-v3.1 adds layered presentation files for Show Day and the public spectator experience. These layers are intentionally presentation-only so responsive/mobile polish can evolve without changing workflow or permission logic.
+`docs/PRODUCT_AND_UI_GUIDE.md` is the standing presentation/product guide for all new or materially redesigned pages. New work must continue the established ArenaLine premium equestrian visual language and reuse shared theme variables/components wherever practical.
 
-At tablet/mobile widths, Show Day converts the wide class board into stacked class cards while preserving the same actions and permissions.
+Presentation review is part of feature completion:
+
+- desktop, tablet, and mobile behavior are intentional;
+- authenticated light/dark modes remain coherent;
+- touch targets and form controls are usable on barn/ringside devices;
+- empty/no-data/error states are designed, not accidental;
+- UI visibility never substitutes for server-side authorization.
+
+v3.1 adds layered presentation files for Show Day and the public spectator experience. These layers are intentionally presentation-only so responsive/mobile polish can evolve without changing workflow or permission logic.
 
 ## Compatibility rule
 
@@ -164,7 +213,8 @@ Compatibility layers are deliberate and should be removed only when their caller
 - nullable catalog links on historical `SeasonClass`/`ShowClass` rows;
 - organization helpers wrapping the persisted `Team` tenant model;
 - legacy scoring heuristics used only when no catalog metadata is available;
-- the legacy single `PublicShowPublication.current_class` pointer retained while multi-ring public state is derived from class lifecycle records.
+- the legacy single `PublicShowPublication.current_class` pointer retained while multi-ring public state is derived from class lifecycle records;
+- v3.2 Person/relationship abstractions coexisting with Rider, Guardian/Parent, UserProfile, SeasonMembership, committee, finance, and competition structures until migration is proven safe.
 
 A cleanup should reduce duplicate behavior without rewriting historical records or breaking old URLs.
 
@@ -172,8 +222,11 @@ A cleanup should reduce duplicate behavior without rewriting historical records 
 
 - Keep generic platform behavior separate from IEA-specific rules.
 - Preserve explicit public publication boundaries.
+- Follow `docs/PRODUCT_AND_UI_GUIDE.md` for every new/materially redesigned page.
 - Prefer domain services/helpers over adding more behavior to monolithic modules.
 - Preserve historical data and stable URLs during refactors.
+- Separate organizational roles/relationships from authorization decisions.
 - Do not combine rulebook/scoring changes with unrelated UI rewrites.
 - Add or expand regression tests before removing compatibility behavior.
+- Update README, roadmap, changelog, architecture, and release docs as the product changes.
 - Run migrations and validation on staging before production promotion.
