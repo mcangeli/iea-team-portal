@@ -107,7 +107,7 @@ class V322StationHardeningTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         device = StationDevice.objects.get(team=self.team, name="Office iPad")
-        event = AuditEvent.objects.get(action="station_device_registered", entity_id=device.pk)
+        event = AuditEvent.objects.get(action="station_device_added", entity_id=device.pk)
         self.assertNotIn("secret", str(event.details).lower())
 
         response = self.client.post(
