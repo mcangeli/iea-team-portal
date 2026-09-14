@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}People · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'dashboard' %}">← Dashboard</a></nav>
+<section class="page-intro people-intro">
+  <div>
+    <div class="eyebrow">PEOPLE</div>
+    <h1>People directory</h1>
+    <p>One organization directory for riders, parents, staff, board members, trainers, and other barn participants.</p>
+  </div>
+  {% if can_manage_people %}<div class="actions"><a class="btn" href="{% url 'person_create' %}">Add person</a></div>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head">
+    <div><div class="eyebrow">ORGANIZATION</div><h2>{{ people|length }} people</h2></div>
+  </div>
+  {% if people %}
+  <div class="people-grid">
+    {% for person in people %}
+    <a class="person-card" href="{% url 'person_detail' person.pk %}">
+      <div class="person-card-photo">
+        {% if person.photo %}<img src="{{ person.photo.url }}" alt="">{% else %}<span>{{ person.first_name|first }}{{ person.last_name|first }}</span>{% endif %}
+      </div>
+      <div class="person-card-body">
+        <h3>{{ person.display_name }}</h3>
+        {% if person.role_assignments.all %}<div class="person-tags">{% for role in person.role_assignments.all %}{% if role.active %}<span>{{ role.get_role_display }}</span>{% endif %}{% endfor %}</div>{% endif %}
+        {% if person.school %}<p>{{ person.school }}{% if person.graduation_year %} · Class of {{ person.graduation_year }}{% endif %}</p>{% elif person.user %}<p>Portal account connected</p>{% else %}<p>Organization member</p>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><h3>No people yet</h3><p>The unified People directory will bring riders, families, staff, and barn roles together here.</p>{% if can_manage_people %}<a class="btn" href="{% url 'person_create' %}">Add the first person</a>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}
