@@ -52,13 +52,13 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from ..platform import active_period_for_organization, organization_for_view_user
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _active_season,
     _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
@@ -87,7 +87,6 @@ from .common import (
     _rider_class_point_rows,
     _selected_team,
     _show_planning_allowed_levels,
-    _team,
     _team_scoring_rows,
     _visible_action_items,
     _visible_riders,
@@ -104,10 +103,10 @@ from .roster_helpers import (
 
 @login_required
 def dashboard(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     if not team:
         return render(request, "portal/no_team.html")
-    season = _active_season(team)
+    season = active_period_for_organization(team)
     now = timezone.now()
     today = timezone.localdate()
     announcements = _visible_announcements(request.user, team)[:5]
@@ -190,8 +189,8 @@ def dashboard(request):
 
 @login_required
 def my_team(request):
-    team = _team(request.user)
-    season = _active_season(team)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
     riders = list(
         _visible_riders(request.user, team).filter(active=True).prefetch_related(
             "memberships__season", "guardian_links__guardian"
@@ -254,9 +253,9 @@ def my_team(request):
 
 @login_required
 def rider_list(request):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     qs = _team_roster(request.user, team).prefetch_related("memberships")
-    season = _active_season(team)
+    season = active_period_for_organization(team)
     selected = _selected_team(request)
     if season:
         futures = qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct()
@@ -272,7 +271,7 @@ def rider_list(request):
 @login_required
 def rider_export(request):
     _require_manage(request.user)
-    team = _team(request.user); season = _active_season(team); selected = _selected_team(request)
+    team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
     qs = team.riders.filter(active=True).order_by("last_name", "first_name")
     if season and selected in TEAM_LEVELS:
         qs = qs.filter(memberships__season=season, memberships__team_level=selected).distinct()
@@ -292,10 +291,10 @@ def rider_export(request):
 
 @login_required
 def rider_detail(request, pk):
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider.objects.prefetch_related("memberships__classes", "guardian_links__guardian"), pk=pk, team=team)
     private_view = _can_view_private_rider(request.user, rider)
-    active_season = _active_season(team)
+    active_season = active_period_for_organization(team)
     entries = rider.show_entries.filter(result__isnull=False)
     if active_season:
         entries = entries.filter(show_class__show__season=active_season)
@@ -315,7 +314,7 @@ def rider_detail(request, pk):
 @login_required
 @friendly_integrity_errors
 def rider_create(request):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     form = RiderForm(
         request.POST or None,
         request.FILES or None,
@@ -363,7 +362,7 @@ def rider_create(request):
 
 @login_required
 def rider_edit(request, pk):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     obj = get_object_or_404(Rider, pk=pk, team=team)
     form = RiderForm(request.POST or None, request.FILES or None, instance=obj, team=team)
     if form.is_valid():
@@ -377,9 +376,9 @@ def rider_edit(request, pk):
 
 @login_required
 def rider_membership_edit(request, pk, season_pk=None):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=pk, team=team)
-    season = get_object_or_404(Season, pk=season_pk, team=team) if season_pk else _active_season(team)
+    season = get_object_or_404(Season, pk=season_pk, team=team) if season_pk else active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("rider_detail", pk=rider.pk)
     _ensure_season_open(season)
@@ -392,7 +391,7 @@ def rider_membership_edit(request, pk, season_pk=None):
 
 @login_required
 def rider_guardian_add(request, pk):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=pk, team=team)
     form = GuardianContactForm(request.POST or None)
     if form.is_valid():
@@ -405,7 +404,7 @@ def rider_guardian_add(request, pk):
 
 @login_required
 def rider_guardian_edit(request, pk, guardian_pk):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=pk, team=team)
     link = get_object_or_404(RiderGuardian.objects.select_related("guardian"), rider=rider, guardian_id=guardian_pk, guardian__team=team)
     form = GuardianContactForm(request.POST or None, instance=link.guardian, initial={"relationship": link.relationship, "primary_contact": link.primary_contact})
@@ -416,7 +415,7 @@ def rider_guardian_edit(request, pk, guardian_pk):
 
 @login_required
 def parent_list(request):
-    _require_manage(request.user); team = _team(request.user); season = _active_season(team); selected = _selected_team(request)
+    _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
     guardians = team.guardian_contacts.prefetch_related("rider_links__rider").all()
     if season and selected in TEAM_LEVELS:
         guardians = guardians.filter(rider_links__rider__memberships__season=season, rider_links__rider__memberships__team_level=selected).distinct()
@@ -424,7 +423,7 @@ def parent_list(request):
 
 @login_required
 def parent_export(request):
-    _require_manage(request.user); team = _team(request.user); season = _active_season(team); selected = _selected_team(request)
+    _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
     guardians = team.guardian_contacts.prefetch_related("rider_links__rider").all()
     if season and selected in TEAM_LEVELS:
         guardians = guardians.filter(rider_links__rider__memberships__season=season, rider_links__rider__memberships__team_level=selected).distinct()
@@ -438,7 +437,7 @@ def parent_export(request):
 
 @login_required
 def season_setup(request):
-    _require_manage(request.user); team = _team(request.user); season = _active_season(team); selected = _selected_team(request)
+    _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
     classes = season.season_classes.all() if season else SeasonClass.objects.none()
     memberships = season.memberships.select_related("rider").prefetch_related("classes") if season else SeasonMembership.objects.none()
     if selected in TEAM_LEVELS:
@@ -448,7 +447,7 @@ def season_setup(request):
 @login_required
 @friendly_integrity_errors
 def season_class_create(request):
-    _require_manage(request.user); team = _team(request.user); season = _active_season(team)
+    _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
     initial = {"discipline": team.discipline if team.discipline != "multi" else "hunt_seat"}
@@ -460,7 +459,7 @@ def season_class_create(request):
 
 @login_required
 def season_class_edit(request, class_pk):
-    _require_manage(request.user); team = _team(request.user)
+    _require_manage(request.user); team = organization_for_view_user(request.user)
     season_class = get_object_or_404(SeasonClass.objects.select_related("season"), pk=class_pk, season__team=team)
     _ensure_season_open(season_class.season)
     form = SeasonClassForm(request.POST or None, instance=season_class, season=season_class.season)
@@ -471,7 +470,7 @@ def season_class_edit(request, class_pk):
 @login_required
 def rider_guardian_link(request, rider_pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team)
 
     existing_ids = RiderGuardian.objects.filter(rider=rider).values_list("guardian_id", flat=True)
@@ -511,7 +510,7 @@ def rider_guardian_link(request, rider_pk):
 @require_POST
 def rider_guardian_unlink(request, rider_pk, link_pk):
     _require_manage(request.user)
-    team = _team(request.user)
+    team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team)
     link = get_object_or_404(RiderGuardian.objects.select_related("guardian"), pk=link_pk, rider=rider)
 
