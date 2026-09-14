@@ -5,11 +5,7 @@
 <nav class="page-back-nav"><a href="{% url 'show_detail' show.pk %}">← Back to {{ show.name }}</a></nav>
 
 <section class="page-intro">
-  <div>
-    <div class="eyebrow">SHOW DAY</div>
-    <h1>{{ show.name }}</h1>
-    <p>{{ show.show_date|date:"F j, Y" }}</p>
-  </div>
+  <div><div class="eyebrow">SHOW DAY</div><h1>{{ show.name }}</h1><p>{{ show.show_date|date:"F j, Y" }}</p></div>
   <div class="actions">
     {% if has_personal_riders %}<a class="btn secondary" href="{% url 'my_show_day' show.pk %}">My Show Day</a>{% endif %}
     {% if operational %}<a class="btn secondary" href="{% url 'show_courses' show.pk %}">Course Information</a>{% endif %}
@@ -21,14 +17,7 @@
 {% can_manage_live_show_status show as can_manage_live_status %}
 {% if can_manage_live_status %}
 <section class="content-section">
-  <div class="section-head">
-    <div>
-      <div class="eyebrow">LIVE SHOW STATUS</div>
-      <h2>{{ show.get_status_display }}</h2>
-      <p class="muted">Use these quick controls during the show. When public live status is enabled, the spectator site follows this status automatically.</p>
-    </div>
-    <span class="status-pill">{{ show.get_status_display }}</span>
-  </div>
+  <div class="section-head"><div><div class="eyebrow">LIVE SHOW STATUS</div><h2>{{ show.get_status_display }}</h2><p class="muted">Use these quick controls during the show. When public live status is enabled, the spectator site follows this status automatically.</p></div><span class="status-pill">{{ show.get_status_display }}</span></div>
   <div class="actions">
     <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">{% csrf_token %}<input type="hidden" name="status" value="entered"><button class="btn secondary" type="submit" {% if show.status == 'entered' %}disabled{% endif %}>Ready / Upcoming</button></form>
     <form method="post" action="{% url 'show_day_live_status_update' show.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button class="btn" type="submit" {% if show.status == 'in_progress' %}disabled{% endif %}>{% if show.status == 'paused' %}Resume show{% else %}Start show{% endif %}</button></form>
@@ -38,93 +27,60 @@
 </section>
 {% endif %}
 
-{% if operational %}
-<section class="finance-stat-grid">
-  <article class="finance-stat"><span>Expected</span><strong>{{ counts.expected }}</strong></article>
-  <article class="finance-stat"><span>Arrived</span><strong>{{ counts.arrived }}</strong></article>
-  <article class="finance-stat"><span>Running late</span><strong>{{ counts.running_late }}</strong></article>
-  <article class="finance-stat"><span>Finished / left</span><strong>{{ counts.finished }}</strong></article>
+{% can_manage_spectator_show_updates show as can_manage_spectator %}
+{% if can_manage_spectator %}
+{% show_day_rings show as spectator_rings %}
+{% active_spectator_updates show as spectator_updates %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">SPECTATOR UPDATES</div><h2>Public show-day notices</h2><p class="muted">These notices appear only on the anonymous public show page when public live status is enabled.</p></div></div>
+  <form method="post" action="{% url 'spectator_announcement_add' show.pk %}" class="show-day-status-form">
+    {% csrf_token %}
+    <select name="kind"><option value="announcement">Announcement</option><option value="break">Break</option><option value="schedule">Schedule update</option></select>
+    <select name="ring"><option value="">Whole show</option>{% for ring in spectator_rings %}<option value="{{ ring }}">{{ ring }}</option>{% endfor %}</select>
+    <input type="text" name="title" maxlength="120" placeholder="Spectator update title" required>
+    <input type="text" name="message" maxlength="280" placeholder="Optional details">
+    <button class="btn" type="submit">Post publicly</button>
+  </form>
+
+  {% if spectator_rings %}
+  <div class="planning-grid" style="margin-top:1rem">
+    {% for ring in spectator_rings %}
+    <article class="card planning-card">
+      <small>RING DELAY</small><h3>{{ ring }}</h3>
+      <div class="actions">
+        {% for minutes in '15,30,45,60'|cut:' '|make_list %}{% endfor %}
+        <form method="post" action="{% url 'spectator_ring_delay_update' show.pk %}">{% csrf_token %}<input type="hidden" name="ring" value="{{ ring }}"><input type="hidden" name="minutes" value="15"><button class="btn secondary" type="submit">+15</button></form>
+        <form method="post" action="{% url 'spectator_ring_delay_update' show.pk %}">{% csrf_token %}<input type="hidden" name="ring" value="{{ ring }}"><input type="hidden" name="minutes" value="30"><button class="btn secondary" type="submit">+30</button></form>
+        <form method="post" action="{% url 'spectator_ring_delay_update' show.pk %}">{% csrf_token %}<input type="hidden" name="ring" value="{{ ring }}"><input type="hidden" name="minutes" value="45"><button class="btn secondary" type="submit">+45</button></form>
+        <form method="post" action="{% url 'spectator_ring_delay_update' show.pk %}">{% csrf_token %}<input type="hidden" name="ring" value="{{ ring }}"><input type="hidden" name="minutes" value="60"><button class="btn secondary" type="submit">+60</button></form>
+        <form method="post" action="{% url 'spectator_ring_delay_update' show.pk %}">{% csrf_token %}<input type="hidden" name="ring" value="{{ ring }}"><input type="hidden" name="minutes" value="0"><button class="btn secondary" type="submit">Clear</button></form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if spectator_updates %}
+  <div style="margin-top:1rem">
+    {% for update in spectator_updates %}
+      <article class="callout"><strong>{% if update.ring %}{{ update.ring }} · {% endif %}{{ update.title }}</strong>{% if update.message %}<span>{{ update.message }}</span>{% endif %}<form method="post" action="{% url 'spectator_update_dismiss' update.pk %}" style="margin-top:.5rem">{% csrf_token %}<button class="btn secondary" type="submit">Clear public notice</button></form></article>
+    {% endfor %}
+  </div>
+  {% endif %}
 </section>
 {% endif %}
+
+{% if operational %}<section class="finance-stat-grid"><article class="finance-stat"><span>Expected</span><strong>{{ counts.expected }}</strong></article><article class="finance-stat"><span>Arrived</span><strong>{{ counts.arrived }}</strong></article><article class="finance-stat"><span>Running late</span><strong>{{ counts.running_late }}</strong></article><article class="finance-stat"><span>Finished / left</span><strong>{{ counts.finished }}</strong></article></section>{% endif %}
 
 {% if needs_attention %}<section class="content-section"><div class="section-head"><div><div class="eyebrow">NEEDS ATTENTION</div><h2>Show-day follow-up</h2></div></div><ul class="show-day-attention-list">{% for item in needs_attention %}<li>{{ item }}</li>{% endfor %}</ul></section>{% endif %}
 
-{% if operational %}
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">COURSE OPERATIONS</div><h2>Course board</h2><p class="muted">Posted course details and walk times for the ringside team.</p></div><a class="text-link" href="{% url 'show_courses' show.pk %}">Open Course Information →</a></div>
-  <div class="planning-grid">
-    {% for course in show.courses.all %}{% if course.active %}<article class="card planning-card"><small>{{ course.get_course_type_display }}{% if course.ring %} · {{ course.ring }}{% endif %}</small><h3>{{ course.title }}</h3>{% if course.course_walk_at %}<p><strong>Walk:</strong> {{ course.course_walk_at|date:"g:i A" }}</p>{% endif %}<p class="muted">{% if course.course_file or course.external_link %}Course media posted{% else %}Course media pending{% endif %}</p></article>{% endif %}{% empty %}<div class="empty-state">No course information has been posted yet.</div>{% endfor %}
-  </div>
-</section>
-{% endif %}
+{% if operational %}<section class="content-section"><div class="section-head"><div><div class="eyebrow">COURSE OPERATIONS</div><h2>Course board</h2><p class="muted">Posted course details and walk times for the ringside team.</p></div><a class="text-link" href="{% url 'show_courses' show.pk %}">Open Course Information →</a></div><div class="planning-grid">{% for course in show.courses.all %}{% if course.active %}<article class="card planning-card"><small>{{ course.get_course_type_display }}{% if course.ring %} · {{ course.ring }}{% endif %}</small><h3>{{ course.title }}</h3>{% if course.course_walk_at %}<p><strong>Walk:</strong> {{ course.course_walk_at|date:"g:i A" }}</p>{% endif %}<p class="muted">{% if course.course_file or course.external_link %}Course media posted{% else %}Course media pending{% endif %}</p></article>{% endif %}{% empty %}<div class="empty-state">No course information has been posted yet.</div>{% endfor %}</div></section>{% endif %}
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">RIDER CHECK-IN</div><h2>{% if operational %}Team riders{% else %}My rider{% endif %}</h2></div></div>
-  <div class="show-day-rider-grid">
-  {% for row in rider_rows %}
-    <article class="show-day-rider-card">
-      <div><strong>{{ row.rider.display_name }}</strong>{% if row.membership %}<span class="muted">{{ row.membership.get_team_level_display }}</span>{% endif %}</div>
-      <span class="status-pill">{{ row.status_label }}</span>
-      {% if row.status_obj and row.status_obj.note %}<p class="muted">{{ row.status_obj.note }}</p>{% endif %}
-      {% if row.status_obj and row.status_obj.updated_by %}<small class="muted">Updated {{ row.status_obj.updated_at|date:"g:i A" }} by {{ row.status_obj.updated_by.get_full_name|default:row.status_obj.updated_by.username }}</small>{% endif %}
-      {% if row.can_edit %}<form method="post" action="{% url 'show_day_rider_status_update' show.pk row.rider.pk %}" class="show-day-status-form">{% csrf_token %}<select name="status">{% for value,label in status_choices %}<option value="{{ value }}" {% if value == row.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><input type="text" name="note" maxlength="180" value="{% if row.status_obj %}{{ row.status_obj.note }}{% endif %}" placeholder="Optional note"><button class="btn secondary" type="submit">Update</button></form>{% endif %}
-    </article>
-  {% empty %}<p class="muted">No riders are entered for this show yet.</p>{% endfor %}
-  </div>
-</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">RIDER CHECK-IN</div><h2>{% if operational %}Team riders{% else %}My rider{% endif %}</h2></div></div><div class="show-day-rider-grid">{% for row in rider_rows %}<article class="show-day-rider-card"><div><strong>{{ row.rider.display_name }}</strong>{% if row.membership %}<span class="muted">{{ row.membership.get_team_level_display }}</span>{% endif %}</div><span class="status-pill">{{ row.status_label }}</span>{% if row.status_obj and row.status_obj.note %}<p class="muted">{{ row.status_obj.note }}</p>{% endif %}{% if row.status_obj and row.status_obj.updated_by %}<small class="muted">Updated {{ row.status_obj.updated_at|date:"g:i A" }} by {{ row.status_obj.updated_by.get_full_name|default:row.status_obj.updated_by.username }}</small>{% endif %}{% if row.can_edit %}<form method="post" action="{% url 'show_day_rider_status_update' show.pk row.rider.pk %}" class="show-day-status-form">{% csrf_token %}<select name="status">{% for value,label in status_choices %}<option value="{{ value }}" {% if value == row.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><input type="text" name="note" maxlength="180" value="{% if row.status_obj %}{{ row.status_obj.note }}{% endif %}" placeholder="Optional note"><button class="btn secondary" type="submit">Update</button></form>{% endif %}</article>{% empty %}<p class="muted">No riders are entered for this show yet.</p>{% endfor %}</div></section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">SHOW ORDER</div><h2>Class schedule</h2><p class="muted">The full show order is shown even when our team has no rider in a class. Assign rings here so multiple rings can run independently.</p></div><a class="text-link" href="{% url 'show_schedule' show.pk %}">Full schedule →</a></div>
-  {% show_day_schedule_rows show schedule_rows as show_day_rows %}
-  <div class="entry-table-wrap">
-    <table class="entry-table">
-      <thead><tr><th>Time</th><th>Ring</th><th>Class</th><th>Status</th><th>Our riders</th><th>Results</th></tr></thead>
-      <tbody>
-      {% for row in show_day_rows %}
-        {% show_class_live_state row.class as class_live_state %}
-        {% show_class_ring_name row.class as class_ring %}
-        {% can_manage_live_class_status row.class as can_manage_class_live %}
-        <tr>
-          <td>{% if row.class.schedule_time %}{{ row.class.schedule_time|time:"g:i A" }}{% else %}—{% endif %}</td>
-          <td>
-            <strong>{{ class_ring }}</strong>
-            {% if can_manage_class_live %}
-              <form method="post" action="{% url 'show_class_ring_update' row.class.pk %}" style="margin-top:.4rem;display:flex;gap:.35rem;align-items:center">{% csrf_token %}<input type="text" name="ring" maxlength="80" placeholder="Main ring" value="{% if row.class.ring_assignment %}{{ row.class.ring_assignment.ring }}{% endif %}" style="max-width:8rem"><button class="btn secondary" type="submit">Set</button></form>
-            {% endif %}
-          </td>
-          <td><strong>{% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}</strong>{% if row.class.schedule_note %}<div class="muted">{{ row.class.schedule_note }}</div>{% endif %}</td>
-          <td>
-            <span class="status-pill">{% if class_live_state %}{{ class_live_state.get_status_display }}{% else %}Not started{% endif %}</span>
-            {% if can_manage_class_live %}<div class="actions" style="margin-top:.5rem">
-              {% if not class_live_state or class_live_state.status == 'not_started' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button class="btn secondary" type="submit">Start</button></form>
-              {% elif class_live_state.status == 'in_progress' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="paused"><button class="btn secondary" type="submit">Pause</button></form><form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="complete"><button class="btn secondary" type="submit">Complete</button></form>
-              {% elif class_live_state.status == 'paused' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button class="btn secondary" type="submit">Resume</button></form><form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="complete"><button class="btn secondary" type="submit">Complete</button></form>{% endif %}
-            </div>{% endif %}
-          </td>
-          <td>{% for entry in row.entries %}<div>{{ entry.rider.display_name }}{% if can_manage_points and entry.is_point_rider %} ★{% endif %}</div>{% empty %}<span class="muted">No team rider</span>{% endfor %}</td>
-          <td>
-            {% if can_manage_points %}{% for entry in row.entries %}<div><a href="{% url 'show_result_edit' entry.pk %}">Enter/edit {{ entry.rider.first_name }}</a></div>{% endfor %}{% endif %}
-            {% if class_live_state and class_live_state.status == 'complete' %}
-              <div style="margin-top:.5rem"><span class="status-pill">{% if class_live_state.results_published %}Results posted{% else %}Results pending{% endif %}</span></div>
-              {% if can_manage_class_live %}<form method="post" action="{% url 'show_class_results_publication_update' row.class.pk %}" style="margin-top:.5rem">{% csrf_token %}<input type="hidden" name="publish" value="{% if class_live_state.results_published %}0{% else %}1{% endif %}"><button class="btn secondary" type="submit">{% if class_live_state.results_published %}Unpublish results{% else %}Publish results{% endif %}</button></form>{% endif %}
-            {% else %}<span class="muted">Available when complete</span>{% endif %}
-          </td>
-        </tr>
-      {% empty %}<tr><td colspan="6" class="muted">No classes have been added to this show yet.</td></tr>{% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">SHOW ORDER</div><h2>Class schedule</h2><p class="muted">The full show order is shown even when our team has no rider in a class. Assign rings here so multiple rings can run independently.</p></div><a class="text-link" href="{% url 'show_schedule' show.pk %}">Full schedule →</a></div>{% show_day_schedule_rows show schedule_rows as show_day_rows %}<div class="entry-table-wrap"><table class="entry-table"><thead><tr><th>Time</th><th>Ring</th><th>Class</th><th>Status</th><th>Our riders</th><th>Results</th></tr></thead><tbody>{% for row in show_day_rows %}{% show_class_live_state row.class as class_live_state %}{% show_class_ring_name row.class as class_ring %}{% can_manage_live_class_status row.class as can_manage_class_live %}<tr><td>{% if row.class.schedule_time %}{{ row.class.schedule_time|time:"g:i A" }}{% else %}—{% endif %}</td><td><strong>{{ class_ring }}</strong>{% if can_manage_class_live %}<form method="post" action="{% url 'show_class_ring_update' row.class.pk %}" style="margin-top:.4rem;display:flex;gap:.35rem;align-items:center">{% csrf_token %}<input type="text" name="ring" maxlength="80" placeholder="Main ring" value="{% if row.class.ring_assignment %}{{ row.class.ring_assignment.ring }}{% endif %}" style="max-width:8rem"><button class="btn secondary" type="submit">Set</button></form>{% endif %}</td><td><strong>{% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}</strong>{% if row.class.schedule_note %}<div class="muted">{{ row.class.schedule_note }}</div>{% endif %}</td><td><span class="status-pill">{% if class_live_state %}{{ class_live_state.get_status_display }}{% else %}Not started{% endif %}</span>{% if can_manage_class_live %}<div class="actions" style="margin-top:.5rem">{% if not class_live_state or class_live_state.status == 'not_started' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button class="btn secondary" type="submit">Start</button></form>{% elif class_live_state.status == 'in_progress' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="paused"><button class="btn secondary" type="submit">Pause</button></form><form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="complete"><button class="btn secondary" type="submit">Complete</button></form>{% elif class_live_state.status == 'paused' %}<form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="in_progress"><button class="btn secondary" type="submit">Resume</button></form><form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">{% csrf_token %}<input type="hidden" name="status" value="complete"><button class="btn secondary" type="submit">Complete</button></form>{% endif %}</div>{% endif %}</td><td>{% for entry in row.entries %}<div>{{ entry.rider.display_name }}{% if can_manage_points and entry.is_point_rider %} ★{% endif %}</div>{% empty %}<span class="muted">No team rider</span>{% endfor %}</td><td>{% if can_manage_points %}{% for entry in row.entries %}<div><a href="{% url 'show_result_edit' entry.pk %}">Enter/edit {{ entry.rider.first_name }}</a></div>{% endfor %}{% endif %}{% if class_live_state and class_live_state.status == 'complete' %}<div style="margin-top:.5rem"><span class="status-pill">{% if class_live_state.results_published %}Results posted{% else %}Results pending{% endif %}</span></div>{% if can_manage_class_live %}<form method="post" action="{% url 'show_class_results_publication_update' row.class.pk %}" style="margin-top:.5rem">{% csrf_token %}<input type="hidden" name="publish" value="{% if class_live_state.results_published %}0{% else %}1{% endif %}"><button class="btn secondary" type="submit">{% if class_live_state.results_published %}Unpublish results{% else %}Publish results{% endif %}</button></form>{% endif %}{% else %}<span class="muted">Available when complete</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" class="muted">No classes have been added to this show yet.</td></tr>{% endfor %}</tbody></table></div></section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">OPERATIONS</div><h2>Checklist & volunteers</h2><p class="muted">{{ incomplete_checklist_count }} checklist open · {{ open_volunteer_count }} volunteer opening{{ open_volunteer_count|pluralize }}</p></div><a class="text-link" href="{% url 'show_planning' show.pk %}">Open coordination →</a></div>
-  {% if my_assignments %}<h3>My assignments</h3><div class="planning-grid">{% for item in my_assignments %}<article class="card planning-card"><small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small><h3>{{ item.title }}</h3>{% if item.details %}<p>{{ item.details }}</p>{% endif %}</article>{% endfor %}</div>
-  {% elif planning_preview %}<div class="planning-grid">{% for item in planning_preview %}<article class="card planning-card {% if item.completed %}complete{% endif %}"><small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small><h3>{{ item.title }}</h3>{% if item.owner %}<p class="muted">{{ item.owner.get_full_name|default:item.owner.username }}</p>{% endif %}</article>{% endfor %}</div>
-  {% else %}<p class="muted">No checklist or volunteer items have been added yet.</p>{% endif %}
-</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">OPERATIONS</div><h2>Checklist & volunteers</h2><p class="muted">{{ incomplete_checklist_count }} checklist open · {{ open_volunteer_count }} volunteer opening{{ open_volunteer_count|pluralize }}</p></div><a class="text-link" href="{% url 'show_planning' show.pk %}">Open coordination →</a></div>{% if my_assignments %}<h3>My assignments</h3><div class="planning-grid">{% for item in my_assignments %}<article class="card planning-card"><small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small><h3>{{ item.title }}</h3>{% if item.details %}<p>{{ item.details }}</p>{% endif %}</article>{% endfor %}</div>{% elif planning_preview %}<div class="planning-grid">{% for item in planning_preview %}<article class="card planning-card {% if item.completed %}complete{% endif %}"><small>{{ item.get_item_type_display }} · {{ item.get_team_level_display }}</small><h3>{{ item.title }}</h3>{% if item.owner %}<p class="muted">{{ item.owner.get_full_name|default:item.owner.username }}</p>{% endif %}</article>{% endfor %}</div>{% else %}<p class="muted">No checklist or volunteer items have been added yet.</p>{% endif %}</section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">PUBLIC UPDATES</div><h2>Latest show-day information</h2></div><div class="actions"><a class="text-link" href="{% url 'show_day_updates' show.pk %}">View all →</a>{% if can_publish_update %}<a class="btn secondary" href="{% url 'show_day_update_add' show.pk %}">Post update</a>{% endif %}</div></div>
-  {% for update in recent_updates %}<article class="callout"><strong>{{ update.title }}</strong><span>{{ update.body }}</span></article>{% empty %}<p class="muted">No public show-day updates have been posted yet.</p>{% endfor %}
-</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">TEAM/FAMILY UPDATES</div><h2>Latest show-day information</h2></div><div class="actions"><a class="text-link" href="{% url 'show_day_updates' show.pk %}">View all →</a>{% if can_publish_update %}<a class="btn secondary" href="{% url 'show_day_update_add' show.pk %}">Post update</a>{% endif %}</div></div>{% for update in recent_updates %}<article class="callout"><strong>{{ update.title }}</strong><span>{{ update.body }}</span></article>{% empty %}<p class="muted">No team/family show-day updates have been posted yet.</p>{% endfor %}</section>
 {% endblock %}
