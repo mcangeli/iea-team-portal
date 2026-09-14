@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Publish {{ show.name }} · ArenaLine{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div>
+    <div class="eyebrow">PUBLICATION</div>
+    <h1>{{ show.name }}</h1>
+    <p>Control exactly which details from this show may appear on the public site.</p>
+  </div>
+  <a class="btn secondary" href="{% url 'public_site_manage' %}">Back to public site</a>
+</div>
+
+<div class="grid two-col">
+  <section class="card">
+    <h2>Publication settings</h2>
+    <p class="muted">Private notes, entries, riders, results, horses, finance, and operations are never published by this form.</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn" type="submit">Save show publication</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="eyebrow">PREVIEW</div>
+    <h2>{{ preview_show.name }}</h2>
+    <p><strong>{{ preview_show.date|date:"F j, Y" }}</strong>{% if preview_show.time %} · {{ preview_show.time|time:"g:i A" }}{% endif %}</p>
+    {% if preview_show.summary %}<p>{{ preview_show.summary|linebreaksbr }}</p>{% endif %}
+    <dl class="detail-list">
+      {% if preview_show.venue %}<div><dt>Venue</dt><dd>{{ preview_show.venue }}</dd></div>{% endif %}
+      {% if preview_show.address %}<div><dt>Address</dt><dd>{{ preview_show.address }}</dd></div>{% endif %}
+      {% if preview_show.host_team %}<div><dt>Host</dt><dd>{{ preview_show.host_team }}</dd></div>{% endif %}
+      {% if preview_show.iea_zone or preview_show.iea_region %}<div><dt>IEA area</dt><dd>{% if preview_show.iea_zone %}Zone {{ preview_show.iea_zone }}{% endif %}{% if preview_show.iea_zone and preview_show.iea_region %} · {% endif %}{% if preview_show.iea_region %}Region {{ preview_show.iea_region }}{% endif %}</dd></div>{% endif %}
+      <div><dt>Status</dt><dd>{% if publication.is_published %}<span class="status-pill">Published</span>{% else %}<span class="status-pill">Private</span>{% endif %}</dd></div>
+    </dl>
+  </section>
+</div>
+{% endblock %}
