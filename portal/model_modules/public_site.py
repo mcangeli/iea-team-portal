@@ -41,6 +41,10 @@ class PublicShowPublication(models.Model):
         default=False,
         help_text="Publishes only the show's allow-listed class order and public schedule fields. Entries and internal strategy remain private.",
     )
+    publish_results = models.BooleanField(
+        default=False,
+        help_text="Publishes only finalized class placings and rider display names. Entry strategy, internal notes, and points-rider status remain private.",
+    )
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
