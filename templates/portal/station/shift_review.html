@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Station Shifts · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">STATION</div><h1>Shift review</h1><p>Review, correct, and approve barn work recorded through ArenaLine Station.</p></div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOURS</div><h2>Person totals</h2></div></div>
+  {% if summary %}
+  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Total hours</th><th>Approved hours</th></tr></thead><tbody>
+  {% for row in summary %}<tr><td><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></td><td>{{ row.minutes|floatformat:0 }} min</td><td>{{ row.approved_minutes|floatformat:0 }} min</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="muted">No Station shifts have been recorded yet.</p>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">REVIEW</div><h2>Recent shifts</h2></div></div>
+  {% if shifts %}
+  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Status</th><th></th></tr></thead><tbody>
+  {% for shift in shifts %}<tr>
+    <td>{{ shift.person.display_name }}</td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{% if shift.clock_out %}{{ shift.clock_out|date:"M j, Y g:i A" }}{% else %}<strong>Open</strong>{% endif %}</td><td>{{ shift.duration_minutes }} min</td><td>{% if shift.approved_at %}Approved{% else %}Needs review{% endif %}</td>
+    <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit</a>{% if not shift.approved_at and shift.clock_out %}<form method="post" action="{% url 'station_shift_approve' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve</button></form>{% endif %}</div></td>
+  </tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="muted">No shifts to review.</p>{% endif %}
+</section>
+{% endblock %}
