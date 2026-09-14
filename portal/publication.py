@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
@@ -107,6 +108,20 @@ def public_show_payload(publication):
     return payload
 
 
+def _class_live_public_state(show_class):
+    try:
+        live_state = show_class.live_state
+    except ObjectDoesNotExist:
+        return None
+
+    return {
+        "not_started": ("upcoming", "Upcoming"),
+        "in_progress": ("current", "Now"),
+        "paused": ("paused", "Paused"),
+        "complete": ("complete", "Complete"),
+    }.get(live_state.status)
+
+
 def public_show_schedule_payload(publication):
     """Return the deliberately allow-listed public class schedule for a show."""
 
@@ -114,7 +129,7 @@ def public_show_schedule_payload(publication):
         return []
 
     classes = list(
-        publication.show.classes.select_related("season_class").order_by(
+        publication.show.classes.select_related("season_class", "live_state").order_by(
             "sort_order", "class_number", "name"
         )
     )
@@ -131,7 +146,10 @@ def public_show_schedule_payload(publication):
         state = None
         state_label = None
         if publication.publish_live_status:
-            if spectator_code == "complete":
+            explicit_state = _class_live_public_state(show_class)
+            if explicit_state:
+                state, state_label = explicit_state
+            elif spectator_code == "complete":
                 state, state_label = "complete", "Complete"
             elif spectator_code in {"upcoming", "cancelled"}:
                 state, state_label = "upcoming", "Upcoming"
