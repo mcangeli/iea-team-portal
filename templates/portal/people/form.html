@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit {{ person.display_name }}{% else %}Add person{% endif %} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% if person %}{% url 'person_detail' person.pk %}{% else %}{% url 'people_directory' %}{% endif %}">← Back</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">PEOPLE</div><h1>{% if mode == 'edit' %}Edit {{ person.display_name }}{% else %}Add person{% endif %}</h1><p>Maintain one canonical ArenaLine profile for each person in the organization.</p></div>
+</section>
+<section class="content-section people-form-shell">
+  <form method="post" enctype="multipart/form-data" class="form-grid">{% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}<div class="form-field{% if field.name == 'bio' %} form-field-wide{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
+    <div class="form-actions form-field-wide"><button class="btn" type="submit">Save person</button><a class="btn secondary" href="{% if person %}{% url 'person_detail' person.pk %}{% else %}{% url 'people_directory' %}{% endif %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}
