@@ -197,6 +197,28 @@ Implemented behavior:
 
 Focused regression coverage lives in `portal/tests/test_v320_people_relationships.py` and protects multi-role behavior, directional parent/guardian relationships, tenant isolation, group-scoped committees, Person-based committee memberships, and manager-only structure editing.
 
+## Implemented barn participation bridge
+
+Migration `0067_v320_horse_person_relationship.py` introduces a narrow People↔Horse relationship layer without pulling the broader v3.3 Equine Care scope into v3.2.
+
+`HorsePersonRelationship` currently supports:
+
+- Owner;
+- Boarder / Responsible Party;
+- Full Lease;
+- Half Lease;
+- Partial Lease;
+- Trainer;
+- Caretaker.
+
+Relationships may carry an optional share percentage, start/end dates, active state, and notes. Horse, Person, and relationship tenant ownership must all match.
+
+The Horse profile is the editing surface for these relationships. Admin/Coach users may add or edit a linked person from the Horse profile, while the canonical Person profile mirrors the same relationship and links back to the Horse. The relationship record remains single-source; ArenaLine does not create a duplicate Person-side ownership/lease record.
+
+This preserves a clean handoff into v3.3: veterinary, farrier, medication, feed, health, and broader care records remain future Equine Care work rather than being prematurely mixed into the v3.2 people foundation.
+
+Focused regression coverage lives in `portal/tests/test_v320_barn_participation.py` for model rules and `portal/tests/test_v320_barn_participation_ui.py` for manager permissions, tenant isolation, form behavior, and mirrored Horse/Person profile presentation.
+
 ## Planned v3.2 slices
 
 ### v3.2.0 foundation
