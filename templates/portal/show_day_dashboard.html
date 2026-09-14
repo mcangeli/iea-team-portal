@@ -137,12 +137,45 @@
   </div>
   <div class="entry-table-wrap">
     <table class="entry-table">
-      <thead><tr><th>Time</th><th>Class</th><th>Riders</th>{% if can_manage_points %}<th>Results</th>{% endif %}</tr></thead>
+      <thead><tr><th>Time</th><th>Class</th><th>Status</th><th>Riders</th>{% if can_manage_points %}<th>Results</th>{% endif %}</tr></thead>
       <tbody>
       {% for row in schedule_rows %}
+        {% show_class_live_state row.class as class_live_state %}
+        {% can_manage_live_class_status row.class as can_manage_class_live %}
         <tr>
           <td>{% if row.class.schedule_time %}{{ row.class.schedule_time|time:"g:i A" }}{% else %}—{% endif %}</td>
           <td><strong>{% if row.class.class_number %}{{ row.class.class_number }} · {% endif %}{{ row.class.display_name }}</strong>{% if row.class.schedule_note %}<div class="muted">{{ row.class.schedule_note }}</div>{% endif %}</td>
+          <td>
+            <span class="status-pill">{% if class_live_state %}{{ class_live_state.get_status_display }}{% else %}Not started{% endif %}</span>
+            {% if can_manage_class_live %}
+              <div class="actions" style="margin-top:.5rem">
+                {% if not class_live_state or class_live_state.status == 'not_started' %}
+                  <form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">
+                    {% csrf_token %}<input type="hidden" name="status" value="in_progress">
+                    <button class="btn secondary" type="submit">Start</button>
+                  </form>
+                {% elif class_live_state.status == 'in_progress' %}
+                  <form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">
+                    {% csrf_token %}<input type="hidden" name="status" value="paused">
+                    <button class="btn secondary" type="submit">Pause</button>
+                  </form>
+                  <form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">
+                    {% csrf_token %}<input type="hidden" name="status" value="complete">
+                    <button class="btn secondary" type="submit">Complete</button>
+                  </form>
+                {% elif class_live_state.status == 'paused' %}
+                  <form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">
+                    {% csrf_token %}<input type="hidden" name="status" value="in_progress">
+                    <button class="btn secondary" type="submit">Resume</button>
+                  </form>
+                  <form method="post" action="{% url 'show_class_live_status_update' row.class.pk %}">
+                    {% csrf_token %}<input type="hidden" name="status" value="complete">
+                    <button class="btn secondary" type="submit">Complete</button>
+                  </form>
+                {% endif %}
+              </div>
+            {% endif %}
+          </td>
           <td>
             {% for entry in row.entries %}
               <div>{{ entry.rider.display_name }}{% if can_manage_points and entry.is_point_rider %} ★{% endif %}</div>
@@ -157,7 +190,7 @@
           {% endif %}
         </tr>
       {% empty %}
-        <tr><td colspan="4" class="muted">No scheduled classes with entries yet.</td></tr>
+        <tr><td colspan="5" class="muted">No scheduled classes with entries yet.</td></tr>
       {% endfor %}
       </tbody>
     </table>
