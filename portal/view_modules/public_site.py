@@ -15,34 +15,48 @@ from portal.publication import (
 def _public_show_groups(site):
     today = timezone.localdate()
     shows = [public_show_payload(publication) for publication in public_show_queryset(site)]
-    upcoming = [show for show in shows if show["date"] >= today]
+    active = [
+        show
+        for show in shows
+        if show.get("live_status")
+        and show["live_status"]["code"] in {"in_progress", "paused"}
+    ]
+    active_slugs = {show["slug"] for show in active}
+    upcoming = [
+        show
+        for show in shows
+        if show["date"] >= today and show["slug"] not in active_slugs
+    ]
     past = [show for show in shows if show["date"] < today]
     past.reverse()
-    return upcoming, past
+    return active, upcoming, past
 
 
 def public_site_home(request, site_slug):
     site = get_public_site(site_slug)
-    upcoming, _past = _public_show_groups(site)
+    active, upcoming, _past = _public_show_groups(site)
+    preview = active + upcoming
     return render(
         request,
         "public/site_home.html",
         {
             "public_site": public_site_payload(site),
-            "public_shows": upcoming[:3],
-            "has_more_shows": len(upcoming) > 3,
+            "active_shows": active,
+            "public_shows": preview[:3],
+            "has_more_shows": len(preview) > 3,
         },
     )
 
 
 def public_schedule(request, site_slug):
     site = get_public_site(site_slug)
-    upcoming, past = _public_show_groups(site)
+    active, upcoming, past = _public_show_groups(site)
     return render(
         request,
         "public/schedule.html",
         {
             "public_site": public_site_payload(site),
+            "active_shows": active,
             "upcoming_shows": upcoming,
             "past_shows": past,
         },
