@@ -56,7 +56,7 @@ The README is the practical entry point. It should contain:
 - installation requirements and setup;
 - upgrade/update instructions;
 - operational/troubleshooting basics;
-- links to roadmap, architecture, changelog/release notes, and detailed release documentation.
+- links to roadmap, architecture, changelog, and detailed release documentation.
 
 The README should not become the canonical roadmap or a full historical changelog.
 
@@ -71,9 +71,13 @@ The README should not become the canonical roadmap or a full historical changelo
 
 Roadmap decisions should be updated when they are made, not after implementation is finished.
 
+### `CHANGELOG.md`
+
+`CHANGELOG.md` is the canonical concise top-level release history. Each stable production release should receive an entry describing user-visible changes, migration range, validation status, and a link to the detailed release document where one exists.
+
 ### `RELEASE_NOTES.md`
 
-`RELEASE_NOTES.md` is the canonical top-level changelog/release history. Each production release should receive a concise entry describing user-visible changes, migrations, compatibility notes, and validation status.
+`RELEASE_NOTES.md` remains the retained detailed historical release record for older releases that predate the canonical changelog. Do not duplicate the entire historical file into the README or changelog.
 
 ### `docs/releases/<version>.md`
 
@@ -85,7 +89,7 @@ Update architecture documentation whenever a release changes domain boundaries, 
 
 ### Release checklist
 
-No release is complete until code, tests, presentation, version identity, README, roadmap, changelog/release notes, architecture, and applicable release documents agree with one another.
+No release is complete until code, tests, presentation, version identity, README, roadmap, changelog, architecture, and applicable release documents agree with one another.
 
 ## Development checklist for new pages/features
 
