@@ -2,6 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import get_object_or_404
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
+from portal.model_modules.show_day_state import SpectatorShowUpdate
 
 
 def get_public_site(site_slug):
@@ -64,6 +65,28 @@ def _ring_name(show_class):
         return "Main ring"
 
 
+def public_spectator_updates_payload(publication):
+    """Return only updates deliberately entered for anonymous spectators."""
+    if not publication.publish_live_status:
+        return []
+
+    updates = SpectatorShowUpdate.objects.filter(
+        show=publication.show,
+        active=True,
+    ).order_by("-updated_at", "-id")[:8]
+    return [
+        {
+            "kind": update.kind,
+            "kind_label": update.get_kind_display(),
+            "ring": update.ring,
+            "title": update.title,
+            "message": update.message,
+            "updated_at": update.updated_at,
+        }
+        for update in updates
+    ]
+
+
 def _public_live_status(publication):
     if not publication.publish_live_status:
         return None
@@ -123,6 +146,7 @@ def public_show_payload(publication):
         "iea_zone": None,
         "iea_region": None,
         "live_status": _public_live_status(publication),
+        "spectator_updates": public_spectator_updates_payload(publication),
     }
     if publication.publish_time:
         payload["time"] = show.start_time
@@ -173,11 +197,7 @@ def public_show_schedule_payload(publication):
             continue
 
     current_index = None
-    if (
-        publication.publish_live_status
-        and publication.current_class_id
-        and not has_explicit_live_state
-    ):
+    if publication.publish_live_status and publication.current_class_id and not has_explicit_live_state:
         for index, show_class in enumerate(classes):
             if show_class.pk == publication.current_class_id:
                 current_index = index
@@ -202,10 +222,7 @@ def public_show_schedule_payload(publication):
                 if index < current_index:
                     state, state_label = "complete", "Complete"
                 elif index == current_index:
-                    if spectator_code == "paused":
-                        state, state_label = "paused", "Paused"
-                    else:
-                        state, state_label = "current", "Now"
+                    state, state_label = ("paused", "Paused") if spectator_code == "paused" else ("current", "Now")
                 else:
                     state, state_label = "upcoming", "Upcoming"
 
