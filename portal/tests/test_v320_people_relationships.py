@@ -18,11 +18,19 @@ class V320PeopleRelationshipsTests(TestCase):
         self.team = Team.objects.create(name="Blue Skies Riding Academy")
         self.other_team = Team.objects.create(name="Other Barn")
         self.admin = User.objects.create_user(username="admin-rel-v320", password="pass12345")
-        UserProfile.objects.create(user=self.admin, team=self.team, role=UserProfile.Role.ADMIN)
+        self._configure_profile(self.admin, self.team, UserProfile.Role.ADMIN)
         self.person = Person.objects.create(team=self.team, first_name="Jane", last_name="Smith")
         self.child = Person.objects.create(team=self.team, first_name="Emma", last_name="Smith")
         self.outsider = Person.objects.create(team=self.other_team, first_name="Other", last_name="Person")
         self.client.force_login(self.admin)
+
+    @staticmethod
+    def _configure_profile(user, team, role):
+        profile = user.profile
+        profile.team = team
+        profile.role = role
+        profile.save(update_fields=["team", "role"])
+        return profile
 
     def test_person_can_hold_multiple_roles(self):
         for role in (
@@ -97,7 +105,7 @@ class V320PeopleRelationshipsTests(TestCase):
 
     def test_structure_page_is_manager_only(self):
         member = User.objects.create_user(username="member-rel-v320", password="pass12345")
-        UserProfile.objects.create(user=member, team=self.team, role=UserProfile.Role.PARENT)
+        self._configure_profile(member, self.team, UserProfile.Role.PARENT)
         Person.objects.create(team=self.team, user=member, first_name="Parent", last_name="Member")
         self.client.force_login(member)
         response = self.client.get(reverse("people_structure"))
