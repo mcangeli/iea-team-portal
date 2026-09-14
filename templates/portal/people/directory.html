@@ -8,7 +8,10 @@
     <h1>People directory</h1>
     <p>One organization directory for riders, parents, staff, board members, trainers, and other barn participants.</p>
   </div>
-  {% if can_manage_people %}<div class="actions"><a class="btn" href="{% url 'person_create' %}">Add person</a></div>{% endif %}
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'barn_operations' %}">Barn operations</a>
+    {% if can_manage_people %}<a class="btn" href="{% url 'person_create' %}">Add person</a>{% endif %}
+  </div>
 </section>
 
 <section class="content-section">
