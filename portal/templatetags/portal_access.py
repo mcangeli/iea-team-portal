@@ -2,8 +2,13 @@ from django import template
 from django.core.exceptions import ObjectDoesNotExist
 
 from portal.model_modules.show_day_state import SpectatorShowUpdate
+from portal.models import SeasonClass
 from portal.view_modules.common import _can_view_family_account
 from portal.view_modules.show_class_live import can_update_show_class_live_status
+from portal.view_modules.show_day_helpers import (
+    _show_day_operational_levels,
+    _show_day_operational_user,
+)
 from portal.view_modules.show_day_live import can_update_show_live_status
 from portal.view_modules.spectator_updates import can_manage_spectator_updates
 
@@ -29,27 +34,62 @@ def can_manage_live_show_status(context, show):
     return can_update_show_live_status(request.user, show)
 
 
-@register.simple_tag
-def show_day_schedule_rows(show, existing_rows):
-    """Merge filtered rider rows with every scheduled class for the show."""
+@register.simple_tag(takes_context=True)
+def show_day_schedule_rows(context, show, existing_rows):
+    """Merge scope-safe rider rows with the appropriate complete show order.
+
+    Full-team operational users (Admin/Coach/Show Lead/Points Secretary) see every
+    scheduled class, even when the organization has no rider entered. Squad-scoped
+    operational users (Futures/Upper Team Parents) keep their squad boundary while
+    still receiving no-entry classes explicitly linked to their squad's SeasonClass.
+    Ordinary family/rider views retain only rows already allowed by the view layer.
+    """
     if not show:
         return existing_rows or []
 
+    existing_rows = existing_rows or []
     existing_by_class_id = {
         row["class"].pk: row
-        for row in (existing_rows or [])
+        for row in existing_rows
         if row.get("class")
     }
+
+    request = context.get("request")
+    if not request:
+        return existing_rows
+
+    operational = _show_day_operational_user(request.user, show)
+    operational_levels = (
+        _show_day_operational_levels(request.user, show) if operational else set()
+    )
+
     merged = []
     for show_class in show.classes.select_related("season_class").order_by(
         "sort_order", "class_number", "name"
     ):
-        merged.append(
-            existing_by_class_id.get(
-                show_class.pk,
-                {"class": show_class, "entries": [], "missing_results": 0},
-            )
-        )
+        existing = existing_by_class_id.get(show_class.pk)
+        if existing is not None:
+            merged.append(existing)
+            continue
+
+        # Full-team operators need the entire show order, independent of entries.
+        if operational and operational_levels is None:
+            merged.append({"class": show_class, "entries": [], "missing_results": 0})
+            continue
+
+        # Squad-scoped operators may receive no-entry classes only when ArenaLine
+        # has explicit season-class metadata proving the class belongs to their
+        # squad. Unlinked legacy classes are not guessed into a squad.
+        if operational and operational_levels and show_class.season_class_id:
+            team_level = show_class.season_class.team_level
+            if (
+                team_level == SeasonClass.TeamLevel.BOTH
+                or team_level in operational_levels
+            ):
+                merged.append(
+                    {"class": show_class, "entries": [], "missing_results": 0}
+                )
+
     return merged
 
 
