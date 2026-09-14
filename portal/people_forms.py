@@ -2,7 +2,14 @@ from django import forms
 from django.contrib.auth.models import User
 from django.db.models import Q
 
-from portal.model_modules.people import Person
+from portal.model_modules.people import (
+    Committee,
+    CommitteeMembership,
+    OrganizationGroup,
+    OrganizationRoleAssignment,
+    Person,
+    PersonRelationship,
+)
 
 
 class PersonForm(forms.ModelForm):
@@ -53,4 +60,94 @@ class PersonForm(forms.ModelForm):
         widgets = {
             "birth_date": forms.DateInput(attrs={"type": "date"}),
             "bio": forms.Textarea(attrs={"rows": 5}),
+        }
+
+
+class OrganizationRoleAssignmentForm(forms.ModelForm):
+    class Meta:
+        model = OrganizationRoleAssignment
+        fields = ["role", "start_date", "end_date", "active", "notes"]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class PersonRelationshipForm(forms.ModelForm):
+    def __init__(self, *args, team=None, source_person=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = Person.objects.none()
+        if team is not None:
+            qs = Person.objects.filter(team=team, active=True)
+            if source_person is not None:
+                qs = qs.exclude(pk=source_person.pk)
+        self.fields["to_person"].queryset = qs.order_by("last_name", "first_name")
+        self.fields["to_person"].label = "Related person"
+
+    class Meta:
+        model = PersonRelationship
+        fields = [
+            "to_person",
+            "relationship_type",
+            "label",
+            "primary_contact",
+            "start_date",
+            "end_date",
+            "active",
+            "notes",
+        ]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class OrganizationGroupForm(forms.ModelForm):
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = OrganizationGroup.objects.none()
+        if team is not None:
+            qs = OrganizationGroup.objects.filter(team=team, active=True)
+            if getattr(self.instance, "pk", None):
+                qs = qs.exclude(pk=self.instance.pk)
+        self.fields["parent"].queryset = qs.order_by("sort_order", "name")
+
+    class Meta:
+        model = OrganizationGroup
+        fields = ["name", "group_type", "parent", "description", "active", "sort_order"]
+        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
+
+
+class CommitteeForm(forms.ModelForm):
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["group"].queryset = (
+            OrganizationGroup.objects.filter(team=team, active=True).order_by("sort_order", "name")
+            if team is not None
+            else OrganizationGroup.objects.none()
+        )
+
+    class Meta:
+        model = Committee
+        fields = ["name", "group", "purpose", "active", "sort_order"]
+        widgets = {"purpose": forms.Textarea(attrs={"rows": 3})}
+
+
+class CommitteeMembershipForm(forms.ModelForm):
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["committee"].queryset = (
+            Committee.objects.filter(team=team, active=True)
+            .select_related("group")
+            .order_by("group__name", "sort_order", "name")
+            if team is not None
+            else Committee.objects.none()
+        )
+
+    class Meta:
+        model = CommitteeMembership
+        fields = ["committee", "position", "start_date", "end_date", "active", "notes"]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
         }
