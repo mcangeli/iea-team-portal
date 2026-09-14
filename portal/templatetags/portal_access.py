@@ -131,7 +131,7 @@ def squad_hero(team, level):
     if "future" in normalized and branding.futures_hero_image:
         return {"image": branding.futures_hero_image, "position": branding.futures_hero_image_position, "label": "Futures Team"}
     if "upper" in normalized and branding.upper_hero_image:
-        return {"image": branding.upper_hero_image, "position": branding.upper_hero_image_position, "label": "Upper School Team"}
+        return {"image": branding.upper_hero_image, "position": branding.upper_hero_image_position, "label": "Upper Team"}
     if branding.hero_image:
         return {"image": branding.hero_image, "position": branding.hero_image_position, "label": "Team"}
     return None
