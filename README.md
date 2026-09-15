@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.1.0**
+**Current version: v3.2.3**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.1.0 adds the first ArenaLine public/external layer: opt-in public program pages, published show information, live show/ring status, class-by-class public results, spectator notices, stable live URLs, and a polished mobile-first Show Day workflow.
+v3.2.3 completes the 3.2.x People & Operations release family: canonical People identity, multi-role barn participation, horse relationships, ArenaLine Station, work-history review, People Structure, privacy-aware public rider profiles, and the operational/accessibility hardening needed to carry those foundations into broader barn management.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,73 +15,43 @@ v3.1.0 adds the first ArenaLine public/external layer: opt-in public program pag
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.1.0.md`.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.2.3.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.1.0 highlights
+## v3.2.3 highlights
 
-### Explicit public publication boundary
+### People-first identity and access
 
-Nothing becomes public merely because it exists internally. ArenaLine v3.1.0 adds explicit organization and show publication controls with allow-listed public payloads.
+ArenaLine now treats **Person** as the durable human identity and a login account as optional access. Existing Rider, Guardian/Parent, UserProfile, season, finance, competition, and historical structures remain compatibility-safe while workflows move toward the canonical People model.
 
-Public publication can independently expose selected show data such as:
+A Person can hold multiple simultaneous barn roles and relationships without those labels automatically granting permissions. Parent/guardian relationships, login access, private profile visibility, family finance access, and public identity remain separate concerns.
 
-- show date/time;
-- venue/address;
-- host and IEA area;
-- class schedule;
-- finalized published results;
-- live show/class status;
-- spectator-safe public notices.
+### Barn participation and People Structure
 
-Private information remains private by default, including contact data, rider notes, horse medical/Coggins/internal notes, finance, committee/admin information, points-rider strategy, and private files.
+People can participate as riders, boarders, trainers, assistant trainers, barn managers/staff, working students, board members, and parents/guardians. Effective dates preserve current and historical participation.
 
-### Public program and show pages
+People Structure provides generic organization groups/programs and committees while keeping IEA-specific responsibilities and terminology intact. Horse relationships support ownership/responsible-party, boarding, lease, trainer, and caretaker participation and form the foundation for v3.3 Equine Care.
 
-Organizations can enable a public program page and deliberately publish individual shows. Public pages support:
+### ArenaLine Station and work history
 
-- organization branding and public website links;
-- upcoming/active/past show grouping;
-- public show detail pages;
-- published class order and estimated times;
-- class-by-class published results;
-- traditional equestrian placing colors for 1st–10th;
-- stable `/public/<program>/live/` links for reusable QR codes and printed materials.
+ArenaLine Station provides a shared-device barn workflow with device activation, separate Station PINs, restricted Person identification, and staff/working-student clock-in and clock-out. Managers can review, correct, approve, summarize, and export work history with audit coverage.
 
-### Live Show Day and multi-ring operations
+Station credentials do not reuse portal passwords and do not grant unrestricted portal access.
 
-Show Day now supports an operational live-show workflow:
+### Public rider profiles and privacy
 
-- show lifecycle: Ready/Upcoming, In progress, Paused, Complete;
-- per-class lifecycle: Not started, In progress, Paused, Complete;
-- structured ring assignments;
-- multiple rings active simultaneously;
-- one active/paused class per ring;
-- complete show order even when the organization has no rider in a class;
-- mobile/tablet presentation optimized for ringside use.
+Opted-in rider profiles can be deliberately published through the public ArenaLine site using allow-listed fields only. Public cards support photo, display name, bio, website, Instagram, and YouTube while private contact, birth-date, family, role, finance, and operational information remain private.
 
-At tablet/mobile widths the Show Day class board becomes stacked class cards rather than forcing a wide desktop table.
+### Presentation and accessibility
 
-### Public class results
+The 3.2.3 closeout includes responsive People/Station/public-card presentation, keyboard and focus improvements, mobile navigation hardening, intentional empty states, and continued light/dark ArenaLine styling.
 
-Completed classes can publish results independently. Results remain private until explicitly published.
+### Validation
 
-Public result payloads expose only approved fields such as class identity, place, and rider display name. They do not expose points-rider flags, internal notes, entry strategy, horse medical information, or finance data.
-
-### Spectator notices and delays
-
-Admin, Coach, or the assigned Show Lead can post spectator-safe notices from Show Day, including:
-
-- general announcements;
-- break/schedule notices;
-- ring-specific notices;
-- +15 / +30 / +45 / +60 minute delay updates;
-- clearing stale notices.
-
-These notices are separate from internal family/team communications and appear publicly only when the show is published with live status enabled.
+The final v3.2.3 staging baseline passed Django system checks and the complete `portal.tests` regression suite: **643/643 tests green**.
 
 ## Roles and dashboards
 
@@ -106,24 +76,25 @@ Administrators can open all role workspaces. Coaches receive the Coach workspace
 4. Open **Manage → Season Setup** and create/activate the current season.
 5. Configure the season's official IEA rulebook/catalog and participating disciplines.
 6. Review/create the official season classes needed by the organization.
-7. Add Riders and assign season, team level, home barn, and classes.
-8. Add/link Parents and Guardians.
-9. Open **Manage → Users** and create logins linked to the appropriate Rider or Parent record.
-10. Assign committee responsibilities such as Team Parent, Treasurer, and Secretary/Points Secretary.
+7. Add people through **People**, link/create login access only where needed, and assign current barn roles/relationships.
+8. Link riders to their current season, Futures/Upper team, home barn, and classes; link parents/guardians through the rider's family relationships.
+9. Configure organization groups/programs and committees where needed.
+10. Add Horses and maintain People↔Horse participation relationships.
 11. Add Shows, official show classes, availability, entries, and Show Lead assignments.
 12. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
-13. If using Finance, configure its accounts/categories/rates before entering family activity.
-14. Add prior-season information through the historical-data tools when desired.
+13. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
+14. If using Finance, configure its accounts/categories/rates before entering family activity.
+15. Add prior-season information through the historical-data tools when desired.
 
 ## Core workflows
 
-### Riders, seasons, and families
+### People, riders, seasons, and families
 
-A **Rider** is a permanent person record. A **Season Membership** places that rider on a specific season's Futures or Upper roster and stores season-specific classes, home barn, and notes.
+A **Person** is the canonical human identity. A login account is optional and is managed separately as access. A Person may hold multiple barn roles and relationships simultaneously.
 
-Do not delete a rider simply because they graduate or leave the organization. Use lifecycle controls so historical results and relationships remain intact.
+A **Rider** remains the competition-compatible rider record. A **Season Membership** places that rider on a specific season's Futures or Upper roster and stores season-specific classes, home barn, and notes. Do not delete a Person/Rider simply because they graduate or leave the organization; use lifecycle/effective-date controls so history remains intact.
 
-Parent/Guardian records are separate from Riders and one parent may be linked to multiple riders. User accounts are linked to the appropriate Rider or Parent/Guardian record.
+Parent/guardian relationships are represented through People while legacy family structures remain compatibility bridges. One parent/guardian may be linked to multiple riders.
 
 ### Shows and Show Day
 
@@ -145,7 +116,11 @@ Use **Competition → Standings** for individual progress and team scoring. Post
 
 ### Horses and Hoofprint
 
-ArenaLine includes Horse Registry, Coggins tracking, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, and post-show horse history/Record Book summaries.
+ArenaLine includes Horse Registry, Coggins tracking, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, post-show horse history/Record Book summaries, and People↔Horse participation relationships.
+
+### Station and work history
+
+ArenaLine Station is a tablet/shared-device surface for barn operations. Station devices use their own activation secrets and Person PINs rather than full portal credentials. Staff and working students can clock in/out for their current work roles; managers can review, edit, approve, summarize, and export work history.
 
 ### Calendar, communication, lessons, and volunteers
 
@@ -168,7 +143,7 @@ Finance includes family charges/credits/payments, dues and service credits, assi
 
 ### History and Record Book
 
-Use **Competition → Season History** for prior seasons and Season Review. Use **Competition → Record Book** for honors/archive presentation. Preserve historical Riders rather than recreating them as current Riders.
+Use **Competition → Season History** for prior seasons and Season Review. Use **Competition → Record Book** for honors/archive presentation. Preserve historical People/Riders rather than recreating them as current Riders.
 
 ## Production installation
 
@@ -244,21 +219,17 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.1.0 explicitly:
+Or install v3.2.3 explicitly:
 
 ```bash
-./portalctl update v3.1.0
+./portalctl update v3.2.3
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-For v3.1.0 the portal migration chain extends through:
-
-```text
-0065_v310_spectator_show_updates
-```
+The v3.2.x migration chain adds the People/relationship and ArenaLine Station foundations on top of the v3.1 public-experience schema. See `docs/releases/v3.2.3.md` for the release-specific migration summary.
 
 ## Backups and rollback
 
@@ -276,7 +247,9 @@ Generic platform domains include Core, People, Horses, Operations, Finance, and 
 
 The public/external layer is a separate publication boundary. Anonymous routes consume explicit allow-listed publication payloads rather than authenticated internal views.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.1.0.md`.
+The v3.2 People layer is compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures until callers can be migrated safely.
+
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.2.3.md`.
 
 ## Release process
 
