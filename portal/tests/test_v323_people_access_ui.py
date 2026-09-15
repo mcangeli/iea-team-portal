@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from portal.model_modules.people import LegacyPersonLink, Person
 from portal.people_compat import ensure_guardian_contact_for_person
+from portal.people_forms import PersonForm
 from portal.models import Rider, RiderGuardian, Team, UserProfile
 
 
@@ -77,3 +78,10 @@ class V323PeopleAccessUITests(TestCase):
         self.assertIsNotNone(guardian_person.user_id)
         self.assertEqual(guardian.user_id, guardian_person.user_id)
         self.assertTrue(rider.guardians.filter(pk=guardian_person.user_id).exists())
+
+    def test_person_form_exposes_only_approved_public_social_fields(self):
+        form = PersonForm(instance=self.person, team=self.team)
+        self.assertIn("instagram_url", form.fields)
+        self.assertIn("youtube_url", form.fields)
+        self.assertNotIn("facebook_url", form.fields)
+        self.assertNotIn("tiktok_url", form.fields)
