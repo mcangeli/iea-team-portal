@@ -5,6 +5,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from portal.model_modules.people import (
     Committee,
@@ -112,6 +113,21 @@ class PersonLoginAccessForm(forms.Form):
 
 class PersonRolesForm(forms.Form):
     roles = forms.MultipleChoiceField(choices=OrganizationRoleAssignment.Role.choices, required=False, widget=forms.CheckboxSelectMultiple, help_text="Choose every role this person currently holds. Multiple roles may be active at the same time.")
+
+    def __init__(self, *args, person=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.person = person
+        if person is not None and not self.is_bound:
+            today = timezone.localdate()
+            current_roles = OrganizationRoleAssignment.objects.filter(
+                person=person,
+                team=person.team,
+                active=True,
+            ).filter(
+                Q(start_date__isnull=True) | Q(start_date__lte=today),
+                Q(end_date__isnull=True) | Q(end_date__gt=today),
+            ).values_list("role", flat=True)
+            self.fields["roles"].initial = list(current_roles)
 
 
 class OrganizationRoleAssignmentForm(forms.ModelForm):
