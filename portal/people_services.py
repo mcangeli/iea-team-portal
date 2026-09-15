@@ -39,14 +39,14 @@ def _person_for_login(user):
 
 
 def _active_parent_relationships():
-    """Return parent/guardian relationships effective today."""
+    """Return parent/guardian relationships currently effective for access."""
     today = timezone.localdate()
     return PersonRelationship.objects.filter(
         relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
         active=True,
     ).filter(
         Q(start_date__isnull=True) | Q(start_date__lte=today),
-        Q(end_date__isnull=True) | Q(end_date__gte=today),
+        Q(end_date__isnull=True) | Q(end_date__gt=today),
     )
 
 
