@@ -1,8 +1,6 @@
 {% extends "base.html" %}
-{% load station_review %}
 {% block title %}Station Shifts · ArenaLine{% endblock %}
 {% block content %}
-{% with attention_queue=shifts|attention_shifts approved_queue=shifts|approved_shifts %}
 <nav class="page-back-nav" aria-label="Back to Station"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
 <section class="page-intro">
   <div><div class="eyebrow">STATION · OPERATIONS</div><h1>Staff hours</h1><p>Review what needs attention first, correct time records, approve completed work, and export the full history.</p></div>
@@ -11,9 +9,9 @@
 
 <section class="content-section" aria-labelledby="station-needs-attention-heading">
   <div class="section-head"><div><div class="eyebrow">ACTION QUEUE</div><h2 id="station-needs-attention-heading">Needs attention</h2><p class="muted">Completed shifts waiting for approval and open shifts appear first. Approved history stays available below.</p></div></div>
-  {% if attention_queue %}
+  {% if attention_shifts %}
   <div class="table-wrap"><table><caption class="sr-only">Station shifts that are open or waiting for approval</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-    {% for shift in attention_queue %}
+    {% for shift in attention_shifts %}
       <tr>
         <td><a href="{% url 'person_detail' shift.person.pk %}"><strong>{{ shift.person.display_name }}</strong></a></td>
         <td>{{ shift.get_role_display }}</td>
@@ -39,14 +37,13 @@
 
 <section class="content-section" aria-labelledby="station-approved-history-heading">
   <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2 id="station-approved-history-heading">Recent approved work</h2><p class="muted">The newest approved shifts from the 250-record review window. Export CSV includes the complete history.</p></div></div>
-  {% if approved_queue %}
+  {% if approved_shifts %}
   <div class="table-wrap"><table><caption class="sr-only">Recently approved Station shifts</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Approved by</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
-  {% for shift in approved_queue %}<tr>
+  {% for shift in approved_shifts %}<tr>
     <td><a href="{% url 'person_detail' shift.person.pk %}">{{ shift.person.display_name }}</a></td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{{ shift.clock_out|date:"M j, Y g:i A" }}</td><td>{{ shift.duration_display }}</td><td>{% if shift.approved_by %}{{ shift.approved_by.get_full_name|default:shift.approved_by.username }}{% else %}Approved{% endif %}</td>
     <td><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit<span class="sr-only"> {{ shift.person.display_name }} shift</span></a></td>
   </tr>{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No approved work history yet.</p>{% endif %}
 </section>
-{% endwith %}
 {% endblock %}
