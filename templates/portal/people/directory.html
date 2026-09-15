@@ -9,10 +9,33 @@
     <p>One organization directory for riders, parents, staff, board members, trainers, and other barn participants.</p>
   </div>
   <div class="actions">
-    <a class="btn secondary" href="{% url 'barn_operations' %}">Barn operations</a>
+    {% if can_manage_people %}<a class="btn btn-secondary" href="{% url 'people_structure' %}">Groups &amp; committees</a>{% endif %}
+    <a class="btn btn-secondary" href="{% url 'barn_operations' %}">Barn operations</a>
     {% if can_manage_people %}<a class="btn" href="{% url 'person_create' %}">Add person</a>{% endif %}
   </div>
 </section>
+
+{% if can_manage_people %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PEOPLE OPERATIONS</div><h2>Organization tools</h2><p class="muted">Manage how people are organized and review the operational roles that keep the barn moving.</p></div></div>
+  <div class="people-profile-layout">
+    <a class="person-card" href="{% url 'people_structure' %}">
+      <div class="person-card-body">
+        <div class="eyebrow">STRUCTURE</div>
+        <h3>Groups &amp; committees</h3>
+        <p>Programs, operational groups, committees, leadership, and participation.</p>
+      </div>
+    </a>
+    <a class="person-card" href="{% url 'barn_operations' %}">
+      <div class="person-card-body">
+        <div class="eyebrow">OPERATIONS</div>
+        <h3>Barn operations</h3>
+        <p>Staff, working students, trainers, managers, and other operational responsibilities.</p>
+      </div>
+    </a>
+  </div>
+</section>
+{% endif %}
 
 <section class="content-section">
   <div class="section-head">
