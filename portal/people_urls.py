@@ -19,14 +19,17 @@ from portal.view_modules.people import (
     person_role_edit,
 )
 from portal.view_modules.people_access import person_login_create
+from portal.view_modules.people_structure import committee_detail, organization_group_detail
 
 urlpatterns = [
     path("people/", people_directory, name="people_directory"),
     path("people/operations/", barn_operations, name="barn_operations"),
     path("people/structure/", people_structure, name="people_structure"),
     path("people/structure/groups/add/", organization_group_add, name="organization_group_add"),
+    path("people/structure/groups/<int:group_pk>/", organization_group_detail, name="organization_group_detail"),
     path("people/structure/groups/<int:group_pk>/edit/", organization_group_edit, name="organization_group_edit"),
     path("people/structure/committees/add/", committee_add, name="committee_add"),
+    path("people/structure/committees/<int:committee_pk>/", committee_detail, name="committee_detail"),
     path("people/structure/committees/<int:committee_pk>/edit/", committee_edit, name="committee_edit"),
     path("people/add/", person_create, name="person_create"),
     path("people/<int:pk>/", person_detail, name="person_detail"),
