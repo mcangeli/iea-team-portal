@@ -11,6 +11,7 @@ class PortalConfig(AppConfig):
         from .model_modules import branding  # noqa: F401
         from .model_modules import horses  # noqa: F401
         from .model_modules import equine_registry  # noqa: F401
+        from .model_modules import equine_care  # noqa: F401
         from .model_modules import hoofprint  # noqa: F401
         from .model_modules import show_readiness  # noqa: F401
         from .model_modules import competition_iea  # noqa: F401
