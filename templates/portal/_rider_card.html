@@ -4,18 +4,22 @@
     {% else %}<div class="avatar">{{ r.first_name|first }}{{ r.last_name|first }}</div>{% endif %}
   </div>
   <div class="rider-card-copy">
-    <div class="eyebrow">TEAM RIDER</div>
+    {% if r.active_season_memberships %}
+      <div class="eyebrow">IEA TEAM · CURRENT</div>
+    {% else %}
+      <div class="eyebrow">RIDER · NOT ON CURRENT IEA TEAM</div>
+    {% endif %}
     <h3>{{ r.display_name }}</h3>
-    {% with membership=r.memberships.all|first %}
-      {% if membership %}
+    {% if r.active_season_memberships %}
+      {% with membership=r.active_season_memberships.0 %}
         <p class="rider-card-team">{{ membership.get_team_level_display }}{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
         <div class="rider-card-classes">
-          {% for c in membership.classes.all|slice:":3" %}<span>{{ c.name }}</span>{% empty %}<span>Season roster</span>{% endfor %}
+          {% for c in membership.classes.all|slice:":3" %}<span>{{ c.name }}</span>{% empty %}<span>Current season roster</span>{% endfor %}
         </div>
-      {% else %}
-        <p class="rider-card-team">Team profile{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
-      {% endif %}
-    {% endwith %}
+      {% endwith %}
+    {% else %}
+      <p class="rider-card-team">Not assigned to the active IEA season{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
+    {% endif %}
     <span class="rider-card-link">View rider <span aria-hidden="true">→</span></span>
   </div>
 </a>
