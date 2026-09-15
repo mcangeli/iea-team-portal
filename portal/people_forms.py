@@ -1,6 +1,9 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -16,68 +19,104 @@ from portal.models import UserProfile
 
 
 class PersonForm(forms.ModelForm):
-    class Meta:
-        model = Person
-        fields = [
-            "user", "first_name", "last_name", "preferred_name", "email", "phone", "birth_date",
-            "school", "graduation_year", "bio", "photo", "website_url", "instagram_url",
-            "youtube_url", "public_profile_enabled", "active",
-        ]
-        widgets = {"birth_date": forms.DateInput(attrs={"type": "date"})}
-
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
-        qs = User.objects.none()
         if team is not None:
-            qs = User.objects.filter(profile__team=team).filter(
-                Q(arena_person__isnull=True) | Q(arena_person=self.instance if getattr(self.instance, "pk", None) else None)
-            ).order_by("last_name", "first_name", "username")
-        self.fields["user"].queryset = qs
-        self.fields["user"].required = False
-        self.fields["user"].help_text = "Optional login account for this person. Identity and participation remain on the Person record."
+            self.instance.team = team
+        user_field = self.fields["user"]
+        if team is None:
+            user_field.queryset = User.objects.none()
+        else:
+            available = User.objects.filter(profile__team=team)
+            current_user_id = getattr(self.instance, "user_id", None)
+            if current_user_id:
+                available = available.filter(Q(arena_person__isnull=True) | Q(pk=current_user_id))
+            else:
+                available = available.filter(arena_person__isnull=True)
+            user_field.queryset = available.order_by("last_name", "first_name", "username")
+        user_field.required = False
+        user_field.help_text = "Optional existing login access for this person. New access should be created from the Person profile."
+
+    class Meta:
+        model = Person
+        fields = ["user", "first_name", "last_name", "preferred_name", "email", "phone", "birth_date", "school", "graduation_year", "bio", "photo", "website_url", "instagram_url", "youtube_url", "public_profile_enabled", "active"]
+        widgets = {"birth_date": forms.DateInput(attrs={"type": "date"}), "bio": forms.Textarea(attrs={"rows": 5})}
 
 
 class PersonLoginAccessForm(forms.Form):
     username = forms.CharField(max_length=150)
-    role = forms.ChoiceField(choices=UserProfile.Role.choices)
-    temporary_password = forms.CharField(widget=forms.PasswordInput, min_length=8)
+    role = forms.ChoiceField(choices=UserProfile.Role.choices, label="Access role")
+    temporary_password = forms.CharField(required=False, widget=forms.PasswordInput(render_value=False), help_text="Leave blank to use DEFAULT_TEMP_PASSWORD from the server environment.")
 
     def __init__(self, *args, person=None, actor=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.person = person
         self.actor = actor
-        if person is not None and not self.is_bound:
-            self.fields["username"].initial = self._suggest_username(person)
-
-    @staticmethod
-    def _suggest_username(person):
-        base = ".".join(part.lower() for part in [person.preferred_name or person.first_name, person.last_name] if part).replace(" ", "")
-        return base or f"person{person.pk or ''}"
+        if person:
+            suggested = f"{person.first_name}.{person.last_name}".lower().replace(" ", "")
+            self.fields["username"].initial = suggested
+        if actor and not (actor.is_superuser or (hasattr(actor, "profile") and actor.profile.role == UserProfile.Role.ADMIN)):
+            self.fields["role"].choices = [(UserProfile.Role.PARENT, "Parent/Guardian"), (UserProfile.Role.RIDER, "Rider")]
 
     def clean_username(self):
         username = self.cleaned_data["username"].strip()
         if User.objects.filter(username__iexact=username).exists():
-            raise ValidationError("That username is already in use.")
+            raise forms.ValidationError("That username is already in use.")
         return username
 
-    def clean_role(self):
-        role = self.cleaned_data["role"]
-        actor_role = getattr(getattr(self.actor, "profile", None), "role", None)
-        if role == UserProfile.Role.ADMIN and not (getattr(self.actor, "is_superuser", False) or actor_role == UserProfile.Role.ADMIN):
-            raise ValidationError("Only an administrator can grant administrator access.")
-        return role
+    def clean(self):
+        cleaned = super().clean()
+        if self.person and self.person.user_id:
+            self.add_error(None, "This Person already has login access. Manage the existing account instead.")
+        role = cleaned.get("role")
+        if role in {UserProfile.Role.ADMIN, UserProfile.Role.COACH}:
+            is_admin = self.actor and (self.actor.is_superuser or (hasattr(self.actor, "profile") and self.actor.profile.role == UserProfile.Role.ADMIN))
+            if not is_admin:
+                self.add_error("role", "Only administrators can create Coach or Administrator access.")
+        temp = cleaned.get("temporary_password") or settings.DEFAULT_TEMP_PASSWORD
+        if not temp:
+            self.add_error("temporary_password", "Enter a temporary password or configure DEFAULT_TEMP_PASSWORD on the server.")
+        else:
+            candidate = User(username=cleaned.get("username", ""), first_name=getattr(self.person, "first_name", ""), last_name=getattr(self.person, "last_name", ""), email=getattr(self.person, "email", ""))
+            try:
+                validate_password(temp, user=candidate)
+            except ValidationError as exc:
+                self.add_error("temporary_password", exc)
+            cleaned["resolved_password"] = temp
+        return cleaned
+
+    @transaction.atomic
+    def save(self):
+        person = Person.objects.select_for_update().get(pk=self.person.pk, team=self.person.team)
+        if person.user_id:
+            raise ValidationError("This Person already has login access.")
+        user = User.objects.create_user(username=self.cleaned_data["username"], email=person.email, password=self.cleaned_data["resolved_password"], first_name=person.first_name, last_name=person.last_name)
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.team = person.team
+        profile.role = self.cleaned_data["role"]
+        profile.must_change_password = True
+        profile.save(update_fields=["team", "role", "must_change_password"])
+        person.user = user
+        person.save(update_fields=["user", "updated_at"])
+        bridge = getattr(person, "legacy_identity", None)
+        if bridge:
+            if bridge.rider_id:
+                bridge.rider.user = user
+                bridge.rider.save(update_fields=["user"])
+            if bridge.guardian_id:
+                bridge.guardian.user = user
+                bridge.guardian.save(update_fields=["user"])
+                for link in bridge.guardian.rider_links.select_related("rider").all():
+                    link.rider.guardians.add(user)
+        return user
 
 
 class PersonRolesForm(forms.Form):
-    roles = forms.MultipleChoiceField(
-        choices=OrganizationRoleAssignment.Role.choices,
-        required=False,
-        widget=forms.CheckboxSelectMultiple,
-        help_text="Select every role this person currently holds.",
-    )
+    roles = forms.MultipleChoiceField(choices=OrganizationRoleAssignment.Role.choices, required=False, widget=forms.CheckboxSelectMultiple, help_text="Choose every role this person currently holds. Multiple roles may be active at the same time.")
 
     def __init__(self, *args, person=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.person = person
         if person is not None and not self.is_bound:
             today = timezone.localdate()
             current_roles = OrganizationRoleAssignment.objects.filter(
