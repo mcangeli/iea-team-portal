@@ -1,9 +1,14 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from portal.model_modules.people import Person, PersonRelationship
-from portal.models import Team, UserProfile
-from portal.people_services import can_view_private_person, has_active_parent_relationship
+from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
+from portal.models import GuardianContact, Rider, RiderGuardian, Team, UserProfile
+from portal.people_services import (
+    can_view_private_person,
+    can_view_private_rider,
+    has_active_parent_relationship,
+    personal_riders_for_user,
+)
 
 
 class V323PeopleAuthorizationTests(TestCase):
@@ -82,3 +87,35 @@ class V323PeopleAuthorizationTests(TestCase):
     def test_relationship_cannot_cross_organization_boundary(self):
         outsider = Person.objects.create(team=self.other_team, first_name="Outside", last_name="Person")
         self.assertFalse(has_active_parent_relationship(self.parent, outsider))
+
+    def _legacy_rider_bridge(self):
+        legacy_rider = Rider.objects.create(team=self.team, first_name="Jamie", last_name="Smith", grade=7)
+        LegacyPersonLink.objects.create(person=self.rider, rider=legacy_rider)
+        return legacy_rider
+
+    def test_canonical_only_parent_relationship_grants_private_rider_access(self):
+        legacy_rider = self._legacy_rider_bridge()
+        self._relationship()
+        self.assertFalse(RiderGuardian.objects.filter(rider=legacy_rider).exists())
+        self.assertTrue(can_view_private_rider(self.parent_user, legacy_rider))
+        self.assertEqual(list(personal_riders_for_user(self.parent_user, self.team)), [legacy_rider])
+
+    def test_ended_canonical_relationship_removes_rider_access_without_legacy_fallback(self):
+        from datetime import date
+        legacy_rider = self._legacy_rider_bridge()
+        self._relationship(end_date=date.today())
+        self.assertFalse(can_view_private_rider(self.parent_user, legacy_rider))
+        self.assertFalse(personal_riders_for_user(self.parent_user, self.team).filter(pk=legacy_rider.pk).exists())
+
+    def test_legacy_only_guardian_relationship_remains_authorized_as_compatibility_fallback(self):
+        legacy_rider = self._legacy_rider_bridge()
+        guardian = GuardianContact.objects.create(
+            team=self.team,
+            user=self.parent_user,
+            first_name="Morgan",
+            last_name="Smith",
+            email="morgan@example.com",
+        )
+        RiderGuardian.objects.create(rider=legacy_rider, guardian=guardian, relationship="Mother")
+        self.assertTrue(can_view_private_rider(self.parent_user, legacy_rider))
+        self.assertTrue(personal_riders_for_user(self.parent_user, self.team).filter(pk=legacy_rider.pk).exists())
