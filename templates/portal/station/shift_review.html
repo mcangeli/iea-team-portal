@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Station Shifts · ArenaLine{% endblock %}
 {% block content %}
-<nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
+<nav class="page-back-nav" aria-label="Back to Station"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
 <section class="page-intro">
   <div><div class="eyebrow">STATION · OPERATIONS</div><h1>Staff hours</h1><p>Review what needs attention first, correct time records, approve completed work, and export the full history.</p></div>
   <div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_export' %}">Export CSV</a></div>
 </section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">ACTION QUEUE</div><h2>Needs attention</h2><p class="muted">Completed shifts waiting for approval and open shifts appear first. Approved history stays available below.</p></div></div>
+<section class="content-section" aria-labelledby="station-needs-attention-heading">
+  <div class="section-head"><div><div class="eyebrow">ACTION QUEUE</div><h2 id="station-needs-attention-heading">Needs attention</h2><p class="muted">Completed shifts waiting for approval and open shifts appear first. Approved history stays available below.</p></div></div>
   {% if shifts %}
-  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Status</th><th></th></tr></thead><tbody>
+  <div class="table-wrap" data-station-filtered-table data-empty-message="Nothing needs attention right now."><table><caption class="sr-only">Station shifts that are open or waiting for approval</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Status</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
     {% for shift in shifts %}{% if not shift.approved_at %}
       <tr>
         <td><a href="{% url 'person_detail' shift.person.pk %}"><strong>{{ shift.person.display_name }}</strong></a></td>
@@ -19,31 +19,42 @@
         <td>{% if shift.clock_out %}{{ shift.clock_out|date:"M j, Y g:i A" }}{% else %}<strong>Still clocked in</strong>{% endif %}</td>
         <td>{{ shift.duration_display }}</td>
         <td>{% if shift.clock_out %}<span class="station-status station-status-review">Needs review</span>{% else %}<span class="station-status station-status-open">Open</span>{% endif %}</td>
-        <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">{% if shift.clock_out %}Review{% else %}Correct{% endif %}</a>{% if shift.clock_out %}<form method="post" action="{% url 'station_shift_approve' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve</button></form>{% endif %}</div></td>
+        <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">{% if shift.clock_out %}Review{% else %}Correct{% endif %}<span class="sr-only"> {{ shift.person.display_name }} shift</span></a>{% if shift.clock_out %}<form method="post" action="{% url 'station_shift_approve' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve<span class="sr-only"> {{ shift.person.display_name }} shift</span></button></form>{% endif %}</div></td>
       </tr>
     {% endif %}{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No Station shifts have been recorded yet.</p>{% endif %}
 </section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HOURS</div><h2>Person totals</h2><p class="muted">A quick operational view of recorded, approved, and working-student time.</p></div></div>
+<section class="content-section" aria-labelledby="station-person-totals-heading">
+  <div class="section-head"><div><div class="eyebrow">HOURS</div><h2 id="station-person-totals-heading">Person totals</h2><p class="muted">A quick operational view of recorded, approved, and working-student time.</p></div></div>
   {% if summary %}
-  <div class="table-wrap"><table class="station-hours-table"><thead><tr><th>Person</th><th>Completed shifts</th><th>Total recorded</th><th>Approved</th><th>Working student</th></tr></thead><tbody>
+  <div class="table-wrap"><table class="station-hours-table"><caption class="sr-only">Recorded Station hours by person</caption><thead><tr><th scope="col">Person</th><th scope="col">Completed shifts</th><th scope="col">Total recorded</th><th scope="col">Approved</th><th scope="col">Working student</th></tr></thead><tbody>
   {% for row in summary %}<tr><td><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></td><td>{{ row.shift_count }}</td><td><strong>{{ row.hours_display }}</strong></td><td>{{ row.approved_hours_display }}</td><td>{% if row.working_student_hours_display != "0m" %}<strong>{{ row.working_student_hours_display }}</strong>{% else %}—{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No Station shifts have been recorded yet.</p>{% endif %}
 </section>
 
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Recent approved work</h2><p class="muted">The newest approved shifts from the 250-record review window. Export CSV includes the complete history.</p></div></div>
+<section class="content-section" aria-labelledby="station-approved-history-heading">
+  <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2 id="station-approved-history-heading">Recent approved work</h2><p class="muted">The newest approved shifts from the 250-record review window. Export CSV includes the complete history.</p></div></div>
   {% if shifts %}
-  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Approved by</th><th></th></tr></thead><tbody>
+  <div class="table-wrap" data-station-filtered-table data-empty-message="No approved work history yet."><table><caption class="sr-only">Recently approved Station shifts</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Approved by</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
   {% for shift in shifts %}{% if shift.approved_at %}<tr>
     <td><a href="{% url 'person_detail' shift.person.pk %}">{{ shift.person.display_name }}</a></td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{{ shift.clock_out|date:"M j, Y g:i A" }}</td><td>{{ shift.duration_display }}</td><td>{% if shift.approved_by %}{{ shift.approved_by.get_full_name|default:shift.approved_by.username }}{% else %}Approved{% endif %}</td>
-    <td><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit</a></td>
+    <td><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit<span class="sr-only"> {{ shift.person.display_name }} shift</span></a></td>
   </tr>{% endif %}{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No approved work history yet.</p>{% endif %}
 </section>
+<script>
+  document.querySelectorAll('[data-station-filtered-table]').forEach(function (wrapper) {
+    var body = wrapper.querySelector('tbody');
+    if (body && body.querySelectorAll('tr').length === 0) {
+      var empty = document.createElement('p');
+      empty.className = 'muted';
+      empty.textContent = wrapper.dataset.emptyMessage;
+      wrapper.replaceWith(empty);
+    }
+  });
+</script>
 {% endblock %}
