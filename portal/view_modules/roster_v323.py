@@ -29,6 +29,14 @@ from portal.view_modules.common import (
 from portal.view_modules.roster_helpers import _team_roster
 
 
+def _attach_public_profiles(riders):
+    rows = list(riders)
+    profiles = public_profiles_for_riders(rows)
+    for rider in rows:
+        rider.public_profile = profiles.get(rider.pk)
+    return rows
+
+
 @login_required
 def rider_list(request):
     team = organization_for_view_user(request.user)
@@ -42,19 +50,14 @@ def rider_list(request):
         ))
     selected = _selected_team(request)
     if season:
-        futures = qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct()
-        upper = qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct()
-        unassigned = qs.exclude(memberships__season=season).distinct()
+        futures = _attach_public_profiles(qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct())
+        upper = _attach_public_profiles(qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct())
+        unassigned = _attach_public_profiles(qs.exclude(memberships__season=season).distinct())
     else:
-        futures = Rider.objects.none(); upper = Rider.objects.none(); unassigned = qs
-
-    rider_rows = list(qs)
-    public_profiles = public_profiles_for_riders(rider_rows)
-    for rider in rider_rows:
-        rider.public_profile = public_profiles.get(rider.pk)
-
+        futures = []; upper = []; unassigned = _attach_public_profiles(qs)
+    riders = _attach_public_profiles(qs)
     return render(request, "portal/rider_list.html", {
-        "riders": rider_rows, "futures": futures, "upper": upper, "unassigned": unassigned,
+        "riders": riders, "futures": futures, "upper": upper, "unassigned": unassigned,
         "season": season, "can_manage": _can_manage(request.user), "selected_team": selected,
     })
 
