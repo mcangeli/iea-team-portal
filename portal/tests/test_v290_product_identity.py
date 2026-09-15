@@ -154,8 +154,8 @@ class ArenaLineProductIdentityTests(TestCase):
         self.assertIn("ARENALINE · COMMUNICATIONS", notifications)
         self.assertIn("organization updates", notifications)
 
-        self.assertIn("Users · ArenaLine", users)
-        self.assertIn("ARENALINE · ADMINISTRATION", users)
+        self.assertIn("Login access · People · ArenaLine", users)
+        self.assertIn("ARENALINE · PEOPLE", users)
         self.assertIn("Committees · ArenaLine", committees)
         self.assertIn("ARENALINE · ADMINISTRATION", committees)
         self.assertIn("Season Setup · ArenaLine", season_setup)
