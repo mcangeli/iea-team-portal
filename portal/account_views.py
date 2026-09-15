@@ -7,14 +7,32 @@ from django.shortcuts import redirect, render
 
 from .account_forms import MyAccountForm
 from .forms import NotificationPreferenceForm
+from .model_modules.people import Person
+
+
+def _account_person(user):
+    try:
+        return user.arena_person
+    except Person.DoesNotExist:
+        return None
 
 
 @login_required
 def my_account(request):
     profile = getattr(request.user, "profile", None)
+    person = _account_person(request.user)
+    roles = person.role_assignments.filter(active=True).order_by("role") if person else []
+    relationships = person.outgoing_relationships.filter(active=True).select_related("to_person") if person else []
+    incoming_relationships = person.incoming_relationships.filter(active=True).select_related("from_person") if person else []
+    committees = person.committee_memberships.filter(active=True).select_related("committee", "committee__group") if person else []
     return render(request, "portal/my_account.html", {
         "profile": profile,
         "team": getattr(profile, "team", None) if profile else None,
+        "person": person,
+        "roles": roles,
+        "relationships": relationships,
+        "incoming_relationships": incoming_relationships,
+        "committees": committees,
         "linked_rider": getattr(request.user, "rider_record", None),
         "linked_guardian": getattr(request.user, "guardian_contact", None),
     })
@@ -22,23 +40,28 @@ def my_account(request):
 
 @login_required
 def my_account_edit(request):
-    form = MyAccountForm(request.POST or None, instance=request.user)
+    person = _account_person(request.user)
+    if person is None:
+        messages.error(request, "Your login has not yet been linked to a Person profile. Please contact an ArenaLine administrator.")
+        return redirect("my_account")
+    form = MyAccountForm(request.POST or None, request.FILES or None, instance=person)
     if request.method == "POST" and form.is_valid():
-        user = form.save()
-        rider = getattr(user, "rider_record", None)
+        person = form.save()
+        if request.user.email != person.email:
+            request.user.email = person.email
+            request.user.save(update_fields=["email"])
+        rider = getattr(request.user, "rider_record", None)
         if rider:
-            rider.email = user.email
+            rider.email = person.email
             rider.save(update_fields=["email"])
-        guardian = getattr(user, "guardian_contact", None)
+        guardian = getattr(request.user, "guardian_contact", None)
         if guardian:
-            guardian.email = user.email
-            guardian.first_name = user.first_name
-            guardian.last_name = user.last_name
-            guardian.save(update_fields=["email", "first_name", "last_name"])
-        messages.success(request, "Your account information has been updated.")
+            guardian.email = person.email
+            guardian.save(update_fields=["email"])
+        messages.success(request, "Your profile information has been updated.")
         return redirect("my_account")
     return render(request, "portal/form.html", {
-        "form": form, "title": "Account information", "eyebrow": "MY ACCOUNT",
+        "form": form, "title": "Profile information", "eyebrow": "MY ACCOUNT",
     })
 
 
