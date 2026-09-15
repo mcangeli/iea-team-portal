@@ -11,6 +11,10 @@ class HorsePersonRelationship(models.Model):
         PARTIAL_LEASE = "partial_lease", "Partial Lease"
         TRAINER = "trainer", "Trainer"
         CARETAKER = "caretaker", "Caretaker"
+        VETERINARIAN = "veterinarian", "Veterinarian"
+        FARRIER = "farrier", "Farrier"
+        DENTIST = "dentist", "Equine Dentist"
+        EMERGENCY_CONTACT = "emergency_contact", "Emergency Contact"
 
     team = models.ForeignKey(
         "portal.Team",
