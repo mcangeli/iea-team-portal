@@ -50,6 +50,7 @@
     </div>
     <div class="nav-utility">
       {% if "communications" in portal_enabled_modules %}<a class="notification-nav" href="{% url 'notification_list' %}" data-module="communications"><span>Notifications</span>{% if unread_notifications %}<span class="notification-count">{{ unread_notifications }}</span>{% endif %}</a>{% endif %}
+      <a href="{% url 'my_account' %}">My Account</a>
       {% if "core" in portal_enabled_modules %}{% if user.is_staff or portal_role == 'admin' or portal_role == 'coach' %}<details class="nav-menu nav-manage" data-module="core"><summary>Manage</summary><div class="nav-menu-panel nav-menu-panel-right"><span class="nav-menu-label">Organization administration</span><a href="{% url 'user_list' %}">Users</a><a href="{% url 'station_manage' %}">ArenaLine Station</a><a href="{% url 'season_setup' %}">Season setup</a><a href="{% url 'team_branding' %}">Branding</a><a href="{% url 'public_site_manage' %}">Public Site</a><a href="{% url 'audit_log' %}">Audit log</a>{% if user.is_staff %}<a href="/admin/">Django admin</a>{% endif %}</div></details>{% endif %}{% endif %}
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark theme"><span class="theme-toggle-icon" aria-hidden="true">◐</span><span class="theme-toggle-label">Theme</span></button>
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="nav-signout" type="submit">Sign out</button></form>
