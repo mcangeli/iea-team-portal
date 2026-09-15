@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from portal.model_modules.people import Committee, CommitteeMembership, OrganizationGroup, Person
 from portal.models import Team, UserProfile
@@ -18,7 +21,11 @@ class V323PeopleStructureTests(TestCase):
         self.group = OrganizationGroup.objects.create(team=self.team, name="IEA Program", group_type=OrganizationGroup.GroupType.PROGRAM)
         self.person = Person.objects.create(team=self.team, first_name="Morgan", last_name="Leader")
         self.committee = Committee.objects.create(team=self.team, group=self.group, name="Show Committee")
-        CommitteeMembership.objects.create(committee=self.committee, person=self.person, position=CommitteeMembership.Position.CHAIR)
+        self.membership = CommitteeMembership.objects.create(
+            committee=self.committee,
+            person=self.person,
+            position=CommitteeMembership.Position.CHAIR,
+        )
 
     def test_people_directory_exposes_structure_for_manager(self):
         self.client.force_login(self.admin)
@@ -49,6 +56,30 @@ class V323PeopleStructureTests(TestCase):
         self.assertContains(response, "Show Committee")
         self.assertContains(response, "Morgan Leader")
         self.assertContains(response, "Chair")
+
+    def test_future_committee_membership_is_not_current(self):
+        self.membership.start_date = timezone.localdate() + timedelta(days=1)
+        self.membership.save(update_fields=["start_date"])
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("committee_detail", args=[self.committee.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Morgan Leader")
+
+    def test_committee_membership_ending_today_is_not_current(self):
+        self.membership.end_date = timezone.localdate()
+        self.membership.save(update_fields=["end_date"])
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("committee_detail", args=[self.committee.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Morgan Leader")
+
+    def test_committee_membership_with_future_end_date_remains_current(self):
+        self.membership.end_date = timezone.localdate() + timedelta(days=1)
+        self.membership.save(update_fields=["end_date"])
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("committee_detail", args=[self.committee.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Morgan Leader")
 
     def test_structure_dashboards_are_cross_organization_isolated(self):
         other_group = OrganizationGroup.objects.create(team=self.other_team, name="Private Program")
