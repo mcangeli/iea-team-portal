@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}Link Parent/Guardian{% endblock %}
+{% block title %}Add Parent/Guardian{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'rider_detail' rider.pk %}">← Back to rider</a></nav>
 <div class="page-title">
   <div>
     <div class="eyebrow">FAMILY RELATIONSHIP</div>
-    <h1>Link an existing parent/guardian</h1>
-    <p>Choose an existing Person for {{ rider.display_name }}. ArenaLine will maintain the Parent/Guardian role and legacy contact bridge automatically.</p>
+    <h1>Add parent / guardian</h1>
+    <p>Select someone who already exists in ArenaLine. If they already have a login account, ArenaLine will use that account automatically.</p>
   </div>
 </div>
 
@@ -16,14 +16,14 @@
     {% csrf_token %}
     <div class="form-grid">
       <label>
-        <span>Person</span>
+        <span>Existing person or account</span>
         <select name="person" required>
-          <option value="">Select a person…</option>
+          <option value="">Select a parent or guardian…</option>
           {% for person in people %}
-          <option value="{{ person.pk }}">{{ person.display_name }}{% if person.email %} · {{ person.email }}{% endif %}</option>
+          <option value="{{ person.value }}">{{ person.name }}{% if person.email %} · {{ person.email }}{% endif %} · {{ person.role }}{% if person.has_login %} · Login account{% endif %}</option>
           {% endfor %}
         </select>
-        <small class="helptext">Linking a person here marks them as a Parent / Guardian in the organization if they are not already.</small>
+        <small class="helptext">You do not need to create another parent record. ArenaLine will connect the existing person/account and maintain the family relationship automatically.</small>
       </label>
 
       <label>
@@ -38,15 +38,16 @@
     </div>
 
     <div class="actions">
-      <button class="btn" type="submit">Link parent/guardian</button>
+      <button class="btn" type="submit">Link to rider</button>
+      <a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
       <a class="btn secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
     </div>
   </form>
   {% else %}
   <div class="empty-state">
-    <h3>No available People records</h3>
-    <p>Everyone currently in People is already linked to this rider, or there are no other active People records yet.</p>
-    <a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create a new parent/guardian</a>
+    <h3>No existing people or accounts available</h3>
+    <p>Everyone available is already linked to this rider, or no other active people/accounts exist yet.</p>
+    <a class="btn" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
   </div>
   {% endif %}
 </div>
