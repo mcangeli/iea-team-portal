@@ -63,6 +63,24 @@
     </div>
   </section>
 
+  {% if can_manage %}
+  <section class="card detail-span-2">
+    <div class="card-heading-row"><div><div class="section-kicker">CARE &amp; SCHEDULE</div><h2>Care history</h2><p class="muted">Completed care stays in the horse's history. Next-due dates drive upcoming and overdue care.</p></div><a class="btn secondary" href="{% url 'horse_care_add' horse.pk %}">Add care record</a></div>
+    <div class="stack-list">
+      {% for record in horse.care_records.all %}
+      <div class="stack-item">
+        <div>
+          <strong>{{ record.title }}</strong> · {{ record.get_care_type_display }}
+          <div class="muted">Performed {{ record.performed_date|date:"M j, Y" }}{% if record.provider %} · {{ record.provider.display_name }}{% endif %}{% if record.next_due_date %} · Next due {{ record.next_due_date|date:"M j, Y" }} · {{ record.due_status_label }}{% endif %}</div>
+          {% if record.notes %}<div class="muted">{{ record.notes|truncatewords:24 }}</div>{% endif %}
+        </div>
+        <a class="text-link" href="{% url 'horse_care_edit' horse.pk record.pk %}">Edit →</a>
+      </div>
+      {% empty %}<p class="muted">No care history has been recorded yet.</p>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
   <section class="card horse-readiness-card">
     <div class="card-heading-row"><div><div class="section-kicker">SHOW READINESS</div><h2>Coggins</h2></div>{% if can_manage %}<a class="btn secondary" href="{% url 'horse_coggins_add' horse.pk %}">Add record</a>{% endif %}</div>
     {% if latest_coggins %}
