@@ -6,13 +6,17 @@ startup-time monkey patches.
 """
 
 from django import forms
+from django.db import transaction
 
 from .forms_legacy import *  # noqa: F401,F403
 from .forms_legacy import ReimbursementRequestForm as _LegacyReimbursementRequestForm
 from .forms_legacy import SeasonClassForm as _LegacySeasonClassForm
 from .forms_legacy import ShowClassForm as _LegacyShowClassForm
 from .forms_legacy import ShowEntryForm as _LegacyShowEntryForm
+from .forms_legacy import UserOnboardingForm as _LegacyUserOnboardingForm
+from .forms_legacy import UserAccountEditForm as _LegacyUserAccountEditForm
 from .model_modules.competition_iea import IEAClassCatalogEntry
+from .people_accounts import sync_user_person_after_account_edit, sync_user_person_identity
 
 
 class ReimbursementRequestForm(_LegacyReimbursementRequestForm):
@@ -376,3 +380,33 @@ class ShowEntryForm(_LegacyShowEntryForm):
             "VOC candidates come from completed same-show H1/H2 results. "
             "ArenaLine keeps unresolved cutoff ties visible because judge-card scores are not stored."
         )
+
+
+class UserOnboardingForm(_LegacyUserOnboardingForm):
+    """Compatibility onboarding form that makes Person the login identity."""
+
+    @transaction.atomic
+    def save(self):
+        user = super().save()
+        sync_user_person_identity(
+            user,
+            self.team,
+            rider=self.cleaned_data.get("rider"),
+            guardian=self.cleaned_data.get("guardian"),
+        )
+        return user
+
+
+class UserAccountEditForm(_LegacyUserAccountEditForm):
+    """Compatibility account editor that keeps canonical Person synchronized."""
+
+    @transaction.atomic
+    def save(self):
+        user = super().save()
+        sync_user_person_after_account_edit(
+            user,
+            self.team,
+            rider=self.cleaned_data.get("rider"),
+            guardian=self.cleaned_data.get("guardian"),
+        )
+        return user
