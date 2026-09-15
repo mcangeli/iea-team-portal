@@ -27,43 +27,62 @@ def _person_for_user_or_create(*, team, user, defaults):
     return Person.objects.create(team=team, user=user, **defaults)
 
 
-def ensure_rider_person(rider):
-    bridge = LegacyPersonLink.objects.filter(rider=rider).select_related("person").first()
-    if bridge:
-        return bridge.person
-
-    person = _person_for_user_or_create(
-        team=rider.team,
-        user=rider.user,
-        defaults={
-            "first_name": rider.first_name,
-            "last_name": rider.last_name,
-            "preferred_name": rider.preferred_name,
-            "email": rider.email,
-            "school": rider.school,
-            "bio": rider.bio,
-            "photo": rider.photo,
-            "active": rider.active,
-        },
-    )
-    bridge, _ = LegacyPersonLink.objects.get_or_create(person=person)
-    if bridge.rider_id and bridge.rider_id != rider.id:
-        raise ValidationError("This Person is already linked to another rider record.")
-    if not bridge.rider_id:
-        bridge.rider = rider
-        bridge.save(update_fields=["rider"])
+def _ensure_active_role(*, team, person, role, desired_active=True):
+    assignment = OrganizationRoleAssignment.objects.filter(
+        team=team,
+        person=person,
+        role=role,
+        active=True,
+    ).order_by("start_date", "id").first()
+    if assignment:
+        return assignment
 
     assignment, _ = OrganizationRoleAssignment.objects.get_or_create(
-        team=rider.team,
+        team=team,
         person=person,
-        role=OrganizationRoleAssignment.Role.RIDER,
+        role=role,
         start_date=None,
-        defaults={"active": rider.active},
+        defaults={"active": desired_active},
     )
-    if rider.active and not assignment.active:
+    if desired_active and not assignment.active:
         assignment.active = True
         assignment.end_date = None
         assignment.save(update_fields=["active", "end_date"])
+    return assignment
+
+
+def ensure_rider_person(rider):
+    bridge = LegacyPersonLink.objects.filter(rider=rider).select_related("person").first()
+    if bridge:
+        person = bridge.person
+    else:
+        person = _person_for_user_or_create(
+            team=rider.team,
+            user=rider.user,
+            defaults={
+                "first_name": rider.first_name,
+                "last_name": rider.last_name,
+                "preferred_name": rider.preferred_name,
+                "email": rider.email,
+                "school": rider.school,
+                "bio": rider.bio,
+                "photo": rider.photo,
+                "active": rider.active,
+            },
+        )
+        bridge, _ = LegacyPersonLink.objects.get_or_create(person=person)
+        if bridge.rider_id and bridge.rider_id != rider.id:
+            raise ValidationError("This Person is already linked to another rider record.")
+        if not bridge.rider_id:
+            bridge.rider = rider
+            bridge.save(update_fields=["rider"])
+
+    _ensure_active_role(
+        team=rider.team,
+        person=person,
+        role=OrganizationRoleAssignment.Role.RIDER,
+        desired_active=rider.active,
+    )
     return person
 
 
@@ -89,17 +108,11 @@ def ensure_guardian_person(guardian):
             bridge.guardian = guardian
             bridge.save(update_fields=["guardian"])
 
-    assignment, _ = OrganizationRoleAssignment.objects.get_or_create(
+    _ensure_active_role(
         team=guardian.team,
         person=person,
         role=OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
-        start_date=None,
-        defaults={"active": True},
     )
-    if not assignment.active:
-        assignment.active = True
-        assignment.end_date = None
-        assignment.save(update_fields=["active", "end_date"])
     return person
 
 
