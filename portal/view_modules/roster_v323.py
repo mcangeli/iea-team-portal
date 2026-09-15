@@ -2,6 +2,7 @@
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Prefetch, Sum
@@ -162,6 +163,48 @@ def rider_guardian_edit(request, pk, guardian_pk):
     return render(request, "portal/form.html", {"form": form, "title": f"Edit {link.guardian.display_name}", "eyebrow": "FAMILY CONTACT"})
 
 
+def _family_link_candidates(team, rider_person, linked_person_ids):
+    """Return existing People plus unmigrated login accounts as one simple picker."""
+    rows = []
+    people = Person.objects.filter(team=team, active=True).exclude(pk=rider_person.pk).exclude(pk__in=linked_person_ids).select_related("user", "user__profile").order_by("last_name", "first_name")
+    for person in people:
+        role = person.user.profile.get_role_display() if person.user_id and hasattr(person.user, "profile") else "Person"
+        rows.append({"value": f"person:{person.pk}", "name": person.display_name, "email": person.email or (person.user.email if person.user_id else ""), "role": role, "has_login": bool(person.user_id)})
+
+    users = User.objects.filter(profile__team=team, is_active=True, arena_person__isnull=True).select_related("profile").order_by("last_name", "first_name", "username")
+    for user in users:
+        name = user.get_full_name().strip() or user.username
+        rows.append({"value": f"user:{user.pk}", "name": name, "email": user.email, "role": user.profile.get_role_display(), "has_login": True})
+    return rows
+
+
+def _person_for_family_selection(selection, team):
+    """Resolve a People record or migrate an existing organization login on demand."""
+    try:
+        kind, raw_id = selection.split(":", 1)
+        object_id = int(raw_id)
+    except (ValueError, AttributeError):
+        raise ValidationError("Choose an existing person or login account.")
+
+    if kind == "person":
+        return get_object_or_404(Person, pk=object_id, team=team, active=True)
+    if kind != "user":
+        raise ValidationError("Choose an existing person or login account.")
+
+    user = get_object_or_404(User.objects.select_related("profile"), pk=object_id, profile__team=team, is_active=True)
+    try:
+        return user.arena_person
+    except Person.DoesNotExist:
+        return Person.objects.create(
+            team=team,
+            user=user,
+            first_name=user.first_name or user.username,
+            last_name=user.last_name,
+            email=user.email,
+            active=True,
+        )
+
+
 @login_required
 def rider_guardian_link(request, rider_pk):
     _require_manage(request.user); team = organization_for_view_user(request.user)
@@ -169,17 +212,17 @@ def rider_guardian_link(request, rider_pk):
     linked_person_ids = set()
     for link in RiderGuardian.objects.filter(rider=rider).select_related("guardian", "guardian__user"):
         linked_person_ids.add(ensure_guardian_person(link.guardian).pk)
-    candidates = Person.objects.filter(team=team, active=True).exclude(pk=rider_person.pk).exclude(pk__in=linked_person_ids).prefetch_related("role_assignments").order_by("last_name", "first_name")
+    candidates = _family_link_candidates(team, rider_person, linked_person_ids)
     if request.method == "POST":
-        person_id = request.POST.get("person")
-        if not person_id:
-            messages.error(request, "Choose a person to link as parent/guardian."); return redirect("rider_guardian_link", rider_pk=rider.pk)
+        selection = request.POST.get("person")
+        if not selection:
+            messages.error(request, "Choose an existing person or login account."); return redirect("rider_guardian_link", rider_pk=rider.pk)
         relationship = (request.POST.get("relationship") or "Parent/Guardian").strip(); primary_contact = request.POST.get("primary_contact") == "on"
-        parent_person = get_object_or_404(Person, pk=person_id, team=team, active=True)
-        if parent_person.pk == rider_person.pk:
-            messages.error(request, "A rider cannot be their own parent/guardian relationship."); return redirect("rider_guardian_link", rider_pk=rider.pk)
         try:
             with transaction.atomic():
+                parent_person = _person_for_family_selection(selection, team)
+                if parent_person.pk == rider_person.pk:
+                    raise ValidationError("A rider cannot be their own parent/guardian relationship.")
                 guardian = ensure_guardian_contact_for_person(parent_person)
                 link, created = RiderGuardian.objects.get_or_create(rider=rider, guardian=guardian, defaults={"relationship": relationship, "primary_contact": primary_contact})
                 if not created:
