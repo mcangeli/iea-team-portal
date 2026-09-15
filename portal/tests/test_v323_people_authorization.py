@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -47,6 +47,15 @@ class V323PeopleAuthorizationTests(TestCase):
 
     def test_ended_relationship_does_not_grant_access(self):
         self._relationship(end_date=date.today()); self.assertFalse(has_active_parent_relationship(self.parent, self.rider)); self.assertFalse(can_view_private_person(self.parent_user, self.rider))
+
+    def test_future_relationship_does_not_grant_access_early(self):
+        self._relationship(start_date=date.today() + timedelta(days=1)); self.assertFalse(has_active_parent_relationship(self.parent, self.rider)); self.assertFalse(can_view_private_person(self.parent_user, self.rider))
+
+    def test_relationship_with_future_end_date_remains_active(self):
+        self._relationship(end_date=date.today() + timedelta(days=1)); self.assertTrue(has_active_parent_relationship(self.parent, self.rider)); self.assertTrue(can_view_private_person(self.parent_user, self.rider))
+
+    def test_relationship_starting_today_is_active(self):
+        self._relationship(start_date=date.today()); self.assertTrue(has_active_parent_relationship(self.parent, self.rider)); self.assertTrue(can_view_private_person(self.parent_user, self.rider))
 
     def test_person_can_view_own_private_profile(self): self.assertTrue(can_view_private_person(self.rider_user, self.rider))
 
