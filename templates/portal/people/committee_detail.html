@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ committee.name }} · People · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% if committee.group %}{% url 'organization_group_detail' committee.group.pk %}{% else %}{% url 'people_structure' %}{% endif %}">← {% if committee.group %}{{ committee.group.name }}{% else %}People structure{% endif %}</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">COMMITTEE · OPERATIONS</div><h1>{{ committee.name }}</h1><p>{{ committee.purpose|default:"Leadership, membership, and responsibility for this committee." }}</p></div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'committee_edit' committee.pk %}">Edit committee</a></div>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">AT A GLANCE</div><h2>Committee status</h2></div></div>
+  <dl class="people-detail-list"><div><dt>Scope</dt><dd>{% if committee.group %}<a href="{% url 'organization_group_detail' committee.group.pk %}">{{ committee.group.name }}</a>{% else %}Organization-wide{% endif %}</dd></div><div><dt>Active members</dt><dd><strong>{{ memberships|length }}</strong></dd></div><div><dt>Status</dt><dd>{% if committee.active %}Active{% else %}Inactive{% endif %}</dd></div></dl>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PEOPLE</div><h2>Leadership & membership</h2><p class="muted">Current committee responsibilities from canonical People memberships.</p></div></div>
+  {% for membership in memberships %}<div class="people-structure-row"><div><strong><a href="{% url 'person_detail' membership.person.pk %}">{{ membership.person.display_name }}</a></strong><p class="muted">{{ membership.get_position_display }}{% if membership.start_date %} · since {{ membership.start_date|date:"M Y" }}{% endif %}{% if membership.notes %} · {{ membership.notes }}{% endif %}</p>{% if membership.legacy_committee_assignment_id %}<p class="muted">Managed by IEA assignment</p>{% endif %}</div>{% if not membership.legacy_committee_assignment_id %}<a href="{% url 'person_committee_edit' membership.person.pk membership.pk %}">Edit</a>{% endif %}</div>{% empty %}<p class="muted">No active members have been assigned yet.</p>{% endfor %}
+</section>
+{% endblock %}
