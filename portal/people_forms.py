@@ -97,7 +97,7 @@ class PersonLoginAccessForm(forms.Form):
         profile.save(update_fields=["team", "role", "must_change_password"])
         person.user = user
         person.save(update_fields=["user", "updated_at"])
-        bridge = getattr(person, "legacy_link", None)
+        bridge = getattr(person, "legacy_identity", None)
         if bridge:
             if bridge.rider_id:
                 bridge.rider.user = user
