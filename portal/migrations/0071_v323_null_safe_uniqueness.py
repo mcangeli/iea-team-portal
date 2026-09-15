@@ -65,6 +65,21 @@ def _dedupe_null_start_rows(Model, group_fields, *, prefer_legacy=False):
         Model.objects.filter(pk__in=[row.pk for row in duplicates]).delete()
 
 
+def _merge_committee_membership(target, source):
+    rows = [target, source]
+    target.active = target.active or source.active
+    if target.active:
+        target.end_date = None
+    else:
+        end_dates = [row.end_date for row in rows if row.end_date]
+        target.end_date = max(end_dates) if end_dates else None
+    target.notes = _merge_notes(rows)
+    if not target.legacy_committee_assignment_id and source.legacy_committee_assignment_id:
+        target.legacy_committee_assignment_id = source.legacy_committee_assignment_id
+    target.save()
+    source.delete()
+
+
 def consolidate_preview_duplicates(apps, schema_editor):
     OrganizationRoleAssignment = apps.get_model("portal", "OrganizationRoleAssignment")
     Committee = apps.get_model("portal", "Committee")
@@ -110,7 +125,19 @@ def consolidate_preview_duplicates(apps, schema_editor):
         keeper.save(update_fields=["purpose", "active", "sort_order"])
 
         for duplicate in duplicates:
-            CommitteeMembership.objects.filter(committee_id=duplicate.pk).update(committee_id=keeper.pk)
+            memberships = list(CommitteeMembership.objects.filter(committee_id=duplicate.pk).order_by("id"))
+            for membership in memberships:
+                existing = CommitteeMembership.objects.filter(
+                    committee_id=keeper.pk,
+                    person_id=membership.person_id,
+                    position=membership.position,
+                    start_date=membership.start_date,
+                ).order_by("id").first()
+                if existing:
+                    _merge_committee_membership(existing, membership)
+                else:
+                    membership.committee_id = keeper.pk
+                    membership.save(update_fields=["committee"])
             duplicate.delete()
 
     _dedupe_null_start_rows(
