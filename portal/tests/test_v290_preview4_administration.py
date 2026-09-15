@@ -48,4 +48,6 @@ class ArenaLinePreview4AdministrationTests(SimpleTestCase):
 
         self.assertIn("must_change_password", template)
         self.assertIn("user_reset_password", template)
-        self.assertIn("Linked record", template)
+        self.assertIn("account.arena_person", template)
+        self.assertIn("Legacy account · no Person linked", template)
+        self.assertIn("Manage access", template)
