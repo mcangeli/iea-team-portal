@@ -7,9 +7,11 @@ from portal import views
 
 
 class RoleDashboardArchitectureTests(SimpleTestCase):
-    def test_dashboard_views_live_in_dashboard_module(self):
+    def test_dashboard_views_live_in_expected_domain_modules(self):
+        # The root/general dashboard remains the roster-domain compatibility
+        # surface; role-specific operational workspaces live in dashboards.
+        self.assertEqual(views.dashboard.__module__, "portal.view_modules.roster")
         for name in (
-            "dashboard",
             "dashboard_general",
             "dashboard_coach",
             "dashboard_team_parent",
@@ -33,4 +35,4 @@ class RoleDashboardArchitectureTests(SimpleTestCase):
 
     def test_role_dashboard_template_exists(self):
         project_root = Path(__file__).resolve().parents[2]
-        self.assertTrue((project_root / "templates/portal/dashboard_role.html").exists())
+        self.assertTrue((project_root / "templates" / "portal" / "dashboard_role.html").exists())
