@@ -2,14 +2,14 @@
 {% block title %}Provision {{ device.name }} · ArenaLine{% endblock %}
 {% block content %}
 <nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
-<section class="page-intro"><div><div class="eyebrow">DEVICE PROVISIONING</div><h1>{% if rotated %}New secret for{% else %}Register{% endif %} {{ device.name }}</h1><p>Enter these values once on the shared device. The secret will not be shown again.</p></div></section>
-<section class="content-section">
+<section class="page-intro"><div><div class="eyebrow">DEVICE PROVISIONING</div><h1>{% if rotated %}New secret for{% else %}Register{% endif %} {{ device.name }}</h1><p>Use these values once on the shared device. The secret will not be shown again.</p></div></section>
+<section class="content-section station-provision-panel">
   <div class="people-detail-list">
-    <div><dt>Activation page</dt><dd><a href="{% url 'station_activate' %}?device_key={{ device.device_key|urlencode }}">Open Station activation</a></dd></div>
+    <div><dt>Activation page</dt><dd><a class="text-link" href="{% url 'station_activate' %}?device_key={{ device.device_key|urlencode }}">Open Station activation</a></dd></div>
     <div><dt>Device key</dt><dd><code>{{ device.device_key }}</code></dd></div>
     <div><dt>One-time secret</dt><dd><code>{{ raw_secret }}</code></dd></div>
   </div>
-  <p class="muted">Store the secret only long enough to activate the device. Rotating it invalidates the old secret for future activations.</p>
+  <div class="callout"><strong>One-time provisioning</strong><p>Keep the secret only long enough to activate this Station. Rotating the secret invalidates the old value for future activations.</p></div>
   <div class="actions"><a class="btn" href="{% url 'station_manage' %}">Done</a></div>
 </section>
 {% endblock %}
