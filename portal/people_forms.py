@@ -38,7 +38,7 @@ class PersonForm(forms.ModelForm):
 
     class Meta:
         model = Person
-        fields = ["user", "first_name", "last_name", "preferred_name", "email", "phone", "birth_date", "school", "graduation_year", "bio", "photo", "website_url", "instagram_url", "facebook_url", "tiktok_url", "youtube_url", "public_profile_enabled", "active"]
+        fields = ["user", "first_name", "last_name", "preferred_name", "email", "phone", "birth_date", "school", "graduation_year", "bio", "photo", "website_url", "instagram_url", "youtube_url", "public_profile_enabled", "active"]
         widgets = {"birth_date": forms.DateInput(attrs={"type": "date"}), "bio": forms.Textarea(attrs={"rows": 5})}
 
 
@@ -149,7 +149,6 @@ class OrganizationGroupForm(forms.ModelForm):
     class Meta:
         model = OrganizationGroup
         fields = ["name", "group_type", "parent", "description", "active", "sort_order"]
-        widgets = {"description": forms.Textarea(attrs={"rows": 3})}
 
 
 class CommitteeForm(forms.ModelForm):
@@ -160,14 +159,18 @@ class CommitteeForm(forms.ModelForm):
     class Meta:
         model = Committee
         fields = ["name", "group", "purpose", "active", "sort_order"]
-        widgets = {"purpose": forms.Textarea(attrs={"rows": 3})}
 
 
 class CommitteeMembershipForm(forms.ModelForm):
     def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["committee"].queryset = Committee.objects.filter(team=team, active=True).select_related("group").order_by("group__name", "sort_order", "name") if team is not None else Committee.objects.none()
+        if team is not None:
+            self.fields["person"].queryset = Person.objects.filter(team=team, active=True).order_by("last_name", "first_name")
+            self.fields["committee"].queryset = Committee.objects.filter(team=team, active=True).order_by("sort_order", "name")
+        else:
+            self.fields["person"].queryset = Person.objects.none()
+            self.fields["committee"].queryset = Committee.objects.none()
     class Meta:
         model = CommitteeMembership
-        fields = ["committee", "position", "start_date", "end_date", "active", "notes"]
+        fields = ["committee", "person", "position", "start_date", "end_date", "active", "notes"]
         widgets = {"start_date": forms.DateInput(attrs={"type": "date"}), "end_date": forms.DateInput(attrs={"type": "date"})}
