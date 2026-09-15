@@ -178,15 +178,11 @@ class CommitteeForm(forms.ModelForm):
 
 
 class CommitteeMembershipForm(forms.ModelForm):
-    def __init__(self, *args, team=None, person=None, **kwargs):
+    def __init__(self, *args, team=None, **kwargs):
         super().__init__(*args, **kwargs)
-        if person is not None:
-            self.instance.person = person
-            self.fields.pop("person", None)
-        elif team is not None:
-            self.fields["person"].queryset = Person.objects.filter(team=team, active=True).order_by("last_name", "first_name")
-        else:
-            self.fields["person"].queryset = Person.objects.none()
+        # Committee membership routes are person-scoped; the URL/view owns the
+        # Person identity so the form should never ask for or trust a second Person.
+        self.fields.pop("person", None)
         if team is not None:
             self.fields["committee"].queryset = Committee.objects.filter(team=team, active=True).order_by("sort_order", "name")
         else:
