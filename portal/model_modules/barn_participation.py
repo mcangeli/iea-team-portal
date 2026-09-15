@@ -44,7 +44,12 @@ class HorsePersonRelationship(models.Model):
             models.UniqueConstraint(
                 fields=["horse", "person", "relationship_type", "start_date"],
                 name="unique_horse_person_relationship_period",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["horse", "person", "relationship_type"],
+                condition=models.Q(start_date__isnull=True),
+                name="unique_horse_person_relationship_null_start",
+            ),
         ]
 
     def clean(self):
