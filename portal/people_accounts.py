@@ -85,6 +85,11 @@ def sync_user_person_after_account_edit(user, team, *, rider=None, guardian=None
     """Keep the canonical Person attached while legacy account links are edited."""
     person = sync_user_person_identity(user, team, rider=rider, guardian=guardian)
 
+    # Staff and other People without legacy Rider/Guardian identities should not
+    # accumulate empty compatibility bridges merely because their login is edited.
+    if rider is None and guardian is None:
+        return person
+
     # A Person may legitimately retain both compatibility identities. We do not
     # delete bridges when a login role changes; domain history belongs to Person.
     bridge, _ = LegacyPersonLink.objects.get_or_create(person=person)
