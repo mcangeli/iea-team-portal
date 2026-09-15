@@ -59,7 +59,6 @@ from .common import (
     HISTORICAL_IMPORT_HEADERS,
     TEAM_LEVELS,
     _active_committee_roles,
-    _announcement_recipients,
     _assistance_report_rows,
     _audit_event,
     _audit_value,
@@ -95,10 +94,8 @@ from .common import (
     friendly_integrity_errors,
 )
 
+from .communications_helpers import _deliver_announcement
 
-from .communications_helpers import (
-    _deliver_announcement,
-)
 
 @login_required
 def event_rsvp(request, pk, rider_pk):
@@ -113,24 +110,17 @@ def event_rsvp(request, pk, rider_pk):
         obj.save()
         messages.success(request, f"RSVP updated for {rider.display_name}.")
         return redirect("my_team")
-    return render(request, "portal/form.html", {
-        "form": form,
-        "title": f"RSVP · {event.title}",
-        "eyebrow": rider.display_name,
-    })
+    return render(request, "portal/form.html", {"form": form, "title": f"RSVP · {event.title}", "eyebrow": rider.display_name})
+
 
 @login_required
 def action_item_list(request):
     organization = organization_for_user(request.user, required=True)
     items = _visible_action_items(request.user, organization)
     show_completed = request.GET.get("completed") == "1"
-    if not show_completed:
-        items = items.filter(completed=False)
-    return render(request, "portal/action_item_list.html", {
-        "items": items[:100],
-        "can_manage": _can_manage(request.user),
-        "show_completed": show_completed,
-    })
+    if not show_completed: items = items.filter(completed=False)
+    return render(request, "portal/action_item_list.html", {"items": items[:100], "can_manage": _can_manage(request.user), "show_completed": show_completed})
+
 
 @login_required
 def action_item_create(request):
@@ -139,16 +129,10 @@ def action_item_create(request):
     period = active_period_for_organization(organization)
     form = ActionItemForm(request.POST or None, team=organization, season=period)
     if form.is_valid():
-        obj = form.save(commit=False)
-        obj.team = organization
-        obj.season = period
-        obj.created_by = request.user
-        obj.save()
-        messages.success(request, "Action item created.")
-        return redirect("action_item_list")
-    return render(request, "portal/form.html", {
-        "form": form, "title": "Add action item", "eyebrow": "TEAM HUB"
-    })
+        obj = form.save(commit=False); obj.team = organization; obj.season = period; obj.created_by = request.user; obj.save()
+        messages.success(request, "Action item created."); return redirect("action_item_list")
+    return render(request, "portal/form.html", {"form": form, "title": "Add action item", "eyebrow": "TEAM HUB"})
+
 
 @login_required
 def action_item_edit(request, pk):
@@ -157,27 +141,21 @@ def action_item_edit(request, pk):
     item = get_object_or_404(ActionItem, pk=pk, team=organization)
     form = ActionItemForm(request.POST or None, instance=item, team=organization, season=item.season)
     if form.is_valid():
-        form.save()
-        messages.success(request, "Action item updated.")
-        return redirect("action_item_list")
-    return render(request, "portal/form.html", {
-        "form": form, "title": f"Edit · {item.title}", "eyebrow": "TEAM HUB"
-    })
+        form.save(); messages.success(request, "Action item updated."); return redirect("action_item_list")
+    return render(request, "portal/form.html", {"form": form, "title": f"Edit · {item.title}", "eyebrow": "TEAM HUB"})
+
 
 @login_required
 @require_POST
 def action_item_claim(request, pk):
     organization = organization_for_user(request.user, required=True)
     item = get_object_or_404(_visible_action_items(request.user, organization), pk=pk, completed=False)
-    if not item.claimable:
-        raise PermissionDenied
-    if item.claimed_by_id and item.claimed_by_id != request.user.id and not _can_manage(request.user):
-        messages.error(request, "This item has already been claimed.")
+    if not item.claimable: raise PermissionDenied
+    if item.claimed_by_id and item.claimed_by_id != request.user.id and not _can_manage(request.user): messages.error(request, "This item has already been claimed.")
     else:
-        item.claimed_by = None if item.claimed_by_id == request.user.id else request.user
-        item.save(update_fields=["claimed_by"])
-        messages.success(request, "Action item updated.")
+        item.claimed_by = None if item.claimed_by_id == request.user.id else request.user; item.save(update_fields=["claimed_by"]); messages.success(request, "Action item updated.")
     return redirect("action_item_list")
+
 
 @login_required
 @require_POST
@@ -185,12 +163,9 @@ def action_item_complete(request, pk):
     organization = organization_for_user(request.user, required=True)
     item = get_object_or_404(_visible_action_items(request.user, organization), pk=pk)
     allowed = _can_manage(request.user) or item.assigned_to_id == request.user.id or item.claimed_by_id == request.user.id
-    if not allowed:
-        raise PermissionDenied
-    item.completed = not item.completed
-    item.save()
-    messages.success(request, "Action item updated.")
-    return redirect("action_item_list")
+    if not allowed: raise PermissionDenied
+    item.completed = not item.completed; item.save(); messages.success(request, "Action item updated."); return redirect("action_item_list")
+
 
 @login_required
 def calendar(request):
@@ -198,16 +173,11 @@ def calendar(request):
     selected_kind = request.GET.get("kind", "all")
     valid_kinds = {value for value, _label in CalendarEvent.Kind.choices}
     events = organization.events.select_related("show", "lesson").all()
-    if not _can_manage(request.user):
-        events = events.filter(visible_to_all=True)
-    if selected_kind in valid_kinds:
-        events = events.filter(kind=selected_kind)
-    else:
-        selected_kind = "all"
-    return render(request, "portal/calendar.html", {
-        "events": events[:100], "can_manage": _can_manage(request.user),
-        "selected_kind": selected_kind, "event_kinds": CalendarEvent.Kind.choices,
-    })
+    if not _can_manage(request.user): events = events.filter(visible_to_all=True)
+    if selected_kind in valid_kinds: events = events.filter(kind=selected_kind)
+    else: selected_kind = "all"
+    return render(request, "portal/calendar.html", {"events": events[:100], "can_manage": _can_manage(request.user), "selected_kind": selected_kind, "event_kinds": CalendarEvent.Kind.choices})
+
 
 @login_required
 def event_create(request):
@@ -215,64 +185,39 @@ def event_create(request):
     organization = organization_for_user(request.user, required=True)
     form = CalendarEventForm(request.POST or None)
     if form.is_valid():
-        obj = form.save(commit=False)
-        obj.team = organization
-        obj.season = active_period_for_organization(organization)
-        obj.save()
-        messages.success(request, "Calendar event added.")
-        return redirect("calendar")
+        obj = form.save(commit=False); obj.team = organization; obj.season = active_period_for_organization(organization); obj.save()
+        messages.success(request, "Calendar event added."); return redirect("calendar")
     return render(request, "portal/form.html", {"form": form, "title": "Add calendar event", "eyebrow": "SCHEDULE"})
+
 
 @login_required
 def event_edit(request, pk):
     _require_manage(request.user)
     organization = organization_for_user(request.user, required=True)
     event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=organization)
-
     if event.show_id:
-        messages.info(request, "This calendar entry is synced from a show. Edit the show to update the calendar.")
-        return redirect("show_edit", pk=event.show_id)
+        messages.info(request, "This calendar entry is synced from a show. Edit the show to update the calendar."); return redirect("show_edit", pk=event.show_id)
     if event.lesson_id:
-        messages.info(request, "This calendar entry is synced from a lesson. Edit the lesson to update the calendar.")
-        return redirect("lesson_edit", pk=event.lesson_id)
-
+        messages.info(request, "This calendar entry is synced from a lesson. Edit the lesson to update the calendar."); return redirect("lesson_edit", pk=event.lesson_id)
     form = CalendarEventForm(request.POST or None, instance=event)
     if form.is_valid():
-        obj = form.save(commit=False)
-        obj.team = organization
-        obj.save()
-        messages.success(request, "Calendar event updated.")
-        return redirect("calendar")
-    return render(request, "portal/form.html", {
-        "form": form,
-        "title": f"Edit calendar event · {event.title}",
-        "eyebrow": "SCHEDULE",
-    })
+        obj = form.save(commit=False); obj.team = organization; obj.save(); messages.success(request, "Calendar event updated."); return redirect("calendar")
+    return render(request, "portal/form.html", {"form": form, "title": f"Edit calendar event · {event.title}", "eyebrow": "SCHEDULE"})
+
 
 @login_required
 def event_delete(request, pk):
     _require_manage(request.user)
     organization = organization_for_user(request.user, required=True)
     event = get_object_or_404(CalendarEvent.objects.select_related("show", "lesson"), pk=pk, team=organization)
-
     if event.show_id:
-        messages.info(request, "This calendar entry is synced from a show. Manage the show instead of deleting the calendar copy.")
-        return redirect("show_edit", pk=event.show_id)
+        messages.info(request, "This calendar entry is synced from a show. Manage the show instead of deleting the calendar copy."); return redirect("show_edit", pk=event.show_id)
     if event.lesson_id:
-        messages.info(request, "This calendar entry is synced from a lesson. Manage the lesson instead of deleting the calendar copy.")
-        return redirect("lesson_edit", pk=event.lesson_id)
-
+        messages.info(request, "This calendar entry is synced from a lesson. Manage the lesson instead of deleting the calendar copy."); return redirect("lesson_edit", pk=event.lesson_id)
     if request.method == "POST":
-        title = event.title
-        event.delete()
-        messages.success(request, f"Calendar event ‘{title}’ deleted.")
-        return redirect("calendar")
+        title = event.title; event.delete(); messages.success(request, f"Calendar event ‘{title}’ deleted."); return redirect("calendar")
+    return render(request, "portal/confirm_delete.html", {"object": event, "title": f"Delete calendar event · {event.title}", "message": "This will permanently remove this manually-created calendar event. It will not delete any rider, show, lesson, or other organization record."})
 
-    return render(request, "portal/confirm_delete.html", {
-        "object": event,
-        "title": f"Delete calendar event · {event.title}",
-        "message": "This will permanently remove this manually-created calendar event. It will not delete any rider, show, lesson, or other organization record.",
-    })
 
 @login_required
 def announcement_create(request):
@@ -281,21 +226,17 @@ def announcement_create(request):
     period = active_period_for_organization(organization)
     form = AnnouncementForm(request.POST or None, team=organization)
     if form.is_valid():
-        obj = form.save(commit=False)
-        obj.team = organization
-        obj.season = period
-        obj.created_by = request.user
-        obj.save()
-        form.save_m2m()
+        obj = form.save(commit=False); obj.team = organization; obj.season = period; obj.created_by = request.user; obj.save(); form.save_m2m()
         recipient_count = _deliver_announcement(obj) if obj.published else 0
-        messages.success(request, f"Announcement posted to {recipient_count} portal user{'s' if recipient_count != 1 else ''}.")
-        return redirect("dashboard")
+        messages.success(request, f"Announcement posted to {recipient_count} portal user{'s' if recipient_count != 1 else ''}."); return redirect("dashboard")
     return render(request, "portal/form.html", {"form": form, "title": "Post announcement", "eyebrow": "TEAM NEWS"})
+
 
 @login_required
 def notification_list(request):
     notifications = request.user.portal_notifications.select_related("announcement", "show_day_update").all()[:100]
     return render(request, "portal/notifications.html", {"notifications": notifications})
+
 
 @login_required
 @require_POST
@@ -305,16 +246,17 @@ def notification_read(request, pk):
         notification.read_at = timezone.now(); notification.save(update_fields=["read_at"])
     return redirect(notification.link or "notification_list")
 
+
 @login_required
 @require_POST
 def notification_read_all(request):
     request.user.portal_notifications.filter(read_at__isnull=True).update(read_at=timezone.now())
     return redirect("notification_list")
 
+
 @login_required
 def notification_preferences(request):
-    if not hasattr(request.user, "profile"):
-        raise PermissionDenied
+    if not hasattr(request.user, "profile"): raise PermissionDenied
     form = NotificationPreferenceForm(request.POST or None, instance=request.user.profile)
     if form.is_valid():
         form.save(); messages.success(request, "Notification preferences updated."); return redirect("notification_list")
