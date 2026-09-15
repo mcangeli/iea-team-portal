@@ -69,7 +69,8 @@ class EquineCareUiTests(TestCase):
             provider=self.provider,
         )
         response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
-        self.assertContains(response, "Care history")
+        self.assertContains(response, "Care due soon")
+        self.assertContains(response, "Completed care")
         self.assertContains(response, "Dental float")
         self.assertContains(response, "Due soon")
         self.assertContains(response, self.provider.display_name)
