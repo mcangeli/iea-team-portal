@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ group.name }} · People · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_structure' %}">← People structure</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">{{ group.get_group_type_display|upper }} · OPERATIONS</div><h1>{{ group.name }}</h1><p>{{ group.description|default:"People, committees, and responsibilities connected to this part of the organization." }}</p></div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'organization_group_edit' group.pk %}">Edit group</a></div>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">AT A GLANCE</div><h2>Participation</h2></div></div>
+  <dl class="people-detail-list"><div><dt>Active people</dt><dd><strong>{{ people_rows|length }}</strong></dd></div><div><dt>Committees</dt><dd>{{ committee_rows|length }}</dd></div><div><dt>Subgroups</dt><dd>{{ subgroups|length }}</dd></div><div><dt>Status</dt><dd>{% if group.active %}Active{% else %}Inactive{% endif %}</dd></div></dl>
+</section>
+<div class="people-profile-layout">
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PEOPLE</div><h2>Who is involved</h2><p class="muted">Participation shown here comes from active committee responsibilities within this group.</p></div></div>
+  {% for row in people_rows %}<div class="people-structure-row"><div><strong><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></strong><div class="person-tags">{% for responsibility in row.responsibilities %}<span class="people-tag-link">{{ responsibility }}</span>{% endfor %}</div></div></div>{% empty %}<p class="muted">No active committee participation is recorded for this group yet.</p>{% endfor %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Operational responsibilities</h2></div><a href="{% url 'committee_add' %}">Add committee</a></div>
+  {% for row in committee_rows %}<div class="people-structure-row"><div><strong><a href="{% url 'committee_detail' row.committee.pk %}">{{ row.committee.name }}</a></strong><p class="muted">{{ row.memberships|length }} active member{{ row.memberships|length|pluralize }}{% if not row.committee.active %} · Inactive committee{% endif %}</p><div class="person-tags">{% for membership in row.memberships %}<a class="people-tag-link" href="{% url 'person_detail' membership.person.pk %}">{{ membership.person.display_name }} · {{ membership.get_position_display }}</a>{% empty %}<span class="muted">No members assigned.</span>{% endfor %}</div></div></div>{% empty %}<p class="muted">No committees are scoped to this group.</p>{% endfor %}
+  {% if subgroups %}<div class="section-head"><div><div class="eyebrow">SUBGROUPS</div><h2>Nested operations</h2></div></div>{% for subgroup in subgroups %}<div class="people-structure-row"><div><strong><a href="{% url 'organization_group_detail' subgroup.pk %}">{{ subgroup.name }}</a></strong><p class="muted">{{ subgroup.get_group_type_display }}</p></div></div>{% endfor %}{% endif %}
+</section>
+</div>
+{% endblock %}
