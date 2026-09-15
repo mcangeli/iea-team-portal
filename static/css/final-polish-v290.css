@@ -1,5 +1,22 @@
 /* ArenaLine v2.9 Preview 4I — final responsive, navigation, and theme polish. */
 
+/* Give keyboard users a reliable way around the shared navigation. */
+.skip-link {
+  position: fixed;
+  z-index: 1000;
+  top: .65rem;
+  left: .65rem;
+  padding: .7rem 1rem;
+  border-radius: .55rem;
+  background: var(--arena-navy, #0E2A47);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-180%);
+  transition: transform .16s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+
 /* Keep keyboard focus visible across the shared shell. */
 a:focus-visible,
 button:focus-visible,
@@ -10,6 +27,8 @@ textarea:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--arena-gold, #C9A96B) 72%, white);
   outline-offset: 3px;
 }
+
+#main-content:focus { outline: none; }
 
 /* Module navigation should read as one coherent system. */
 .main-nav .nav-primary,
@@ -39,6 +58,7 @@ textarea:focus-visible {
   max-width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 }
 
 .actions,
@@ -69,7 +89,7 @@ textarea:focus-visible {
   }
 
   .main-nav.is-open {
-    max-height: calc(100vh - 76px);
+    max-height: calc(100dvh - 76px);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -122,8 +142,37 @@ textarea:focus-visible {
     text-align: center;
   }
 
+  .table-wrap table,
+  .entry-table-wrap table {
+    min-width: 680px;
+  }
+
+  .table-wrap .actions,
+  .entry-table-wrap .actions,
+  .table-actions {
+    flex-wrap: nowrap;
+  }
+
+  .table-wrap .btn,
+  .entry-table-wrap .btn,
+  .table-actions .btn {
+    min-height: 42px;
+    white-space: nowrap;
+  }
+
   footer {
     text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
