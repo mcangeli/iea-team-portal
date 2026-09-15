@@ -14,10 +14,10 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.2.0 — Unified People & Organization Foundation:** completed development milestone.
 - **3.2.1 — Barn Participation & Horse Relationships:** completed development milestone.
 - **3.2.2 — ArenaLine Station:** completed development milestone.
-- **3.2.3 — People & Operations Polish:** active development milestone and current focus.
-- **3.3.0 — Equine Care & Horse Management:** committed next major release.
-- **3.4.0 — Lesson Program:** committed next major release.
-- **3.5.0 — Barn Finance & Business Operations:** committed next major release.
+- **3.2.3 — People & Operations Polish:** release-complete; closes the 3.2.x family.
+- **3.3.0 — Equine Care & Horse Management:** current next major release.
+- **3.4.0 — Lesson Program:** committed future release.
+- **3.5.0 — Barn Finance & Business Operations:** committed future release.
 
 ---
 
@@ -66,22 +66,11 @@ Major outcomes:
 - Production/staging isolation.
 - `portalctl` backup, preflight, health, rollback, and stable/preview update-channel workflows.
 
-Platform modules:
-
-- `core`
-- `people`
-- `horses`
-- `operations`
-- `finance`
-- `communications`
-
-IEA competition remains isolated in `competition_iea`.
+Platform modules: `core`, `people`, `horses`, `operations`, `finance`, and `communications`. IEA competition remains isolated in `competition_iea`.
 
 ---
 
-# 3.0.x — IEA Competition Foundation
-
-## 3.0.0 — IEA Rulebook & Class Catalog Foundation
+# 3.0.0 — IEA Competition Foundation
 
 **Status: released.**
 
@@ -96,13 +85,9 @@ Major outcomes:
 - historical compatibility for unlinked legacy classes;
 - architecture/presentation cleanup needed before public work.
 
-The v3.0.0 staging baseline completed with **425 portal tests passing** before production promotion.
+Validation: **425 portal tests passing** before production promotion.
 
-Supporting docs:
-
-- `docs/V3_0_0_IEA_CLASS_CATALOG_FOUNDATION.md`
-- `docs/V3_0_CLEANUP_CLOSEOUT.md`
-- `docs/releases/v3.0.0.md`
+Supporting docs: `docs/V3_0_0_IEA_CLASS_CATALOG_FOUNDATION.md`, `docs/V3_0_CLEANUP_CLOSEOUT.md`, and `docs/releases/v3.0.0.md`.
 
 ---
 
@@ -110,7 +95,7 @@ Supporting docs:
 
 **Status: released.**
 
-v3.1.0 adds ArenaLine's first deliberate anonymous/public experience while preserving a strict private-by-default boundary.
+v3.1.0 added ArenaLine's first deliberate anonymous/public experience while preserving a strict private-by-default boundary.
 
 Major outcomes:
 
@@ -119,28 +104,24 @@ Major outcomes:
 - public organization/program landing pages;
 - published upcoming/active/past show lists;
 - public show detail pages and schedules;
-- live show lifecycle and class lifecycle;
-- structured ring assignments and multi-ring live operation;
+- live show/class lifecycle and structured multi-ring operation;
 - class-level public result publication;
 - spectator-safe notices and ring delays;
-- stable `/public/<program>/live/` links suitable for reusable QR codes;
-- polished public spectator presentation;
-- responsive Show Day command-center layout for desktop, tablet, and mobile;
-- squad-scoped Show Day behavior preserved for Futures/Upper Team Parents while ordinary family views remain read-only.
+- stable reusable public live links/QR destinations;
+- polished responsive Show Day and spectator presentation;
+- squad-scoped Futures/Upper Team Parent behavior preserved.
 
-Release validation completed with **486 portal tests passing** on the final release candidate, plus clean Django system and migration-drift checks.
+Validation: **486 portal tests passing** plus clean Django system/migration checks.
 
-Supporting doc:
-
-- `docs/releases/v3.1.0.md`
+Supporting doc: `docs/releases/v3.1.0.md`.
 
 ---
 
 # 3.2.x — People, Relationships & Barn Operations
 
-**Status: active release family; v3.2.3 is the current development milestone.**
+**Status: release-complete with v3.2.3.**
 
-v3.2 moves ArenaLine from separate rider/parent/user assumptions toward a unified human and organizational model suitable for a full barn program.
+v3.2 moved ArenaLine from separate rider/parent/user assumptions toward a unified human and organizational model suitable for a full barn program.
 
 ## Core identity principle
 
@@ -165,8 +146,6 @@ Major outcomes:
 - permissions kept independent from organizational labels and roles;
 - compatibility-first migration strategy preserving Rider, Guardian, UserProfile, SeasonMembership, finance, competition, and historical references.
 
-The Person foundation established the rule that login credentials are access, while Person is the durable human identity used by ArenaLine.
-
 ## v3.2.1 — Barn Participation & Horse Relationships
 
 **Status: completed development milestone.**
@@ -178,7 +157,7 @@ Major outcomes:
 - horse ownership/responsible-party relationships;
 - boarding and lease relationship foundations, including shared/partial participation patterns;
 - date-aware participation and relationship history;
-- People/horse relationship architecture designed to feed v3.3 Equine Care without moving care-detail concerns prematurely into v3.2.
+- People/horse relationship architecture designed to feed v3.3 Equine Care.
 
 ## v3.2.2 — ArenaLine Station
 
@@ -187,53 +166,43 @@ Major outcomes:
 Major outcomes:
 
 - tablet-first shared barn Station experience;
-- trusted station/device model and limited station identity/PIN separate from full portal passwords;
-- today's lesson-oriented station workflow;
-- rider attendance/check-in actions;
-- staff and working-student clock-in/clock-out workflow;
+- trusted station/device model and limited Station identity/PIN separate from full portal passwords;
+- staff and working-student clock-in/clock-out;
+- manager review/correction/approval, summaries, export, and audit history;
 - touch-first presentation with restricted administrative exposure;
-- audit history for station actions;
 - shared-device authentication boundary that does not grant unrestricted portal access.
 
 ## v3.2.3 — People & Operations Polish
 
-**Status: active development milestone.**
+**Status: release-complete.**
 
-Current focus is consolidating the 3.2 People architecture across the existing portal and hardening the operational experience before the release family closes.
-
-Completed/current work includes:
+Closeout outcomes:
 
 - canonical People presentation for rider/family relationships and current IEA participation;
 - People-first private rider/family authorization with compatibility fallbacks;
 - explicit family-finance authorization boundaries separate from ordinary operational rider visibility;
-- People-aware communications recipient discovery;
-- canonical Person identity synchronization for login accounts;
-- Person-first login-access creation and management surfaces;
-- regression coverage for canonical family, authorization, communications, and account identity behavior.
+- People-aware communications and canonical account identity synchronization;
+- Person-first login-access creation/management and My Account surfaces;
+- current-effective role, family, committee, Barn Operations, and People↔Horse relationship handling;
+- work-time review/approval, work-history visibility, Working Student tracking, and Station review queues;
+- group/program/committee presentation polish;
+- public rider/person cards using explicit allow-listed publication fields;
+- privacy, mobile/tablet, keyboard, accessibility, and audit hardening;
+- full-suite regression reconciliation against the current People-first architecture and terminology.
 
-Remaining closeout areas include:
+Final validation: clean Django system checks and **643/643 portal tests passing** on staging.
 
-- finish removal/wrapping of remaining legacy identity and communications entry points where canonical People services now exist;
-- work-time review/approval and attendance/work-history polish where needed;
-- working-student hour tracking review;
-- group/program/committee dashboard polish;
-- role/permission default review and authorization audit;
-- reporting/export review;
-- public rider/person-card refinement;
-- privacy, mobile/tablet, accessibility, and audit hardening;
-- full portal regression testing and release documentation before closing the 3.2.x family.
+Detailed release notes: `docs/releases/v3.2.3.md`.
 
 ## Migration strategy
 
-v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfile`, `SeasonMembership`, committee, competition, finance, and historical records are not destructively rewritten merely to achieve cleaner naming.
-
-Person/relationship/group abstractions are layered alongside existing structures, linked conservatively, with stable URLs and historical references preserved. Legacy identity paths are removed only after callers are known and covered by regression tests.
+v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfile`, `SeasonMembership`, committee, competition, finance, and historical records are not destructively rewritten merely to achieve cleaner naming. Person/relationship/group abstractions are layered alongside existing structures, linked conservatively, with stable URLs and historical references preserved.
 
 ---
 
 # 3.3.0 — Equine Care & Horse Management
 
-**Status: committed next major release after v3.2.3 closeout.**
+**Status: committed next major release and next development focus.**
 
 v3.3 expands the current competition/Hoofprint-oriented Horse Registry into broader equine-care and barn-management functionality while preserving show/competition workflows.
 
@@ -255,20 +224,7 @@ Planned areas include:
 
 **Status: committed future release.**
 
-v3.4 expands ArenaLine's existing lesson functionality into a broader lesson-program operating system using the richer Person and Horse foundations.
-
-Planned areas include:
-
-- lesson enrollment and recurring schedules;
-- lesson groups/programs and trainer assignments;
-- rider and horse assignment;
-- lesson capacity and waitlists;
-- cancellations and makeups;
-- attendance/check-in integration with ArenaLine Station;
-- lesson notes and trainer notes;
-- rider progression/history;
-- horse workload/use visibility;
-- packages/credits or billing hooks needed by v3.5 without duplicating Finance logic.
+Planned areas include lesson enrollment/recurring schedules, groups/programs and trainer assignments, rider/horse assignment, capacity/waitlists, cancellations/makeups, Station attendance integration, lesson/trainer notes, progression/history, workload visibility, and billing hooks needed by v3.5 without duplicating Finance logic.
 
 ---
 
@@ -276,21 +232,7 @@ Planned areas include:
 
 **Status: committed future release.**
 
-v3.5 reviews and expands the existing Finance domain for general barn management while retaining IEA/team finance functionality.
-
-Potential operational finance areas:
-
-- boarding charges;
-- full/half/shared lease charges;
-- lesson packages and private/group lesson charges;
-- training fees;
-- horse-care pass-through expenses;
-- show/team/program fees;
-- memberships and service/working-student credits;
-- staff/work-hour inputs where appropriate;
-- family/customer account balances;
-- payments, credits, reimbursements, fundraising, and reporting;
-- operational invoice/account statements and exports.
+Potential operational finance areas include boarding/lease/lesson/training charges, horse-care pass-through expenses, show/team/program fees, memberships and working-student credits, staff/work-hour inputs, family/customer balances, payments/credits/reimbursements/fundraising, statements, reporting, and exports.
 
 ArenaLine should remain focused on operational finance/account management and integrations/exports rather than trying to replace a complete external accounting/general-ledger system without a deliberate future decision.
 
@@ -298,14 +240,7 @@ ArenaLine should remain focused on operational finance/account management and in
 
 # Longer-term ArenaLine direction
 
-Longer-term ideas not yet assigned to a specific release include:
-
-- additional competition modules with their own official rule/class catalogs;
-- richer cross-season rider/horse/show analytics;
-- controlled public historical archives;
-- additional organization types beyond IEA programs;
-- richer multi-ring spectator boards, announcements, and live-event tooling;
-- deeper scheduling/resource management across staff, riders, horses, rings, and facilities.
+Longer-term ideas not yet assigned to a specific release include additional competition modules, richer cross-season analytics, controlled public historical archives, additional organization types, richer spectator/event tooling, and deeper scheduling/resource management across staff, riders, horses, rings, and facilities.
 
 ---
 
@@ -316,7 +251,7 @@ Longer-term ideas not yet assigned to a specific release include:
 Core rules:
 
 - every new/materially redesigned page follows established ArenaLine branding, components, typography, spacing, light/dark behavior, and responsive conventions;
-- desktop, tablet, and mobile presentation are considered during implementation, not after feature completion;
+- desktop, tablet, and mobile presentation are considered during implementation;
 - authorization/privacy is enforced server-side, not merely hidden in presentation;
 - IEA-specific rules/terminology remain in `competition_iea`;
 - official competition reference data comes from verified official sources;
@@ -329,21 +264,9 @@ Documentation responsibilities:
 
 - `README.md` is the practical overview/install/use/update document;
 - `ROADMAP.md` is the canonical roadmap;
-- `RELEASE_NOTES.md` is the canonical top-level changelog/release history;
-- `docs/releases/<version>.md` holds detailed release-specific notes;
-- `ARCHITECTURE.md` documents technical/domain boundaries and compatibility strategy;
-- documentation changes are made as product decisions/features change, not deferred until after release.
+- `CHANGELOG.md` is the concise current release history;
+- `RELEASE_NOTES.md` retains detailed historical release notes from earlier release families;
+- `docs/releases/<version>.md` holds detailed current release-specific notes;
+- `ARCHITECTURE.md` documents technical/domain boundaries and compatibility strategy.
 
 **Before promotion to `main`, follow `RELEASE_CHECKLIST.md` and update `VERSION`, README, changelog/release notes, roadmap, architecture/supporting documentation, and the stable-tag plan together.**
-
----
-
-## Maintaining this roadmap
-
-When direction changes:
-
-- update this file in the active feature/release branch;
-- preserve concise summaries of completed release families;
-- keep detailed implementation notes under `docs/`;
-- distinguish committed near-term work from directional ideas;
-- update documentation **before** promotion to `main`, not afterward.
