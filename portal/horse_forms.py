@@ -1,6 +1,6 @@
 from django import forms
 
-from .horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
+from .horse_models import Horse, HorseCogginsRecord, HorseIdentifier, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from .model_modules.barn_participation import HorsePersonRelationship
 from .model_modules.people import Person
 from .models import Season, SeasonClass, ShowClass
@@ -33,6 +33,27 @@ class HorseForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError("A horse with this name is already in the team registry.")
         return name
+
+
+class HorseIdentifierForm(forms.ModelForm):
+    class Meta:
+        model = HorseIdentifier
+        fields = ["authority", "identifier_type", "value", "is_primary", "notes"]
+        labels = {"value": "Identifier"}
+        widgets = {
+            "authority": forms.TextInput(attrs={"placeholder": "IEA, USEF, breed registry, etc."}),
+            "identifier_type": forms.TextInput(attrs={"placeholder": "Horse ID, registration number, microchip, etc."}),
+            "notes": forms.TextInput(attrs={"placeholder": "Optional notes"}),
+        }
+
+    def clean_authority(self):
+        return self.cleaned_data["authority"].strip()
+
+    def clean_identifier_type(self):
+        return self.cleaned_data["identifier_type"].strip()
+
+    def clean_value(self):
+        return self.cleaned_data["value"].strip()
 
 
 class HorsePersonRelationshipForm(forms.ModelForm):
