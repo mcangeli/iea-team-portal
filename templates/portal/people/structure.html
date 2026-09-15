@@ -7,9 +7,9 @@
 </section>
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">AT A GLANCE</div><h2>Organization map</h2><p class="muted">Current structure and active participation across ArenaLine People.</p></div></div>
+  <div class="section-head"><div><div class="eyebrow">AT A GLANCE</div><h2>Organization map</h2><p class="muted">Current structure and participation across ArenaLine People.</p></div></div>
   <div class="people-detail-list">
-    <div><dt>Active groups</dt><dd><strong>{{ groups|length }}</strong></dd></div>
+    <div><dt>Groups</dt><dd><strong>{{ groups|length }}</strong></dd></div>
     <div><dt>Committees</dt><dd><strong>{{ committees|length }}</strong></dd></div>
   </div>
 </section>
@@ -37,7 +37,7 @@
 </section>
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committee operations</h2><p class="muted">Active leadership and membership are shown here so responsibility is visible without opening each Person profile.</p></div><a class="btn" href="{% url 'committee_add' %}">Add committee</a></div>
+  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committee operations</h2><p class="muted">Leadership and membership are shown here so responsibility is visible without opening each Person profile.</p></div><a class="btn" href="{% url 'committee_add' %}">Add committee</a></div>
   {% for committee in committees %}
   <div class="people-structure-row">
     <div>
@@ -45,9 +45,9 @@
       <p class="muted">{% if committee.group %}<a href="{% url 'organization_group_detail' committee.group.pk %}">{{ committee.group.name }}</a>{% else %}Organization-wide{% endif %}{% if not committee.active %} · Inactive{% endif %}</p>
       {% if committee.purpose %}<p>{{ committee.purpose }}</p>{% endif %}
       <div class="person-tags">
-        {% for membership in committee.memberships.all %}{% if membership.active %}
-          <a class="people-tag-link" href="{% url 'person_detail' membership.person.pk %}">{{ membership.person.display_name }} · {{ membership.get_position_display }}</a>
-        {% endif %}{% empty %}<span class="muted">No members assigned yet.</span>{% endfor %}
+        {% for membership in committee.memberships.all %}
+          {% if membership.active %}<a class="people-tag-link" href="{% url 'person_detail' membership.person.pk %}">{{ membership.person.display_name }} · {{ membership.get_position_display }}</a>{% else %}<span class="muted">{{ membership.person.display_name }} · {{ membership.get_position_display }} · Inactive</span>{% endif %}
+        {% empty %}<span class="muted">No members assigned yet.</span>{% endfor %}
       </div>
     </div>
     <div class="actions"><a href="{% url 'committee_detail' committee.pk %}">View</a><a href="{% url 'committee_edit' committee.pk %}">Edit</a></div>
