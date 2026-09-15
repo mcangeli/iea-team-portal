@@ -13,6 +13,7 @@ def public_profile_for_person(person):
     if not person or not person.active or not person.public_profile_enabled:
         return None
     return {
+        "person_id": person.pk,
         "display_name": person.display_name,
         "photo": person.photo,
         "bio": person.bio,
@@ -44,3 +45,35 @@ def public_profiles_for_riders(riders):
         for bridge in bridges
     }
     return {rider_id: profile for rider_id, profile in profiles.items() if profile}
+
+
+def public_profiles_for_team(team):
+    """Return only opted-in rider People for an organization's anonymous public site."""
+    bridges = (
+        LegacyPersonLink.objects.filter(
+            person__team=team,
+            person__active=True,
+            person__public_profile_enabled=True,
+            rider__isnull=False,
+            rider__active=True,
+        )
+        .select_related("person", "rider")
+        .order_by("person__last_name", "person__first_name", "person__id")
+    )
+    return [public_profile_for_person(bridge.person) for bridge in bridges]
+
+
+def public_profile_for_team_person(team, person_id):
+    """Resolve one public rider profile while enforcing organization and opt-in boundaries."""
+    try:
+        bridge = LegacyPersonLink.objects.select_related("person", "rider").get(
+            person_id=person_id,
+            person__team=team,
+            person__active=True,
+            person__public_profile_enabled=True,
+            rider__isnull=False,
+            rider__active=True,
+        )
+    except LegacyPersonLink.DoesNotExist:
+        return None
+    return public_profile_for_person(bridge.person)
