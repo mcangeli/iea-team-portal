@@ -1,0 +1,26 @@
+{% extends 'public/base.html' %}
+{% block title %}Riders · {{ public_site.name }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="public-hero">
+  <div class="public-kicker">MEET THE TEAM</div>
+  <h1>Riders</h1>
+  <p class="public-tagline">Meet the riders who have chosen to share their ArenaLine profile.</p>
+</section>
+<section class="public-section">
+  <div class="public-show-grid">
+    {% for rider in public_riders %}
+      <a class="public-show-card" href="{% url 'public_rider_detail' public_site.slug rider.person_id %}">
+        <div>
+          {% if rider.photo %}<img src="{{ rider.photo.url }}" alt="{{ rider.display_name }}" style="width:120px;height:120px;object-fit:cover;border-radius:50%;margin-bottom:1rem;">{% endif %}
+          <div class="public-kicker">RIDER PROFILE</div>
+          <h3>{{ rider.display_name }}</h3>
+          {% if rider.bio %}<p>{{ rider.bio|truncatewords:28 }}</p>{% endif %}
+          <span class="public-section-link">View rider card →</span>
+        </div>
+      </a>
+    {% empty %}
+      <div class="public-empty">No riders have published a public profile yet.</div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
