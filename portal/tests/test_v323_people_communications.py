@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -78,6 +78,21 @@ class V323PeopleCommunicationsTests(TestCase):
         recipients = _announcement_recipients(self._announcement(Announcement.Audience.FUTURES))
         self.assertTrue(recipients.filter(pk=self.rider_user.pk).exists())
         self.assertFalse(recipients.filter(pk=self.parent_user.pk).exists())
+
+    def test_future_parent_relationship_excludes_parent_from_futures_family(self):
+        relationship = PersonRelationship.objects.get(from_person=self.parent_person, to_person=self.rider_person)
+        relationship.start_date = date.today() + timedelta(days=1)
+        relationship.save(update_fields=["start_date"])
+        recipients = _announcement_recipients(self._announcement(Announcement.Audience.FUTURES))
+        self.assertTrue(recipients.filter(pk=self.rider_user.pk).exists())
+        self.assertFalse(recipients.filter(pk=self.parent_user.pk).exists())
+
+    def test_future_end_date_keeps_parent_in_futures_family(self):
+        relationship = PersonRelationship.objects.get(from_person=self.parent_person, to_person=self.rider_person)
+        relationship.end_date = date.today() + timedelta(days=1)
+        relationship.save(update_fields=["end_date"])
+        recipients = _announcement_recipients(self._announcement(Announcement.Audience.FUTURES))
+        self.assertTrue(recipients.filter(pk=self.parent_user.pk).exists())
 
     def test_unrelated_parent_role_is_not_added_to_futures_audience(self):
         unrelated = self._user("unrelated-parent", UserProfile.Role.PARENT)
