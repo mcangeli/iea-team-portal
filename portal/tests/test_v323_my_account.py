@@ -29,14 +29,16 @@ class V323MyAccountTests(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("my_account"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "My Account")
-        self.assertContains(response, "Roles &amp; responsibilities")
+        self.assertContains(response, "MY ACCOUNT")
+        self.assertContains(response, "School")
+        self.assertContains(response, "Grad year")
         self.assertContains(response, "Birthday")
+        self.assertContains(response, "Organization roles")
 
     def test_user_can_update_only_self_service_profile_fields(self):
         self.client.force_login(self.user)
         response = self.client.post(
-            reverse("my_account"),
+            reverse("my_account_edit"),
             {
                 "preferred_name": "Jay",
                 "email": "jay@example.com",
@@ -46,9 +48,9 @@ class V323MyAccountTests(TestCase):
                 "bio": "Rider bio",
                 "website_url": "",
                 "instagram_url": "https://instagram.com/jay",
-                "facebook_url": "",
-                "tiktok_url": "",
-                "youtube_url": "",
+                "facebook_url": "https://facebook.com/jay",
+                "tiktok_url": "https://tiktok.com/@jay",
+                "youtube_url": "https://youtube.com/@jay",
                 "public_profile_enabled": "on",
                 "first_name": "Changed",
                 "last_name": "Name",
@@ -64,22 +66,28 @@ class V323MyAccountTests(TestCase):
         self.assertEqual(self.user.email, "jay@example.com")
         self.assertEqual(self.person.school, "New School")
         self.assertEqual(self.person.graduation_year, 2029)
+        self.assertEqual(self.person.instagram_url, "https://instagram.com/jay")
+        self.assertEqual(self.person.facebook_url, "https://facebook.com/jay")
         self.assertEqual(self.person.first_name, "Jamie")
         self.assertEqual(self.person.last_name, "Rider")
         self.assertIsNone(self.person.birth_date)
         self.assertTrue(self.person.active)
 
-    def test_my_account_form_does_not_expose_managed_fields(self):
+    def test_my_account_edit_form_does_not_expose_managed_fields(self):
         self.client.force_login(self.user)
-        response = self.client.get(reverse("my_account"))
+        response = self.client.get(reverse("my_account_edit"))
         fields = response.context["form"].fields
+        self.assertIn("school", fields)
+        self.assertIn("graduation_year", fields)
+        self.assertIn("instagram_url", fields)
+        self.assertIn("bio", fields)
         self.assertNotIn("first_name", fields)
         self.assertNotIn("last_name", fields)
         self.assertNotIn("birth_date", fields)
         self.assertNotIn("user", fields)
         self.assertNotIn("active", fields)
 
-    def test_account_without_person_identity_gets_safe_unavailable_page(self):
+    def test_account_without_person_identity_gets_safe_account_page(self):
         orphan = User.objects.create_user(username="orphan-account", password="pass12345")
         profile = orphan.profile
         profile.team = self.team
@@ -87,5 +95,7 @@ class V323MyAccountTests(TestCase):
         profile.save(update_fields=["team", "role"])
         self.client.force_login(orphan)
         response = self.client.get(reverse("my_account"))
-        self.assertEqual(response.status_code, 404)
-        self.assertContains(response, "Profile not available yet", status_code=404)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Profile unavailable")
+        edit_response = self.client.get(reverse("my_account_edit"))
+        self.assertRedirects(edit_response, reverse("my_account"))
