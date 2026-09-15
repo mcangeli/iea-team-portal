@@ -1,7 +1,8 @@
 <a class="rider-card club-rider-card" href="{% url 'rider_detail' r.pk %}">
   <div class="rider-card-portrait">
-    {% if r.photo %}<img src="{{ r.photo.url }}" alt="{{ r }}">
-    {% else %}<div class="avatar">{{ r.first_name|first }}{{ r.last_name|first }}</div>{% endif %}
+    {% if r.public_profile and r.public_profile.photo %}<img src="{{ r.public_profile.photo.url }}" alt="Portrait of {{ r.public_profile.display_name }}">
+    {% elif r.photo %}<img src="{{ r.photo.url }}" alt="Portrait of {{ r.display_name }}">
+    {% else %}<div class="avatar" aria-hidden="true">{{ r.first_name|first }}{{ r.last_name|first }}</div>{% endif %}
   </div>
   <div class="rider-card-copy">
     {% if r.active_season_memberships %}
@@ -9,7 +10,7 @@
     {% else %}
       <div class="eyebrow">RIDER · NOT ON CURRENT IEA TEAM</div>
     {% endif %}
-    <h3>{{ r.display_name }}</h3>
+    <h3>{% if r.public_profile %}{{ r.public_profile.display_name }}{% else %}{{ r.display_name }}{% endif %}</h3>
     {% if r.active_season_memberships %}
       {% with membership=r.active_season_memberships.0 %}
         <p class="rider-card-team">{{ membership.get_team_level_display }}{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
@@ -19,6 +20,15 @@
       {% endwith %}
     {% else %}
       <p class="rider-card-team">Not assigned to the active IEA season{% if r.grade %} · Grade {{ r.grade }}{% endif %}</p>
+    {% endif %}
+    {% if r.public_profile and r.public_profile.bio %}<p class="rider-card-bio">{{ r.public_profile.bio|truncatewords:22 }}</p>{% endif %}
+    {% if r.public_profile %}
+      {% if r.public_profile.instagram_url or r.public_profile.youtube_url %}
+      <div class="rider-card-social" aria-label="Public profile links">
+        {% if r.public_profile.instagram_url %}<span>Instagram</span>{% endif %}
+        {% if r.public_profile.youtube_url %}<span>YouTube</span>{% endif %}
+      </div>
+      {% endif %}
     {% endif %}
     <span class="rider-card-link">View rider <span aria-hidden="true">→</span></span>
   </div>
