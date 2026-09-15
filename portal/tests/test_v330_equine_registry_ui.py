@@ -15,7 +15,9 @@ class EquineRegistryUITests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="ArenaLine Test Program")
         self.admin = User.objects.create_user(username="equine-admin", password="test-pass")
-        UserProfile.objects.create(user=self.admin, team=self.team, role="admin")
+        self.admin.profile.team = self.team
+        self.admin.profile.role = UserProfile.Role.ADMIN
+        self.admin.profile.save(update_fields=["team", "role"])
         self.horse = Horse.objects.create(team=self.team, name="Atlas")
         self.client.force_login(self.admin)
 
