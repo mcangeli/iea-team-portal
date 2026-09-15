@@ -2,21 +2,32 @@
 
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.utils import timezone
 
 from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
 from portal.models import Announcement, GuardianContact, Rider, UserProfile
 
 
-def _active_parent_user_ids_for_child_people(child_person_ids, team):
+def _effective_parent_relationships(team):
+    """Return canonical parent/guardian relationships currently in effect."""
+    today = timezone.localdate()
     return PersonRelationship.objects.filter(
         from_person__team=team,
         from_person__active=True,
         from_person__user__isnull=False,
         from_person__user__is_active=True,
-        to_person_id__in=child_person_ids,
+        to_person__team=team,
         relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
         active=True,
-        end_date__isnull=True,
+    ).filter(
+        Q(start_date__isnull=True) | Q(start_date__lte=today),
+        Q(end_date__isnull=True) | Q(end_date__gt=today),
+    )
+
+
+def _active_parent_user_ids_for_child_people(child_person_ids, team):
+    return _effective_parent_relationships(team).filter(
+        to_person_id__in=child_person_ids,
     ).values_list("from_person__user_id", flat=True)
 
 
@@ -36,16 +47,9 @@ def announcement_recipients(announcement, *, active_season_resolver):
         return users.filter(profile__role__in=[UserProfile.Role.ADMIN, UserProfile.Role.COACH]).distinct()
 
     if audience == Announcement.Audience.PARENTS:
-        canonical_parent_users = PersonRelationship.objects.filter(
-            from_person__team=announcement.team,
-            from_person__active=True,
-            from_person__user__isnull=False,
-            from_person__user__is_active=True,
-            to_person__team=announcement.team,
-            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
-            active=True,
-            end_date__isnull=True,
-        ).values_list("from_person__user_id", flat=True)
+        canonical_parent_users = _effective_parent_relationships(announcement.team).values_list(
+            "from_person__user_id", flat=True
+        )
         return users.filter(
             Q(id__in=canonical_parent_users)
             | Q(profile__role=UserProfile.Role.PARENT)
