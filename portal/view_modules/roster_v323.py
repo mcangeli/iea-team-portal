@@ -21,6 +21,7 @@ from portal.people_compat import (
 )
 from portal.people_services import can_view_private_rider
 from portal.platform import active_period_for_organization, organization_for_view_user
+from portal.public_profiles import public_profiles_for_riders
 from portal.view_modules.common import (
     _can_manage, _require_manage, _selected_team,
     _volunteer_progress_rows,
@@ -46,8 +47,14 @@ def rider_list(request):
         unassigned = qs.exclude(memberships__season=season).distinct()
     else:
         futures = Rider.objects.none(); upper = Rider.objects.none(); unassigned = qs
+
+    rider_rows = list(qs)
+    public_profiles = public_profiles_for_riders(rider_rows)
+    for rider in rider_rows:
+        rider.public_profile = public_profiles.get(rider.pk)
+
     return render(request, "portal/rider_list.html", {
-        "riders": qs, "futures": futures, "upper": upper, "unassigned": unassigned,
+        "riders": rider_rows, "futures": futures, "upper": upper, "unassigned": unassigned,
         "season": season, "can_manage": _can_manage(request.user), "selected_team": selected,
     })
 
