@@ -52,10 +52,9 @@ def _can_view_work_history(user, person):
     if can_manage_people(user):
         return True
     try:
-        return user.arena_person_id == person.pk
+        return user.arena_person.pk == person.pk
     except AttributeError:
         return False
-
 
 @login_required
 def people_directory(request):
