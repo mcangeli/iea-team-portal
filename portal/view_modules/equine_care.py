@@ -22,6 +22,40 @@ def _require_horse_manage(user):
 
 
 @login_required
+def horse_care_history(request, horse_pk):
+    _require_horse_manage(request.user)
+    horse = _horse_for_user(request.user, horse_pk)
+    records = horse.care_records.select_related("provider").order_by("-performed_date", "-id")
+    years = list(records.dates("performed_date", "year", order="DESC"))
+    selected_year = request.GET.get("year", "").strip()
+    if selected_year:
+        try:
+            selected_year = int(selected_year)
+        except ValueError:
+            selected_year = None
+    else:
+        selected_year = None
+    if selected_year:
+        records = records.filter(performed_date__year=selected_year)
+    grouped = []
+    current_year = None
+    current_records = None
+    for record in records:
+        year = record.performed_date.year
+        if year != current_year:
+            current_year = year
+            current_records = []
+            grouped.append({"year": year, "records": current_records})
+        current_records.append(record)
+    return render(request, "portal/horse_care_history.html", {
+        "horse": horse,
+        "year_groups": grouped,
+        "years": [value.year for value in years],
+        "selected_year": selected_year,
+    })
+
+
+@login_required
 def horse_care_add(request, horse_pk):
     _require_horse_manage(request.user)
     horse = _horse_for_user(request.user, horse_pk)
