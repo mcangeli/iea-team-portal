@@ -1,21 +1,26 @@
 {% extends 'public/base.html' %}
 {% block title %}{{ public_rider.display_name }} · {{ public_site.name }} · ArenaLine{% endblock %}
 {% block content %}
-<section class="public-hero">
-  <div class="public-kicker">RIDER CARD · {{ public_site.name }}</div>
-  {% if public_rider.photo %}<img src="{{ public_rider.photo.url }}" alt="{{ public_rider.display_name }}" style="width:180px;height:180px;object-fit:cover;border-radius:50%;margin:1rem 0 1.5rem;">{% endif %}
-  <h1>{{ public_rider.display_name }}</h1>
-  {% if public_rider.bio %}<div class="public-intro">{{ public_rider.bio|linebreaks }}</div>{% endif %}
-</section>
-{% if public_rider.website_url or public_rider.instagram_url or public_rider.youtube_url %}
-<section class="public-section">
-  <div class="public-section-heading"><div class="public-kicker">CONNECT</div><h2>Links</h2></div>
-  <div class="public-show-grid">
-    {% if public_rider.website_url %}<a class="public-show-card" href="{{ public_rider.website_url }}" rel="noopener noreferrer"><div><div class="public-kicker">WEBSITE</div><h3>Visit website</h3></div></a>{% endif %}
-    {% if public_rider.instagram_url %}<a class="public-show-card" href="{{ public_rider.instagram_url }}" rel="noopener noreferrer"><div><div class="public-kicker">INSTAGRAM</div><h3>View Instagram</h3></div></a>{% endif %}
-    {% if public_rider.youtube_url %}<a class="public-show-card" href="{{ public_rider.youtube_url }}" rel="noopener noreferrer"><div><div class="public-kicker">YOUTUBE</div><h3>View YouTube</h3></div></a>{% endif %}
+<section class="public-rider-profile">
+  <div class="public-rider-profile-portrait">
+    {% if public_rider.photo %}
+      <img class="public-rider-profile-photo" src="{{ public_rider.photo.url }}" alt="{{ public_rider.display_name }}">
+    {% else %}
+      <div class="public-rider-profile-placeholder" aria-hidden="true">{{ public_rider.display_name|first }}</div>
+    {% endif %}
+  </div>
+  <div class="public-rider-profile-copy">
+    <div class="public-kicker">RIDER CARD · {{ public_site.name }}</div>
+    <h1>{{ public_rider.display_name }}</h1>
+    {% if public_rider.bio %}<div class="public-rider-bio">{{ public_rider.bio|linebreaks }}</div>{% endif %}
+    {% if public_rider.website_url or public_rider.instagram_url or public_rider.youtube_url %}
+      <div class="public-rider-links" aria-label="{{ public_rider.display_name }} links">
+        {% if public_rider.website_url %}<a href="{{ public_rider.website_url }}" rel="noopener noreferrer">Website ↗</a>{% endif %}
+        {% if public_rider.instagram_url %}<a href="{{ public_rider.instagram_url }}" rel="noopener noreferrer">Instagram ↗</a>{% endif %}
+        {% if public_rider.youtube_url %}<a href="{{ public_rider.youtube_url }}" rel="noopener noreferrer">YouTube ↗</a>{% endif %}
+      </div>
+    {% endif %}
   </div>
 </section>
-{% endif %}
-<p><a class="public-section-link" href="{% url 'public_riders' public_site.slug %}">← Back to riders</a></p>
+<p class="public-rider-back"><a class="public-section-link" href="{% url 'public_riders' public_site.slug %}">← Back to riders</a></p>
 {% endblock %}
