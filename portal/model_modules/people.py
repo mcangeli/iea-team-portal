@@ -174,7 +174,12 @@ class OrganizationRoleAssignment(models.Model):
             models.UniqueConstraint(
                 fields=["team", "person", "role", "start_date"],
                 name="unique_person_role_assignment_period",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["team", "person", "role"],
+                condition=models.Q(start_date__isnull=True),
+                name="unique_person_role_assignment_null_start",
+            ),
         ]
 
     def clean(self):
@@ -246,7 +251,12 @@ class Committee(models.Model):
     class Meta:
         ordering = ["sort_order", "name"]
         constraints = [
-            models.UniqueConstraint(fields=["team", "group", "name"], name="unique_scoped_committee_name")
+            models.UniqueConstraint(fields=["team", "group", "name"], name="unique_scoped_committee_name"),
+            models.UniqueConstraint(
+                fields=["team", "name"],
+                condition=models.Q(group__isnull=True),
+                name="unique_barnwide_committee_name",
+            ),
         ]
 
     def clean(self):
@@ -289,7 +299,12 @@ class CommitteeMembership(models.Model):
             models.UniqueConstraint(
                 fields=["committee", "person", "position", "start_date"],
                 name="unique_committee_membership_period",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["committee", "person", "position"],
+                condition=models.Q(start_date__isnull=True),
+                name="unique_committee_membership_null_start",
+            ),
         ]
 
     def clean(self):
