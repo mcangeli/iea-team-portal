@@ -82,7 +82,7 @@ After activation:
 
 PINs are not used as reversible lookup keys and do not need to be globally unique. Station identifies the Person first, then verifies that Person's hashed PIN.
 
-The kiosk presentation is optimized for mounted tablets with larger identity cards, larger clock actions, simplified PIN entry, responsive layout, and clearer completion/lockout states.
+The kiosk presentation is optimized for mounted tablets with larger identity cards, larger clock actions, simplified PIN entry, responsive layout, and clearer completion/lockout states. The v3.2.3 presentation pass also aligns Station with the established ArenaLine product language: deep navy/hunter hero surfaces, warm-gold rules and arena-line accents, cream/surface layering, Cormorant/Inter hierarchy, polished cards, and matched light/dark behavior. Manager Station pages retain the normal authenticated application structure while using the same ArenaLine surfaces, status treatments, and spacing conventions.
 
 ## Audit coverage
 
