@@ -12,6 +12,7 @@ from portal.model_modules.people import (
     OrganizationRoleAssignment,
     PersonRelationship,
 )
+from portal.model_modules.station import WorkShiftEntry
 from portal.people_forms import (
     CommitteeForm,
     CommitteeMembershipForm,
@@ -29,6 +30,21 @@ from portal.people_services import (
     require_people_manager,
 )
 from portal.view_modules.common import _team
+
+
+def _shift_minutes(shift):
+    if not shift.clock_out:
+        return 0
+    return max(0, int((shift.clock_out - shift.clock_in).total_seconds() // 60))
+
+
+def _format_minutes(minutes):
+    hours, remainder = divmod(int(minutes or 0), 60)
+    if hours and remainder:
+        return f"{hours}h {remainder}m"
+    if hours:
+        return f"{hours}h"
+    return f"{remainder}m"
 
 
 @login_required
@@ -93,13 +109,51 @@ def person_detail(request, pk):
     person = person_for_user(request.user, pk)
     if not person:
         raise Http404
+    can_manage = can_manage_people(request.user)
+    can_view_private = can_view_private_person(request.user, person)
+    work_summary = None
+    recent_work_shifts = []
+    if can_view_private:
+        shifts = list(
+            WorkShiftEntry.objects.filter(team=person.team, person=person)
+            .select_related("station", "approved_by")
+            .order_by("-clock_in")
+        )
+        total_minutes = approved_minutes = working_student_minutes = 0
+        completed_count = pending_count = open_count = 0
+        for shift in shifts:
+            shift.duration_minutes = _shift_minutes(shift)
+            shift.duration_display = _format_minutes(shift.duration_minutes)
+            total_minutes += shift.duration_minutes
+            if shift.clock_out:
+                completed_count += 1
+                if shift.approved_at:
+                    approved_minutes += shift.duration_minutes
+                else:
+                    pending_count += 1
+            else:
+                open_count += 1
+            if shift.role == WorkShiftEntry.Role.WORKING_STUDENT:
+                working_student_minutes += shift.duration_minutes
+        if shifts:
+            work_summary = {
+                "total": _format_minutes(total_minutes),
+                "approved": _format_minutes(approved_minutes),
+                "working_student": _format_minutes(working_student_minutes),
+                "completed_count": completed_count,
+                "pending_count": pending_count,
+                "open_count": open_count,
+            }
+            recent_work_shifts = shifts[:8]
     return render(
         request,
         "portal/people/detail.html",
         {
             "person": person,
-            "can_manage_people": can_manage_people(request.user),
-            "can_view_private": can_view_private_person(request.user, person),
+            "can_manage_people": can_manage,
+            "can_view_private": can_view_private,
+            "work_summary": work_summary,
+            "recent_work_shifts": recent_work_shifts,
         },
     )
 
