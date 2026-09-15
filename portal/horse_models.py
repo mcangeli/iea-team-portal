@@ -7,9 +7,11 @@ from .model_modules.horses import (
     HorseShowAssignment,
     HorseShowAward,
 )
+from .model_modules.equine_registry import HorseIdentifier
 
 __all__ = [
     "Horse",
+    "HorseIdentifier",
     "HorseCogginsRecord",
     "HorseSeasonProfile",
     "HorseShowAssignment",
