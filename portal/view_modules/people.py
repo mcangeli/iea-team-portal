@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -56,6 +57,16 @@ def _can_view_work_history(user, person):
     except AttributeError:
         return False
 
+
+def _effective_today(queryset):
+    """Limit dated participation records to those effective today."""
+    today = timezone.localdate()
+    return queryset.filter(active=True).filter(
+        Q(start_date__isnull=True) | Q(start_date__lte=today),
+        Q(end_date__isnull=True) | Q(end_date__gt=today),
+    )
+
+
 @login_required
 def people_directory(request):
     people = people_for_user(request.user)
@@ -70,13 +81,13 @@ def people_directory(request):
 def barn_operations(request):
     team = _team(request.user)
     can_manage = can_manage_people(request.user)
-    assignments = (
-        OrganizationRoleAssignment.objects.filter(team=team, active=True, person__active=True)
+    assignments = list(
+        _effective_today(OrganizationRoleAssignment.objects.filter(team=team, person__active=True))
         .select_related("person")
         .order_by("person__last_name", "person__first_name", "role")
     )
-    horse_links = (
-        HorsePersonRelationship.objects.filter(team=team, active=True, person__active=True, horse__active=True)
+    horse_links = list(
+        _effective_today(HorsePersonRelationship.objects.filter(team=team, person__active=True, horse__active=True))
         .select_related("person", "horse")
         .order_by("horse__name", "relationship_type")
     )
@@ -344,10 +355,16 @@ def organization_group_detail(request, group_pk):
     team = _team(request.user)
     group = get_object_or_404(OrganizationGroup, pk=group_pk, team=team)
     committees = list(group.committees.filter(team=team).prefetch_related("memberships__person").order_by("sort_order", "name"))
+    today = timezone.localdate()
     active_memberships = []
     for committee in committees:
         for membership in committee.memberships.all():
-            if membership.active and membership.person.active:
+            if (
+                membership.active
+                and membership.person.active
+                and (membership.start_date is None or membership.start_date <= today)
+                and (membership.end_date is None or membership.end_date > today)
+            ):
                 active_memberships.append(membership)
     people = []
     seen = set()
@@ -371,7 +388,17 @@ def committee_detail(request, committee_pk):
     team = _team(request.user)
     committee = get_object_or_404(Committee.objects.select_related("group"), pk=committee_pk, team=team)
     memberships = committee.memberships.select_related("person").order_by("position", "person__last_name", "person__first_name")
-    active_memberships = [membership for membership in memberships if membership.active and membership.person.active]
+    today = timezone.localdate()
+    active_memberships = [
+        membership
+        for membership in memberships
+        if (
+            membership.active
+            and membership.person.active
+            and (membership.start_date is None or membership.start_date <= today)
+            and (membership.end_date is None or membership.end_date > today)
+        )
+    ]
     return render(request, "portal/people/committee_detail.html", {
         "committee": committee,
         "memberships": memberships,
