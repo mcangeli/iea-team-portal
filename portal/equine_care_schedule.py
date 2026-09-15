@@ -31,14 +31,17 @@ def care_schedule_for_horse(horse):
     A newer event supersedes an older event of the same category. This avoids
     showing an old overdue farrier/dental/etc. reminder after newer care has
     already been recorded. Coggins is excluded because its dedicated model is
-    the compliance source of truth.
+    the compliance source of truth. When care records are prefetched, consume
+    that cache rather than issuing a query per horse in the registry.
     """
     latest_by_type = {}
-    records = horse.care_records.exclude(care_type="coggins").order_by(
-        "care_type", "-performed_date", "-id"
-    )
+    prefetched = getattr(horse, "_prefetched_objects_cache", {}).get("care_records")
+    records = prefetched if prefetched is not None else horse.care_records.all()
     for record in records:
-        if record.care_type not in latest_by_type:
+        if record.care_type == "coggins":
+            continue
+        current = latest_by_type.get(record.care_type)
+        if current is None or (record.performed_date, record.pk) > (current.performed_date, current.pk):
             latest_by_type[record.care_type] = record
 
     items = [record for record in latest_by_type.values() if record.next_due_date]
