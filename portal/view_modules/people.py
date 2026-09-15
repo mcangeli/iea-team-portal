@@ -47,6 +47,16 @@ def _format_minutes(minutes):
     return f"{remainder}m"
 
 
+def _can_view_work_history(user, person):
+    """Work-time records are operational data: managers and the person themself only."""
+    if can_manage_people(user):
+        return True
+    try:
+        return user.arena_person_id == person.pk
+    except AttributeError:
+        return False
+
+
 @login_required
 def people_directory(request):
     people = people_for_user(request.user)
@@ -111,9 +121,10 @@ def person_detail(request, pk):
         raise Http404
     can_manage = can_manage_people(request.user)
     can_view_private = can_view_private_person(request.user, person)
+    can_view_work_history = _can_view_work_history(request.user, person)
     work_summary = None
     recent_work_shifts = []
-    if can_view_private:
+    if can_view_work_history:
         shifts = list(
             WorkShiftEntry.objects.filter(team=person.team, person=person)
             .select_related("station", "approved_by")
@@ -152,10 +163,17 @@ def person_detail(request, pk):
             "person": person,
             "can_manage_people": can_manage,
             "can_view_private": can_view_private,
+            "can_view_work_history": can_view_work_history,
             "work_summary": work_summary,
             "recent_work_shifts": recent_work_shifts,
         },
     )
+
+
+def _managed_person(request, pk):
+    require_people_manager(request.user)
+    team = _team(request.user)
+    return get_object_or_404(people_for_user(request.user), pk=pk, team=team)
 
 
 @login_required
@@ -170,83 +188,62 @@ def person_create(request):
         person.save()
         messages.success(request, f"Added {person.display_name} to People.")
         return redirect("person_detail", pk=person.pk)
-    return render(request, "portal/people/form.html", {"form": form, "mode": "add"})
+    return render(request, "portal/people/form.html", {"form": form, "title": "Add person", "eyebrow": "PEOPLE"})
 
 
 @login_required
 def person_edit(request, pk):
-    require_people_manager(request.user)
-    person = person_for_user(request.user, pk)
-    if not person:
-        raise Http404
+    person = _managed_person(request, pk)
     form = PersonForm(request.POST or None, request.FILES or None, instance=person, team=person.team)
     if request.method == "POST" and form.is_valid():
-        person = form.save(commit=False)
-        person.full_clean()
-        person.save()
+        person = form.save()
         messages.success(request, f"Updated {person.display_name}.")
         return redirect("person_detail", pk=person.pk)
-    return render(request, "portal/people/form.html", {"form": form, "mode": "edit", "person": person})
-
-
-def _managed_person(request, pk):
-    require_people_manager(request.user)
-    person = person_for_user(request.user, pk)
-    if not person:
-        raise Http404
-    return person
+    return render(request, "portal/people/form.html", {"form": form, "person": person, "title": f"Edit {person.display_name}", "eyebrow": "PEOPLE"})
 
 
 def _person_subrecord_form(request, *, person, form, title, eyebrow, description=""):
     if request.method == "POST" and form.is_valid():
-        record = form.save(commit=False)
-        record.full_clean()
-        record.save()
-        messages.success(request, f"Updated {person.display_name}'s organization profile.")
+        item = form.save(commit=False)
+        if hasattr(item, "person_id"):
+            item.person = person
+        item.full_clean()
+        item.save()
+        messages.success(request, f"Updated {title.lower()} for {person.display_name}.")
         return redirect("person_detail", pk=person.pk)
-    return render(
-        request,
-        "portal/people/subrecord_form.html",
-        {"person": person, "form": form, "title": title, "eyebrow": eyebrow, "description": description},
-    )
+    return render(request, "portal/people/subrecord_form.html", {
+        "person": person, "form": form, "title": title, "eyebrow": eyebrow, "description": description
+    })
 
 
 @login_required
 def person_role_add(request, pk):
-    """Manage the complete set of current roles for one Person."""
     person = _managed_person(request, pk)
-    current_roles = set(
-        person.role_assignments.filter(active=True).values_list("role", flat=True)
-    )
-    form = PersonRolesForm(
-        request.POST or None,
-        initial={"roles": sorted(current_roles)},
-    )
+    form = PersonRolesForm(request.POST or None, person=person)
     if request.method == "POST" and form.is_valid():
         selected_roles = set(form.cleaned_data["roles"])
         today = timezone.localdate()
-        active_assignments = list(person.role_assignments.filter(active=True))
-        active_by_role = {}
-        for assignment in active_assignments:
-            active_by_role.setdefault(assignment.role, []).append(assignment)
-
-        for role in selected_roles - set(active_by_role):
-            assignment = OrganizationRoleAssignment(
-                team=person.team,
-                person=person,
-                role=role,
-                start_date=today,
-                active=True,
-            )
-            assignment.full_clean()
-            assignment.save()
-
-        for role, assignments in active_by_role.items():
-            if role in selected_roles:
-                continue
-            for assignment in assignments:
+        for role_value, _label in OrganizationRoleAssignment.Role.choices:
+            assignment = OrganizationRoleAssignment.objects.filter(person=person, team=person.team, role=role_value).order_by("-active", "-id").first()
+            if role_value in selected_roles:
+                if assignment:
+                    assignment.active = True
+                    assignment.end_date = None
+                    if not assignment.start_date:
+                        assignment.start_date = today
+                    assignment.full_clean()
+                    assignment.save(update_fields=["active", "start_date", "end_date"])
+                else:
+                    OrganizationRoleAssignment.objects.create(
+                        team=person.team,
+                        person=person,
+                        role=role_value,
+                        start_date=today,
+                        active=True,
+                    )
+            elif assignment and assignment.active:
                 assignment.active = False
-                if assignment.end_date is None:
+                if not assignment.end_date:
                     assignment.end_date = today
                 assignment.full_clean()
                 assignment.save(update_fields=["active", "end_date"])
@@ -340,6 +337,47 @@ def people_structure(request):
     groups = OrganizationGroup.objects.filter(team=team).select_related("parent").order_by("sort_order", "name")
     committees = Committee.objects.filter(team=team).select_related("group").order_by("group__name", "sort_order", "name")
     return render(request, "portal/people/structure.html", {"groups": groups, "committees": committees})
+
+
+@login_required
+def organization_group_detail(request, group_pk):
+    require_people_manager(request.user)
+    team = _team(request.user)
+    group = get_object_or_404(OrganizationGroup, pk=group_pk, team=team)
+    committees = list(group.committees.filter(team=team).prefetch_related("memberships__person").order_by("sort_order", "name"))
+    active_memberships = []
+    for committee in committees:
+        for membership in committee.memberships.all():
+            if membership.active and membership.person.active:
+                active_memberships.append(membership)
+    people = []
+    seen = set()
+    for membership in active_memberships:
+        if membership.person_id not in seen:
+            seen.add(membership.person_id)
+            people.append(membership.person)
+    subgroups = group.subgroups.filter(team=team).order_by("sort_order", "name")
+    return render(request, "portal/people/group_detail.html", {
+        "group": group,
+        "committees": committees,
+        "active_memberships": active_memberships,
+        "people": people,
+        "subgroups": subgroups,
+    })
+
+
+@login_required
+def committee_detail(request, committee_pk):
+    require_people_manager(request.user)
+    team = _team(request.user)
+    committee = get_object_or_404(Committee.objects.select_related("group"), pk=committee_pk, team=team)
+    memberships = committee.memberships.select_related("person").order_by("position", "person__last_name", "person__first_name")
+    active_memberships = [membership for membership in memberships if membership.active and membership.person.active]
+    return render(request, "portal/people/committee_detail.html", {
+        "committee": committee,
+        "memberships": memberships,
+        "active_memberships": active_memberships,
+    })
 
 
 @login_required
