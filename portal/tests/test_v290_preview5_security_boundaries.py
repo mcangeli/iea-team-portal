@@ -38,9 +38,11 @@ class ArenaLinePreview5SecurityBoundaryTests(SimpleTestCase):
         self.assertIn("_visible_riders(request.user, team)", source)
         self.assertIn("_can_view_family_account(request.user, membership)", source)
 
-    def test_shared_privacy_helpers_keep_parent_and_rider_scope_narrow(self):
+    def test_shared_privacy_helpers_delegate_to_people_and_keep_family_visibility_narrow(self):
         source = (Path(settings.BASE_DIR) / "portal/view_modules/common.py").read_text()
-        self.assertIn("qs = _personal_riders(user, team)", source)
-        self.assertIn("qs = qs.filter(user=user)", source)
+        self.assertIn("personal_riders_for_user", source)
+        self.assertIn("visible_riders_for_user", source)
+        self.assertIn("can_view_private_rider", source)
+        self.assertIn("can_view_family_account", source)
         self.assertIn("if not item.family_visible", source)
         self.assertIn("return False", source)
