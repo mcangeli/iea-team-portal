@@ -18,9 +18,10 @@ from portal.people_compat import (
     ensure_rider_person,
     sync_rider_guardian_link,
 )
+from portal.people_services import can_view_private_rider
 from portal.platform import active_period_for_organization, organization_for_view_user
 from portal.view_modules.common import (
-    _can_manage, _can_view_private_rider, _require_manage, _selected_team,
+    _can_manage, _require_manage, _selected_team,
     _volunteer_progress_rows,
 )
 from portal.view_modules.roster_helpers import _team_roster
@@ -94,7 +95,7 @@ def rider_detail(request, pk):
     rider = get_object_or_404(
         Rider.objects.prefetch_related("memberships__season", "memberships__classes"), pk=pk, team=team
     )
-    private_view = _can_view_private_rider(request.user, rider)
+    private_view = can_view_private_rider(request.user, rider)
     active_season = active_period_for_organization(team)
     memberships = list(rider.memberships.all())
     current_membership = next((m for m in memberships if active_season and m.season_id == active_season.id), None)
