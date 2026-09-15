@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% load equine_care_tags %}
 {% block title %}Horse Registry · ArenaLine{% endblock %}
 {% block content %}
 <section class="page-intro horse-module-intro">
   <div>
     <div class="eyebrow">ARENALINE · HORSE MANAGEMENT</div>
     <h1>Horse Registry</h1>
-    <p>Maintain barn and show names, horse preferences, health-document status, and competition eligibility in one place.</p>
+    <p>Maintain barn and show names, horse preferences, care status, health-document status, and competition eligibility in one place.</p>
   </div>
   {% if can_manage %}<div class="actions"><a class="btn" href="{% url 'horse_create' %}">Add horse</a></div>{% endif %}
 </section>
@@ -40,6 +41,16 @@
             {% if not row.horse.active %}<span class="status-pill">Inactive</span>{% endif %}
           </div>
           <p class="muted">{% if row.horse.breed %}{{ row.horse.breed }}{% endif %}{% if row.horse.sex %}{% if row.horse.breed %} · {% endif %}{{ row.horse.get_sex_display }}{% endif %}{% if row.horse.size_type %}{% if row.horse.breed or row.horse.sex %} · {% endif %}{{ row.horse.size_type }}{% endif %}{% if row.horse.height_hands %} · {{ row.horse.height_hands }}h{% endif %}</p>
+          {% if can_manage %}
+            {% horse_care_schedule row.horse as care_schedule %}
+            <p><strong>Care:</strong>
+              {% if care_schedule.overall_status == 'overdue' %}<span class="status-bad">{{ care_schedule.overall_status_label }}</span>
+              {% elif care_schedule.overall_status == 'due_soon' %}<span class="status-warn">{{ care_schedule.overall_status_label }}</span>
+              {% elif care_schedule.overall_status == 'current' %}<span class="status-good">{{ care_schedule.overall_status_label }}</span>
+              {% else %}<span class="muted">{{ care_schedule.overall_status_label }}</span>{% endif %}
+            </p>
+            {% if care_schedule.urgent_items %}<p class="muted">Next attention: {% for item in care_schedule.urgent_items|slice:":2" %}{{ item.get_care_type_display }} {{ item.next_due_date|date:"M j" }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% endif %}
+          {% endif %}
           <p><strong>Coggins:</strong>
             {% if row.coggins_status == 'current' %}<span class="status-good">Current through {{ row.coggins.expiration_date|date:"M j, Y" }}</span>
             {% elif row.coggins_status == 'expiring' %}<span class="status-warn">Expires {{ row.coggins.expiration_date|date:"M j, Y" }}</span>
