@@ -20,18 +20,18 @@
   {% for group in groups %}
   <div class="people-structure-row">
     <div>
-      <strong>{{ group.name }}</strong>
+      <strong><a href="{% url 'organization_group_detail' group.pk %}">{{ group.name }}</a></strong>
       <p class="muted">{{ group.get_group_type_display }}{% if group.parent %} · under {{ group.parent.name }}{% endif %}{% if not group.active %} · Inactive{% endif %}</p>
       {% if group.description %}<p>{{ group.description }}</p>{% endif %}
       <div class="person-tags">
         {% with committee_count=group.committees.all|length subgroup_count=group.subgroups.all|length %}
-          {% if committee_count %}<span class="people-tag-link">{{ committee_count }} committee{{ committee_count|pluralize }}</span>{% endif %}
-          {% if subgroup_count %}<span class="people-tag-link">{{ subgroup_count }} subgroup{{ subgroup_count|pluralize }}</span>{% endif %}
+          {% if committee_count %}<a class="people-tag-link" href="{% url 'organization_group_detail' group.pk %}">{{ committee_count }} committee{{ committee_count|pluralize }}</a>{% endif %}
+          {% if subgroup_count %}<a class="people-tag-link" href="{% url 'organization_group_detail' group.pk %}">{{ subgroup_count }} subgroup{{ subgroup_count|pluralize }}</a>{% endif %}
           {% if not committee_count and not subgroup_count %}<span class="muted">No nested operations yet.</span>{% endif %}
         {% endwith %}
       </div>
     </div>
-    <a href="{% url 'organization_group_edit' group.pk %}">Edit</a>
+    <div class="actions"><a href="{% url 'organization_group_detail' group.pk %}">View</a><a href="{% url 'organization_group_edit' group.pk %}">Edit</a></div>
   </div>
   {% empty %}<p class="muted">No groups have been created yet. Add the first program or operational group to begin organizing People.</p>{% endfor %}
 </section>
@@ -41,8 +41,8 @@
   {% for committee in committees %}
   <div class="people-structure-row">
     <div>
-      <strong>{{ committee.name }}</strong>
-      <p class="muted">{% if committee.group %}{{ committee.group.name }}{% else %}Organization-wide{% endif %}{% if not committee.active %} · Inactive{% endif %}</p>
+      <strong><a href="{% url 'committee_detail' committee.pk %}">{{ committee.name }}</a></strong>
+      <p class="muted">{% if committee.group %}<a href="{% url 'organization_group_detail' committee.group.pk %}">{{ committee.group.name }}</a>{% else %}Organization-wide{% endif %}{% if not committee.active %} · Inactive{% endif %}</p>
       {% if committee.purpose %}<p>{{ committee.purpose }}</p>{% endif %}
       <div class="person-tags">
         {% for membership in committee.memberships.all %}{% if membership.active %}
@@ -50,7 +50,7 @@
         {% endif %}{% empty %}<span class="muted">No members assigned yet.</span>{% endfor %}
       </div>
     </div>
-    <a href="{% url 'committee_edit' committee.pk %}">Edit</a>
+    <div class="actions"><a href="{% url 'committee_detail' committee.pk %}">View</a><a href="{% url 'committee_edit' committee.pk %}">Edit</a></div>
   </div>
   {% empty %}<p class="muted">No committees have been created yet.</p>{% endfor %}
 </section>
