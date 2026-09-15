@@ -1,6 +1,8 @@
 from django import forms
 
 from .horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
+from .model_modules.barn_participation import HorsePersonRelationship
+from .model_modules.people import Person
 from .models import Season, SeasonClass, ShowClass
 
 
@@ -31,6 +33,36 @@ class HorseForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError("A horse with this name is already in the team registry.")
         return name
+
+
+class HorsePersonRelationshipForm(forms.ModelForm):
+    class Meta:
+        model = HorsePersonRelationship
+        fields = ["person", "relationship_type", "share_percent", "start_date", "end_date", "active", "notes"]
+        widgets = {
+            "share_percent": forms.NumberInput(attrs={"min": 1, "max": 100, "step": 1}),
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, team=None, horse=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.team = team
+        self.horse = horse or (self.instance.horse if getattr(self.instance, "horse_id", None) else None)
+        if team is not None:
+            self.instance.team = team
+        if self.horse is not None:
+            self.instance.horse = self.horse
+        self.fields["person"].queryset = (
+            Person.objects.filter(team=team, active=True).order_by("last_name", "first_name")
+            if team is not None else Person.objects.none()
+        )
+
+    def clean_person(self):
+        person = self.cleaned_data["person"]
+        if self.team and person.team_id != self.team.id:
+            raise forms.ValidationError("Choose a person from this organization.")
+        return person
 
 
 class HorseCogginsForm(forms.ModelForm):

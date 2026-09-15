@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Station PIN · {{ person.display_name }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
+<section class="page-intro"><div><div class="eyebrow">STATION IDENTITY</div><h1>{% if credential %}Reset{% else %}Set{% endif %} PIN</h1><p>{{ person.display_name }}</p></div></section>
+<section class="content-section people-form-shell">
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save PIN</button><a class="btn btn-secondary" href="{% url 'station_manage' %}">Cancel</a></div></form>
+  <p class="muted">Station PINs are separate from ArenaLine account passwords and are stored only as secure hashes.</p>
+</section>
+{% endblock %}

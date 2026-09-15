@@ -1,6 +1,8 @@
+from django.http import Http404
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
+from portal.public_profiles import public_profile_for_team_person, public_profiles_for_team
 from portal.publication import (
     get_public_show,
     get_public_site,
@@ -40,6 +42,7 @@ def public_site_home(request, site_slug):
     site = get_public_site(site_slug)
     active, upcoming, _past = _public_show_groups(site)
     preview = active + upcoming
+    rider_profiles = public_profiles_for_team(site.team)
     return render(
         request,
         "public/site_home.html",
@@ -48,7 +51,33 @@ def public_site_home(request, site_slug):
             "active_shows": active,
             "public_shows": preview[:3],
             "has_more_shows": len(preview) > 3,
+            "public_riders": rider_profiles[:4],
+            "has_more_riders": len(rider_profiles) > 4,
         },
+    )
+
+
+def public_riders(request, site_slug):
+    site = get_public_site(site_slug)
+    return render(
+        request,
+        "public/riders.html",
+        {
+            "public_site": public_site_payload(site),
+            "public_riders": public_profiles_for_team(site.team),
+        },
+    )
+
+
+def public_rider_detail(request, site_slug, person_pk):
+    site = get_public_site(site_slug)
+    profile = public_profile_for_team_person(site.team, person_pk)
+    if not profile:
+        raise Http404
+    return render(
+        request,
+        "public/rider_detail.html",
+        {"public_site": public_site_payload(site), "public_rider": profile},
     )
 
 
@@ -68,13 +97,7 @@ def public_schedule(request, site_slug):
 
 
 def public_live_board(request, site_slug):
-    """Stable spectator URL that resolves to the organization's active public show.
-
-    Teams can reuse /public/<site>/live/ in QR codes and printed materials across
-    the season. If multiple shows are somehow active, the earliest dated/name
-    publication wins deterministically. If none is active, spectators land on the
-    public schedule rather than receiving a 404.
-    """
+    """Stable spectator URL that resolves to the organization's active public show."""
     site = get_public_site(site_slug)
     for publication in public_show_queryset(site):
         payload = public_show_payload(publication)

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Clock in/out · {{ person.display_name }}{% endblock %}
+{% block content %}
+<div class="station-shell">
+<section class="page-intro station-kiosk-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>{{ person.display_name }}</h1><p>{% if open_shift %}You are currently clocked in.{% else %}Choose the role for this work shift.{% endif %}</p></div></section>
+<section class="content-section station-kiosk-panel">
+  {% if open_shift %}
+    <dl class="people-detail-list">
+      <div><dt>Role</dt><dd>{{ open_shift.get_role_display }}</dd></div>
+      <div><dt>Clocked in</dt><dd>{{ open_shift.clock_in|date:"M j, Y g:i A" }}</dd></div>
+    </dl>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="clock_out"><div class="station-kiosk-actions"><button class="btn station-primary-action" type="submit">Clock out</button><a class="btn btn-secondary" href="{% url 'station_home' %}">Cancel</a></div></form>
+  {% elif form.fields.role.choices %}
+    <form method="post" class="stacked-form">{% csrf_token %}<input type="hidden" name="action" value="clock_in">{{ form.as_p }}<div class="station-kiosk-actions"><button class="btn station-primary-action" type="submit">Clock in</button><a class="btn btn-secondary" href="{% url 'station_home' %}">Cancel</a></div></form>
+  {% else %}
+    <div class="empty-state"><h3>No eligible work role</h3><p>Your ArenaLine profile does not currently have an active Working Student, Barn Staff, Barn Manager, Trainer, or Assistant Trainer role.</p><a class="btn btn-secondary" href="{% url 'station_home' %}">Back to Station</a></div>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

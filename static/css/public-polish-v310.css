@@ -36,8 +36,136 @@ body {
 .public-hero h1,
 .public-section h2,
 .public-show-card h3,
+.public-rider-card h3,
+.public-rider-profile h1,
 .public-class-row h3,
 .public-results-card h3 { font-family: "Cormorant Garamond", Georgia, serif; }
+
+/* Public landing page rhythm: keep the first impression editorial rather than dense. */
+main.public-wrap > .public-hero:first-child {
+  max-width: 920px;
+  padding-top: clamp(4.75rem, 9vw, 7.25rem);
+  padding-bottom: clamp(4rem, 7vw, 5.75rem);
+}
+main.public-wrap > .public-hero:first-child .public-kicker { margin-bottom: .85rem; }
+main.public-wrap > .public-hero:first-child h1 {
+  max-width: 900px;
+  margin: 0;
+  line-height: .96;
+  letter-spacing: -.025em;
+}
+main.public-wrap > .public-hero:first-child .public-tagline {
+  max-width: 760px;
+  margin-top: 1.35rem;
+  font-size: clamp(1.15rem, 2.1vw, 1.4rem);
+  line-height: 1.5;
+}
+main.public-wrap > .public-hero:first-child .public-intro {
+  max-width: 800px;
+  margin-top: 2rem;
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+main.public-wrap > .public-hero:first-child .public-intro p { margin: 0 0 1rem; }
+main.public-wrap > .public-hero:first-child .public-intro p:last-child { margin-bottom: 0; }
+main.public-wrap > .public-section {
+  padding-top: clamp(2.25rem, 5vw, 3.75rem);
+  padding-bottom: clamp(4.5rem, 8vw, 6.5rem);
+  border-top: 1px solid rgba(14,42,71,.10);
+}
+main.public-wrap > .public-section + .public-section { margin-top: .25rem; }
+main.public-wrap > .public-section .public-section-heading { margin-bottom: clamp(1.6rem, 3vw, 2.35rem); }
+main.public-wrap > .public-section .public-section-heading-row { align-items: center; }
+main.public-wrap > .public-section .public-section-heading h2 {
+  margin-top: .35rem;
+  margin-bottom: 0;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  line-height: 1.05;
+}
+main.public-wrap > .public-section .public-show-grid { gap: clamp(1rem, 2vw, 1.4rem); }
+main.public-wrap > .public-section .public-show-card { padding: clamp(1.25rem, 2.5vw, 1.6rem); }
+
+/* Rider cards are deliberately broader than show cards: names and bios need editorial breathing room. */
+.public-rider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+  gap: clamp(1rem, 2vw, 1.4rem);
+}
+.public-rider-grid-featured { grid-template-columns: repeat(auto-fit, minmax(min(100%, 390px), 1fr)); }
+.public-rider-card {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgba(14,42,71,.14);
+  border-radius: 20px;
+  background: rgba(255,253,248,.94);
+  color: var(--arena-ink);
+  text-decoration: none;
+  box-shadow: 0 14px 38px rgba(8,26,43,.06);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.public-rider-card:hover { transform: translateY(-2px); border-color: rgba(31,61,46,.28); box-shadow: 0 18px 44px rgba(8,26,43,.10); }
+.public-rider-card:focus-visible { outline: 3px solid var(--arena-gold); outline-offset: 4px; }
+.public-rider-card-inner {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: clamp(1.35rem, 3vw, 2rem);
+  align-items: start;
+  min-height: 250px;
+  padding: clamp(1.5rem, 3vw, 2rem);
+}
+.public-rider-photo {
+  width: 132px;
+  height: 132px;
+  object-fit: cover;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(14,42,71,.08), 0 8px 24px rgba(8,26,43,.10);
+}
+.public-rider-photo-large { width: 148px; height: 148px; }
+.public-rider-copy { min-width: 0; }
+.public-rider-copy .public-kicker { margin-bottom: .45rem; }
+.public-rider-copy h3 { margin: 0; color: var(--arena-navy); font-size: clamp(1.65rem, 3vw, 2.05rem); line-height: 1.02; }
+.public-rider-copy p { max-width: 38rem; margin: .75rem 0 1.15rem; color: var(--arena-muted); line-height: 1.6; }
+.public-rider-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: .7rem 1rem;
+  border-radius: 10px;
+  background: var(--arena-green);
+  color: #fff;
+  font-weight: 800;
+}
+
+.public-rider-profile {
+  display: grid;
+  grid-template-columns: minmax(210px, 290px) minmax(0, 1fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: center;
+  margin-top: clamp(3rem, 7vw, 5.5rem);
+  padding: clamp(2rem, 5vw, 4rem);
+  border: 1px solid rgba(14,42,71,.12);
+  border-radius: 26px;
+  background: rgba(255,253,248,.92);
+  box-shadow: 0 24px 60px rgba(8,26,43,.08);
+}
+.public-rider-profile-photo,
+.public-rider-profile-placeholder {
+  width: min(100%, 270px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.public-rider-profile-photo { display: block; object-fit: cover; box-shadow: 0 0 0 1px rgba(14,42,71,.08), 0 16px 36px rgba(8,26,43,.14); }
+.public-rider-profile-placeholder { display: grid; place-items: center; background: linear-gradient(135deg, rgba(31,61,46,.12), rgba(201,169,107,.18)); color: var(--arena-navy); font-family: "Cormorant Garamond", Georgia, serif; font-size: 5rem; }
+.public-rider-profile-copy .public-kicker { margin-bottom: .75rem; }
+.public-rider-profile h1 { margin: 0; color: var(--arena-navy); font-size: clamp(3rem, 7vw, 5rem); line-height: .94; letter-spacing: -.025em; }
+.public-rider-bio { max-width: 700px; margin-top: 1.35rem; color: var(--arena-muted); font-size: 1.05rem; line-height: 1.75; }
+.public-rider-bio p { margin: 0 0 1rem; }
+.public-rider-links { display: flex; flex-wrap: wrap; gap: .65rem; margin-top: 1.5rem; }
+.public-rider-links a { display: inline-flex; align-items: center; min-height: 44px; padding: .65rem .9rem; border: 1px solid rgba(31,61,46,.22); border-radius: 999px; color: var(--arena-green); font-weight: 800; text-decoration: none; }
+.public-rider-links a:hover { background: rgba(31,61,46,.06); }
+.public-rider-links a:focus-visible { outline: 3px solid var(--arena-gold); outline-offset: 3px; }
+.public-rider-back { margin: 1.5rem 0 clamp(4rem, 8vw, 6rem); }
 
 .public-show-hero {
   position: relative;
@@ -107,6 +235,22 @@ body {
   .public-header-inner { gap: 10px; }
   .public-nav { width: 100%; gap: 14px; overflow-x: auto; padding-bottom: 2px; flex-wrap: nowrap; }
   .public-nav a { white-space: nowrap; }
+  main.public-wrap > .public-hero:first-child { padding-top: 3.4rem; padding-bottom: 3.25rem; }
+  main.public-wrap > .public-hero:first-child .public-intro { margin-top: 1.5rem; line-height: 1.65; }
+  main.public-wrap > .public-section { padding-top: 2.25rem; padding-bottom: 4rem; }
+  main.public-wrap > .public-section .public-section-heading-row { align-items: flex-start; }
+  .public-rider-grid, .public-rider-grid-featured { grid-template-columns: 1fr; }
+  .public-rider-card-inner { grid-template-columns: 104px minmax(0, 1fr); gap: 1.1rem; min-height: 0; padding: 1.25rem; }
+  .public-rider-photo, .public-rider-photo-large { width: 104px; height: 104px; }
+  .public-rider-copy h3 { font-size: 1.65rem; }
+  .public-rider-copy p { margin-top: .55rem; }
+  .public-rider-action { width: 100%; justify-content: center; }
+  .public-rider-profile { grid-template-columns: 1fr; gap: 1.75rem; margin-top: 2.5rem; padding: 1.5rem; border-radius: 20px; }
+  .public-rider-profile-portrait { display: flex; justify-content: flex-start; }
+  .public-rider-profile-photo, .public-rider-profile-placeholder { width: min(62vw, 220px); }
+  .public-rider-profile h1 { font-size: clamp(2.8rem, 14vw, 4rem); }
+  .public-rider-links { flex-direction: column; align-items: stretch; }
+  .public-rider-links a { justify-content: center; border-radius: 12px; }
   .public-show-hero { border-radius: 20px; padding: 1.5rem; }
   .public-live-rings { grid-template-columns: 1fr; width: 100%; }
   .public-live-ring { width: 100%; }
@@ -115,4 +259,14 @@ body {
   .public-class-time { flex-direction: column; align-items: flex-start; gap: .18rem; }
   .public-class-ring { border-left: 0; padding-left: 0; }
   .public-results-card { border-radius: 16px; }
+}
+
+@media (max-width: 430px) {
+  .public-rider-card-inner { grid-template-columns: 1fr; }
+  .public-rider-photo, .public-rider-photo-large { width: 112px; height: 112px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .public-rider-card { transition: none; }
+  .public-rider-card:hover { transform: none; }
 }

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'horse_detail' horse.pk %}">← {{ horse.display_name }}</a></nav>
+<section class="page-intro horse-module-intro">
+  <div><div class="eyebrow">BARN PARTICIPATION</div><h1>{{ title }}</h1><p>Connect this horse to the people responsible for ownership, boarding, leasing, training, or care.</p></div>
+</section>
+<section class="card people-form-shell">
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="form-field {% if field.name == 'notes' %}form-field-wide{% endif %}">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-actions"><button class="btn" type="submit">Save relationship</button><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

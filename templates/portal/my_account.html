@@ -6,72 +6,28 @@
 .account-summary-card{display:flex;flex-direction:column;align-items:flex-start;gap:.65rem;padding:1.35rem}
 .account-summary-card>small{color:var(--club-brass);font-weight:850;letter-spacing:.11em}.account-summary-card h2{margin:0;font-family:var(--display-serif)}
 .account-summary-card p{color:var(--muted);margin:.15rem 0 .45rem}.account-summary-card .btn{margin-top:auto}
-.account-details{width:100%;margin:.2rem 0 .65rem}.account-details>div{display:grid;grid-template-columns:5rem 1fr;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--line)}
+.account-details{width:100%;margin:.2rem 0 .65rem}.account-details>div{display:grid;grid-template-columns:7rem 1fr;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--line)}
 .account-details dt{color:var(--muted);font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em}.account-details dd{margin:0;overflow-wrap:anywhere}
-@media(max-width:900px){.account-summary-grid{grid-template-columns:1fr 1fr}}@media(max-width:620px){.account-summary-grid{grid-template-columns:1fr}.account-summary-card{padding:1rem}}
+.account-managed-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.account-managed-card{padding:1.25rem}.account-managed-card h3{margin-top:.15rem}
+@media(max-width:900px){.account-summary-grid{grid-template-columns:1fr 1fr}}@media(max-width:700px){.account-managed-grid{grid-template-columns:1fr}}@media(max-width:620px){.account-summary-grid{grid-template-columns:1fr}.account-summary-card{padding:1rem}}
 </style>
-<section class="page-intro account-intro">
-  <div>
-    <div class="eyebrow">MY ACCOUNT</div>
-    <h1>{{ user.get_full_name|default:user.username }}</h1>
-    <p>Manage your login information, password, and communication preferences.</p>
-  </div>
-</section>
-
+<section class="page-intro account-intro"><div><div class="eyebrow">MY ACCOUNT</div><h1>{% if person %}{{ person.display_name }}{% else %}{{ user.get_full_name|default:user.username }}{% endif %}</h1><p>Manage your profile, login security, and communication preferences while reviewing your ArenaLine relationships and participation.</p></div></section>
 <section class="account-summary-grid">
-  <article class="card account-summary-card">
-    <small>LOGIN</small>
-    <h2>{{ user.username }}</h2>
-    <dl class="account-details">
-      <div><dt>Email</dt><dd>{{ user.email|default:"Not set" }}</dd></div>
-      <div><dt>Name</dt><dd>{{ user.get_full_name|default:"Not set" }}</dd></div>
-      {% if team %}<div><dt>Team</dt><dd>{{ team.name }}</dd></div>{% endif %}
-      {% if profile %}<div><dt>Role</dt><dd>{{ profile.get_role_display }}</dd></div>{% endif %}
-    </dl>
-    <a class="btn" href="{% url 'my_account_edit' %}">Edit account information</a>
+  <article class="card account-summary-card"><small>PROFILE</small><h2>{% if person %}{{ person.display_name }}{% else %}Profile unavailable{% endif %}</h2>
+    {% if person %}<dl class="account-details"><div><dt>Email</dt><dd>{{ person.email|default:"Not set" }}</dd></div><div><dt>School</dt><dd>{{ person.school|default:"Not set" }}</dd></div><div><dt>Grad year</dt><dd>{{ person.graduation_year|default:"Not set" }}</dd></div><div><dt>Bio</dt><dd>{{ person.bio|default:"Not set"|truncatewords:18 }}</dd></div><div><dt>Instagram</dt><dd>{{ person.instagram_url|default:"Not set" }}</dd></div><div><dt>YouTube</dt><dd>{{ person.youtube_url|default:"Not set" }}</dd></div></dl><a class="btn" href="{% url 'my_account_edit' %}">Edit profile information</a>{% else %}<p>Your login has not yet been linked to a Person profile. An administrator can connect it without changing your login.</p>{% endif %}
   </article>
-
-  <article class="card account-summary-card">
-    <small>SECURITY</small>
-    <h2>Password</h2>
-    <p>Change your password at any time. You will remain signed in after a successful change.</p>
-    <a class="btn secondary" href="{% url 'my_password_change' %}">Change password</a>
-  </article>
-
-  <article class="card account-summary-card">
-    <small>COMMUNICATIONS</small>
-    <h2>Notifications</h2>
-    {% if profile %}
-      <p>Choose which portal announcements, show updates, and reminders should also be sent by email.</p>
-      <a class="btn secondary" href="{% url 'my_notification_preferences' %}">Notification preferences</a>
-    {% else %}
-      <p class="muted">Notification preferences are unavailable for this account.</p>
-    {% endif %}
-  </article>
+  <article class="card account-summary-card"><small>SECURITY</small><h2>{{ user.username }}</h2><dl class="account-details"><div><dt>Login email</dt><dd>{{ user.email|default:"Not set" }}</dd></div>{% if team %}<div><dt>Organization</dt><dd>{{ team.name }}</dd></div>{% endif %}</dl><p>Change your password at any time.</p><a class="btn secondary" href="{% url 'my_password_change' %}">Change password</a></article>
+  <article class="card account-summary-card"><small>COMMUNICATIONS</small><h2>Notifications</h2>{% if profile %}<p>Choose which portal announcements, show updates, and reminders should also be sent by email.</p><a class="btn secondary" href="{% url 'my_notification_preferences' %}">Notification preferences</a>{% else %}<p class="muted">Notification preferences are unavailable for this account.</p>{% endif %}</article>
 </section>
-
-{% if linked_rider or linked_guardian %}
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">LINKED PROFILE</div><h2>Your team record</h2></div></div>
-  <div class="ops-list">
-    {% if linked_rider %}
-      <a class="ops-row card" href="{% url 'rider_detail' linked_rider.pk %}">
-        <div class="ops-main"><small>RIDER</small><h3>{{ linked_rider.display_name }}</h3><p>Open your rider profile →</p></div>
-      </a>
-    {% endif %}
-    {% if linked_guardian %}
-      <article class="ops-row card">
-        <div class="ops-main"><small>PARENT / GUARDIAN</small><h3>{{ linked_guardian.display_name }}</h3><p>Your login is linked to this family contact record.</p></div>
-      </article>
-    {% endif %}
-  </div>
-</section>
+{% if person %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">ORGANIZATION MANAGED</div><h2>Your ArenaLine record</h2><p class="muted">You can review these details, but changes are managed by your organization.</p></div></div>
+<div class="account-managed-grid">
+<article class="card account-managed-card"><small>IDENTITY & ACCESS</small><h3>Account details</h3><dl class="account-details"><div><dt>Legal name</dt><dd>{{ person.first_name }} {{ person.last_name }}</dd></div><div><dt>Birthday</dt><dd>{{ person.birth_date|date:"F j, Y"|default:"Not set" }}</dd></div>{% if profile %}<div><dt>Access role</dt><dd>{{ profile.get_role_display }}</dd></div>{% endif %}</dl></article>
+<article class="card account-managed-card"><small>ROLES</small><h3>Organization roles</h3>{% for role in roles %}<p><strong>{{ role.get_role_display }}</strong></p>{% empty %}<p class="muted">No active organization roles.</p>{% endfor %}</article>
+<article class="card account-managed-card"><small>FAMILY & CONTACTS</small><h3>Relationships</h3>{% for relationship in relationships %}<p><strong>{{ relationship.to_person.display_name }}</strong><br><span class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}</span></p>{% endfor %}{% for relationship in incoming_relationships %}<p><strong>{{ relationship.from_person.display_name }}</strong><br><span class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}</span></p>{% endfor %}{% if not relationships and not incoming_relationships %}<p class="muted">No active family or contact relationships.</p>{% endif %}</article>
+<article class="card account-managed-card"><small>COMMITTEES</small><h3>Responsibilities</h3>{% for membership in committees %}<p><strong>{{ membership.committee.name }}</strong><br><span class="muted">{{ membership.get_position_display }}{% if membership.committee.group %} · {{ membership.committee.group.name }}{% endif %}</span></p>{% empty %}<p class="muted">No active committee memberships.</p>{% endfor %}</article>
+</div></section>
 {% endif %}
-
-<section class="content-section account-security-note">
-  <div class="callout">
-    <strong>Account role and team assignment</strong>
-    <span>These are managed by a portal administrator. Contact your team administrator if your role, team, or linked rider/family record is incorrect.</span>
-  </div>
-</section>
+{% if linked_rider or linked_guardian %}<section class="content-section"><div class="section-head"><div><div class="eyebrow">LINKED RECORDS</div><h2>Rider & family records</h2></div></div><div class="ops-list">{% if linked_rider %}<a class="ops-row card" href="{% url 'rider_detail' linked_rider.pk %}"><div class="ops-main"><small>RIDER</small><h3>{{ linked_rider.display_name }}</h3><p>Review your rider record, linked horses, season/program participation, and competition history →</p></div></a>{% endif %}{% if linked_guardian %}<article class="ops-row card"><div class="ops-main"><small>PARENT / GUARDIAN</small><h3>{{ linked_guardian.display_name }}</h3><p>Your login is linked to this family contact record.</p></div></article>{% endif %}</div></section>{% endif %}
+<section class="content-section account-security-note"><div class="callout"><strong>Managed information</strong><span>Legal identity, birthday, roles, family links, committees, linked horses, and program assignments are maintained by your organization. Contact an administrator if something shown here is incorrect.</span></div></section>
 {% endblock %}

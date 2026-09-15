@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}People structure · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_directory' %}">← People</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">ORGANIZATION · OPERATIONS</div><h1>People structure</h1><p>See how programs, operational groups, and committees fit together—and who is actively carrying the work.</p></div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">AT A GLANCE</div><h2>Organization map</h2><p class="muted">Current structure and participation across ArenaLine People.</p></div></div>
+  <div class="people-detail-list">
+    <div><dt>Groups</dt><dd><strong>{{ groups|length }}</strong></dd></div>
+    <div><dt>Committees</dt><dd><strong>{{ committees|length }}</strong></dd></div>
+  </div>
+</section>
+
+<div class="people-profile-layout">
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">GROUPS & PROGRAMS</div><h2>Organization groups</h2><p class="muted">Programs and operating units can contain committees and smaller groups.</p></div><a class="btn" href="{% url 'organization_group_add' %}">Add group</a></div>
+  {% for group in groups %}
+  <div class="people-structure-row">
+    <div>
+      <strong><a href="{% url 'organization_group_detail' group.pk %}">{{ group.name }}</a></strong>
+      <p class="muted">{{ group.get_group_type_display }}{% if group.parent %} · under {{ group.parent.name }}{% endif %}{% if not group.active %} · Inactive{% endif %}</p>
+      {% if group.description %}<p>{{ group.description }}</p>{% endif %}
+      <div class="person-tags">
+        {% with committee_count=group.committees.all|length subgroup_count=group.subgroups.all|length %}
+          {% if committee_count %}<a class="people-tag-link" href="{% url 'organization_group_detail' group.pk %}">{{ committee_count }} committee{{ committee_count|pluralize }}</a>{% endif %}
+          {% if subgroup_count %}<a class="people-tag-link" href="{% url 'organization_group_detail' group.pk %}">{{ subgroup_count }} subgroup{{ subgroup_count|pluralize }}</a>{% endif %}
+          {% if not committee_count and not subgroup_count %}<span class="muted">No nested operations yet.</span>{% endif %}
+        {% endwith %}
+      </div>
+    </div>
+    <div class="actions"><a href="{% url 'organization_group_detail' group.pk %}">View</a><a href="{% url 'organization_group_edit' group.pk %}">Edit</a></div>
+  </div>
+  {% empty %}<p class="muted">No groups have been created yet. Add the first program or operational group to begin organizing People.</p>{% endfor %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committee operations</h2><p class="muted">Leadership and membership are shown here so responsibility is visible without opening each Person profile.</p></div><a class="btn" href="{% url 'committee_add' %}">Add committee</a></div>
+  {% for committee in committees %}
+  <div class="people-structure-row">
+    <div>
+      <strong><a href="{% url 'committee_detail' committee.pk %}">{{ committee.name }}</a></strong>
+      <p class="muted">{% if committee.group %}<a href="{% url 'organization_group_detail' committee.group.pk %}">{{ committee.group.name }}</a>{% else %}Organization-wide{% endif %}{% if not committee.active %} · Inactive{% endif %}</p>
+      {% if committee.purpose %}<p>{{ committee.purpose }}</p>{% endif %}
+      <div class="person-tags">
+        {% for membership in committee.memberships.all %}
+          {% if membership.active %}<a class="people-tag-link" href="{% url 'person_detail' membership.person.pk %}">{{ membership.person.display_name }} · {{ membership.get_position_display }}</a>{% else %}<span class="muted">{{ membership.person.display_name }} · {{ membership.get_position_display }} · Inactive</span>{% endif %}
+        {% empty %}<span class="muted">No members assigned yet.</span>{% endfor %}
+      </div>
+    </div>
+    <div class="actions"><a href="{% url 'committee_detail' committee.pk %}">View</a><a href="{% url 'committee_edit' committee.pk %}">Edit</a></div>
+  </div>
+  {% empty %}<p class="muted">No committees have been created yet.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}

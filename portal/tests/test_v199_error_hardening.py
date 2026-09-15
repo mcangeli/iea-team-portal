@@ -2,7 +2,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.models import GuardianContact, Rider, Team, UserProfile
+from portal.model_modules.people import Person
+from portal.models import Rider, Team, UserProfile
 
 
 class V199ErrorHardeningTests(TestCase):
@@ -17,6 +18,7 @@ class V199ErrorHardeningTests(TestCase):
             first_name="Emma",
             last_name="Brown",
         )
+        self.parent = Person.objects.create(team=self.team, first_name="Alex", last_name="Brown")
         self.client.force_login(self.admin)
 
     def test_guardian_link_empty_submission_redirects_with_message(self):
@@ -26,17 +28,12 @@ class V199ErrorHardeningTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Choose a parent/guardian to link.")
+        self.assertContains(response, "Choose an existing person or login account.")
         self.assertEqual(self.rider.guardian_links.count(), 0)
 
     def test_guardian_link_duplicate_is_idempotent(self):
-        guardian = GuardianContact.objects.create(
-            team=self.team,
-            first_name="Alex",
-            last_name="Brown",
-        )
         url = reverse("rider_guardian_link", args=[self.rider.pk])
-        payload = {"guardian": guardian.pk, "relationship": "Parent/Guardian"}
+        payload = {"person": f"person:{self.parent.pk}", "relationship": "Parent/Guardian"}
 
         first = self.client.post(url, payload, follow=True)
         self.assertEqual(first.status_code, 200)

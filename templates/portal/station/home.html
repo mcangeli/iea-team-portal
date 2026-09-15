@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}ArenaLine Station · {{ device.name }}{% endblock %}
+{% block content %}
+<div class="station-shell">
+<section class="page-intro station-kiosk-intro">
+  <div><div class="eyebrow">ARENALINE STATION</div><h1>{{ device.name }}</h1><p>Tap your name to clock in or out.</p></div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'station_deactivate' %}">Deactivate device</a></div>
+</section>
+<section class="content-section">
+  {% if credentials %}
+  <div class="station-person-grid">
+    {% for credential in credentials %}
+    <a class="person-card station-person-card" href="{% url 'station_identify' credential.person.pk %}">
+      <div class="person-card-photo"><span>{{ credential.person.first_name|first }}{{ credential.person.last_name|first }}</span></div>
+      <div class="person-card-body"><h3>{{ credential.person.display_name }}</h3><p>Tap to enter Station PIN</p></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state"><h3>No Station identities are active</h3><p>A manager needs to set a Station PIN before someone can use this device.</p></div>
+  {% endif %}
+</section>
+</div>
+{% endblock %}

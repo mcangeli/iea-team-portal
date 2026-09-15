@@ -37,6 +37,20 @@
     {% if horse.notes and can_manage %}<div class="horse-detail-note"><h3>Internal notes</h3><p>{{ horse.notes|linebreaksbr }}</p></div>{% endif %}
   </section>
 
+  <section class="card">
+    <div class="card-heading-row"><div><div class="section-kicker">BARN PARTICIPATION</div><h2>People &amp; responsibilities</h2><p class="muted">Ownership, boarding, lease, training, and care relationships.</p></div>{% if can_manage %}<a class="btn secondary" href="{% url 'horse_person_relationship_add' horse.pk %}">Add person</a>{% endif %}</div>
+    <div class="stack-list">
+      {% for relationship in person_relationships %}
+        {% if relationship.active %}
+        <div class="stack-item">
+          <div><strong><a href="{% url 'person_detail' relationship.person.pk %}">{{ relationship.person.display_name }}</a></strong><div class="muted">{{ relationship.get_relationship_type_display }}{% if relationship.share_percent %} · {{ relationship.share_percent }}%{% endif %}{% if relationship.start_date %} · Since {{ relationship.start_date|date:"M Y" }}{% endif %}</div></div>
+          {% if can_manage %}<a class="text-link" href="{% url 'horse_person_relationship_edit' horse.pk relationship.pk %}">Edit →</a>{% endif %}
+        </div>
+        {% endif %}
+      {% empty %}<p class="muted">No people have been linked to this horse yet.</p>{% endfor %}
+    </div>
+  </section>
+
   <section class="card horse-readiness-card">
     <div class="card-heading-row"><div><div class="section-kicker">SHOW READINESS</div><h2>Coggins</h2></div>{% if can_manage %}<a class="btn secondary" href="{% url 'horse_coggins_add' horse.pk %}">Add record</a>{% endif %}</div>
     {% if latest_coggins %}

@@ -8,6 +8,31 @@
   {% if public_site.introduction %}<div class="public-intro">{{ public_site.introduction|linebreaks }}</div>{% endif %}
 </section>
 
+{% if public_riders %}
+<section class="public-section public-rider-section">
+  <div class="public-section-heading public-section-heading-row">
+    <div><div class="public-kicker">MEET THE TEAM</div><h2>Riders</h2></div>
+    <a class="public-section-link" href="{% url 'public_riders' public_site.slug %}">Meet our riders →</a>
+  </div>
+  <div class="public-rider-grid public-rider-grid-featured">
+    {% for rider in public_riders %}
+      <a class="public-rider-card" href="{% url 'public_rider_detail' public_site.slug rider.person_id %}">
+        <div class="public-rider-card-inner">
+          {% if rider.photo %}<img class="public-rider-photo" src="{{ rider.photo.url }}" alt="{{ rider.display_name }}">{% endif %}
+          <div class="public-rider-copy">
+            <div class="public-kicker">RIDER PROFILE</div>
+            <h3>{{ rider.display_name }}</h3>
+            {% if rider.bio %}<p>{{ rider.bio|truncatewords:22 }}</p>{% endif %}
+            <span class="public-rider-action">View rider card →</span>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+  {% if has_more_riders %}<div class="public-more"><a class="public-section-link" href="{% url 'public_riders' public_site.slug %}">See all public rider profiles →</a></div>{% endif %}
+</section>
+{% endif %}
+
 <section class="public-section">
   <div class="public-section-heading public-section-heading-row">
     <div>
@@ -21,18 +46,13 @@
       <a class="public-show-card" href="{% url 'public_show_detail' public_site.slug show.slug %}">
         <div class="public-date">{{ show.date|date:"M j" }}</div>
         <div>
-          {% if show.live_status %}
-            <div class="public-show-status public-show-status-{{ show.live_status.code }}">{{ show.live_status.label }}</div>
-          {% endif %}
-          <h3>{{ show.name }}</h3>
-          <p>{{ show.competition_level }}</p>
+          {% if show.live_status %}<div class="public-show-status public-show-status-{{ show.live_status.code }}">{{ show.live_status.label }}</div>{% endif %}
+          <h3>{{ show.name }}</h3><p>{{ show.competition_level }}</p>
           {% if show.time %}<p>{{ show.time|time:"g:i A" }}</p>{% endif %}
           {% if show.venue %}<p>{{ show.venue }}</p>{% endif %}
         </div>
       </a>
-    {% empty %}
-      <div class="public-empty">No upcoming shows are currently published.</div>
-    {% endfor %}
+    {% empty %}<div class="public-empty">No upcoming shows are currently published.</div>{% endfor %}
   </div>
   {% if has_more_shows %}<div class="public-more"><a class="public-section-link" href="{% url 'public_schedule' public_site.slug %}">See all published shows →</a></div>{% endif %}
 </section>

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · People structure · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'people_structure' %}">← People structure</a></nav>
+<section class="page-intro"><div><div class="eyebrow">{{ eyebrow }}</div><h1>{{ title }}</h1></div></section>
+<section class="content-section people-form-shell">
+  <form method="post" class="stacked-form">{% csrf_token %}
+    {{ form.as_p }}
+    <div class="actions"><button class="btn" type="submit">Save</button><a class="btn btn-secondary" href="{% url 'people_structure' %}">Cancel</a></div>
+  </form>
+</section>
+{% endblock %}

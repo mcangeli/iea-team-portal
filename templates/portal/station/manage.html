@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}ArenaLine Station · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'dashboard' %}">← Dashboard</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">ARENALINE STATION</div><h1>Shared-device setup</h1><p>Register barn tablets, manage Station PIN identities, and review recorded work shifts.</p></div>
+  <div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_review' %}">Review shifts</a><a class="btn" href="{% url 'station_device_add' %}">Register device</a></div>
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">DEVICES</div><h2>Registered Stations</h2></div></div>
+  {% for device in devices %}
+  <div class="people-structure-row">
+    <div><strong>{{ device.name }}</strong><p class="muted">{% if device.active %}Active{% else %}Inactive{% endif %}{% if device.last_seen_at %} · Last seen {{ device.last_seen_at|date:"M j, Y g:i A" }}{% endif %}</p></div>
+    <div class="actions"><a href="{% url 'station_device_edit' device.pk %}">Edit</a><form method="post" action="{% url 'station_device_rotate_secret' device.pk %}" class="inline-form">{% csrf_token %}<button class="btn btn-secondary" type="submit">Rotate secret</button></form></div>
+  </div>
+  {% empty %}<div class="empty-state"><h3>No Station devices yet</h3><p>Register the first shared barn tablet to begin.</p></div>{% endfor %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PEOPLE</div><h2>Station PINs</h2></div></div>
+  {% for person in people %}
+  <div class="people-structure-row">
+    <div><strong>{{ person.display_name }}</strong><p class="muted">{% if person.station_credential %}{% if person.station_credential.active %}PIN active{% else %}PIN disabled{% endif %}{% else %}No Station PIN{% endif %}</p></div>
+    <a href="{% url 'station_person_pin' person.pk %}">{% if person.station_credential %}Reset PIN{% else %}Set PIN{% endif %}</a>
+  </div>
+  {% empty %}<p class="muted">No active People records are available.</p>{% endfor %}
+</section>
+{% endblock %}

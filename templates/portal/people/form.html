@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'edit' %}Edit {{ person.display_name }}{% else %}Add person{% endif %} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% if person %}{% url 'person_detail' person.pk %}{% else %}{% url 'people_directory' %}{% endif %}">← {% if person %}{{ person.display_name }}{% else %}People{% endif %}</a></nav>
+
+<section class="page-intro people-editor-intro">
+  <div>
+    <div class="eyebrow">PEOPLE</div>
+    <h1>{% if mode == 'edit' %}Edit {{ person.display_name }}{% else %}Add person{% endif %}</h1>
+    <p>{% if mode == 'edit' %}Update the core identity and profile information ArenaLine uses across the organization.{% else %}Create one canonical ArenaLine identity. Roles, relationships, and participation can be added after the profile is created.{% endif %}</p>
+  </div>
+  {% if person %}
+  <div class="people-editor-person-mark" aria-hidden="true">
+    {% if person.photo %}<img src="{{ person.photo.url }}" alt="">{% else %}<span>{{ person.first_name|first }}{{ person.last_name|first }}</span>{% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<form method="post" enctype="multipart/form-data" class="people-editor-form">{% csrf_token %}
+  {{ form.non_field_errors }}
+  <div class="people-editor-layout">
+    <div class="people-editor-main">
+      <section class="content-section people-editor-section">
+        <div class="people-editor-section-head">
+          <div><div class="eyebrow">IDENTITY</div><h2>Who they are</h2><p>The name and photo used throughout ArenaLine.</p></div>
+        </div>
+        <div class="people-editor-grid">
+          <div class="form-field"><label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+          <div class="form-field"><label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+          <div class="form-field"><label for="{{ form.preferred_name.id_for_label }}">{{ form.preferred_name.label }}</label>{{ form.preferred_name }}{% if form.preferred_name.help_text %}<small>{{ form.preferred_name.help_text }}</small>{% endif %}{{ form.preferred_name.errors }}</div>
+          <div class="form-field"><label for="{{ form.photo.id_for_label }}">Profile photo</label>{{ form.photo }}{{ form.photo.errors }}</div>
+        </div>
+      </section>
+
+      <section class="content-section people-editor-section">
+        <div class="people-editor-section-head">
+          <div><div class="eyebrow">CONTACT</div><h2>Contact information</h2><p>Private organization contact details. These are not automatically published.</p></div>
+        </div>
+        <div class="people-editor-grid">
+          <div class="form-field"><label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
+          <div class="form-field"><label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>{{ form.phone }}{{ form.phone.errors }}</div>
+        </div>
+      </section>
+
+      <section class="content-section people-editor-section">
+        <div class="people-editor-section-head">
+          <div><div class="eyebrow">RIDER & SCHOOL</div><h2>Personal details</h2><p>Useful rider and family context. Birth date remains private.</p></div>
+        </div>
+        <div class="people-editor-grid people-editor-grid-three">
+          <div class="form-field"><label for="{{ form.birth_date.id_for_label }}">{{ form.birth_date.label }}</label>{{ form.birth_date }}{{ form.birth_date.errors }}</div>
+          <div class="form-field"><label for="{{ form.school.id_for_label }}">{{ form.school.label }}</label>{{ form.school }}{{ form.school.errors }}</div>
+          <div class="form-field"><label for="{{ form.graduation_year.id_for_label }}">{{ form.graduation_year.label }}</label>{{ form.graduation_year }}{{ form.graduation_year.errors }}</div>
+        </div>
+      </section>
+
+      <section class="content-section people-editor-section">
+        <div class="people-editor-section-head">
+          <div><div class="eyebrow">PROFILE</div><h2>About</h2><p>A short bio for internal profiles and future explicitly published profile experiences.</p></div>
+        </div>
+        <div class="form-field"><label for="{{ form.bio.id_for_label }}">{{ form.bio.label }}</label>{{ form.bio }}{{ form.bio.errors }}</div>
+      </section>
+
+      <section class="content-section people-editor-section">
+        <div class="people-editor-section-head">
+          <div><div class="eyebrow">ONLINE</div><h2>Links & social profiles</h2><p>Optional links associated with this person.</p></div>
+        </div>
+        <div class="people-editor-grid">
+          <div class="form-field people-editor-wide"><label for="{{ form.website_url.id_for_label }}">Website</label>{{ form.website_url }}{{ form.website_url.errors }}</div>
+          <div class="form-field"><label for="{{ form.instagram_url.id_for_label }}">Instagram</label>{{ form.instagram_url }}{{ form.instagram_url.errors }}</div>
+          <div class="form-field"><label for="{{ form.facebook_url.id_for_label }}">Facebook</label>{{ form.facebook_url }}{{ form.facebook_url.errors }}</div>
+          <div class="form-field"><label for="{{ form.tiktok_url.id_for_label }}">TikTok</label>{{ form.tiktok_url }}{{ form.tiktok_url.errors }}</div>
+          <div class="form-field"><label for="{{ form.youtube_url.id_for_label }}">YouTube</label>{{ form.youtube_url }}{{ form.youtube_url.errors }}</div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="people-editor-sidebar">
+      <section class="content-section people-editor-sidecard">
+        <div class="eyebrow">ACCESS</div>
+        <h2>Portal account</h2>
+        <p>Link this Person to an existing ArenaLine login when they need portal access.</p>
+        <div class="form-field"><label for="{{ form.user.id_for_label }}">Django account</label>{{ form.user }}{% if form.user.help_text %}<small>{{ form.user.help_text }}</small>{% endif %}{{ form.user.errors }}</div>
+      </section>
+
+      <section class="content-section people-editor-sidecard">
+        <div class="eyebrow">VISIBILITY</div>
+        <h2>Profile status</h2>
+        <label class="people-editor-toggle" for="{{ form.active.id_for_label }}">{{ form.active }}<span><strong>Active person</strong><small>Inactive people are removed from normal operational lists.</small></span></label>
+        <label class="people-editor-toggle" for="{{ form.public_profile_enabled.id_for_label }}">{{ form.public_profile_enabled }}<span><strong>Public profile enabled</strong><small>Allows future public-profile publication. Private fields are never automatically exposed.</small></span></label>
+        {{ form.active.errors }}{{ form.public_profile_enabled.errors }}
+      </section>
+
+      {% if person %}
+      <section class="content-section people-editor-sidecard people-editor-participation">
+        <div class="eyebrow">PARTICIPATION</div>
+        <h2>Barn involvement</h2>
+        <p>Operational participation is managed separately so dates, history, and scope stay intact.</p>
+        <div class="person-tags">
+          {% for role in person.role_assignments.all %}{% if role.active %}<span>{{ role.get_role_display }}</span>{% endif %}{% empty %}<span class="muted">No active roles</span>{% endfor %}
+        </div>
+        <div class="people-editor-links">
+          <a href="{% url 'person_role_add' person.pk %}">Manage roles</a>
+          <a href="{% url 'person_relationship_add' person.pk %}">Add family/contact relationship</a>
+          <a href="{% url 'person_committee_add' person.pk %}">Add committee membership</a>
+          <a href="{% url 'person_detail' person.pk %}#horses">View horse relationships</a>
+        </div>
+      </section>
+      {% endif %}
+    </aside>
+  </div>
+
+  <div class="people-editor-actions">
+    <div><strong>{% if mode == 'edit' %}Save profile changes{% else %}Create person{% endif %}</strong><small>{% if mode == 'edit' %}Roles and operational relationships are saved separately.{% else %}You can assign roles and relationships immediately after creation.{% endif %}</small></div>
+    <div class="actions"><a class="btn secondary" href="{% if person %}{% url 'person_detail' person.pk %}{% else %}{% url 'people_directory' %}{% endif %}">Cancel</a><button class="btn" type="submit">{% if mode == 'edit' %}Save changes{% else %}Create person{% endif %}</button></div>
+  </div>
+</form>
+{% endblock %}

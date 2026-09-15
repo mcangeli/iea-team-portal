@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Edit Shift · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'station_shift_review' %}">← Shift review</a></nav>
+<section class="page-intro"><div><div class="eyebrow">STATION</div><h1>Edit shift</h1><p>{{ shift.person.display_name }} · {{ shift.get_role_display }}</p></div></section>
+<section class="content-section people-form-shell">
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save correction</button><a class="btn btn-secondary" href="{% url 'station_shift_review' %}">Cancel</a></div></form>
+</section>
+{% endblock %}

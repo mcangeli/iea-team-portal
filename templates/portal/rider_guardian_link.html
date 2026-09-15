@@ -1,33 +1,34 @@
 {% extends 'base.html' %}
-{% block title %}Link Parent/Guardian{% endblock %}
+{% block title %}Add Parent/Guardian{% endblock %}
 {% block content %}
-<nav class="page-back-nav" aria-label="Back navigation"><a href="#" data-history-back>← Back</a></nav>
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'rider_detail' rider.pk %}">← Back to rider</a></nav>
 <div class="page-title">
   <div>
     <div class="eyebrow">FAMILY RELATIONSHIP</div>
-    <h1>Link an existing parent/guardian</h1>
-    <p>Attach an existing guardian record to {{ rider.display_name }} without creating a duplicate contact.</p>
+    <h1>Add parent / guardian</h1>
+    <p>Select someone who already exists in ArenaLine. If they already have a login account, ArenaLine will use that account automatically.</p>
   </div>
 </div>
 
 <div class="card">
-  {% if guardians %}
+  {% if people %}
   <form method="post">
     {% csrf_token %}
     <div class="form-grid">
       <label>
-        <span>Parent / Guardian</span>
-        <select name="guardian" required>
-          <option value="">Select an existing guardian…</option>
-          {% for guardian in guardians %}
-          <option value="{{ guardian.pk }}">{{ guardian }}{% if guardian.email %} · {{ guardian.email }}{% endif %}</option>
+        <span>Existing person or account</span>
+        <select name="person" required>
+          <option value="">Select a parent or guardian…</option>
+          {% for person in people %}
+          <option value="{{ person.value }}">{{ person.name }}{% if person.email %} · {{ person.email }}{% endif %} · {{ person.role }}{% if person.has_login %} · Login account{% endif %}</option>
           {% endfor %}
         </select>
+        <small class="helptext">You do not need to create another parent record. ArenaLine will connect the existing person/account and maintain the family relationship automatically.</small>
       </label>
 
       <label>
         <span>Relationship</span>
-        <input type="text" name="relationship" value="Parent/Guardian" maxlength="80">
+        <input type="text" name="relationship" value="Parent/Guardian" maxlength="50" placeholder="Mother, Father, Guardian, Grandparent…">
       </label>
 
       <label class="check-row">
@@ -37,13 +38,16 @@
     </div>
 
     <div class="actions">
-      <button class="btn" type="submit">Link guardian</button>
+      <button class="btn" type="submit">Link to rider</button>
+      <a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
       <a class="btn secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
     </div>
   </form>
   {% else %}
   <div class="empty-state">
-    Every existing guardian on this team is already linked to this rider, or no guardian records exist yet.
+    <h3>No existing people or accounts available</h3>
+    <p>Everyone available is already linked to this rider, or no other active people/accounts exist yet.</p>
+    <a class="btn" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
   </div>
   {% endif %}
 </div>

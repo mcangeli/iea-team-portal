@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}My Account · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro people-profile-intro">
+  <div class="people-profile-heading">
+    <div class="person-profile-photo">{% if person.photo %}<img src="{{ person.photo.url }}" alt="">{% else %}<span>{{ person.first_name|first }}{{ person.last_name|first }}</span>{% endif %}</div>
+    <div><div class="eyebrow">MY ACCOUNT</div><h1>{{ person.display_name }}</h1><p>Keep your personal profile current and review how you are connected in ArenaLine.</p></div>
+  </div>
+</section>
+<div class="people-profile-layout">
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PROFILE</div><h2>Your information</h2><p class="muted">These are the details you can maintain yourself.</p></div></div>
+  <form method="post" enctype="multipart/form-data" class="stack-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save changes</button></div></form>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">ORGANIZATION</div><h2>Managed information</h2><p class="muted">These details are viewable here but are managed by your organization.</p></div></div>
+  <dl class="people-detail-list">
+    <div><dt>Legal name</dt><dd>{{ person.first_name }} {{ person.last_name }}</dd></div>
+    <div><dt>Birthday</dt><dd>{{ person.birth_date|date:"F j, Y"|default:"—" }}</dd></div>
+    <div><dt>Login</dt><dd>@{{ user.username }}</dd></div>
+    <div><dt>Access role</dt><dd>{{ user.profile.get_role_display }}</dd></div>
+  </dl>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PARTICIPATION</div><h2>Roles & responsibilities</h2></div></div>
+  <div class="person-tags person-tags-large">{% for role in roles %}<span class="people-tag-link">{{ role.get_role_display }}</span>{% empty %}<span class="muted">No active organization roles.</span>{% endfor %}</div>
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">FAMILY & CONTACTS</div><h2>Relationships</h2></div></div>
+  {% for relationship in relationships %}<div class="people-structure-row"><div><strong>{{ relationship.to_person.display_name }}</strong><p class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}{% if relationship.primary_contact %} · Primary contact{% endif %}</p></div></div>{% endfor %}
+  {% for relationship in incoming_relationships %}<div class="people-structure-row"><div><strong>{{ relationship.from_person.display_name }}</strong><p class="muted">{{ relationship.label|default:relationship.get_relationship_type_display }}</p></div></div>{% endfor %}
+  {% if not relationships and not incoming_relationships %}<p class="muted">No family or contact relationships are recorded.</p>{% endif %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HORSES</div><h2>Linked horses</h2></div></div>
+  {% for relationship in horses %}<div class="people-structure-row"><div><strong>{{ relationship.horse.display_name }}</strong><p class="muted">{{ relationship.get_relationship_type_display }}{% if relationship.share_percent %} · {{ relationship.share_percent }}%{% endif %}</p></div></div>{% empty %}<p class="muted">No horse relationships are recorded.</p>{% endfor %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PROGRAMS</div><h2>Program & season participation</h2></div></div>
+  {% for membership in programs %}<div class="people-structure-row"><div><strong>{{ membership.season.name }}</strong><p class="muted">{% if membership.team_level %}{{ membership.get_team_level_display }}{% else %}Rider participation{% endif %}</p></div></div>{% empty %}<p class="muted">No rider program participation is recorded.</p>{% endfor %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">COMMITTEES</div><h2>Committee memberships</h2></div></div>
+  {% for membership in committees %}<div class="people-structure-row"><div><strong>{{ membership.committee.name }}</strong><p class="muted">{{ membership.get_position_display }}{% if membership.committee.group %} · {{ membership.committee.group.name }}{% endif %}</p></div></div>{% empty %}<p class="muted">No active committee memberships.</p>{% endfor %}
+</section>
+</div>
+{% endblock %}
