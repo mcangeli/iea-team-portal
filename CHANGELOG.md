@@ -4,46 +4,32 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
-## v3.2.0 — People, Relationships & Barn Operations
+## v3.2.3 — People & Operations Polish
 
-**Unreleased — active development.**
+Released September 2026.
 
-Foundation work started with:
+v3.2.3 closes the 3.2.x People, Relationships & Barn Operations release family. The family was developed through the v3.2.0 Unified People & Organization Foundation, v3.2.1 Barn Participation & Horse Relationships, v3.2.2 ArenaLine Station, and v3.2.3 People & Operations Polish milestones.
 
-- a canonical organization-scoped `Person` identity;
-- optional one-to-one linkage from `Person` to the Django `auth.User` login account;
-- compatibility bridging from existing Rider and GuardianContact records without deleting or rewriting legacy identities;
-- support for one Person to represent both a Rider and Parent/Guardian when those legacy records belong to the same human;
-- date-aware multi-role assignments for Parent/Guardian, Rider, Boarder, Trainer, Assistant Trainer, Barn Manager, Barn Staff, Working Student, and Board Member;
-- checkbox-based current-role management so one Person can hold several roles simultaneously rather than being forced through a single-role dropdown;
-- directional Person relationships such as Parent/Guardian;
-- generic Organization Groups / Programs;
-- barn-wide or group-scoped Committees and Committee Memberships;
-- expanded Person profile fields for birth date, school, graduation year, bio, photo, website, and social links;
-- a new ArenaLine-branded People directory and canonical Person profile UI;
-- Admin/Coach Person create/edit workflows with tenant-safe linkage to available Django login accounts;
-- a polished, sectioned Person create/edit workspace with clearer identity, contact, school/rider, profile, online, account, status, and barn-participation surfaces;
-- direct Person-profile management of multiple roles, relationships, and committee memberships;
-- a manager-only People Structure workspace for organization groups/programs and generalized committees;
-- a first barn-participation bridge linking canonical People to Horses as Owner, Boarder/Responsible Party, Full Lease, Half Lease, Partial Lease, Trainer, or Caretaker, with optional share and effective dates;
-- manager workflows on Horse profiles to add/edit those People↔Horse relationships, with mirrored horse participation shown on Person profiles;
-- a Barn Operations roster grouping trainers, barn management/staff, working students, boarders, and board members with linked horse responsibilities;
-- a traceable compatibility bridge from legacy season-scoped IEA `CommitteeAssignment` records into generalized `CommitteeMembership` records, while legacy assignments remain authoritative for existing permissions;
-- strict committee scoping so legacy IEA Treasurer mirrors to `IEA Program / IEA Finance Committee / Treasurer` and never implies barn-level Finance access;
-- mirrored IEA committee memberships are visibly labeled `Managed by IEA assignment` and cannot be edited through the generalized Person membership editor;
-- the ArenaLine Station persistence/security foundation: registered shared devices, separately hashed Station PIN credentials tied to canonical Person records, and tenant-safe work-shift clock-in/out records;
-- manager Station setup for device registration, one-time device secrets, secret rotation, and Person PIN creation/reset;
-- a shared-device Station workflow that activates a tablet without reusing portal passwords, explicitly clears any full portal login on activation, lists only same-organization Station identities, verifies a Person PIN, and offers clock-in/out only for that Person's active work roles;
-- short-lived Person Station identity that is cleared after each clock action, plus multi-role shift selection for people who work in more than one barn role;
-- manager review/correction/approval of staff shifts with audit history and open-shift approval protection;
-- per-Person staff-hour summaries including approved and Working Student time plus tenant-scoped CSV export;
-- audit events for Station device/PIN/clock/export activity without recording raw secrets or PINs;
-- five-attempt temporary PIN lockout per Person/per Station session and tablet-oriented Station presentation polish;
-- privacy-aware profile rendering so private contact/account/birth-date data is limited to managers or the linked person;
-- responsive People/Station presentation and regression coverage for tenant, permission, account-link, relationship, committee, horse-person, operations-roster, compatibility, Station foundation, kiosk, review, audit, export, and lockout safety;
-- privacy-safe public-profile enablement as a future publication surface, with public fields still requiring explicit allow-listed publication behavior.
+Highlights:
 
-Migrations begin with `0066_v320_people_foundation.py`; `0067_v320_horse_person_relationship.py` adds the narrow People↔Horse participation bridge; `0068_v320_legacy_committee_bridge.py` adds the source-traceable legacy committee mirror; `0069_v322_station_foundation.py` adds Station devices, credentials, and work shifts; and `0070_v322_person_multi_roles.py` adds Parent/Guardian to the canonical role set and backfills it from active parent/guardian relationships. Existing Rider, GuardianContact, UserProfile, CommitteeAssignment, ShowLeadAssignment, and horse registry behavior remain compatibility structures while callers are migrated and regression-tested.
+- canonical organization-scoped `Person` identity with optional login access and compatibility bridges for existing Rider/Guardian/User structures;
+- multiple simultaneous, effective-date-aware barn roles and parent/guardian relationships;
+- generic organization Groups/Programs and generalized Committees/Committee Memberships;
+- People↔Horse ownership, boarding, lease, trainer, responsible-party, and caretaker relationships;
+- People directory/profile and Person-first login/family management workflows;
+- Barn Operations and People Structure operational views with current-effective relationship handling;
+- ArenaLine Station shared-device authentication, Person PINs, work-role clock-in/out, manager review/correction/approval, summaries, export, and audit history;
+- privacy-aware My Account and Person work-history access;
+- deliberately published public rider profiles/cards using allow-listed profile fields;
+- Instagram/YouTube-only public social profile surface while legacy database fields remain compatibility-safe;
+- responsive People/Station/public presentation plus keyboard, mobile-navigation, empty-state, and accessibility hardening;
+- regression reconciliation around current People-first architecture and terminology.
+
+Migrations: `0066_v320_people_foundation.py` through `0070_v322_person_multi_roles.py` establish the core People/horse/committee/Station/multi-role persistence used by the 3.2.x family.
+
+Validation: clean Django system checks and **643/643 portal tests passing** on the final v3.2.3 staging baseline.
+
+Detailed notes: `docs/releases/v3.2.3.md`.
 
 ## v3.1.0 — Public / Live Spectator Experience
 
