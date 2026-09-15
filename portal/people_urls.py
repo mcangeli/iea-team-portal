@@ -1,6 +1,5 @@
 from django.urls import path
 
-from portal.my_account import my_account
 from portal.view_modules.people import (
     barn_operations,
     committee_add,
@@ -23,7 +22,6 @@ from portal.view_modules.people_access import person_login_create
 from portal.view_modules.people_structure import committee_detail, organization_group_detail
 
 urlpatterns = [
-    path("account/", my_account, name="my_account"),
     path("people/", people_directory, name="people_directory"),
     path("people/operations/", barn_operations, name="barn_operations"),
     path("people/structure/", people_structure, name="people_structure"),
