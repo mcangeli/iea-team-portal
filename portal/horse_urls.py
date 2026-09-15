@@ -11,6 +11,7 @@ urlpatterns = [
     path("horses/<int:horse_pk>/identifiers/<int:pk>/edit/", horses.horse_identifier_edit, name="horse_identifier_edit"),
     path("horses/<int:horse_pk>/people/add/", horses.horse_person_relationship_add, name="horse_person_relationship_add"),
     path("horses/<int:horse_pk>/people/<int:pk>/edit/", horses.horse_person_relationship_edit, name="horse_person_relationship_edit"),
+    path("horses/<int:horse_pk>/care/", equine_care.horse_care_history, name="horse_care_history"),
     path("horses/<int:horse_pk>/care/add/", equine_care.horse_care_add, name="horse_care_add"),
     path("horses/<int:horse_pk>/care/<int:pk>/edit/", equine_care.horse_care_edit, name="horse_care_edit"),
     path("horses/<int:horse_pk>/coggins/add/", horses.horse_coggins_add, name="horse_coggins_add"),
