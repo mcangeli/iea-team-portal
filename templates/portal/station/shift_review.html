@@ -3,28 +3,49 @@
 {% block content %}
 <nav class="page-back-nav"><a href="{% url 'station_manage' %}">← ArenaLine Station</a></nav>
 <section class="page-intro">
-  <div><div class="eyebrow">STATION</div><h1>Staff hours</h1><p>Review, correct, approve, and export barn work recorded through ArenaLine Station.</p></div>
+  <div><div class="eyebrow">STATION · OPERATIONS</div><h1>Staff hours</h1><p>Review what needs attention first, correct time records, approve completed work, and export the full history.</p></div>
   <div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_export' %}">Export CSV</a></div>
 </section>
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HOURS</div><h2>Person totals</h2><p class="muted">Totals include all recorded Station shifts for this organization.</p></div></div>
+  <div class="section-head"><div><div class="eyebrow">ACTION QUEUE</div><h2>Needs attention</h2><p class="muted">Completed shifts waiting for approval and open shifts appear first. Approved history stays available below.</p></div></div>
+  {% regroup shifts by approved_at as approval_groups %}
+  {% if shifts %}
+    {% for shift in shifts %}{% if not shift.approved_at %}
+      {% if forloop.first %}<div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Status</th><th></th></tr></thead><tbody>{% endif %}
+      <tr>
+        <td><a href="{% url 'person_detail' shift.person.pk %}"><strong>{{ shift.person.display_name }}</strong></a></td>
+        <td>{{ shift.get_role_display }}</td>
+        <td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td>
+        <td>{% if shift.clock_out %}{{ shift.clock_out|date:"M j, Y g:i A" }}{% else %}<strong>Still clocked in</strong>{% endif %}</td>
+        <td>{{ shift.duration_display }}</td>
+        <td>{% if shift.clock_out %}<span class="station-status station-status-review">Needs review</span>{% else %}<span class="station-status station-status-open">Open</span>{% endif %}</td>
+        <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">{% if shift.clock_out %}Review{% else %}Correct{% endif %}</a>{% if shift.clock_out %}<form method="post" action="{% url 'station_shift_approve' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve</button></form>{% endif %}</div></td>
+      </tr>
+      {% if forloop.last %}</tbody></table></div>{% endif %}
+    {% endif %}{% endfor %}
+    {% if not shifts.0 %}<p class="muted">Nothing needs attention.</p>{% endif %}
+  {% else %}<p class="muted">No Station shifts have been recorded yet.</p>{% endif %}
+</section>
+
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HOURS</div><h2>Person totals</h2><p class="muted">A quick operational view of recorded, approved, and working-student time.</p></div></div>
   {% if summary %}
-  <div class="table-wrap"><table class="station-hours-table"><thead><tr><th>Person</th><th>Completed shifts</th><th>Total</th><th>Approved</th><th>Working student</th></tr></thead><tbody>
-  {% for row in summary %}<tr><td><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></td><td>{{ row.shift_count }}</td><td><strong>{{ row.hours_display }}</strong></td><td>{{ row.approved_hours_display }}</td><td>{{ row.working_student_hours_display }}</td></tr>{% endfor %}
+  <div class="table-wrap"><table class="station-hours-table"><thead><tr><th>Person</th><th>Completed shifts</th><th>Total recorded</th><th>Approved</th><th>Working student</th></tr></thead><tbody>
+  {% for row in summary %}<tr><td><a href="{% url 'person_detail' row.person.pk %}">{{ row.person.display_name }}</a></td><td>{{ row.shift_count }}</td><td><strong>{{ row.hours_display }}</strong></td><td>{{ row.approved_hours_display }}</td><td>{% if row.working_student_hours_display != "0m" %}<strong>{{ row.working_student_hours_display }}</strong>{% else %}—{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No Station shifts have been recorded yet.</p>{% endif %}
 </section>
 
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">REVIEW</div><h2>Recent shifts</h2><p class="muted">The newest 250 shifts are shown here. Export includes the complete history.</p></div></div>
+  <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Recent approved work</h2><p class="muted">The newest approved shifts from the 250-record review window. Export CSV includes the complete history.</p></div></div>
   {% if shifts %}
-  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Status</th><th></th></tr></thead><tbody>
-  {% for shift in shifts %}<tr>
-    <td><a href="{% url 'person_detail' shift.person.pk %}">{{ shift.person.display_name }}</a></td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{% if shift.clock_out %}{{ shift.clock_out|date:"M j, Y g:i A" }}{% else %}<strong>Open</strong>{% endif %}</td><td>{{ shift.duration_display }}</td><td>{% if shift.approved_at %}<span class="station-status station-status-approved">Approved</span>{% elif shift.clock_out %}<span class="station-status station-status-review">Needs review</span>{% else %}<span class="station-status station-status-open">Open</span>{% endif %}</td>
-    <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit</a>{% if not shift.approved_at and shift.clock_out %}<form method="post" action="{% url 'station_shift_approve' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Approve</button></form>{% endif %}</div></td>
-  </tr>{% endfor %}
+  <div class="table-wrap"><table><thead><tr><th>Person</th><th>Role</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Approved by</th><th></th></tr></thead><tbody>
+  {% for shift in shifts %}{% if shift.approved_at %}<tr>
+    <td><a href="{% url 'person_detail' shift.person.pk %}">{{ shift.person.display_name }}</a></td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{{ shift.clock_out|date:"M j, Y g:i A" }}</td><td>{{ shift.duration_display }}</td><td>{% if shift.approved_by %}{{ shift.approved_by.get_full_name|default:shift.approved_by.username }}{% else %}Approved{% endif %}</td>
+    <td><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit</a></td>
+  </tr>{% endif %}{% endfor %}
   </tbody></table></div>
-  {% else %}<p class="muted">No shifts to review.</p>{% endif %}
+  {% else %}<p class="muted">No approved work history yet.</p>{% endif %}
 </section>
 {% endblock %}
