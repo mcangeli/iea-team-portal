@@ -11,7 +11,10 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **2.9.x — ArenaLine Platform Foundation:** released.
 - **3.0.0 — IEA Class Catalog & Competition Foundation:** released.
 - **3.1.0 — Public / Live Spectator Experience:** released.
-- **3.2.x — People, Relationships & Barn Operations:** active next release family.
+- **3.2.0 — Unified People & Organization Foundation:** completed development milestone.
+- **3.2.1 — Barn Participation & Horse Relationships:** completed development milestone.
+- **3.2.2 — ArenaLine Station:** completed development milestone.
+- **3.2.3 — People & Operations Polish:** active development milestone and current focus.
 - **3.3.0 — Equine Care & Horse Management:** committed next major release.
 - **3.4.0 — Lesson Program:** committed next major release.
 - **3.5.0 — Barn Finance & Business Operations:** committed next major release.
@@ -135,7 +138,7 @@ Supporting doc:
 
 # 3.2.x — People, Relationships & Barn Operations
 
-**Status: active next release family.**
+**Status: active release family; v3.2.3 is the current development milestone.**
 
 v3.2 moves ArenaLine from separate rider/parent/user assumptions toward a unified human and organizational model suitable for a full barn program.
 
@@ -143,118 +146,94 @@ v3.2 moves ArenaLine from separate rider/parent/user assumptions toward a unifie
 
 **An account is a login; a Person is the human. A Person may have zero, one, or many simultaneous roles, relationships, group memberships, and committee responsibilities.**
 
-Roles, relationships, permissions, and public identity must remain separate concepts.
-
-Examples ArenaLine must support cleanly:
-
-- a youth rider linked to one or more parents/guardians;
-- an adult rider who is also a parent/guardian of one or more youth riders;
-- a boarder who may or may not ride or take lessons;
-- a full, half, shared, or partial leaser;
-- a trainer or assistant trainer;
-- a barn manager;
-- barn staff or working student;
-- a board member who may have no riding/boarding relationship;
-- one person holding several of these roles at the same time.
+Roles, relationships, permissions, and public identity remain separate concepts.
 
 ## v3.2.0 — Unified People & Organization Foundation
 
-Planned foundation:
+**Status: completed development milestone.**
+
+Major outcomes:
 
 - canonical `Person` identity layer with optional login account;
 - compatibility relationships from existing Rider, Guardian/Parent, User/Profile, and committee data;
 - multiple concurrent organization role assignments;
 - explicit parent/guardian/dependent person-to-person relationships;
-- person profile expansion including preferred/display name, date of birth, derived age, school, graduation/class year where relevant, profile photo, bio, riding/program interests, and social/profile links;
-- privacy/visibility controls for profile fields;
-- dedicated public-profile publication payloads rather than direct exposure of internal Person data;
-- conservative youth/minor publication defaults;
-- organization Groups/Programs as reusable scopes for IEA, lessons, boarding, shows, staff, and future program types;
+- expanded Person profiles with preferred/display identity and private profile information;
+- privacy/visibility boundaries for private Person information;
+- organization Groups/Programs as reusable scopes;
 - generalized Committees and Committee Memberships;
-- committees optionally scoped to an organization Group/Program (for example IEA, SHOW, Lesson Program, or another barn subgroup);
-- committee positions such as Chair, Co-chair, Secretary, Treasurer, Member, or Liaison;
-- preserve assignment-specific concepts such as Show Lead where the responsibility belongs to a specific event rather than a committee identity;
-- permissions remain independent from organizational labels/roles.
+- permissions kept independent from organizational labels and roles;
+- compatibility-first migration strategy preserving Rider, Guardian, UserProfile, SeasonMembership, finance, competition, and historical references.
 
-Examples of committee structure:
-
-```text
-Organization
-├── General committees
-│   ├── Governance
-│   ├── Finance
-│   ├── Communications
-│   └── Events
-├── IEA Program
-│   ├── Futures Parent Committee
-│   ├── Upper Parent Committee
-│   └── Competition / Points support
-└── Show Program
-    ├── Show Committee
-    ├── Hospitality
-    └── Volunteers
-```
-
-Public rider/person cards are a target outcome of this foundation. They may eventually showcase selected photo, display name, biography, riding discipline/program, school or graduation year when explicitly approved, accomplishments/results, and approved social links. Exact birthdate and other sensitive personal information remain private by default.
+The Person foundation established the rule that login credentials are access, while Person is the durable human identity used by ArenaLine.
 
 ## v3.2.1 — Barn Participation & Horse Relationships
 
-Planned work:
+**Status: completed development milestone.**
 
-- Boarder participation;
-- Rider participation independent of age;
-- Trainer / Assistant Trainer roles;
-- Barn Manager;
-- Barn Staff;
-- Working Student;
-- Board Member;
+Major outcomes:
+
+- broader organization participation roles including rider, boarder, trainer/assistant trainer, barn manager/staff, working student, and board member concepts;
+- Person participation independent of age or login identity;
 - horse ownership/responsible-party relationships;
-- boarding relationships;
-- full/half/shared/partial lease relationships;
-- date-aware participation/relationship history.
-
-Horse-care detail remains primarily a v3.3 responsibility; v3.2 establishes the people/horse relationship foundation it needs.
+- boarding and lease relationship foundations, including shared/partial participation patterns;
+- date-aware participation and relationship history;
+- People/horse relationship architecture designed to feed v3.3 Equine Care without moving care-detail concerns prematurely into v3.2.
 
 ## v3.2.2 — ArenaLine Station
 
-Create a simple tablet-first station mode for shared barn devices.
+**Status: completed development milestone.**
 
-Initial station workflows:
+Major outcomes:
 
-- trusted station/device registration;
-- limited station identity/PIN separate from full account passwords;
-- today's lesson list;
-- rider lesson check-in/check-out/attendance actions;
-- staff and working-student clock-in/clock-out;
-- touch-first layout with minimal administrative navigation;
-- audit history for station actions.
-
-Station authentication must not turn a shared tablet into unrestricted portal access.
+- tablet-first shared barn Station experience;
+- trusted station/device model and limited station identity/PIN separate from full portal passwords;
+- today's lesson-oriented station workflow;
+- rider attendance/check-in actions;
+- staff and working-student clock-in/clock-out workflow;
+- touch-first presentation with restricted administrative exposure;
+- audit history for station actions;
+- shared-device authentication boundary that does not grant unrestricted portal access.
 
 ## v3.2.3 — People & Operations Polish
 
-Likely closeout work:
+**Status: active development milestone.**
 
-- work-time review/approval;
-- attendance/work history;
-- working-student hour tracking;
-- group/program/committee dashboards;
-- role/permission default review;
-- reporting/export;
-- public rider-card refinement;
-- privacy, mobile/tablet, accessibility, and audit hardening.
+Current focus is consolidating the 3.2 People architecture across the existing portal and hardening the operational experience before the release family closes.
+
+Completed/current work includes:
+
+- canonical People presentation for rider/family relationships and current IEA participation;
+- People-first private rider/family authorization with compatibility fallbacks;
+- explicit family-finance authorization boundaries separate from ordinary operational rider visibility;
+- People-aware communications recipient discovery;
+- canonical Person identity synchronization for login accounts;
+- Person-first login-access creation and management surfaces;
+- regression coverage for canonical family, authorization, communications, and account identity behavior.
+
+Remaining closeout areas include:
+
+- finish removal/wrapping of remaining legacy identity and communications entry points where canonical People services now exist;
+- work-time review/approval and attendance/work-history polish where needed;
+- working-student hour tracking review;
+- group/program/committee dashboard polish;
+- role/permission default review and authorization audit;
+- reporting/export review;
+- public rider/person-card refinement;
+- privacy, mobile/tablet, accessibility, and audit hardening;
+- full portal regression testing and release documentation before closing the 3.2.x family.
 
 ## Migration strategy
 
-v3.2 must be compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfile`, `SeasonMembership`, committee, competition, finance, and historical records must not be destructively rewritten merely to achieve cleaner naming.
+v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfile`, `SeasonMembership`, committee, competition, finance, and historical records are not destructively rewritten merely to achieve cleaner naming.
 
-Introduce the Person/relationship/group abstractions alongside existing structures, migrate/link conservatively, preserve stable URLs and historical references, and remove legacy identity paths only after callers are known and covered by regression tests.
+Person/relationship/group abstractions are layered alongside existing structures, linked conservatively, with stable URLs and historical references preserved. Legacy identity paths are removed only after callers are known and covered by regression tests.
 
 ---
 
 # 3.3.0 — Equine Care & Horse Management
 
-**Status: committed future release.**
+**Status: committed next major release after v3.2.3 closeout.**
 
 v3.3 expands the current competition/Hoofprint-oriented Horse Registry into broader equine-care and barn-management functionality while preserving show/competition workflows.
 
