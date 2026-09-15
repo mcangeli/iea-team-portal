@@ -1,9 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Activate ArenaLine Station{% endblock %}
 {% block content %}
-<section class="page-intro"><div><div class="eyebrow">ARENALINE STATION</div><h1>Activate this device</h1><p>Enter the device key and one-time secret provided by a barn manager.</p></div></section>
-<section class="content-section people-form-shell">
-  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Activate Station</button></div></form>
-  <p class="muted">This activates only Station mode. It does not sign the device into a person’s ArenaLine account.</p>
+<div class="station-shell">
+<section class="page-intro station-kiosk-intro">
+  <div><div class="eyebrow">ARENALINE STATION</div><h1>Activate this device</h1><p>Connect this shared barn tablet to ArenaLine using the device key and one-time secret from a manager.</p></div>
 </section>
+<section class="content-section station-kiosk-panel">
+  <form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="station-kiosk-actions"><button class="btn station-primary-action" type="submit">Activate Station</button></div></form>
+  <p class="muted">Station mode is intentionally limited. Activating this tablet does not sign it into anyone’s full ArenaLine account.</p>
+</section>
+</div>
 {% endblock %}
