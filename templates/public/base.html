@@ -21,6 +21,7 @@
       </a>
       <nav class="public-nav" aria-label="Public site navigation">
         <a href="{% url 'public_site_home' public_site.slug %}">Home</a>
+        <a href="{% url 'public_riders' public_site.slug %}">Riders</a>
         <a href="{% url 'public_live_board' public_site.slug %}">Live</a>
         <a href="{% url 'public_schedule' public_site.slug %}">Schedule</a>
         {% if public_site.website %}<a href="{{ public_site.website }}" rel="noopener noreferrer">Organization website</a>{% endif %}
