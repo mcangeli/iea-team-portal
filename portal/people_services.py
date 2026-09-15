@@ -104,6 +104,22 @@ def personal_riders_for_user(user, team):
     ).distinct()
 
 
+def visible_riders_for_user(user, team):
+    """Return riders whose private/operational data the login may see.
+
+    Parent visibility is resolved through canonical People relationships first.
+    Rider self-access remains tied to the rider login during the v3.2 compatibility
+    period, and manager behavior is intentionally unchanged.
+    """
+    qs = team.riders.all()
+    profile = getattr(user, "profile", None)
+    if profile and profile.role == profile.Role.PARENT:
+        return personal_riders_for_user(user, team)
+    if profile and profile.role == profile.Role.RIDER:
+        return qs.filter(user=user)
+    return qs
+
+
 def can_view_private_rider(user, rider):
     """Authorize rider private data through People first and legacy links second."""
     if not getattr(user, "is_authenticated", False):
@@ -128,6 +144,17 @@ def can_view_private_rider(user, rider):
         rider.guardians.filter(pk=user.pk).exists()
         or rider.guardian_links.filter(guardian__user=user).exists()
     )
+
+
+def can_view_family_account(user, membership):
+    """Apply the same People-first family boundary to rider family accounts."""
+    from portal.view_modules.common import _can_finance, _is_rider_account
+
+    if _is_rider_account(user):
+        return False
+    if _can_finance(user, membership.season):
+        return True
+    return can_view_private_rider(user, membership.rider)
 
 
 def require_people_manager(user):
