@@ -98,3 +98,22 @@ class V323StationShiftReviewTests(TestCase):
                 entity_type="WorkShiftEntry",
             ).exists()
         )
+
+    def test_approved_only_review_renders_attention_empty_state_server_side(self):
+        shift = self._shift()
+        shift.approved_by = self.admin
+        shift.approved_at = timezone.now()
+        shift.save(update_fields=["approved_by", "approved_at", "updated_at"])
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("station_shift_review"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Nothing needs attention right now.")
+        self.assertNotContains(response, "data-station-filtered-table")
+
+    def test_unapproved_only_review_renders_approved_history_empty_state_server_side(self):
+        self._shift()
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("station_shift_review"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No approved work history yet.")
+        self.assertNotContains(response, "data-station-filtered-table")
