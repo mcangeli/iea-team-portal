@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 
@@ -43,6 +45,14 @@ class V323PeopleAuthorizationTests(TestCase):
         LegacyPersonLink.objects.create(person=self.rider, rider=legacy_rider)
         return legacy_rider
 
+    def _season(self):
+        return Season.objects.create(
+            team=self.team,
+            name="2026-27",
+            start_date=date(2026, 8, 1),
+            end_date=date(2027, 7, 31),
+        )
+
     def test_parent_can_view_related_person_through_canonical_relationship(self):
         self._relationship()
         self.assertTrue(has_active_parent_relationship(self.parent, self.rider))
@@ -58,7 +68,6 @@ class V323PeopleAuthorizationTests(TestCase):
         self.assertFalse(can_view_private_person(self.parent_user, self.rider))
 
     def test_ended_relationship_does_not_grant_access(self):
-        from datetime import date
         self._relationship(end_date=date.today())
         self.assertFalse(has_active_parent_relationship(self.parent, self.rider))
         self.assertFalse(can_view_private_person(self.parent_user, self.rider))
@@ -91,7 +100,6 @@ class V323PeopleAuthorizationTests(TestCase):
         self.assertEqual(list(personal_riders_for_user(self.parent_user, self.team)), [legacy_rider])
 
     def test_ended_canonical_relationship_removes_rider_access_without_legacy_fallback(self):
-        from datetime import date
         legacy_rider = self._legacy_rider_bridge()
         self._relationship(end_date=date.today())
         self.assertFalse(can_view_private_rider(self.parent_user, legacy_rider))
@@ -123,16 +131,13 @@ class V323PeopleAuthorizationTests(TestCase):
     def test_family_account_uses_same_canonical_family_boundary(self):
         legacy_rider = self._legacy_rider_bridge()
         self._relationship()
-        season = Season.objects.create(team=self.team, name="2026-27")
-        membership = SeasonMembership.objects.create(season=season, rider=legacy_rider, team_level=SeasonMembership.TeamLevel.FUTURES)
+        membership = SeasonMembership.objects.create(season=self._season(), rider=legacy_rider, team_level=SeasonMembership.TeamLevel.FUTURES)
         self.assertTrue(can_view_family_account(self.parent_user, membership))
         self.assertTrue(_can_view_family_account(self.parent_user, membership))
 
     def test_ended_canonical_relationship_removes_family_account_access(self):
-        from datetime import date
         legacy_rider = self._legacy_rider_bridge()
         self._relationship(end_date=date.today())
-        season = Season.objects.create(team=self.team, name="2026-27")
-        membership = SeasonMembership.objects.create(season=season, rider=legacy_rider, team_level=SeasonMembership.TeamLevel.FUTURES)
+        membership = SeasonMembership.objects.create(season=self._season(), rider=legacy_rider, team_level=SeasonMembership.TeamLevel.FUTURES)
         self.assertFalse(can_view_family_account(self.parent_user, membership))
         self.assertFalse(_can_view_family_account(self.parent_user, membership))
