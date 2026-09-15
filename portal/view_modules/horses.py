@@ -1,11 +1,11 @@
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..horse_forms import HorseCogginsForm, HorseForm, HorsePersonRelationshipForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
-from ..horse_models import Horse, HorseCogginsRecord, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
+from ..horse_forms import HorseCogginsForm, HorseForm, HorseIdentifierForm, HorsePersonRelationshipForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
+from ..horse_models import Horse, HorseCogginsRecord, HorseIdentifier, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from ..model_modules.barn_participation import HorsePersonRelationship
 from ..models import AuditEvent, Season, Show
 from ..platform import active_period_for_organization, organization_for_view_user
@@ -26,7 +26,7 @@ def _require_horse_manage(user):
 @login_required
 def horse_list(request):
     team = organization_for_view_user(request.user); can_manage = _can_manage(request.user)
-    horses = Horse.objects.filter(team=team).prefetch_related("coggins_records", "season_profiles__season")
+    horses = Horse.objects.filter(team=team).prefetch_related("coggins_records", "season_profiles__season", "identifiers")
     status = request.GET.get("status", "active")
     if status == "inactive" and can_manage: horses = horses.filter(active=False)
     elif status == "all" and can_manage: pass
@@ -44,6 +44,7 @@ def horse_detail(request, pk):
     if not horse.active and not can_manage: raise PermissionDenied
     return render(request, "portal/horse_detail.html", {
         "horse": horse, "can_manage": can_manage,
+        "identifiers": horse.identifiers.all(),
         "coggins_records": horse.coggins_records.all(),
         "season_profiles": horse.season_profiles.select_related("season").prefetch_related("eligible_classes"),
         "latest_coggins": horse.latest_coggins,
@@ -74,6 +75,31 @@ def horse_edit(request, pk):
         messages.success(request, f"{horse.display_name} was updated.")
         return redirect("horse_detail", pk=horse.pk)
     return render(request, "portal/horse_form.html", {"form": form, "horse": horse, "title": f"Edit {horse.display_name}"})
+
+
+@login_required
+def horse_identifier_add(request, horse_pk):
+    _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk)
+    form = HorseIdentifierForm(request.POST or None)
+    if form.is_valid():
+        identifier = form.save(commit=False); identifier.horse = horse; identifier.save()
+        _audit_event(team=horse.team, actor=request.user, action=AuditEvent.Action.CREATED, obj=identifier, summary=f"Added {identifier.authority} identifier for {horse.display_name}")
+        messages.success(request, "Horse identifier added.")
+        return redirect("horse_detail", pk=horse.pk)
+    return render(request, "portal/horse_identifier_form.html", {"form": form, "horse": horse, "title": f"Add identifier — {horse.display_name}"})
+
+
+@login_required
+def horse_identifier_edit(request, horse_pk, pk):
+    _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk)
+    identifier = get_object_or_404(HorseIdentifier, pk=pk, horse=horse)
+    form = HorseIdentifierForm(request.POST or None, instance=identifier)
+    if form.is_valid():
+        identifier = form.save()
+        _audit_event(team=horse.team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=identifier, summary=f"Updated {identifier.authority} identifier for {horse.display_name}")
+        messages.success(request, "Horse identifier updated.")
+        return redirect("horse_detail", pk=horse.pk)
+    return render(request, "portal/horse_identifier_form.html", {"form": form, "horse": horse, "identifier": identifier, "title": f"Edit identifier — {horse.display_name}"})
 
 
 @login_required
@@ -233,7 +259,8 @@ def show_horse_award_edit(request, show_pk, pk):
 def show_horse_award_remove(request, show_pk, pk):
     team = organization_for_view_user(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season)
-    award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.get_session_display()} Horse of the Day — {award.horse.display_name}"
-    _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {label}")
-    award.delete(); messages.success(request, "Horse of the Day award removed.")
+    award = get_object_or_404(HorseShowAward, pk=pk, show=show)
+    label = f"{award.get_session_display()} Horse of the Day"
+    _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {label} from {show.name}")
+    award.delete(); messages.success(request, f"{label} was removed.")
     return redirect("show_horses", show_pk=show.pk)
