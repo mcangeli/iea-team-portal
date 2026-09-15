@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
 from portal.model_modules.people import Committee, CommitteeMembership, OrganizationGroup
 from portal.people_services import require_people_manager
@@ -7,11 +8,19 @@ from portal.view_modules.common import _team
 
 
 def _active_memberships(committee):
-    return list(
+    """Return committee memberships currently effective for operational dashboards."""
+    today = timezone.localdate()
+    memberships = (
         CommitteeMembership.objects.filter(committee=committee, active=True, person__active=True)
         .select_related("person", "committee", "committee__group")
         .order_by("position", "person__last_name", "person__first_name")
     )
+    return [
+        membership
+        for membership in memberships
+        if (membership.start_date is None or membership.start_date <= today)
+        and (membership.end_date is None or membership.end_date > today)
+    ]
 
 
 @login_required
