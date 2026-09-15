@@ -1,14 +1,8 @@
 """Compatibility view namespace.
 
-
-
 v2.0.0 organizes implementations by domain under portal.view_modules while
-
 preserving portal.views.<name> for URL configuration and external imports.
-
 """
-
-
 
 from .view_modules.common import (
     FINANCE_AUDIT_ENTITY_TYPES,
@@ -371,4 +365,14 @@ from .view_modules.show_finance import (
     reimbursement_submit,
     reimbursement_review,
     reimbursement_receipt,
+)
+
+# v3.2.3 compatibility refinements. These intentionally override the legacy
+# roster implementations above while preserving the public portal.views names.
+from .view_modules.roster_v323 import (
+    rider_list,
+    rider_guardian_add,
+    rider_guardian_edit,
+    rider_guardian_link,
+    rider_guardian_unlink,
 )
