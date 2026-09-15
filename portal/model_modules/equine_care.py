@@ -11,6 +11,10 @@ class HorseCareRecord(models.Model):
     Records describe work that happened. ``next_due_date`` is deliberately
     stored with the historical event so ArenaLine can surface upcoming care
     without overwriting the event that established the due date.
+
+    Coggins is intentionally not a generic care type. ArenaLine already has a
+    dedicated Coggins compliance record, which remains the single source of
+    truth for show-readiness and Coggins documentation.
     """
 
     class CareType(models.TextChoices):
@@ -18,7 +22,6 @@ class HorseCareRecord(models.Model):
         FARRIER = "farrier", "Farrier"
         DENTAL = "dental", "Dental"
         VETERINARY = "veterinary", "Veterinary visit"
-        COGGINS = "coggins", "Coggins"
         MEDICATION = "medication", "Medication / treatment"
         WELLNESS = "wellness", "Wellness / routine care"
         OTHER = "other", "Other"
