@@ -4,7 +4,7 @@ from portal import views
 
 
 class ViewArchitectureTests(SimpleTestCase):
-    """Regression checks for the v2 view-module refactor."""
+    """Regression checks for the modular view compatibility namespace."""
 
     def test_public_views_keep_compatibility_namespace(self):
         expected = (
@@ -24,7 +24,7 @@ class ViewArchitectureTests(SimpleTestCase):
 
     def test_representative_views_are_implemented_in_domain_modules(self):
         expected_modules = {
-            "dashboard": "portal.view_modules.dashboards",
+            "dashboard": "portal.view_modules.roster",
             "show_detail": "portal.view_modules.competitions",
             "my_show_day": "portal.view_modules.show_day",
             "standings": "portal.view_modules.scoring",
