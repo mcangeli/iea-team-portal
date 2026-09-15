@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Horses{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'horse_detail' horse.pk %}">← Back to {{ horse.display_name }}</a></nav>
+<section class="page-intro horse-module-intro">
+  <div>
+    <div class="eyebrow">DOCUMENTS &amp; COMPLIANCE</div>
+    <h1>{{ title }}</h1>
+    <p>Store durable horse records and optionally connect supporting paperwork to a completed care event.</p>
+  </div>
+</section>
+<section class="card form-card">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="actions">
+      <button class="btn" type="submit">Save document</button>
+      <a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Cancel</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
