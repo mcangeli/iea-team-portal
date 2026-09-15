@@ -18,8 +18,6 @@ class MyAccountForm(forms.ModelForm):
             "photo",
             "website_url",
             "instagram_url",
-            "facebook_url",
-            "tiktok_url",
             "youtube_url",
             "public_profile_enabled",
         ]
@@ -33,8 +31,6 @@ class MyAccountForm(forms.ModelForm):
             "photo": "Profile photo",
             "website_url": "Website",
             "instagram_url": "Instagram",
-            "facebook_url": "Facebook",
-            "tiktok_url": "TikTok",
             "youtube_url": "YouTube",
             "public_profile_enabled": "Show my approved profile information on public ArenaLine pages",
         }
