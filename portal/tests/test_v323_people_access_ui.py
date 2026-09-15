@@ -2,8 +2,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from portal.model_modules.people import Person
-from portal.models import Team, UserProfile
+from portal.model_modules.people import LegacyPersonLink, Person
+from portal.people_compat import ensure_guardian_contact_for_person
+from portal.models import Rider, RiderGuardian, Team, UserProfile
 
 
 @override_settings(DEFAULT_TEMP_PASSWORD="TemporaryPass!2026")
@@ -44,3 +45,35 @@ class V323PeopleAccessUITests(TestCase):
         self.person.save(update_fields=["user"])
         response = self.client.get(reverse("person_login_create", args=[self.person.pk]))
         self.assertRedirects(response, reverse("user_edit", args=[user.pk]))
+
+    def test_rider_person_login_creation_syncs_legacy_rider_user(self):
+        rider = Rider.objects.create(team=self.team, first_name="Riley", last_name="Stone", grade=8)
+        rider_person = Person.objects.create(team=self.team, first_name="Riley", last_name="Stone", email="riley@example.com")
+        LegacyPersonLink.objects.create(person=rider_person, rider=rider)
+        response = self.client.post(reverse("person_login_create", args=[rider_person.pk]), {
+            "username": "riley.stone",
+            "role": UserProfile.Role.RIDER,
+            "temporary_password": "TemporaryPass!2026",
+        })
+        self.assertRedirects(response, reverse("person_detail", args=[rider_person.pk]))
+        rider.refresh_from_db()
+        rider_person.refresh_from_db()
+        self.assertIsNotNone(rider_person.user_id)
+        self.assertEqual(rider.user_id, rider_person.user_id)
+
+    def test_guardian_person_login_creation_syncs_family_access(self):
+        rider = Rider.objects.create(team=self.team, first_name="Avery", last_name="Stone", grade=7)
+        guardian_person = Person.objects.create(team=self.team, first_name="Morgan", last_name="Stone", email="morgan.stone@example.com")
+        guardian = ensure_guardian_contact_for_person(guardian_person)
+        RiderGuardian.objects.create(rider=rider, guardian=guardian, relationship="Parent", primary_contact=True)
+        response = self.client.post(reverse("person_login_create", args=[guardian_person.pk]), {
+            "username": "morgan.stone",
+            "role": UserProfile.Role.PARENT,
+            "temporary_password": "TemporaryPass!2026",
+        })
+        self.assertRedirects(response, reverse("person_detail", args=[guardian_person.pk]))
+        guardian.refresh_from_db()
+        guardian_person.refresh_from_db()
+        self.assertIsNotNone(guardian_person.user_id)
+        self.assertEqual(guardian.user_id, guardian_person.user_id)
+        self.assertTrue(rider.guardians.filter(pk=guardian_person.user_id).exists())
