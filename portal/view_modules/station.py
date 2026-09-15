@@ -162,6 +162,8 @@ def station_shift_review(request):
         .order_by("-clock_in")
     )
     recent_shifts = all_shifts[:250]
+    attention_shifts = [shift for shift in recent_shifts if not shift.approved_at]
+    approved_shifts = [shift for shift in recent_shifts if shift.approved_at]
     totals = defaultdict(
         lambda: {
             "person": None,
@@ -188,7 +190,16 @@ def station_shift_review(request):
         row["hours_display"] = _format_minutes(row["minutes"])
         row["approved_hours_display"] = _format_minutes(row["approved_minutes"])
         row["working_student_hours_display"] = _format_minutes(row["working_student_minutes"])
-    return render(request, "portal/station/shift_review.html", {"shifts": recent_shifts, "summary": summary})
+    return render(
+        request,
+        "portal/station/shift_review.html",
+        {
+            "shifts": recent_shifts,
+            "attention_shifts": attention_shifts,
+            "approved_shifts": approved_shifts,
+            "summary": summary,
+        },
+    )
 
 
 @login_required
@@ -198,50 +209,12 @@ def station_shift_export(request):
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="arenaline-staff-hours.csv"'
     writer = csv.writer(response)
-    writer.writerow(
-        [
-            "Person",
-            "Role",
-            "Clock in",
-            "Clock out",
-            "Minutes",
-            "Hours",
-            "Approved",
-            "Approved by",
-            "Station",
-            "Notes",
-        ]
-    )
-    shifts = (
-        WorkShiftEntry.objects.filter(team=team)
-        .select_related("person", "station", "approved_by")
-        .order_by("person__last_name", "person__first_name", "clock_in")
-    )
+    writer.writerow(["Person", "Role", "Clock in", "Clock out", "Minutes", "Hours", "Approved", "Approved by", "Station", "Notes"])
+    shifts = WorkShiftEntry.objects.filter(team=team).select_related("person", "station", "approved_by").order_by("person__last_name", "person__first_name", "clock_in")
     for shift in shifts:
         minutes = _shift_minutes(shift)
-        writer.writerow(
-            [
-                shift.person.display_name,
-                shift.get_role_display(),
-                timezone.localtime(shift.clock_in).strftime("%Y-%m-%d %H:%M"),
-                timezone.localtime(shift.clock_out).strftime("%Y-%m-%d %H:%M") if shift.clock_out else "",
-                minutes,
-                f"{minutes / 60:.2f}",
-                "Yes" if shift.approved_at else "No",
-                shift.approved_by.get_username() if shift.approved_by else "",
-                shift.station.name if shift.station else "",
-                shift.notes,
-            ]
-        )
-    _audit_station(
-        team=team,
-        actor=request.user,
-        action="station_shift_exported",
-        entity_type="WorkShiftEntry",
-        entity_label="Staff hours export",
-        summary="Exported ArenaLine Station staff hours",
-        details={"rows": shifts.count()},
-    )
+        writer.writerow([shift.person.display_name, shift.get_role_display(), timezone.localtime(shift.clock_in).strftime("%Y-%m-%d %H:%M"), timezone.localtime(shift.clock_out).strftime("%Y-%m-%d %H:%M") if shift.clock_out else "", minutes, f"{minutes / 60:.2f}", "Yes" if shift.approved_at else "No", shift.approved_by.get_username() if shift.approved_by else "", shift.station.name if shift.station else "", shift.notes])
+    _audit_station(team=team, actor=request.user, action="station_shift_exported", entity_type="WorkShiftEntry", entity_label="Staff hours export", summary="Exported ArenaLine Station staff hours", details={"rows": shifts.count()})
     return response
 
 
@@ -250,23 +223,13 @@ def station_shift_edit(request, shift_pk):
     _require_manage(request.user)
     team = _team(request.user)
     shift = get_object_or_404(WorkShiftEntry.objects.select_related("person"), pk=shift_pk, team=team)
-    before = {
-        "role": shift.role,
-        "clock_in": shift.clock_in.isoformat(),
-        "clock_out": shift.clock_out.isoformat() if shift.clock_out else None,
-        "notes": shift.notes,
-    }
+    before = {"role": shift.role, "clock_in": shift.clock_in.isoformat(), "clock_out": shift.clock_out.isoformat() if shift.clock_out else None, "notes": shift.notes}
     form = WorkShiftReviewForm(request.POST or None, instance=shift)
     if request.method == "POST" and form.is_valid():
         shift = form.save(commit=False)
         shift.full_clean()
         shift.save()
-        after = {
-            "role": shift.role,
-            "clock_in": shift.clock_in.isoformat(),
-            "clock_out": shift.clock_out.isoformat() if shift.clock_out else None,
-            "notes": shift.notes,
-        }
+        after = {"role": shift.role, "clock_in": shift.clock_in.isoformat(), "clock_out": shift.clock_out.isoformat() if shift.clock_out else None, "notes": shift.notes}
         _audit_shift(team, request.user, "station_shift_corrected", shift, {"before": before, "after": after})
         messages.success(request, f"Updated shift for {shift.person.display_name}.")
         return redirect("station_shift_review")
@@ -305,16 +268,7 @@ def station_device_add(request):
         device.set_secret(raw_secret)
         device.full_clean()
         device.save()
-        _audit_station(
-            team=team,
-            actor=request.user,
-            action="station_device_added",
-            entity_type="StationDevice",
-            entity_id=device.pk,
-            entity_label=device.name,
-            summary=f"Registered Station device — {device.name}",
-            details={"device_key": device.device_key, "active": device.active},
-        )
+        _audit_station(team=team, actor=request.user, action="station_device_added", entity_type="StationDevice", entity_id=device.pk, entity_label=device.name, summary=f"Registered Station device — {device.name}", details={"device_key": device.device_key, "active": device.active})
         return render(request, "portal/station/provision.html", {"device": device, "raw_secret": raw_secret})
     return render(request, "portal/station/device_form.html", {"form": form, "title": "Register Station device"})
 
@@ -328,16 +282,7 @@ def station_device_edit(request, device_pk):
     form = StationDeviceForm(request.POST or None, instance=device)
     if request.method == "POST" and form.is_valid():
         device = form.save()
-        _audit_station(
-            team=team,
-            actor=request.user,
-            action="station_device_updated",
-            entity_type="StationDevice",
-            entity_id=device.pk,
-            entity_label=device.name,
-            summary=f"Updated Station device — {device.name}",
-            details={"before": before, "after": {"name": device.name, "notes": device.notes, "active": device.active}},
-        )
+        _audit_station(team=team, actor=request.user, action="station_device_updated", entity_type="StationDevice", entity_id=device.pk, entity_label=device.name, summary=f"Updated Station device — {device.name}", details={"before": before, "after": {"name": device.name, "notes": device.notes, "active": device.active}})
         messages.success(request, f"Updated Station device {device.name}.")
         return redirect("station_manage")
     return render(request, "portal/station/device_form.html", {"form": form, "title": "Edit Station device", "device": device})
@@ -353,16 +298,7 @@ def station_device_rotate_secret(request, device_pk):
     raw_secret = secrets.token_urlsafe(24)
     device.set_secret(raw_secret)
     device.save(update_fields=["secret_hash", "updated_at"])
-    _audit_station(
-        team=team,
-        actor=request.user,
-        action="station_secret_rotated",
-        entity_type="StationDevice",
-        entity_id=device.pk,
-        entity_label=device.name,
-        summary=f"Rotated Station secret — {device.name}",
-        details={"device_key": device.device_key},
-    )
+    _audit_station(team=team, actor=request.user, action="station_secret_rotated", entity_type="StationDevice", entity_id=device.pk, entity_label=device.name, summary=f"Rotated Station secret — {device.name}", details={"device_key": device.device_key})
     return render(request, "portal/station/provision.html", {"device": device, "raw_secret": raw_secret, "rotated": True})
 
 
@@ -380,16 +316,7 @@ def station_person_pin(request, person_pk):
         credential.set_pin(form.cleaned_data["pin"])
         credential.full_clean()
         credential.save()
-        _audit_station(
-            team=team,
-            actor=request.user,
-            action="station_pin_updated",
-            entity_type="StationCredential",
-            entity_id=credential.pk,
-            entity_label=person.display_name,
-            summary=f"Updated Station PIN — {person.display_name}",
-            details={"active_before": was_active, "active_after": credential.active},
-        )
+        _audit_station(team=team, actor=request.user, action="station_pin_updated", entity_type="StationCredential", entity_id=credential.pk, entity_label=person.display_name, summary=f"Updated Station PIN — {person.display_name}", details={"active_before": was_active, "active_after": credential.active})
         messages.success(request, f"Station PIN updated for {person.display_name}.")
         return redirect("station_manage")
     return render(request, "portal/station/pin_form.html", {"form": form, "person": person, "credential": credential})
@@ -401,41 +328,14 @@ def station_activate(request):
         device = StationDevice.objects.filter(device_key=form.cleaned_data["device_key"], active=True).first()
         if device and device.check_secret(form.cleaned_data["secret"]):
             actor = request.user if getattr(request.user, "is_authenticated", False) else None
-            _audit_station(
-                team=device.team,
-                actor=actor,
-                action="station_device_activated",
-                entity_type="StationDevice",
-                entity_id=device.pk,
-                entity_label=device.name,
-                summary=f"Activated Station device — {device.name}",
-                details={"device_key": device.device_key},
-            )
-            logout(request)
+            _audit_station(team=device.team, actor=actor, action="station_device_activated", entity_type="StationDevice", entity_id=device.pk, entity_label=device.name, summary=f"Activated Station device — {device.name}", details={"device_key": device.device_key})
             request.session[STATION_DEVICE_SESSION_KEY] = device.pk
             _clear_station_person(request)
-            StationDevice.objects.filter(pk=device.pk).update(last_seen_at=timezone.now())
+            if getattr(request.user, "is_authenticated", False):
+                logout(request)
             return redirect("station_home")
-        form.add_error(None, "That Station device key and secret could not be verified.")
+        messages.error(request, "Station activation failed. Check the device key and secret.")
     return render(request, "portal/station/activate.html", {"form": form})
-
-
-def station_deactivate(request):
-    device = _station_device(request)
-    if device:
-        _audit_station(
-            team=device.team,
-            action="station_deactivated",
-            entity_type="StationDevice",
-            entity_id=device.pk,
-            entity_label=device.name,
-            summary=f"Deactivated Station session — {device.name}",
-            details={"device_key": device.device_key},
-        )
-    request.session.pop(STATION_DEVICE_SESSION_KEY, None)
-    request.session.pop(STATION_PIN_ATTEMPTS_SESSION_KEY, None)
-    _clear_station_person(request)
-    return redirect("station_activate")
 
 
 def station_home(request):
@@ -443,53 +343,31 @@ def station_home(request):
     if not device:
         return redirect("station_activate")
     _clear_station_person(request)
-    credentials = StationCredential.objects.filter(team=device.team, active=True, person__active=True).select_related("person").order_by("person__last_name", "person__first_name")
-    return render(request, "portal/station/home.html", {"device": device, "credentials": credentials})
+    people = Person.objects.filter(team=device.team, active=True, station_credential__active=True).order_by("last_name", "first_name")
+    return render(request, "portal/station/home.html", {"device": device, "people": people})
 
 
-def station_identify(request, person_pk):
+def station_pin(request, person_pk):
     device = _station_device(request)
     if not device:
         return redirect("station_activate")
-    credential = get_object_or_404(StationCredential.objects.select_related("person"), team=device.team, person_id=person_pk, active=True, person__active=True)
-    form = StationPinForm(request.POST or None, initial={"person_id": credential.person_id})
-    lock_remaining = _pin_lock_remaining(request, device, credential.person_id)
+    person = get_object_or_404(Person, pk=person_pk, team=device.team, active=True, station_credential__active=True)
+    lock_remaining = _pin_lock_remaining(request, device, person.pk)
+    if lock_remaining:
+        return render(request, "portal/station/pin.html", {"device": device, "person": person, "form": StationPinForm(), "locked": True, "lock_remaining": lock_remaining}, status=429)
+    form = StationPinForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        if form.cleaned_data["person_id"] != credential.person_id:
-            raise Http404
-        if lock_remaining:
-            form.add_error(None, f"Too many incorrect PIN attempts. Try again in about {max(1, (lock_remaining + 59) // 60)} minute(s).")
-        elif credential.check_pin(form.cleaned_data["pin"]):
-            _clear_pin_failures(request, device, credential.person_id)
-            StationCredential.objects.filter(pk=credential.pk).update(last_used_at=timezone.now())
-            request.session[STATION_PERSON_SESSION_KEY] = credential.person_id
+        credential = person.station_credential
+        if credential.check_pin(form.cleaned_data["pin"]):
+            _clear_pin_failures(request, device, person.pk)
+            request.session[STATION_PERSON_SESSION_KEY] = person.pk
             request.session[STATION_PERSON_AUTH_AT_KEY] = timezone.now().timestamp()
-            _audit_station(
-                team=device.team,
-                action="station_pin_verified",
-                entity_type="Person",
-                entity_id=credential.person_id,
-                entity_label=credential.person.display_name,
-                summary=f"Station PIN authenticated — {credential.person.display_name}",
-                details={"device_id": device.pk, "device_name": device.name},
-            )
             return redirect("station_action")
-        else:
-            locked = _record_pin_failure(request, device, credential.person_id)
-            if locked:
-                _audit_station(
-                    team=device.team,
-                    action="station_pin_locked",
-                    entity_type="Person",
-                    entity_id=credential.person_id,
-                    entity_label=credential.person.display_name,
-                    summary=f"Station PIN temporarily locked — {credential.person.display_name}",
-                    details={"device_id": device.pk, "device_name": device.name, "lock_seconds": STATION_PIN_LOCK_SECONDS},
-                )
-                form.add_error("pin", "Too many incorrect attempts. This PIN is temporarily locked on this Station.")
-            else:
-                form.add_error("pin", "That PIN is not correct.")
-    return render(request, "portal/station/identify.html", {"device": device, "person": credential.person, "form": form, "lock_remaining": lock_remaining})
+        locked = _record_pin_failure(request, device, person.pk)
+        messages.error(request, "Too many incorrect PIN attempts. Try again in 5 minutes." if locked else "That PIN did not match. Try again.")
+        if locked:
+            return render(request, "portal/station/pin.html", {"device": device, "person": person, "form": StationPinForm(), "locked": True, "lock_remaining": STATION_PIN_LOCK_SECONDS}, status=429)
+    return render(request, "portal/station/pin.html", {"device": device, "person": person, "form": form})
 
 
 def station_action(request):
@@ -500,44 +378,19 @@ def station_action(request):
     if not person:
         return redirect("station_home")
     open_shift = WorkShiftEntry.objects.filter(team=device.team, person=person, clock_out__isnull=True).first()
-    form = StationClockInForm(request.POST or None, person=person)
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "clock_out" and open_shift:
+    form = StationClockInForm(request.POST or None, person=person, open_shift=open_shift)
+    if request.method == "POST" and form.is_valid():
+        if open_shift:
             open_shift.clock_out = timezone.now()
             open_shift.full_clean()
             open_shift.save(update_fields=["clock_out", "updated_at"])
-            _audit_shift(
-                device.team,
-                None,
-                "station_clock_out",
-                open_shift,
-                {
-                    "device_id": device.pk,
-                    "device_name": device.name,
-                    "clock_in": open_shift.clock_in.isoformat(),
-                    "clock_out": open_shift.clock_out.isoformat(),
-                    "minutes": _shift_minutes(open_shift),
-                },
-            )
+            _audit_shift(device.team, None, "station_clock_out", open_shift, {"clock_out": open_shift.clock_out.isoformat(), "station_id": device.pk})
             _clear_station_person(request)
-            return render(request, "portal/station/complete.html", {"device": device, "person": person, "message": "You are clocked out."})
-        if action == "clock_in" and not open_shift and form.is_valid():
-            shift = WorkShiftEntry(team=device.team, person=person, station=device, role=form.cleaned_data["role"], clock_in=timezone.now())
-            shift.full_clean()
-            shift.save()
-            _audit_shift(
-                device.team,
-                None,
-                "station_clock_in",
-                shift,
-                {
-                    "device_id": device.pk,
-                    "device_name": device.name,
-                    "role": shift.role,
-                    "clock_in": shift.clock_in.isoformat(),
-                },
-            )
-            _clear_station_person(request)
-            return render(request, "portal/station/complete.html", {"device": device, "person": person, "message": "You are clocked in."})
+            return render(request, "portal/station/complete.html", {"device": device, "person": person, "action": "clocked out", "shift": open_shift})
+        shift = WorkShiftEntry(team=device.team, person=person, station=device, role=form.cleaned_data["role"], clock_in=timezone.now(), notes=form.cleaned_data.get("notes", ""))
+        shift.full_clean()
+        shift.save()
+        _audit_shift(device.team, None, "station_clock_in", shift, {"clock_in": shift.clock_in.isoformat(), "station_id": device.pk})
+        _clear_station_person(request)
+        return render(request, "portal/station/complete.html", {"device": device, "person": person, "action": "clocked in", "shift": shift})
     return render(request, "portal/station/action.html", {"device": device, "person": person, "open_shift": open_shift, "form": form})
