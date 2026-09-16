@@ -16,4 +16,10 @@ urlpatterns = [
     path("lesson-series/<int:series_pk>/enrollments/add/", views.lesson_enrollment_create, name="lesson_enrollment_create"),
     path("lesson-enrollments/<int:pk>/edit/", views.lesson_enrollment_edit, name="lesson_enrollment_edit"),
     path("lesson-occurrences/<int:pk>/", views.lesson_occurrence_detail, name="lesson_occurrence_detail"),
+    path("lesson-occurrences/<int:pk>/prepare/", views.lesson_occurrence_prepare, name="lesson_occurrence_prepare"),
+    path("lesson-occurrences/<int:pk>/complete/", views.lesson_occurrence_complete, name="lesson_occurrence_complete"),
+    path("lesson-occurrences/<int:pk>/cancel/", views.lesson_occurrence_cancel, name="lesson_occurrence_cancel"),
+    path("lesson-occurrences/<int:pk>/reschedule/", views.lesson_occurrence_reschedule, name="lesson_occurrence_reschedule"),
+    path("lesson-attendance/<int:pk>/edit/", views.lesson_attendance_edit, name="lesson_attendance_edit"),
+    path("lesson-assignments/<int:pk>/edit/", views.lesson_assignment_edit, name="lesson_assignment_edit"),
 ]
