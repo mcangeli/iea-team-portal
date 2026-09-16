@@ -165,6 +165,29 @@ class LessonOccurrence(models.Model):
     def __str__(self): return f"{self.title} — {self.starts_at:%Y-%m-%d}"
 
 
+class LegacyIEALessonOccurrenceLink(models.Model):
+    """Durable provenance between one legacy IEA lesson partition and its v3.4 occurrence."""
+    class TeamLevel(models.TextChoices):
+        FUTURES = SeasonMembership.TeamLevel.FUTURES, "Futures Team"
+        UPPER = SeasonMembership.TeamLevel.UPPER, "Upper School Team"
+    legacy_lesson = models.ForeignKey("portal.Lesson", on_delete=models.PROTECT, related_name="v340_occurrence_links")
+    occurrence = models.OneToOneField(LessonOccurrence, on_delete=models.PROTECT, related_name="legacy_iea_provenance")
+    team_level = models.CharField(max_length=20, choices=TeamLevel.choices)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ["legacy_lesson_id", "team_level", "id"]
+        constraints = [models.UniqueConstraint(fields=["legacy_lesson", "team_level"], name="unique_legacy_iea_lesson_team_level_link")]
+    def clean(self):
+        super().clean()
+        if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}: raise ValidationError({"team_level": "Legacy IEA provenance must identify Futures or Upper School."})
+        if self.legacy_lesson_id and self.occurrence_id:
+            if self.legacy_lesson.team_id != self.occurrence.series.program.team_id: raise ValidationError("Legacy lesson and occurrence must belong to the same organization.")
+            if not self.occurrence.series.is_iea_series: raise ValidationError("Legacy IEA provenance may only target an IEA lesson occurrence.")
+            context = self.occurrence.series.iea_context
+            if context.season_id != self.legacy_lesson.season_id or context.team_level != self.team_level: raise ValidationError("Legacy lesson provenance must match the occurrence season and team level.")
+    def __str__(self): return f"Legacy lesson {self.legacy_lesson_id} · {self.get_team_level_display()} → occurrence {self.occurrence_id}"
+
+
 class LessonAttendanceRecord(models.Model):
     class Status(models.TextChoices):
         EXPECTED = "expected", "Expected"
