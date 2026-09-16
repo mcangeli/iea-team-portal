@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from portal.model_modules.lessons import LessonAssignment, LessonAttendanceRecord, LessonOccurrence, LessonParticipantMove
 
@@ -62,62 +62,65 @@ def move_lesson_participant(*, source_occurrence, destination_occurrence, person
     if not destination_has_capacity(destination_occurrence, person):
         raise ValidationError("The destination lesson is already at capacity.")
 
-    with transaction.atomic():
-        source_attendance = LessonAttendanceRecord.objects.select_for_update().filter(occurrence=source_occurrence, person=person).first()
-        if not source_attendance:
-            raise ValidationError("The rider is not on the source lesson roster.")
-        source_assignment = LessonAssignment.objects.select_for_update().filter(occurrence=source_occurrence, person=person, role=LessonAssignment.Role.PARTICIPANT).first()
-        if not source_assignment:
-            raise ValidationError("The rider does not have a participant assignment on the source lesson.")
+    try:
+        with transaction.atomic():
+            source_attendance = LessonAttendanceRecord.objects.select_for_update().filter(occurrence=source_occurrence, person=person).first()
+            if not source_attendance:
+                raise ValidationError("The rider is not on the source lesson roster.")
+            source_assignment = LessonAssignment.objects.select_for_update().filter(occurrence=source_occurrence, person=person, role=LessonAssignment.Role.PARTICIPANT).first()
+            if not source_assignment:
+                raise ValidationError("The rider does not have a participant assignment on the source lesson.")
 
-        if LessonParticipantMove.objects.select_for_update().filter(source_occurrence=source_occurrence, person=person).exists():
-            raise ValidationError("This rider has already been moved from the original lesson.")
+            if LessonParticipantMove.objects.filter(source_occurrence=source_occurrence, person=person).exists():
+                raise ValidationError("This rider has already been moved from the original lesson.")
 
-        destination_attendance = LessonAttendanceRecord.objects.select_for_update().filter(occurrence=destination_occurrence, person=person).first()
-        if destination_attendance and destination_attendance.status in DESTINATION_BLOCKING_ATTENDANCE_STATUSES:
-            raise ValidationError("This rider already has attendance history for the destination lesson.")
-        if destination_attendance is None:
-            destination_attendance = LessonAttendanceRecord.objects.create(
+            destination_attendance = LessonAttendanceRecord.objects.select_for_update().filter(occurrence=destination_occurrence, person=person).first()
+            if destination_attendance and destination_attendance.status in DESTINATION_BLOCKING_ATTENDANCE_STATUSES:
+                raise ValidationError("This rider already has attendance history for the destination lesson.")
+            if destination_attendance is None:
+                destination_attendance = LessonAttendanceRecord.objects.create(
+                    occurrence=destination_occurrence,
+                    person=person,
+                    status=LessonAttendanceRecord.Status.MAKEUP if kind == LessonParticipantMove.Kind.MAKEUP else LessonAttendanceRecord.Status.EXPECTED,
+                )
+
+            destination_assignment, _ = LessonAssignment.objects.get_or_create(
                 occurrence=destination_occurrence,
                 person=person,
-                status=LessonAttendanceRecord.Status.MAKEUP if kind == LessonParticipantMove.Kind.MAKEUP else LessonAttendanceRecord.Status.EXPECTED,
+                role=LessonAssignment.Role.PARTICIPANT,
             )
 
-        destination_assignment, _ = LessonAssignment.objects.get_or_create(
-            occurrence=destination_occurrence,
-            person=person,
-            role=LessonAssignment.Role.PARTICIPANT,
-        )
+            move = LessonParticipantMove(
+                source_occurrence=source_occurrence,
+                destination_occurrence=destination_occurrence,
+                person=person,
+                kind=kind,
+                source_status=source_status,
+                carry_horse=carry_horse,
+                reason=reason,
+                initiated_by=initiated_by,
+                initiated_by_user=created_by,
+            )
+            move.full_clean()
 
-        move = LessonParticipantMove(
-            source_occurrence=source_occurrence,
-            destination_occurrence=destination_occurrence,
-            person=person,
-            kind=kind,
-            source_status=source_status,
-            carry_horse=carry_horse,
-            reason=reason,
-            initiated_by=initiated_by,
-            created_by=created_by,
-        )
-        move.full_clean()
+            source_attendance.status = source_status
+            if reason:
+                source_attendance.notes = reason
+            source_attendance.full_clean()
+            source_attendance.save(update_fields=["status", "notes", "recorded_at"])
 
-        source_attendance.status = source_status
-        if reason:
-            source_attendance.notes = reason
-        source_attendance.full_clean()
-        source_attendance.save(update_fields=["status", "notes", "recorded_at"])
+            destination_attendance.status = LessonAttendanceRecord.Status.MAKEUP if kind == LessonParticipantMove.Kind.MAKEUP else LessonAttendanceRecord.Status.EXPECTED
+            if reason:
+                destination_attendance.notes = f"Moved from {source_occurrence.starts_at:%b %d}: {reason}"[:255]
+            destination_attendance.full_clean()
+            destination_attendance.save(update_fields=["status", "notes", "recorded_at"])
 
-        destination_attendance.status = LessonAttendanceRecord.Status.MAKEUP if kind == LessonParticipantMove.Kind.MAKEUP else LessonAttendanceRecord.Status.EXPECTED
-        if reason:
-            destination_attendance.notes = f"Moved from {source_occurrence.starts_at:%b %d}: {reason}"[:255]
-        destination_attendance.full_clean()
-        destination_attendance.save(update_fields=["status", "notes", "recorded_at"])
-
-        if carry_horse and source_assignment.horse_id:
-            destination_assignment.horse_id = source_assignment.horse_id
-        destination_assignment.full_clean()
-        destination_assignment.save()
-        move.save()
+            if carry_horse and source_assignment.horse_id:
+                destination_assignment.horse_id = source_assignment.horse_id
+            destination_assignment.full_clean()
+            destination_assignment.save()
+            move.save()
+    except IntegrityError as exc:
+        raise ValidationError("This rider has already been moved from the original lesson.") from exc
 
     return LessonParticipantMoveResult(move, source_attendance, destination_attendance, destination_assignment)
