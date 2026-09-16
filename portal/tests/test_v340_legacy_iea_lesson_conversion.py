@@ -61,6 +61,19 @@ class LegacyIEALessonConversionTests(TestCase):
             notes="Worked without stirrups",
         )
 
+    def _add_futures_rider(self, *, with_person=True, with_attendance=True):
+        rider = Rider.objects.create(team=self.team, first_name="Fin", last_name="Future", grade=7)
+        person = None
+        if with_person:
+            person = Person.objects.create(team=self.team, first_name="Fin", last_name="Future")
+            LegacyPersonLink.objects.create(person=person, rider=rider)
+        SeasonMembership.objects.create(rider=rider, season=self.season, team_level=SeasonMembership.TeamLevel.FUTURES)
+        self.group.riders.add(rider)
+        attendance = None
+        if with_attendance:
+            attendance = LessonAttendance.objects.create(lesson=self.lesson, rider=rider, status=LessonAttendance.Status.EXCUSED)
+        return rider, person, attendance
+
     def test_dry_run_reports_without_writing(self):
         report = convert_legacy_iea_lessons(season=self.season, dry_run=True)
         self.assertEqual(report.lessons_scanned, 1)
@@ -133,19 +146,67 @@ class LegacyIEALessonConversionTests(TestCase):
         self.assertEqual(report.issue_count, 0)
         self.assertEqual(IEALessonSeriesContext.objects.get().team_level, IEALessonSeriesContext.TeamLevel.UPPER)
 
-    def test_mixed_futures_and_upper_roster_is_reported_not_guessed(self):
+    def test_mixed_futures_and_upper_lesson_splits_into_two_occurrences(self):
         self.group.team_level = LessonGroup.TeamLevel.BOTH
-        self.group.save(update_fields=["team_level"])
-        futures_rider = Rider.objects.create(team=self.team, first_name="Fin", last_name="Future", grade=7)
-        futures_person = Person.objects.create(team=self.team, first_name="Fin", last_name="Future")
-        LegacyPersonLink.objects.create(person=futures_person, rider=futures_rider)
-        SeasonMembership.objects.create(rider=futures_rider, season=self.season, team_level=SeasonMembership.TeamLevel.FUTURES)
-        self.group.riders.add(futures_rider)
-        LessonAttendance.objects.create(lesson=self.lesson, rider=futures_rider)
+        self.group.name = "Combined Tuesday"
+        self.group.save(update_fields=["team_level", "name"])
+        futures_rider, futures_person, _ = self._add_futures_rider()
 
         report = convert_legacy_iea_lessons(season=self.season, dry_run=False)
-        self.assertEqual(report.issue_count, 1)
-        self.assertIn("both Futures and Upper", report.issues[0].message)
+
+        self.assertEqual(report.issue_count, 0)
+        self.assertEqual(report.lessons_convertible, 1)
+        self.assertEqual(report.occurrences_created, 2)
+        self.assertEqual(LessonOccurrence.objects.count(), 2)
+        contexts = {context.team_level: context for context in IEALessonSeriesContext.objects.select_related("series")}
+        self.assertEqual(set(contexts), {IEALessonSeriesContext.TeamLevel.FUTURES, IEALessonSeriesContext.TeamLevel.UPPER})
+        self.assertIn("Futures", contexts[IEALessonSeriesContext.TeamLevel.FUTURES].series.name)
+        self.assertIn("Upper", contexts[IEALessonSeriesContext.TeamLevel.UPPER].series.name)
+
+        futures_occurrence = contexts[IEALessonSeriesContext.TeamLevel.FUTURES].series.occurrences.get()
+        upper_occurrence = contexts[IEALessonSeriesContext.TeamLevel.UPPER].series.occurrences.get()
+        self.assertEqual(futures_occurrence.starts_at, self.lesson.starts_at)
+        self.assertEqual(upper_occurrence.starts_at, self.lesson.starts_at)
+        self.assertEqual(list(futures_occurrence.attendance_records.values_list("person_id", flat=True)), [futures_person.id])
+        self.assertEqual(list(upper_occurrence.attendance_records.values_list("person_id", flat=True)), [self.person.id])
+        self.assertFalse(futures_occurrence.attendance_records.filter(person=self.person).exists())
+        self.assertFalse(upper_occurrence.attendance_records.filter(person=futures_person).exists())
+
+    def test_mixed_split_preserves_shared_occurrence_details_and_status(self):
+        self.group.team_level = LessonGroup.TeamLevel.BOTH
+        self.group.save(update_fields=["team_level"])
+        self._add_futures_rider()
+        self.lesson.cancelled = True
+        self.lesson.save(update_fields=["cancelled"])
+        convert_legacy_iea_lessons(season=self.season, dry_run=False)
+        for occurrence in LessonOccurrence.objects.all():
+            self.assertEqual(occurrence.title, self.lesson.title)
+            self.assertEqual(occurrence.starts_at, self.lesson.starts_at)
+            self.assertEqual(occurrence.ends_at, self.lesson.ends_at)
+            self.assertEqual(occurrence.location, self.lesson.location)
+            self.assertEqual(occurrence.notes, self.lesson.notes)
+            self.assertEqual(occurrence.status, LessonOccurrence.Status.CANCELLED)
+
+    def test_mixed_split_is_idempotent(self):
+        self.group.team_level = LessonGroup.TeamLevel.BOTH
+        self.group.save(update_fields=["team_level"])
+        self._add_futures_rider()
+        first = convert_legacy_iea_lessons(season=self.season, dry_run=False)
+        second = convert_legacy_iea_lessons(season=self.season, dry_run=False)
+        self.assertEqual(first.occurrences_created, 2)
+        self.assertEqual(second.occurrences_created, 0)
+        self.assertEqual(second.occurrences_existing, 2)
+        self.assertEqual(LessonOccurrence.objects.count(), 2)
+        self.assertEqual(LessonAttendanceRecord.objects.count(), 2)
+        self.assertEqual(LessonAssignment.objects.count(), 2)
+
+    def test_dry_run_accepts_mixed_lesson_without_writing(self):
+        self.group.team_level = LessonGroup.TeamLevel.BOTH
+        self.group.save(update_fields=["team_level"])
+        self._add_futures_rider()
+        report = convert_legacy_iea_lessons(season=self.season, dry_run=True)
+        self.assertEqual(report.lessons_convertible, 1)
+        self.assertEqual(report.issue_count, 0)
         self.assertEqual(LessonOccurrence.objects.count(), 0)
 
     def test_missing_person_bridge_is_reported_not_partially_converted(self):
@@ -154,7 +215,17 @@ class LegacyIEALessonConversionTests(TestCase):
         LessonAttendance.objects.create(lesson=self.lesson, rider=unlinked)
         report = convert_legacy_iea_lessons(season=self.season, dry_run=False)
         self.assertEqual(report.issue_count, 1)
-        self.assertIn("without canonical Person links", report.issues[0].message)
+        self.assertIn("canonical Person link", report.issues[0].message)
+        self.assertEqual(LessonOccurrence.objects.count(), 0)
+
+    def test_missing_team_membership_is_reported_not_guessed(self):
+        rider = Rider.objects.create(team=self.team, first_name="No", last_name="Membership", grade=7)
+        person = Person.objects.create(team=self.team, first_name="No", last_name="Membership")
+        LegacyPersonLink.objects.create(person=person, rider=rider)
+        LessonAttendance.objects.create(lesson=self.lesson, rider=rider)
+        report = convert_legacy_iea_lessons(season=self.season, dry_run=False)
+        self.assertEqual(report.issue_count, 1)
+        self.assertIn("no Futures/Upper membership", report.issues[0].message)
         self.assertEqual(LessonOccurrence.objects.count(), 0)
 
     def test_management_command_defaults_to_dry_run(self):
