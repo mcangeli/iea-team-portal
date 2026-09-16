@@ -37,7 +37,7 @@ class LessonParticipantMoveUITests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Choose another lesson")
         self.assertContains(response, self.destination.title)
-        self.assertContains(response, "Trainer / Assistant Trainer")
+        self.assertContains(response, "Trainers and Assistant Trainers")
 
     def test_makeup_post_records_history_and_returns_to_lesson(self):
         response = self.client.post(reverse("lesson_participant_move", args=[self.source.pk, self.rider.pk]), {
