@@ -64,11 +64,11 @@ def _occurrence_has_operational_history(occurrence: LessonOccurrence) -> bool:
 
 
 def generate_lesson_occurrences(series: LessonSeries, start_date: date, end_date: date) -> LessonOccurrenceGenerationResult:
-    """Materialize scheduled occurrences for a recurring LessonSeries.
+    """Materialize recurring slots using immutable schedule identity.
 
-    Generation is intentionally additive and idempotent. Existing occurrences are
-    never rewritten from current series defaults, preserving cancellations,
-    reschedules, attendance, assignments, and other operational history.
+    `scheduled_for` is the original recurrence slot. A reschedule changes only
+    `starts_at`/`ends_at`, so a later generator run finds the same occurrence and
+    cannot recreate the old slot.
     """
     _validate_series_for_generation(series)
     created = []
@@ -76,10 +76,10 @@ def generate_lesson_occurrences(series: LessonSeries, start_date: date, end_date
 
     with transaction.atomic():
         for scheduled_date in _scheduled_dates(series, start_date, end_date):
-            starts_at = _aware_local_datetime(scheduled_date, series.starts_at_time)
+            scheduled_for = _aware_local_datetime(scheduled_date, series.starts_at_time)
             occurrence = (
                 LessonOccurrence.objects.select_for_update()
-                .filter(series=series, starts_at=starts_at)
+                .filter(series=series, scheduled_for=scheduled_for)
                 .first()
             )
             if occurrence is not None:
@@ -90,8 +90,10 @@ def generate_lesson_occurrences(series: LessonSeries, start_date: date, end_date
                 series=series,
                 title=series.name,
                 instructor=series.instructor,
-                starts_at=starts_at,
-                ends_at=starts_at + timedelta(minutes=series.duration_minutes),
+                starts_at=scheduled_for,
+                ends_at=scheduled_for + timedelta(minutes=series.duration_minutes),
+                origin=LessonOccurrence.Origin.GENERATED,
+                scheduled_for=scheduled_for,
                 location=series.default_location,
                 capacity=series.effective_capacity,
                 status=LessonOccurrence.Status.SCHEDULED,
@@ -103,21 +105,7 @@ def generate_lesson_occurrences(series: LessonSeries, start_date: date, end_date
     return LessonOccurrenceGenerationResult(tuple(created), tuple(existing))
 
 
-def refresh_future_lesson_occurrences(
-    series: LessonSeries,
-    *,
-    from_datetime=None,
-) -> LessonOccurrenceRefreshResult:
-    """Refresh editable future scheduled occurrences from current series defaults.
-
-    Only future occurrences that are still SCHEDULED and have no attendance or
-    assignments are changed. Completed, cancelled, rescheduled, past, or already
-    operational occurrences are preserved exactly as historical records.
-
-    This refresh intentionally does not move occurrences to a newly configured
-    weekday/time. Schedule-shape changes are handled by explicit cancellation and
-    generation so an existing occurrence is never silently moved.
-    """
+def refresh_future_lesson_occurrences(series: LessonSeries, *, from_datetime=None) -> LessonOccurrenceRefreshResult:
     _validate_series_for_generation(series)
     cutoff = from_datetime or timezone.now()
     if timezone.is_naive(cutoff):
@@ -126,11 +114,7 @@ def refresh_future_lesson_occurrences(
     updated = []
     preserved = []
     with transaction.atomic():
-        occurrences = (
-            LessonOccurrence.objects.select_for_update()
-            .filter(series=series, starts_at__gte=cutoff)
-            .order_by("starts_at", "id")
-        )
+        occurrences = LessonOccurrence.objects.select_for_update().filter(series=series, starts_at__gte=cutoff).order_by("starts_at", "id")
         for occurrence in occurrences:
             if occurrence.status != LessonOccurrence.Status.SCHEDULED or _occurrence_has_operational_history(occurrence):
                 preserved.append(occurrence)
@@ -157,14 +141,8 @@ def cancel_lesson_occurrence(occurrence: LessonOccurrence, *, notes=None) -> Les
     return occurrence
 
 
-def reschedule_lesson_occurrence(
-    occurrence: LessonOccurrence,
-    *,
-    starts_at,
-    ends_at=None,
-    notes=None,
-) -> LessonOccurrence:
-    """Explicitly move one occurrence while preserving its snapshot fields."""
+def reschedule_lesson_occurrence(occurrence: LessonOccurrence, *, starts_at, ends_at=None, notes=None) -> LessonOccurrence:
+    """Move one occurrence while retaining its immutable generated slot."""
     if occurrence.status == LessonOccurrence.Status.COMPLETED:
         raise ValidationError("A completed lesson occurrence cannot be rescheduled.")
     if ends_at is None:
@@ -193,7 +171,6 @@ def create_manual_lesson_occurrence(
     capacity=None,
     notes="",
 ) -> LessonOccurrence:
-    """Create a one-off occurrence without changing the recurring series schedule."""
     if not series.pk:
         raise ValidationError("Lesson series must be saved before adding an occurrence.")
     if ends_at is None:
@@ -207,6 +184,8 @@ def create_manual_lesson_occurrence(
         instructor=instructor if instructor is not None else series.instructor,
         starts_at=starts_at,
         ends_at=ends_at,
+        origin=LessonOccurrence.Origin.MANUAL,
+        scheduled_for=None,
         location=location if location is not None else series.default_location,
         capacity=capacity if capacity is not None else series.effective_capacity,
         notes=notes,
