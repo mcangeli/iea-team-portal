@@ -2,7 +2,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [("portal", "0084_v340_legacy_iea_lesson_provenance")]
+    dependencies = [("portal", "0084_v340_legacy_lesson_occurrence_provenance")]
 
     operations = [
         migrations.RemoveConstraint(
