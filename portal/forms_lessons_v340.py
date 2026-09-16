@@ -62,23 +62,25 @@ class IEALessonSeriesForm(LessonSeriesForm):
     team_level = forms.ChoiceField(choices=IEALessonSeriesContext.TeamLevel.choices)
 
     def __init__(self, *args, program, season, **kwargs):
-        self.season = season; super().__init__(*args, program=program, **kwargs)
+        self.season = season
+        super().__init__(*args, program=program, **kwargs)
+        # ModelForm._post_clean() calls LessonSeries.full_clean() before a new
+        # IEALessonSeriesContext can exist. Mark the transient model instance so
+        # that validation applies Coach rules from the first validation pass.
+        self.instance._lesson_domain = "iea"
         self.fields["instructor"].queryset = lesson_instructor_queryset(program.team, iea=True)
-        if self.instance.pk and self.instance.is_iea_series:
+        if self.instance.pk and hasattr(self.instance, "iea_context"):
             self.fields["team_level"].initial = self.instance.iea_context.team_level
         else:
             self.fields["start_date"].initial = season.start_date; self.fields["end_date"].initial = season.end_date
 
     def save(self, commit=True):
         series = super().save(commit=False)
+        series._lesson_domain = "iea"
         if not commit:
             return series
         with transaction.atomic():
-            # A new series does not have its IEA context yet, so validate the
-            # generic fields without making the model guess the lesson domain.
-            # The IEA context below is the authoritative Coach validation gate.
-            if series.pk:
-                series.full_clean()
+            series.full_clean()
             series.save()
             context, _ = IEALessonSeriesContext.objects.get_or_create(
                 series=series,
@@ -88,8 +90,6 @@ class IEALessonSeriesForm(LessonSeriesForm):
             context.team_level = self.cleaned_data["team_level"]
             context.full_clean()
             context.save()
-            # Once context exists, the series itself can safely apply its
-            # domain-aware instructor validation too.
             series.full_clean()
         return series
 
