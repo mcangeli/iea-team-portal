@@ -156,7 +156,7 @@ class LessonOccurrence(models.Model):
     def clean(self):
         super().clean()
         if self.ends_at and self.ends_at <= self.starts_at: raise ValidationError("Lesson occurrence end time must be after its start time.")
-        if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1."})
+        if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1 minute."})
         if self.origin == self.Origin.GENERATED and not self.scheduled_for: raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
         if self.scheduled_for and self.origin == self.Origin.MANUAL: raise ValidationError({"scheduled_for": "Manual lesson occurrences do not use recurrence identity."})
         if self.pk:
@@ -239,6 +239,7 @@ class LessonParticipantMove(models.Model):
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_participant_moves")
     kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.MOVE)
     source_status = models.CharField(max_length=16, choices=LessonAttendanceRecord.Status.choices, default=LessonAttendanceRecord.Status.EXCUSED)
+    carry_horse = models.BooleanField(default=False)
     reason = models.CharField(max_length=255, blank=True)
     initiated_by = models.CharField(max_length=16, choices=Initiator.choices, default=Initiator.STAFF)
     initiated_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_initiated")
