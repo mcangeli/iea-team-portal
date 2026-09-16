@@ -6,6 +6,7 @@ are projected into a common read shape for calendar/agenda presentation.
 from dataclasses import dataclass
 from datetime import datetime, time
 
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
 
@@ -50,8 +51,11 @@ def _coggins_item(record): return CalendarItem(source="horse_coggins", source_id
 def _document_item(document): return CalendarItem(source="horse_document", source_id=document.pk, category="horses", kind="horse_document", kind_label="Horse document expiration", title=f"{document.horse.display_name} — {document.title} expires", starts_at=_date_at_midnight(document.expiration_date), all_day=True, url=reverse("horse_detail", args=[document.horse_id]), status=document.expiration_status)
 
 def _show_matches_team(event, selected_team):
+    """Preserve legacy show visibility for unclassified/general show classes."""
     if event.kind != CalendarEvent.Kind.SHOW or not event.show_id: return True
-    return event.show.classes.filter(season_class__team_level__in=[selected_team, SeasonClass.TeamLevel.BOTH]).exists()
+    classes = event.show.classes.all()
+    if not classes.exists(): return True
+    return classes.filter(Q(season_class__isnull=True) | Q(season_class__team_level__in=[selected_team, SeasonClass.TeamLevel.BOTH])).exists()
 
 
 def calendar_items(team, start_dt, end_dt, *, selected_kind="all", selected_team="all", include_private=False):
