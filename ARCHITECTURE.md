@@ -40,6 +40,11 @@ The Django view layer is organized by functional domain under `portal/view_modul
 | `fundraising.py` | Fundraising policy, campaigns, contributions, family fundraising |
 | `finance_reports.py` | Financial reporting and CSV exports |
 | `show_finance.py` | Show budgets, allocations, funding policy, reimbursements |
+| `horses.py` | Horse registry, identifiers/relationships, Coggins, season/show assignments, Horse of the Day |
+| `equine_care.py` | Care entry/editing and completed-care history |
+| `equine_documents.py` | Protected generic horse-document management/downloads |
+| `equine_compliance.py` | Organization compliance-requirement management |
+| `hoofprint.py` | IEA Hoofprint workflow and finalized snapshots |
 
 Most domains also have a matching `*_helpers.py` containing private logic used only by that domain.
 
@@ -115,6 +120,7 @@ The public layer must not expose:
 - rider/guardian contact information;
 - private rider notes;
 - horse medical/Coggins/internal notes;
+- horse care/compliance documents;
 - finance data;
 - committee/admin records;
 - points-rider strategy;
@@ -177,17 +183,68 @@ A single Person may hold multiple simultaneous roles (for example adult rider + 
 
 ### Groups / Programs
 
-ArenaLine should support generic organization groups/programs as scopes for functions such as IEA, Lesson Program, Boarding, Staff, Shows, or future disciplines/programs. The persisted model should be flexible enough to support parent/subgroup relationships, while the normal UI should remain simple and avoid exposing an unnecessarily deep enterprise-style hierarchy.
+ArenaLine supports generic organization groups/programs as scopes for functions such as IEA, Lesson Program, Boarding, Staff, Shows, or future disciplines/programs. The persisted model remains flexible enough to support parent/subgroup relationships while the normal UI avoids unnecessary hierarchy.
 
 ### Committees
 
-Committees become generic organization structures rather than IEA-only responsibilities. A committee may be organization-wide or optionally scoped to a Group/Program. Committee membership/position (Chair, Treasurer, Member, etc.) is distinct from login authorization.
+Committees are generic organization structures rather than IEA-only responsibilities. A committee may be organization-wide or optionally scoped to a Group/Program. Committee membership/position is distinct from login authorization.
 
 Assignment-specific responsibilities such as a Show Lead for one event remain event/domain assignments rather than being forced into a committee model.
 
 ### Public person/rider profiles
 
-Public rider/person cards must follow the v3.1 publication model. The internal Person/Profile object is never serialized directly to anonymous users. Each public field is allow-listed and deliberately published, with especially conservative handling for minors. Exact date of birth and private contact information remain private by default.
+Public rider/person cards follow the v3.1 publication model. The internal Person/Profile object is never serialized directly to anonymous users. Each public field is allow-listed and deliberately published, with especially conservative handling for minors. Exact date of birth and private contact information remain private by default.
+
+## v3.3 equine care and compliance boundary
+
+v3.3 keeps `Horse` as the durable generic equine identity and layers operational records around it rather than expanding the Horse row into a mutable snapshot of current care state.
+
+The core shape is:
+
+```text
+Horse
+ ├── HorseIdentifier
+ ├── HorsePersonRelationship → Person
+ ├── HorseCareRecord
+ │    ├── care type
+ │    ├── provider → Person
+ │    ├── performed date
+ │    └── next due date
+ ├── HorseDocument
+ ├── HorseCogginsRecord
+ ├── HorseSeasonProfile
+ ├── HorseShowAssignment
+ └── HorseShowAward / historical activity
+```
+
+The design principle is **Horse describes the horse; records describe what happened**. Completed care and historical show records are preserved instead of overwritten by current status.
+
+### Care scheduling
+
+`HorseCareRecord` is generic operational recordkeeping, not diagnosis. The latest record for each care category drives schedule status when it has a next-due date; older records remain immutable history for operational review. Coggins remains a specialized record and is not duplicated as a generic care type.
+
+### Documents and compliance
+
+`HorseDocument` stores generic supporting records with optional effective/expiration dates and optional linkage to a care record. `HorseComplianceRequirement` configures which Coggins/document categories an organization actually requires.
+
+Compliance is evaluated in two contexts:
+
+- registry/profile context defaults to the current date;
+- show/Hoofprint context evaluates through `Show.show_date`.
+
+A record that expires before the evaluation date is blocking. Expiration on the evaluation date is valid. Expiring-soon status warns without blocking when the record remains valid through the evaluation date.
+
+Coggins remains the specialized source of truth where a Coggins requirement is configured.
+
+### Horse-document privacy
+
+Generic horse documents and Coggins attachments are not linked directly through their storage URLs in authenticated UI. Manager-only, organization-scoped Django download views enforce authorization and return `private, no-store` responses. Deployment must likewise avoid exposing sensitive media paths through a bypassing public media alias.
+
+Detailed care, document, and configurable compliance information is manager-only. Narrower historical Coggins visibility on established IEA show surfaces remains a compatibility decision and does not grant access to the underlying private documents.
+
+### IEA bridge
+
+Generic equine compliance feeds the existing IEA Show Readiness and Hoofprint workflows without moving IEA-specific terminology or Hoofprint rules into the generic Horse models. Missing/expired/not-valid-through-show configured requirements block show readiness and Hoofprint finalization; ordinary Hoofprint completeness warnings remain advisory.
 
 ## Presentation boundary
 
@@ -214,7 +271,8 @@ Compatibility layers are deliberate and should be removed only when their caller
 - organization helpers wrapping the persisted `Team` tenant model;
 - legacy scoring heuristics used only when no catalog metadata is available;
 - the legacy single `PublicShowPublication.current_class` pointer retained while multi-ring public state is derived from class lifecycle records;
-- v3.2 Person/relationship abstractions coexisting with Rider, Guardian/Parent, UserProfile, SeasonMembership, committee, finance, and competition structures until migration is proven safe.
+- v3.2 Person/relationship abstractions coexisting with Rider, Guardian/Parent, UserProfile, SeasonMembership, committee, finance, and competition structures until migration is proven safe;
+- v3.3 equine-care/document/compliance records coexisting with existing Horse, Coggins, season eligibility, show assignment, Hoofprint, award, and historical structures.
 
 A cleanup should reduce duplicate behavior without rewriting historical records or breaking old URLs.
 
@@ -226,6 +284,8 @@ A cleanup should reduce duplicate behavior without rewriting historical records 
 - Prefer domain services/helpers over adding more behavior to monolithic modules.
 - Preserve historical data and stable URLs during refactors.
 - Separate organizational roles/relationships from authorization decisions.
+- Keep horse identity separate from historical care/activity records.
+- Protect sensitive horse documents at both application and deployment boundaries.
 - Do not combine rulebook/scoring changes with unrelated UI rewrites.
 - Add or expand regression tests before removing compatibility behavior.
 - Update README, roadmap, changelog, architecture, and release docs as the product changes.

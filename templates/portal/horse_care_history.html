@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Care history · {{ horse.display_name }}{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'horse_detail' horse.pk %}">← Back to {{ horse.display_name }}</a></nav>
+<section class="page-intro horse-module-intro">
+  <div><div class="eyebrow">EQUINE CARE &amp; HORSE MANAGEMENT</div><h1>Completed care</h1><p>{{ horse.display_name }} · Full care history by year</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'horse_detail' horse.pk %}">Horse profile</a><a class="btn" href="{% url 'horse_care_add' horse.pk %}">Add care record</a></div>
+</section>
+
+<section class="card">
+  <div class="card-heading-row">
+    <div><div class="section-kicker">CARE HISTORY</div><h2>Completed care by year</h2><p class="muted">Every recorded care event remains available here, including records that no longer drive the current schedule.</p></div>
+    <form method="get" class="inline-form">
+      <label for="care-year">Year</label>
+      <select id="care-year" name="year" onchange="this.form.submit()">
+        <option value="">All years</option>
+        {% for year in years %}<option value="{{ year }}"{% if selected_year == year %} selected{% endif %}>{{ year }}</option>{% endfor %}
+      </select>
+      <noscript><button class="btn secondary" type="submit">Filter</button></noscript>
+    </form>
+  </div>
+
+  {% for group in year_groups %}
+    <div class="horse-care-year-group">
+      <h3>{{ group.year }}</h3>
+      <div class="stack-list">
+        {% for record in group.records %}
+        <div class="stack-item">
+          <div>
+            <strong>{{ record.performed_date|date:"M j" }} · {{ record.title }}</strong>
+            <div class="muted">{{ record.get_care_type_display }}{% if record.provider %} · {{ record.provider.display_name }}{% endif %}{% if record.next_due_date %} · Next due {{ record.next_due_date|date:"M j, Y" }} · {{ record.due_status_label }}{% endif %}</div>
+            {% if record.notes %}<div class="muted">{{ record.notes|linebreaksbr }}</div>{% endif %}
+          </div>
+          <a class="text-link" href="{% url 'horse_care_edit' horse.pk record.pk %}">Edit →</a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% empty %}
+    <p class="muted">No completed care has been recorded{% if selected_year %} for {{ selected_year }}{% endif %}.</p>
+  {% endfor %}
+</section>
+{% endblock %}

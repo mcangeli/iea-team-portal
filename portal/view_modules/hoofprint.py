@@ -14,6 +14,7 @@ from ..hoofprint_forms import HoofprintFinalizeForm, ShowHorseListDocumentForm
 from ..hoofprint_models import HoofprintSnapshot, ShowHorseListDocument
 from ..hoofprint_service import build_hoofprint_payload, render_hoofprint_pdf
 from ..models import AuditEvent, Show
+from ..show_readiness_service import build_show_readiness
 from ..show_readiness_views import _can_manage_show_horses
 from .common import _audit_event, _ensure_season_open, _team
 
@@ -34,6 +35,7 @@ def _pdf_response(show, payload, filename_suffix):
 def _hoofprint_context(show, payload, form, can_manage):
     latest = show.hoofprint_snapshots.order_by("-version").first()
     horse_lists = show.horse_list_documents.select_related("uploaded_by").all()[:10]
+    readiness = build_show_readiness(show)
     return {
         "show": show,
         "payload": payload,
@@ -45,6 +47,9 @@ def _hoofprint_context(show, payload, form, can_manage):
         "can_manage": can_manage,
         "live_differs": live_differs_from_snapshot(payload, latest),
         "hoofprint_warnings": hoofprint_warnings(payload),
+        "compliance_ready": readiness["compliance_ready"],
+        "compliance_warnings": readiness["compliance_warnings"],
+        "compliance_warning_count": readiness["compliance_warning_count"],
     }
 
 
@@ -81,17 +86,12 @@ def show_horse_list_upload(request, show_pk):
                 document.revision = max_revision + 1
                 document.save()
         except Exception:
-            # Upload failures should return to the form with a useful message rather
-            # than falling through to the production 500 page. The exception is still
-            # logged with its full traceback for diagnosis.
             LOGGER.exception("Horse list document save failed for show %s", show.pk)
             form.add_error(
                 "document",
                 "The horse list could not be saved. Please try the photo again or upload a PDF/image file.",
             )
         else:
-            # Audit logging must never turn an otherwise successful horse-list upload
-            # into a server error. The uploaded document is the source of truth.
             try:
                 _audit_event(
                     team=team,
@@ -144,6 +144,10 @@ def show_hoofprint_finalize(request, show_pk):
         payload = build_hoofprint_payload(show, request.POST)
         return render(request, "portal/show_hoofprint.html", _hoofprint_context(show, payload, form, True), status=400)
     payload = build_hoofprint_payload(show, form.cleaned_data)
+    readiness = build_show_readiness(show)
+    if not readiness["compliance_ready"]:
+        messages.error(request, "Hoofprint cannot be finalized while a required horse compliance item is missing, expired, or will not remain valid through the show date.")
+        return render(request, "portal/show_hoofprint.html", _hoofprint_context(show, payload, form, True), status=400)
     max_version = show.hoofprint_snapshots.aggregate(value=Max("version"))["value"] or 0
     snapshot = HoofprintSnapshot.objects.create(show=show, version=max_version + 1, payload=payload, finalized_by=request.user)
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.GENERATED, obj=snapshot, season=show.season, summary=f"Finalized Hoofprint v{snapshot.version} for {show.name}")

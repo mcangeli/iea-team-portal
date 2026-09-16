@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.test import TestCase
+from django.utils import timezone
 
-from portal.horse_models import Horse, HorseShowAssignment
+from portal.horse_models import Horse, HorseCogginsRecord, HorseShowAssignment
 from portal.models import Rider, Season, SeasonClass, Show, ShowClass, ShowEntry, Team
 from portal.show_readiness_models import ShowLeasedHorse
 from portal.show_readiness_service import build_show_readiness
@@ -51,11 +52,18 @@ class ShowReadinessTests(TestCase):
                 status=ShowEntry.Status.ENTERED,
             )
 
-    def _add_registry_horse(self, name="Team Horse", cover_class=True):
+    def _add_registry_horse(self, name="Team Horse", cover_class=True, current_coggins=False):
         horse = Horse.objects.create(team=self.team, name=name)
         assignment = HorseShowAssignment.objects.create(show=self.show, horse=horse, available=True)
         if cover_class:
             assignment.show_classes.add(self.show_class)
+        if current_coggins:
+            today = timezone.localdate()
+            HorseCogginsRecord.objects.create(
+                horse=horse,
+                test_date=today,
+                expiration_date=today + timedelta(days=365),
+            )
         return assignment
 
     def test_required_horses_rounds_up(self):
@@ -66,7 +74,7 @@ class ShowReadinessTests(TestCase):
 
     def test_leased_horses_count_toward_total_and_class_coverage(self):
         self._add_entries(10)
-        self._add_registry_horse("Team One")
+        self._add_registry_horse("Team One", current_coggins=True)
         leased = ShowLeasedHorse.objects.create(show=self.show, barn_name="Lease One", available=True)
         leased.show_classes.add(self.show_class)
 
@@ -77,6 +85,7 @@ class ShowReadinessTests(TestCase):
         self.assertEqual(readiness["available_horses"], 2)
         self.assertTrue(readiness["count_ready"])
         self.assertTrue(readiness["coverage_ready"])
+        self.assertTrue(readiness["compliance_ready"])
         self.assertTrue(readiness["ready"])
 
     def test_count_can_pass_while_class_coverage_fails(self):

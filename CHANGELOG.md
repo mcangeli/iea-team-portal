@@ -4,6 +4,35 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.3.0 — Equine Care & Horse Management
+
+Released September 2026.
+
+v3.3.0 expands ArenaLine's Horse Registry into an operational equine-care, document, compliance, and delegated horse-management system while preserving established IEA Horse, Show, Hoofprint, Horse of the Day, and historical workflows.
+
+Highlights:
+
+- durable horse identifiers and expanded People↔Horse care-provider relationships;
+- historical care records for vaccination, farrier, dental, veterinary, medication, wellness, and other care activity;
+- next-due scheduling intelligence with overdue, due-soon, and current status;
+- full completed-care history organized by year;
+- generic horse documents with effective/expiration dates and optional care-record linkage;
+- configurable organization compliance requirements for Coggins and horse document types;
+- show-date-aware compliance so records must remain valid through the actual show date;
+- Show Readiness and Show Horses integration with blocking vs warning compliance states;
+- Hoofprint compliance integration that blocks finalization for unresolved required horse records while preserving preview and advisory Hoofprint warnings;
+- authenticated, organization-scoped protected downloads for generic horse documents and Coggins attachments;
+- explicit **Manage Horses** capability for organization-wide horse management without requiring Coach/Admin access;
+- current Boarder / Responsible Party relationships can manage only their related horse records, with effective-date-aware access;
+- horse relationship/season/show authority remains separately restricted so delegated horse managers cannot broaden their own access;
+- privacy-safe manager/non-manager presentation and preserved historical Horse of the Day behavior.
+
+Migrations: `0072_v330_horse_identifiers.py` through `0078_v330_organization_capabilities.py`.
+
+Validation: clean Django system/migration checks, **128/128 horse/show/Hoofprint regression tests passing**, **56/56 affected horse/People authorization regressions passing**, and **747/747 portal tests passing** on the final v3.3.0 staging baseline.
+
+Detailed notes: `docs/releases/v3.3.0.md`.
+
 ## v3.2.3 — People & Operations Polish
 
 Released September 2026.
@@ -61,6 +90,7 @@ Highlights:
 - catalog-linked season/show classes;
 - show-only warm-ups and Hunt Seat VOC;
 - catalog-driven scoring eligibility;
+- historical compatibility for unlinked legacy classes;
 - architecture/presentation cleanup ahead of public work.
 
 Validation: **425 portal tests passing** before production promotion.

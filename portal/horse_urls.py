@@ -1,16 +1,28 @@
 from django.urls import path
 
-from .view_modules import hoofprint, horses
+from .view_modules import equine_care, equine_compliance, equine_documents, hoofprint, horses
 
 urlpatterns = [
     path("horses/", horses.horse_list, name="horse_list"),
     path("horses/add/", horses.horse_create, name="horse_create"),
+    path("horses/compliance/requirements/", equine_compliance.requirement_list, name="horse_compliance_requirements"),
+    path("horses/compliance/requirements/add/", equine_compliance.requirement_add, name="horse_compliance_requirement_add"),
+    path("horses/compliance/requirements/<int:pk>/edit/", equine_compliance.requirement_edit, name="horse_compliance_requirement_edit"),
     path("horses/<int:pk>/", horses.horse_detail, name="horse_detail"),
     path("horses/<int:pk>/edit/", horses.horse_edit, name="horse_edit"),
+    path("horses/<int:horse_pk>/identifiers/add/", horses.horse_identifier_add, name="horse_identifier_add"),
+    path("horses/<int:horse_pk>/identifiers/<int:pk>/edit/", horses.horse_identifier_edit, name="horse_identifier_edit"),
     path("horses/<int:horse_pk>/people/add/", horses.horse_person_relationship_add, name="horse_person_relationship_add"),
     path("horses/<int:horse_pk>/people/<int:pk>/edit/", horses.horse_person_relationship_edit, name="horse_person_relationship_edit"),
+    path("horses/<int:horse_pk>/care/", equine_care.horse_care_history, name="horse_care_history"),
+    path("horses/<int:horse_pk>/care/add/", equine_care.horse_care_add, name="horse_care_add"),
+    path("horses/<int:horse_pk>/care/<int:pk>/edit/", equine_care.horse_care_edit, name="horse_care_edit"),
+    path("horses/<int:horse_pk>/documents/add/", equine_documents.horse_document_add, name="horse_document_add"),
+    path("horses/<int:horse_pk>/documents/<int:pk>/edit/", equine_documents.horse_document_edit, name="horse_document_edit"),
+    path("horses/<int:horse_pk>/documents/<int:pk>/download/", equine_documents.horse_document_download, name="horse_document_download"),
     path("horses/<int:horse_pk>/coggins/add/", horses.horse_coggins_add, name="horse_coggins_add"),
     path("horses/<int:horse_pk>/coggins/<int:pk>/edit/", horses.horse_coggins_edit, name="horse_coggins_edit"),
+    path("horses/<int:horse_pk>/coggins/<int:pk>/document/", horses.horse_coggins_document, name="horse_coggins_document"),
     path("horses/<int:horse_pk>/eligibility/", horses.horse_season_profile, name="horse_season_profile"),
     path("horses/<int:horse_pk>/eligibility/<int:season_pk>/", horses.horse_season_profile, name="horse_season_profile_season"),
     path("shows/<int:show_pk>/horses/", horses.show_horses, name="show_horses"),

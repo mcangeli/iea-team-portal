@@ -1,5 +1,6 @@
 from django.urls import path
 
+from portal.view_modules.equine_access import person_horse_access
 from portal.view_modules.people import (
     barn_operations,
     committee_add,
@@ -35,6 +36,7 @@ urlpatterns = [
     path("people/<int:pk>/", person_detail, name="person_detail"),
     path("people/<int:pk>/edit/", person_edit, name="person_edit"),
     path("people/<int:pk>/access/create/", person_login_create, name="person_login_create"),
+    path("people/<int:person_pk>/access/horses/", person_horse_access, name="person_horse_access"),
     path("people/<int:pk>/roles/add/", person_role_add, name="person_role_add"),
     path("people/<int:pk>/roles/<int:role_pk>/edit/", person_role_edit, name="person_role_edit"),
     path("people/<int:pk>/relationships/add/", person_relationship_add, name="person_relationship_add"),

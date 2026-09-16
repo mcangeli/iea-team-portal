@@ -14,9 +14,9 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.2.0 — Unified People & Organization Foundation:** completed development milestone.
 - **3.2.1 — Barn Participation & Horse Relationships:** completed development milestone.
 - **3.2.2 — ArenaLine Station:** completed development milestone.
-- **3.2.3 — People & Operations Polish:** release-complete; closes the 3.2.x family.
-- **3.3.0 — Equine Care & Horse Management:** current next major release.
-- **3.4.0 — Lesson Program:** committed future release.
+- **3.2.3 — People & Operations Polish:** released; closes the 3.2.x family.
+- **3.3.0 — Equine Care & Horse Management:** release-complete.
+- **3.4.0 — Lesson Program:** committed next major release.
 - **3.5.0 — Barn Finance & Business Operations:** committed future release.
 
 ---
@@ -119,7 +119,7 @@ Supporting doc: `docs/releases/v3.1.0.md`.
 
 # 3.2.x — People, Relationships & Barn Operations
 
-**Status: release-complete with v3.2.3.**
+**Status: released with v3.2.3.**
 
 v3.2 moved ArenaLine from separate rider/parent/user assumptions toward a unified human and organizational model suitable for a full barn program.
 
@@ -174,7 +174,7 @@ Major outcomes:
 
 ## v3.2.3 — People & Operations Polish
 
-**Status: release-complete.**
+**Status: released.**
 
 Closeout outcomes:
 
@@ -202,27 +202,36 @@ v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfil
 
 # 3.3.0 — Equine Care & Horse Management
 
-**Status: committed next major release and next development focus.**
+**Status: release-complete.**
 
-v3.3 expands the current competition/Hoofprint-oriented Horse Registry into broader equine-care and barn-management functionality while preserving show/competition workflows.
+v3.3 expands the competition/Hoofprint-oriented Horse Registry into broader equine-care, document, compliance, delegated-management, and show-readiness functionality while preserving existing competition and historical workflows.
 
-Planned areas include:
+Major outcomes:
 
-- ownership, boarding, leasing, responsible-party, trainer, and care-team relationships built on v3.2 People;
-- veterinarian, farrier, dentist, and other care-provider information;
-- vaccinations, medications, treatments, Coggins, health records, and documents;
-- feed, supplements, turnout, blanketing, shoeing, and routine care preferences;
-- appointments and care reminders;
-- emergency information and care notes;
-- workload/use restrictions and availability;
-- horse-care calendar/history;
-- integration with existing Horse Readiness, Hoofprint, Show Horses, Horse of the Day, and horse-history features.
+- durable horse identifiers and expanded veterinarian/farrier/dentist/emergency People↔Horse relationships;
+- historical care records with provider, performed date, next-due date, notes, and year-organized completed-care history;
+- scheduling intelligence for overdue, due-soon, and current care;
+- generic horse documents with effective/expiration dates and optional care-record linkage;
+- configurable organization compliance requirements for Coggins and selected document types;
+- show-date-aware compliance that requires records to remain valid through the actual show date;
+- Show Readiness and Show Horses compliance integration with blocking and warning states;
+- Hoofprint compliance enforcement while preserving preview and advisory completeness warnings;
+- protected organization-scoped horse document and Coggins downloads;
+- explicit Manage Horses capability for organization-wide delegation without Coach/Admin access;
+- current Boarder / Responsible Party relationships provide effective-date-aware management of only their related horse records;
+- structural relationship, season, and show authority remains separately restricted from delegated horse-record management;
+- privacy-safe presentation that does not expose private care/compliance details to ordinary rider/parent views;
+- preserved Horse of the Day, Hoofprint, show-assignment, and historical compatibility.
+
+Final validation: clean Django system/migration checks, **128/128 horse/show/Hoofprint regression tests passing**, **56/56 affected horse/People authorization regressions passing**, and **747/747 portal tests passing** on staging.
+
+Detailed release notes: `docs/releases/v3.3.0.md`.
 
 ---
 
 # 3.4.0 — Lesson Program
 
-**Status: committed future release.**
+**Status: committed next major release.**
 
 Planned areas include lesson enrollment/recurring schedules, groups/programs and trainer assignments, rider/horse assignment, capacity/waitlists, cancellations/makeups, Station attendance integration, lesson/trainer notes, progression/history, workload visibility, and billing hooks needed by v3.5 without duplicating Finance logic.
 

@@ -20,7 +20,7 @@ class Horse(models.Model):
         NONE = "none", "None / not applicable"
 
     class OwnershipType(models.TextChoices):
-        TEAM = "team", "Team-owned"
+        TEAM = "team", "Barn-owned"
         PRIVATE = "private", "Privately contributed"
         LEASED = "leased", "Leased"
         OTHER = "other", "Other"
