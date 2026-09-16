@@ -85,13 +85,7 @@ class LessonSeries(models.Model):
 
 
 class IEALessonSeriesContext(models.Model):
-    """IEA specialization layered onto the generic lesson engine.
-
-    LessonSeries remains generic. This one-to-one context identifies a series as
-    an IEA team lesson for a particular Season and Futures/Upper team level.
-    IEA roster preparation should derive from SeasonMembership rather than the
-    general barn LessonEnrollment roster.
-    """
+    """IEA specialization layered onto the generic lesson engine."""
     class TeamLevel(models.TextChoices):
         FUTURES = SeasonMembership.TeamLevel.FUTURES, "Futures Team"
         UPPER = SeasonMembership.TeamLevel.UPPER, "Upper School Team"
@@ -105,9 +99,7 @@ class IEALessonSeriesContext(models.Model):
 
     class Meta:
         ordering = ["-season__start_date", "team_level", "series__name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["season", "team_level", "series"], name="unique_iea_lesson_series_context")
-        ]
+        constraints = [models.UniqueConstraint(fields=["season", "team_level", "series"], name="unique_iea_lesson_series_context")]
 
     def clean(self):
         super().clean()
@@ -160,11 +152,18 @@ class LessonOccurrence(models.Model):
         CANCELLED = "cancelled", "Cancelled"
         RESCHEDULED = "rescheduled", "Rescheduled"
 
+    class Origin(models.TextChoices):
+        GENERATED = "generated", "Generated"
+        MANUAL = "manual", "Manual"
+        LEGACY = "legacy", "Legacy conversion"
+
     series = models.ForeignKey(LessonSeries, on_delete=models.PROTECT, related_name="occurrences")
     title = models.CharField(max_length=160)
     instructor = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_occurrences_instructed")
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
+    origin = models.CharField(max_length=12, choices=Origin.choices, default=Origin.MANUAL)
+    scheduled_for = models.DateTimeField(null=True, blank=True, help_text="Immutable recurrence slot for generated occurrences.")
     location = models.CharField(max_length=180, blank=True)
     capacity = models.PositiveSmallIntegerField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.SCHEDULED)
@@ -174,6 +173,7 @@ class LessonOccurrence(models.Model):
 
     class Meta:
         ordering = ["starts_at", "id"]
+        constraints = [models.UniqueConstraint(fields=["series", "scheduled_for"], name="unique_lesson_series_scheduled_slot")]
 
     def clean(self):
         super().clean()
@@ -183,6 +183,10 @@ class LessonOccurrence(models.Model):
             raise ValidationError({"capacity": "Capacity must be at least 1."})
         if self.instructor_id and self.instructor.team_id != self.series.program.team_id:
             raise ValidationError("Lesson occurrence instructor must belong to the same organization.")
+        if self.origin == self.Origin.GENERATED and self.scheduled_for is None:
+            raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
+        if self.origin != self.Origin.GENERATED and self.scheduled_for is not None:
+            raise ValidationError({"scheduled_for": "Only generated lesson occurrences may have a recurrence slot."})
 
     def __str__(self):
         return f"{self.title} — {self.starts_at:%Y-%m-%d}"
