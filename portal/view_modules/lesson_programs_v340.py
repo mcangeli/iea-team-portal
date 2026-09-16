@@ -3,7 +3,6 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -110,8 +109,11 @@ def lesson_occurrence_prepare(request,pk):
     return redirect("lesson_occurrence_detail",pk=pk)
 
 @login_required
-def lesson_attendance_edit(request,pk):
-    _require_manage(request.user); team=organization_for_view_user(request.user); record=get_object_or_404(LessonAttendanceRecord.objects.select_related("occurrence__series__program","person"),pk=pk,occurrence__series__program__team=team); form=LessonAttendanceRecordForm(request.POST or None,instance=record)
+def lesson_attendance_edit(request, pk=None, attendance_pk=None):
+    # Compatibility: an older lesson URL name uses attendance_pk while the v3.4
+    # route uses pk. Accept either so reverse resolution cannot break this view.
+    record_pk = pk if pk is not None else attendance_pk
+    _require_manage(request.user); team=organization_for_view_user(request.user); record=get_object_or_404(LessonAttendanceRecord.objects.select_related("occurrence__series__program","person"),pk=record_pk,occurrence__series__program__team=team); form=LessonAttendanceRecordForm(request.POST or None,instance=record)
     if form.is_valid(): form.save(); messages.success(request,f"Attendance updated for {record.person}."); return redirect("lesson_occurrence_detail",pk=record.occurrence_id)
     return render(request,"portal/form.html",{"form":form,"title":f"Attendance · {record.person}","eyebrow":record.occurrence.title})
 
