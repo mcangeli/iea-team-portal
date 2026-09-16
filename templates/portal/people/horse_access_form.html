@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Horse access · {{ person.display_name }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'person_detail' person.pk %}">← {{ person.display_name }}</a></nav>
+<section class="page-intro"><div><div class="eyebrow">ACCESS CAPABILITY</div><h1>Horse management access</h1><p>Delegate horse operations without changing {{ person.display_name }}'s organizational role.</p></div></section>
+<section class="content-section form-section">
+  <div class="section-head"><div><div class="eyebrow">MANAGE HORSES</div><h2>Organization-wide horse access</h2><p class="muted">This capability covers horse profiles, identifiers, care, Coggins, documents, and compliance visibility. It does not grant People, Finance, scoring, show-assignment, or organization-administration authority.</p></div></div>
+  <form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save horse access</button><a class="btn btn-secondary" href="{% url 'person_detail' person.pk %}">Cancel</a></div></form>
+</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">RELATIONSHIP-DERIVED ACCESS</div><h2>Boarder access</h2></div></div><p class="muted">A current Boarder / Responsible Party relationship automatically allows that Person to maintain the related horse's profile, identifiers, care, Coggins, and documents. Ending or deactivating the relationship removes that horse-scoped access.</p></section>
+{% endblock %}
