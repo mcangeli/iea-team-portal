@@ -67,12 +67,14 @@ class EquineDocumentTests(TestCase):
         self.assertEqual(current.expiration_status, "current")
 
     def test_profile_shows_documents_for_manager(self):
-        HorseDocument.objects.create(horse=self.horse, document_type=HorseDocument.DocumentType.REGISTRATION, title="Registration papers", file=self._file())
+        document = HorseDocument.objects.create(horse=self.horse, document_type=HorseDocument.DocumentType.REGISTRATION, title="Registration papers", file=self._file())
         response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
         self.assertContains(response, "DOCUMENTS &amp; COMPLIANCE")
         self.assertContains(response, "Horse documents")
         self.assertContains(response, "Registration papers")
         self.assertContains(response, "Add document")
+        self.assertContains(response, reverse("horse_document_download", args=[self.horse.pk, document.pk]))
+        self.assertNotContains(response, document.file.url)
 
     def test_non_manager_does_not_see_general_documents(self):
         HorseDocument.objects.create(horse=self.horse, document_type=HorseDocument.DocumentType.VETERINARY, title="Private veterinary document", file=self._file())
@@ -99,4 +101,28 @@ class EquineDocumentTests(TestCase):
         other_horse = Horse.objects.create(team=other_team, name="Comet")
         document = HorseDocument.objects.create(horse=other_horse, document_type=HorseDocument.DocumentType.OTHER, title="Other barn document", file=self._file())
         response = self.client.get(reverse("horse_document_edit", args=[other_horse.pk, document.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_manager_can_download_document_through_protected_endpoint(self):
+        document = HorseDocument.objects.create(horse=self.horse, document_type=HorseDocument.DocumentType.VETERINARY, title="Veterinary record", file=self._file("vet.pdf"))
+        response = self.client.get(reverse("horse_document_download", args=[self.horse.pk, document.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        self.assertEqual(response["Pragma"], "no-cache")
+
+    def test_non_manager_cannot_download_document(self):
+        document = HorseDocument.objects.create(horse=self.horse, document_type=HorseDocument.DocumentType.INSURANCE, title="Insurance", file=self._file("insurance.pdf"))
+        rider = User.objects.create_user(username="document-rider-download", password="test-pass-123")
+        rider.profile.team = self.team
+        rider.profile.role = UserProfile.Role.RIDER
+        rider.profile.save(update_fields=["team", "role"])
+        self.client.force_login(rider)
+        response = self.client.get(reverse("horse_document_download", args=[self.horse.pk, document.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_other_organization_document_download_is_not_discoverable(self):
+        other_team = Team.objects.create(name="Other Download Barn")
+        other_horse = Horse.objects.create(team=other_team, name="Comet")
+        document = HorseDocument.objects.create(horse=other_horse, document_type=HorseDocument.DocumentType.VETERINARY, title="Other vet record", file=self._file("other-vet.pdf"))
+        response = self.client.get(reverse("horse_document_download", args=[other_horse.pk, document.pk]))
         self.assertEqual(response.status_code, 404)
