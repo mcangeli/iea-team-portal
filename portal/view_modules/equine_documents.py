@@ -2,16 +2,16 @@ from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from ..equine_access import require_horse_management
 from ..equine_document_forms import HorseDocumentForm
 from ..horse_models import Horse
 from ..model_modules.equine_documents import HorseDocument
 from ..models import AuditEvent
 from ..platform import organization_for_view_user
-from .common import _audit_event, _can_manage
+from .common import _audit_event
 
 
 def _horse_for_user(user, pk):
@@ -19,15 +19,15 @@ def _horse_for_user(user, pk):
     return get_object_or_404(Horse, pk=pk, team=team)
 
 
-def _require_horse_manage(user):
-    if not _can_manage(user):
-        raise PermissionDenied
+def _managed_horse(user, pk):
+    horse = _horse_for_user(user, pk)
+    require_horse_management(user, horse)
+    return horse
 
 
 @login_required
 def horse_document_add(request, horse_pk):
-    _require_horse_manage(request.user)
-    horse = _horse_for_user(request.user, horse_pk)
+    horse = _managed_horse(request.user, horse_pk)
     form = HorseDocumentForm(request.POST or None, request.FILES or None, horse=horse)
     if form.is_valid():
         document = form.save(commit=False)
@@ -51,8 +51,7 @@ def horse_document_add(request, horse_pk):
 
 @login_required
 def horse_document_edit(request, horse_pk, pk):
-    _require_horse_manage(request.user)
-    horse = _horse_for_user(request.user, horse_pk)
+    horse = _managed_horse(request.user, horse_pk)
     document = get_object_or_404(HorseDocument, pk=pk, horse=horse)
     form = HorseDocumentForm(request.POST or None, request.FILES or None, instance=document, horse=horse)
     if form.is_valid():
@@ -76,9 +75,8 @@ def horse_document_edit(request, horse_pk, pk):
 
 @login_required
 def horse_document_download(request, horse_pk, pk):
-    """Serve sensitive horse records only through authenticated manager access."""
-    _require_horse_manage(request.user)
-    horse = _horse_for_user(request.user, horse_pk)
+    """Serve sensitive horse records only through horse-scoped authorized access."""
+    horse = _managed_horse(request.user, horse_pk)
     document = get_object_or_404(HorseDocument, pk=pk, horse=horse)
     file_obj = document.file.open("rb")
     filename = Path(document.file.name).name
