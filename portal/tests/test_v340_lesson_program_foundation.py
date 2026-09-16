@@ -2,7 +2,7 @@ from datetime import date, datetime, time, timedelta
 
 from django.apps import apps
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
@@ -98,7 +98,7 @@ class LessonProgramFoundationTests(TestCase):
     def test_enrollment_is_canonical_person_and_unique_per_series(self):
         enrollment = LessonEnrollment.objects.create(series=self.series, person=self.rider)
         self.assertEqual(enrollment.person, self.rider)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(IntegrityError), transaction.atomic():
             LessonEnrollment.objects.create(series=self.series, person=self.rider)
 
     def test_enrollment_rejects_cross_organization_person_and_bad_dates(self):
@@ -137,7 +137,7 @@ class LessonProgramFoundationTests(TestCase):
 
     def test_attendance_is_unique_and_organization_scoped(self):
         LessonAttendanceRecord.objects.create(occurrence=self.occurrence, person=self.rider)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(IntegrityError), transaction.atomic():
             LessonAttendanceRecord.objects.create(occurrence=self.occurrence, person=self.rider)
         invalid = LessonAttendanceRecord(occurrence=self.occurrence, person=self.other_person)
         with self.assertRaises(ValidationError):
@@ -148,7 +148,7 @@ class LessonProgramFoundationTests(TestCase):
             occurrence=self.occurrence, person=self.rider, horse=self.horse
         )
         self.assertEqual(assignment.horse, self.horse)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaises(IntegrityError), transaction.atomic():
             LessonAssignment.objects.create(
                 occurrence=self.occurrence, person=self.rider, horse=self.horse
             )
