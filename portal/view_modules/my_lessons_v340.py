@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ..model_modules.lessons import LessonAttendanceRecord, LessonOccurrence, LessonParticipantMove
+from ..platform import role_for_user
 from ..services.lesson_participant_moves import destination_accepts_participant, destination_has_capacity, move_lesson_participant, participant_has_active_move
 
 
@@ -12,9 +13,14 @@ def _rider_person(user):
     person = getattr(user, "arena_person", None)
     if not person or not person.active:
         raise PermissionDenied("A linked active rider profile is required.")
-    if not person.role_assignments.filter(role="rider", active=True).exists():
-        raise PermissionDenied("Rider access is required.")
-    return person
+    if person.role_assignments.filter(role="rider", active=True).exists():
+        return person
+    # Match the navigation compatibility rule while legacy UserProfile roles are
+    # still supported. A legacy rider must still have a canonical active Person;
+    # the fallback grants rider-domain access without creating duplicate identity.
+    if role_for_user(user) == "rider":
+        return person
+    raise PermissionDenied("Rider access is required.")
 
 
 def _destinations(source, person):
