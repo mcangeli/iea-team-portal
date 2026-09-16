@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+from datetime import timedelta
+
+from django.utils import timezone
 
 from .model_modules.equine_compliance_requirements import HorseComplianceRequirement
 
@@ -42,8 +45,26 @@ def _latest_document_for_type(documents, document_type):
     return max(matches, key=lambda document: (document.effective_date or document.created_at.date(), document.pk))
 
 
-def compliance_summary_for_horse(horse):
-    """Evaluate active organization requirements, preserving 3C fallback behavior."""
+def _dated_status(expiration_date, as_of_date):
+    """Return compliance status relative to the date the record must remain valid through."""
+    if expiration_date is None:
+        return "current", "Current"
+    if expiration_date < as_of_date:
+        return "attention", "Not valid through date"
+    today = timezone.localdate()
+    if expiration_date <= today + timedelta(days=30):
+        return "warning", "Expiring soon"
+    return "current", "Current"
+
+
+def compliance_summary_for_horse(horse, as_of_date=None):
+    """Evaluate active organization requirements through ``as_of_date``.
+
+    Registry/profile callers omit ``as_of_date`` and retain today's compliance
+    behavior. Show workflows pass the show date so a record that is current now
+    but expires before the event cannot make the horse show-ready.
+    """
+    as_of_date = as_of_date or timezone.localdate()
     prefetched = getattr(horse, "_prefetched_objects_cache", {}).get("documents")
     documents = list(prefetched if prefetched is not None else horse.documents.all())
     requirements = list(HorseComplianceRequirement.objects.filter(team=horse.team, active=True))
@@ -56,36 +77,39 @@ def compliance_summary_for_horse(horse):
                 if record is None:
                     items.append(HorseComplianceItem("coggins", requirement.name, "attention", "Missing", "No Coggins record on file."))
                 else:
-                    status = {"expired": "attention", "expiring": "warning", "current": "current"}[record.status]
-                    items.append(HorseComplianceItem("coggins", requirement.name, status, record.status_label, f"Expires {record.expiration_date:%b %d, %Y}", record))
+                    status, status_label = _dated_status(record.expiration_date, as_of_date)
+                    items.append(HorseComplianceItem("coggins", requirement.name, status, status_label, f"Expires {record.expiration_date:%b %d, %Y}", record))
             else:
                 document = _latest_document_for_type(documents, requirement.document_type)
                 if document is None:
                     items.append(HorseComplianceItem("document", requirement.name, "attention", "Missing", f"Required {requirement.get_document_type_display()} is not on file."))
-                elif document.expiration_status == "expired":
-                    items.append(HorseComplianceItem("document", requirement.name, "attention", "Expired", f"{document.title} · Expired {document.expiration_date:%b %d, %Y}", document))
-                elif document.expiration_status == "expiring":
-                    items.append(HorseComplianceItem("document", requirement.name, "warning", "Expiring soon", f"{document.title} · Expires {document.expiration_date:%b %d, %Y}", document))
                 else:
+                    status, status_label = _dated_status(document.expiration_date, as_of_date)
                     detail = document.title
                     if document.expiration_date:
                         detail += f" · Expires {document.expiration_date:%b %d, %Y}"
-                    items.append(HorseComplianceItem("document", requirement.name, "current", "Current", detail, document))
+                    items.append(HorseComplianceItem("document", requirement.name, status, status_label, detail, document))
     else:
         coggins = horse.latest_coggins
         if coggins is None:
             items.append(HorseComplianceItem("coggins", "Coggins", "attention", "Missing", "No Coggins record on file."))
         else:
-            status = {"expired": "attention", "expiring": "warning", "current": "current"}[coggins.status]
-            items.append(HorseComplianceItem("coggins", "Coggins", status, coggins.status_label, f"Expires {coggins.expiration_date:%b %d, %Y}", coggins))
+            status, status_label = _dated_status(coggins.expiration_date, as_of_date)
+            items.append(HorseComplianceItem("coggins", "Coggins", status, status_label, f"Expires {coggins.expiration_date:%b %d, %Y}", coggins))
         for document in documents:
-            if document.expiration_status == "expired": status = "attention"
-            elif document.expiration_status == "expiring": status = "warning"
-            else: continue
-            items.append(HorseComplianceItem("document", document.title, status, document.expiration_status_label, f"{document.get_document_type_display()} · Expires {document.expiration_date:%b %d, %Y}", document))
+            status, status_label = _dated_status(document.expiration_date, as_of_date)
+            if status == "current":
+                continue
+            detail = document.get_document_type_display()
+            if document.expiration_date:
+                detail += f" · Expires {document.expiration_date:%b %d, %Y}"
+            items.append(HorseComplianceItem("document", document.title, status, status_label, detail, document))
 
     items.sort(key=lambda item: (_STATUS_PRIORITY[item.status], item.label.lower()))
-    if any(item.status == "attention" for item in items): overall = "attention"
-    elif any(item.status == "warning" for item in items): overall = "warning"
-    else: overall = "current"
+    if any(item.status == "attention" for item in items):
+        overall = "attention"
+    elif any(item.status == "warning" for item in items):
+        overall = "warning"
+    else:
+        overall = "current"
     return HorseComplianceSummary(items=tuple(items), overall_status=overall, requirements_configured=bool(requirements))
