@@ -78,13 +78,14 @@ def _participants_for_occurrence(occurrence: LessonOccurrence):
 
 
 def prepare_lesson_occurrence(occurrence: LessonOccurrence) -> LessonOccurrencePreparationResult:
-    """Materialize attendance/assignments from the correct lesson-domain roster.
+    """Materialize the operational lesson roster and instructor assignment.
 
     Barn series derive participants from LessonEnrollment. IEA series derive them
     from SeasonMembership for the configured season and Futures/Upper team level,
-    bridged to canonical Person through LegacyPersonLink. Preparation remains
-    additive and idempotent; existing occurrence operations stay authoritative.
-    Scheduled and rescheduled occurrences are both operational lesson instances.
+    bridged to canonical Person through LegacyPersonLink. The occurrence instructor
+    is materialized as an INSTRUCTOR assignment so the operational roster reflects
+    both participants and staff. Preparation remains additive and idempotent;
+    existing occurrence operations stay authoritative.
     """
     if not occurrence.pk:
         raise ValidationError("Lesson occurrence must be saved before preparation.")
@@ -98,6 +99,18 @@ def prepare_lesson_occurrence(occurrence: LessonOccurrence) -> LessonOccurrenceP
     participants = _participants_for_occurrence(occurrence)
 
     with transaction.atomic():
+        if occurrence.instructor_id:
+            instructor_assignment, instructor_was_created = LessonAssignment.objects.get_or_create(
+                occurrence=occurrence,
+                person=occurrence.instructor,
+                role=LessonAssignment.Role.INSTRUCTOR,
+            )
+            if instructor_was_created:
+                instructor_assignment.full_clean()
+                assignments_created.append(instructor_assignment)
+            else:
+                assignments_existing.append(instructor_assignment)
+
         for person in participants:
             attendance, attendance_was_created = LessonAttendanceRecord.objects.get_or_create(
                 occurrence=occurrence,
