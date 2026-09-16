@@ -53,7 +53,17 @@ class LessonParticipantMoveUITests(TestCase):
         self.assertEqual(move.destination_occurrence, self.destination)
         self.assertEqual(LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider).status, LessonAttendanceRecord.Status.MAKEUP)
 
-    def test_rider_already_on_destination_is_not_offered(self):
+    def test_prepared_expected_destination_remains_available(self):
         prepare_lesson_occurrence(self.destination)
+        attendance = LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider)
+        self.assertEqual(attendance.status, LessonAttendanceRecord.Status.EXPECTED)
+        response = self.client.get(reverse("lesson_participant_move", args=[self.source.pk, self.rider.pk]))
+        self.assertContains(response, f'value="{self.destination.pk}"')
+
+    def test_destination_with_attendance_history_is_not_offered(self):
+        prepare_lesson_occurrence(self.destination)
+        attendance = LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider)
+        attendance.status = LessonAttendanceRecord.Status.PRESENT
+        attendance.save(update_fields=["status"])
         response = self.client.get(reverse("lesson_participant_move", args=[self.source.pk, self.rider.pk]))
         self.assertNotContains(response, f'value="{self.destination.pk}"')
