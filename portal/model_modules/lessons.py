@@ -68,7 +68,11 @@ class LessonSeries(models.Model):
     @property
     def effective_capacity(self): return self.capacity if self.capacity is not None else self.program.default_capacity
     @property
-    def is_iea_series(self): return hasattr(self, "iea_context")
+    def is_iea_series(self):
+        # ModelForms validate the LessonSeries before a brand-new IEA context can
+        # exist. IEALessonSeriesForm marks that transient instance explicitly so
+        # model validation uses Coach rules during both form validation and save.
+        return getattr(self, "_lesson_domain", None) == "iea" or hasattr(self, "iea_context")
     def clean(self):
         super().clean()
         if self.weekday is not None and not 0 <= self.weekday <= 6: raise ValidationError({"weekday": "Weekday must be between 0 and 6."})
@@ -251,21 +255,15 @@ class LessonParticipantMove(models.Model):
     carry_horse = models.BooleanField(default=False)
     reason = models.CharField(max_length=255, blank=True)
     initiated_by = models.CharField(max_length=12, choices=Initiator.choices, default=Initiator.STAFF)
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_created")
+    initiated_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_initiated")
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
-        ordering = ["-created_at", "id"]
+        ordering = ["-created_at", "-id"]
         constraints = [models.UniqueConstraint(fields=["source_occurrence", "destination_occurrence", "person"], name="unique_lesson_participant_move")]
     def clean(self):
         super().clean()
-        if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lessons must be different.")
-        if self.person_id:
-            source_team = self.source_occurrence.series.program.team_id; destination_team = self.destination_occurrence.series.program.team_id
-            if source_team != destination_team or self.person.team_id != source_team: raise ValidationError("Lesson moves must remain within one organization.")
-        if self.destination_occurrence.status in {LessonOccurrence.Status.COMPLETED, LessonOccurrence.Status.CANCELLED}: raise ValidationError("Destination lesson must still be active.")
-        source_iea = self.source_occurrence.series.is_iea_series; destination_iea = self.destination_occurrence.series.is_iea_series
-        if source_iea != destination_iea: raise ValidationError("A rider cannot be moved between Barn and IEA lesson domains.")
-        if source_iea:
-            source_context = self.source_occurrence.series.iea_context; destination_context = self.destination_occurrence.series.iea_context
-            if source_context.season_id != destination_context.season_id or source_context.team_level != destination_context.team_level: raise ValidationError("IEA lesson moves must stay within the same season and team level.")
-    def __str__(self): return f"{self.person} · {self.get_kind_display()} · {self.source_occurrence} → {self.destination_occurrence}"
+        if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lesson occurrences must be different.")
+        if self.person_id and self.person.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant move must remain within the source organization.")
+        if self.destination_occurrence_id and self.destination_occurrence.series.program.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant move must remain within one organization.")
+        if self.initiated_by == self.Initiator.RIDER and not self.initiated_by_user_id: raise ValidationError("Rider-initiated lesson moves require an initiating user.")
+    def __str__(self): return f"{self.person} · {self.source_occurrence} → {self.destination_occurrence}"
