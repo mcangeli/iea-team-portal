@@ -4,7 +4,7 @@
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.3.0 expands ArenaLine's Horse Registry into a broader equine-care and horse-management system with care history and scheduling, documents, configurable compliance requirements, show-date readiness, Hoofprint compliance, protected horse records, and the People↔Horse care-team relationships built on the v3.2 People foundation.
+v3.3.0 expands ArenaLine's Horse Registry into a broader equine-care and horse-management system with care history and scheduling, documents, configurable compliance requirements, show-date readiness, Hoofprint compliance, protected horse records, delegated horse management, and the People↔Horse care-team relationships built on the v3.2 People foundation.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -31,7 +31,13 @@ Horse profiles now support durable identifiers, expanded care-provider relations
 
 Horse documents can track registration, vaccination, lease, ownership, veterinary, insurance, care, and other records with effective and expiration dates. Administrators/coaches can configure which Coggins/document records are required for horse compliance rather than treating every stored document as mandatory.
 
-Compliance distinguishes missing, expired, expiring-soon, and current requirements. Sensitive generic horse documents and Coggins attachments are served through authenticated, organization-scoped manager-only download routes.
+Compliance distinguishes missing, expired, expiring-soon, and current requirements. Sensitive generic horse documents and Coggins attachments are served through authenticated, organization-scoped horse-management download routes.
+
+### Delegated horse management
+
+Horse-management authorization is separate from a person's job title. Administrators can grant a Person/account the **Manage Horses** capability for organization-wide Horse Registry management without making that person a Coach or Administrator.
+
+A Person with a current **Boarder / Responsible Party** relationship can manage the related horse's profile, identifiers, care records, Coggins, documents, and compliance information. That relationship-derived access is effective-date-aware and does not extend to unrelated horses. Horse relationship administration, season eligibility, show assignments, Horse of the Day, organization compliance configuration, People administration, Finance, and account administration remain separately restricted.
 
 ### Show readiness and Hoofprint
 
@@ -41,13 +47,13 @@ Hoofprint preview and ordinary completeness warnings remain available/advisory. 
 
 ### People and privacy
 
-The v3.2 People foundation continues to provide canonical Person identity, multi-role barn participation, ArenaLine Station, work history, groups/programs, committees, and People↔Horse relationships. v3.3 extends those horse relationships for veterinarian, farrier, dentist, and emergency-contact participation.
+The v3.2 People foundation continues to provide canonical Person identity, multi-role barn participation, ArenaLine Station, work history, groups/programs, committees, and People↔Horse relationships. v3.3 extends those horse relationships for veterinarian, farrier, dentist, and emergency-contact participation and uses Person/account capabilities for delegated horse management.
 
-Care, document, and detailed configurable compliance information remains manager-only; ordinary rider/parent show-horse views retain the narrower compatibility-safe presentation.
+Care, document, and detailed configurable compliance information remains restricted to authorized horse managers; ordinary rider/parent show-horse views retain the narrower compatibility-safe presentation.
 
 ### Validation
 
-The final v3.3.0 staging baseline passed Django system/migration checks, the **128/128 horse/show/Hoofprint regression sweep**, and the complete `portal` suite: **732/732 tests green**.
+The final v3.3.0 staging baseline passed Django system/migration checks, the **128/128 horse/show/Hoofprint regression sweep**, the **56/56 affected horse/People authorization checkpoint**, and the complete `portal` suite: **747/747 tests green**.
 
 ## Roles and dashboards
 
@@ -61,8 +67,10 @@ The final v3.3.0 staging baseline passed Django system/migration checks, the **1
 | Show Lead | Assigned-show operations, planning, volunteers and Show Day |
 | Secretary / Points Secretary | Standings, missing results and qualification review |
 | Treasurer | Finance operations without requiring Administrator access |
+| Manage Horses capability | Organization-wide horse records/care/documents without broader Coach/Admin authority |
+| Current Boarder / Responsible Party | Scoped management of the related horse's records only |
 
-Administrators can open all role workspaces. Coaches receive the Coach workspace by role and only receive Team Parent, Show Lead, or Points Secretary dashboards when explicitly assigned that responsibility.
+Administrators can open all role workspaces. Coaches receive the Coach workspace by role and only receive Team Parent, Show Lead, or Points Secretary dashboards when explicitly assigned that responsibility. Horse-management capability is deliberately independent of those organizational roles.
 
 ## Recommended first-time setup
 
@@ -73,21 +81,22 @@ Administrators can open all role workspaces. Coaches receive the Coach workspace
 5. Configure the season's official IEA rulebook/catalog and participating disciplines.
 6. Review/create the official season classes needed by the organization.
 7. Add people through **People**, link/create login access only where needed, and assign current barn roles/relationships.
-8. Link riders to their current season, Futures/Upper team, home barn, and classes; link parents/guardians through the rider's family relationships.
-9. Configure organization groups/programs and committees where needed.
-10. Add Horses, maintain People↔Horse participation/care-team relationships, and configure required horse compliance records.
-11. Add care history, due dates, Coggins, and supporting horse documents as appropriate.
-12. Add Shows, official show classes, availability, entries, and Show Lead assignments.
-13. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
-14. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
-15. If using Finance, configure its accounts/categories/rates before entering family activity.
-16. Add prior-season information through the historical-data tools when desired.
+8. Grant **Manage Horses** from a Person profile when someone needs organization-wide horse management without broader Coach/Admin access.
+9. Link riders to their current season, Futures/Upper team, home barn, and classes; link parents/guardians through the rider's family relationships.
+10. Configure organization groups/programs and committees where needed.
+11. Add Horses, maintain People↔Horse participation/care-team relationships, and configure required horse compliance records. A current Boarder / Responsible Party relationship can provide scoped management of that horse.
+12. Add care history, due dates, Coggins, and supporting horse documents as appropriate.
+13. Add Shows, official show classes, availability, entries, and Show Lead assignments.
+14. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
+15. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
+16. If using Finance, configure its accounts/categories/rates before entering family activity.
+17. Add prior-season information through the historical-data tools when desired.
 
 ## Core workflows
 
 ### People, riders, seasons, and families
 
-A **Person** is the canonical human identity. A login account is optional and is managed separately as access. A Person may hold multiple barn roles and relationships simultaneously.
+A **Person** is the canonical human identity. A login account is optional and is managed separately as access. A Person may hold multiple barn roles and relationships simultaneously. Capabilities such as **Manage Horses** are authorization, not organizational roles.
 
 A **Rider** remains the competition-compatible rider record. A **Season Membership** places that rider on a specific season's Futures or Upper roster and stores season-specific classes, home barn, and notes. Do not delete a Person/Rider simply because they graduate or leave the organization; use lifecycle/effective-date controls so history remains intact.
 
@@ -118,6 +127,8 @@ ArenaLine includes Horse Registry, identifiers, People↔Horse relationships, ca
 Care records preserve completed history and optional next-due dates. The latest dated record in a care category drives scheduling status while older records remain available in history.
 
 Coggins remains a specialized source of truth. Configured compliance requirements may require Coggins and selected generic horse-document types. Show workflows evaluate those requirements through the show's date, and unresolved required compliance blocks readiness/Hoofprint finalization.
+
+Organization-wide horse management may be delegated with **Manage Horses**. A current Boarder / Responsible Party relationship provides management only for the related horse. These permissions do not grant competition/show administration or allow the scoped manager to alter the relationship that grants access.
 
 ### Station and work history
 
@@ -230,7 +241,7 @@ Or install v3.3.0 explicitly:
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.3 migration chain adds horse identifiers, care records/scheduling choices, generic horse documents, expanded care relationships, and configurable compliance requirements on top of the v3.2 People/relationship foundation. See `docs/releases/v3.3.0.md` for the release-specific migration summary.
+The v3.3 migration chain adds horse identifiers, care records/scheduling choices, generic horse documents, expanded care relationships, configurable compliance requirements, and organization capability assignments on top of the v3.2 People/relationship foundation. See `docs/releases/v3.3.0.md` for the release-specific migration summary.
 
 ## Backups and rollback
 
@@ -248,7 +259,7 @@ Generic platform domains include Core, People, Horses, Operations, Finance, and 
 
 The public/external layer is a separate publication boundary. Anonymous routes consume explicit allow-listed publication payloads rather than authenticated internal views.
 
-The v3.2 People layer remains compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures. v3.3 layers care, documents, and compliance onto the existing Horse model rather than replacing historical Horse/competition records.
+The v3.2 People layer remains compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures. v3.3 layers care, documents, compliance, and capability-based horse authorization onto the existing Horse/People models rather than replacing historical records.
 
 See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.3.0.md`.
 
