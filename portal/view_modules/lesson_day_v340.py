@@ -7,7 +7,7 @@ from ..model_modules.horses import Horse
 from ..model_modules.lessons import LessonAssignment, LessonAttendanceRecord, LessonOccurrence, LessonParticipantMove
 from ..platform import organization_for_view_user
 from ..services.lesson_day_operations import LessonDayRowUpdate, update_lesson_day
-from ..services.lesson_participant_moves import move_lesson_participant
+from ..services.lesson_participant_moves import destination_accepts_participant, destination_has_capacity, move_lesson_participant, participant_has_active_move
 from ..services.lesson_permissions import require_lesson_occurrence_manager
 
 
@@ -16,13 +16,15 @@ def _occurrence_for_team(team, pk):
 
 
 def _move_destinations(occurrence, person):
+    if participant_has_active_move(occurrence, person):
+        return []
     qs = LessonOccurrence.objects.filter(series__program__team=occurrence.series.program.team, starts_at__gt=occurrence.starts_at).exclude(pk=occurrence.pk).exclude(status__in=[LessonOccurrence.Status.COMPLETED, LessonOccurrence.Status.CANCELLED]).select_related("series__program", "series__iea_context__season")
     if occurrence.series.is_iea_series:
         context = occurrence.series.iea_context
         qs = qs.filter(series__iea_context__season=context.season, series__iea_context__team_level=context.team_level)
     else:
         qs = qs.filter(series__iea_context__isnull=True, series__program=occurrence.series.program)
-    return qs.exclude(attendance_records__person=person).distinct().order_by("starts_at")[:20]
+    return [row for row in qs.distinct().order_by("starts_at")[:40] if destination_accepts_participant(row, person) and destination_has_capacity(row, person)][:20]
 
 
 @login_required
