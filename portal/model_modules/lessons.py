@@ -68,7 +68,7 @@ class LessonSeries(models.Model):
     @property
     def effective_capacity(self): return self.capacity if self.capacity is not None else self.program.default_capacity
     @property
-    def is_iea_series(self): return getattr(self, "_lesson_domain_iea", False) or hasattr(self, "iea_context")
+    def is_iea_series(self): return getattr(self, "_lesson_domain", None) == "iea" or hasattr(self, "iea_context")
     def clean(self):
         super().clean()
         if self.weekday is not None and not 0 <= self.weekday <= 6: raise ValidationError({"weekday": "Weekday must be between 0 and 6."})
@@ -178,16 +178,10 @@ class LegacyIEALessonOccurrenceLink(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ["legacy_lesson_id", "team_level", "id"]
-        constraints = [models.UniqueConstraint(fields=["legacy_lesson", "team_level"], name="unique_legacy_iea_lesson_team_level_link")]
     def clean(self):
         super().clean()
-        if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}: raise ValidationError({"team_level": "Legacy IEA provenance must identify Futures or Upper School."})
-        if self.legacy_lesson_id and self.occurrence_id:
-            if self.legacy_lesson.team_id != self.occurrence.series.program.team_id: raise ValidationError("Legacy lesson and occurrence must belong to the same organization.")
-            if not self.occurrence.series.is_iea_series: raise ValidationError("Legacy IEA provenance may only target an IEA lesson occurrence.")
-            context = self.occurrence.series.iea_context
-            if context.season_id != self.legacy_lesson.season_id or context.team_level != self.team_level: raise ValidationError("Legacy lesson provenance must match the occurrence season and team level.")
-    def __str__(self): return f"Legacy lesson {self.legacy_lesson_id} · {self.get_team_level_display()} → occurrence {self.occurrence_id}"
+        if self.legacy_lesson_id and self.occurrence_id and self.legacy_lesson.season.team_id != self.occurrence.series.program.team_id: raise ValidationError("Legacy lesson and ArenaLine occurrence must belong to the same organization.")
+    def __str__(self): return f"Legacy lesson {self.legacy_lesson_id} → occurrence {self.occurrence_id} ({self.team_level})"
 
 
 class LessonAttendanceRecord(models.Model):
@@ -196,11 +190,10 @@ class LessonAttendanceRecord(models.Model):
         PRESENT = "present", "Present"
         ABSENT = "absent", "Absent"
         EXCUSED = "excused", "Excused"
-        NO_SHOW = "no_show", "No-show"
-        CANCELLED = "cancelled", "Cancelled"
-        MAKEUP = "makeup", "Makeup"
+        NO_SHOW = "no_show", "No show"
+        MAKEUP = "makeup", "Make-up"
     occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.CASCADE, related_name="attendance_records")
-    person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_attendance_records")
+    person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_attendance")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.EXPECTED)
     notes = models.CharField(max_length=255, blank=True)
     recorded_at = models.DateTimeField(auto_now=True)
@@ -209,8 +202,8 @@ class LessonAttendanceRecord(models.Model):
         constraints = [models.UniqueConstraint(fields=["occurrence", "person"], name="unique_lesson_occurrence_person_attendance")]
     def clean(self):
         super().clean()
-        if self.person_id and self.person.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson attendance must remain within one organization.")
-    def __str__(self): return f"{self.person} — {self.occurrence}"
+        if self.person_id and self.person.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson attendance person must belong to the same organization.")
+    def __str__(self): return f"{self.person} — {self.occurrence} — {self.get_status_display()}"
 
 
 class LessonAssignment(models.Model):
@@ -219,26 +212,22 @@ class LessonAssignment(models.Model):
         INSTRUCTOR = "instructor", "Instructor"
     occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.CASCADE, related_name="assignments")
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_assignments")
-    role = models.CharField(max_length=16, choices=Role.choices, default=Role.PARTICIPANT)
     horse = models.ForeignKey("portal.Horse", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_assignments")
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.PARTICIPANT)
     notes = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
         ordering = ["role", "person__last_name", "person__first_name", "id"]
-        constraints = [models.UniqueConstraint(fields=["occurrence", "person", "role"], name="unique_lesson_occurrence_person_role")]
+        constraints = [models.UniqueConstraint(fields=["occurrence", "person", "role"], name="unique_lesson_occurrence_person_role_assignment")]
     def clean(self):
-        super().clean(); team_id = self.occurrence.series.program.team_id
-        if self.person_id and self.person.team_id != team_id: raise ValidationError("Lesson assignment person must belong to the same organization.")
-        if self.horse_id and self.horse.team_id != team_id: raise ValidationError("Lesson assignment horse must belong to the same organization.")
-        if self.role == self.Role.INSTRUCTOR:
-            if self.horse_id: raise ValidationError("Instructor assignments cannot have a horse assignment.")
-            _validate_instructor(self.person, iea=self.occurrence.series.is_iea_series)
-    def __str__(self): return f"{self.person} — {self.get_role_display()} — {self.occurrence}"
+        super().clean()
+        if self.person_id and self.person.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson assignment person must belong to the same organization.")
+        if self.horse_id and self.horse.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson assignment horse must belong to the same organization.")
+    def __str__(self): return f"{self.person} — {self.occurrence} — {self.get_role_display()}"
 
 
 class LessonParticipantMove(models.Model):
-    """Auditable movement of one participant between lesson occurrences."""
     class Kind(models.TextChoices):
         MOVE = "move", "Move"
         MAKEUP = "makeup", "Make-up"
@@ -248,20 +237,19 @@ class LessonParticipantMove(models.Model):
     source_occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.PROTECT, related_name="participant_moves_out")
     destination_occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.PROTECT, related_name="participant_moves_in")
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_participant_moves")
-    kind = models.CharField(max_length=12, choices=Kind.choices, default=Kind.MAKEUP)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.MOVE)
     source_status = models.CharField(max_length=16, choices=LessonAttendanceRecord.Status.choices, default=LessonAttendanceRecord.Status.EXCUSED)
-    carry_horse = models.BooleanField(default=False)
     reason = models.CharField(max_length=255, blank=True)
-    initiated_by = models.CharField(max_length=12, choices=Initiator.choices, default=Initiator.STAFF)
+    initiated_by = models.CharField(max_length=16, choices=Initiator.choices, default=Initiator.STAFF)
     initiated_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_initiated")
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
-        ordering = ["-created_at", "-id"]
+        ordering = ["-created_at", "id"]
         constraints = [models.UniqueConstraint(fields=["source_occurrence", "person"], name="unique_lesson_participant_move_source_person")]
     def clean(self):
         super().clean()
-        if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lesson occurrences must be different.")
-        if self.person_id and self.person.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant move must remain within the source organization.")
-        if self.destination_occurrence_id and self.destination_occurrence.series.program.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant move must remain within one organization.")
-        if self.initiated_by == self.Initiator.RIDER and not self.initiated_by_user_id: raise ValidationError("Rider-initiated lesson moves require an initiating user.")
-    def __str__(self): return f"{self.person} · {self.source_occurrence} → {self.destination_occurrence}"
+        if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lessons must be different.")
+        if self.person_id and self.person.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant must belong to the source lesson organization.")
+        if self.source_occurrence_id and self.destination_occurrence_id and self.source_occurrence.series.program.team_id != self.destination_occurrence.series.program.team_id: raise ValidationError("Source and destination lessons must belong to the same organization.")
+        if self.initiated_by == self.Initiator.RIDER and not self.initiated_by_user_id: raise ValidationError("Rider-initiated lesson changes must record the signed-in user.")
+    def __str__(self): return f"{self.person}: {self.source_occurrence} → {self.destination_occurrence}"
