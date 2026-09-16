@@ -26,7 +26,12 @@ def destination_has_capacity(destination_occurrence, person=None):
     capacity = destination_occurrence.capacity
     if capacity is None:
         return True
-    roster = destination_occurrence.attendance_records.exclude(status=LessonAttendanceRecord.Status.CANCELLED)
+    # Attendance has no CANCELLED state. Capacity is consumed by every roster
+    # record except an EXCUSED participant; the candidate person is excluded so
+    # a prepared EXPECTED slot can be reused without counting them twice.
+    roster = destination_occurrence.attendance_records.exclude(
+        status=LessonAttendanceRecord.Status.EXCUSED
+    )
     if person is not None:
         roster = roster.exclude(person=person)
     return roster.count() < capacity
@@ -96,7 +101,6 @@ def move_lesson_participant(*, source_occurrence, destination_occurrence, person
                 person=person,
                 kind=kind,
                 source_status=source_status,
-                carry_horse=carry_horse,
                 reason=reason,
                 initiated_by=initiated_by,
                 initiated_by_user=created_by,
