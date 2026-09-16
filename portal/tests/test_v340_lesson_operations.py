@@ -9,7 +9,7 @@ from portal.model_modules.lessons import (
     LessonProgram,
     LessonSeries,
 )
-from portal.model_modules.people import Person
+from portal.model_modules.people import OrganizationRoleAssignment, Person
 from portal.models import Team
 from portal.services.lesson_operations import materialize_lesson_series
 from portal.services.lesson_scheduling import cancel_lesson_occurrence
@@ -19,6 +19,7 @@ class LessonSeriesMaterializationTests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="Operations Barn")
         self.instructor = Person.objects.create(team=self.team, first_name="Alex", last_name="Trainer")
+        OrganizationRoleAssignment.objects.create(team=self.team, person=self.instructor, role=OrganizationRoleAssignment.Role.TRAINER)
         self.rider = Person.objects.create(team=self.team, first_name="Riley", last_name="Student")
         self.program = LessonProgram.objects.create(team=self.team, name="Lesson Program", default_capacity=6)
         self.series = LessonSeries.objects.create(
