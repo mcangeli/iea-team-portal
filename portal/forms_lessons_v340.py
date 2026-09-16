@@ -1,12 +1,28 @@
 from django import forms
 from django.db import transaction
+from django.db.models import Q
 
 from .model_modules.horses import Horse
 from .model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonProgram, LessonSeries
-from .model_modules.people import OrganizationGroup, Person
+from .model_modules.people import OrganizationGroup, OrganizationRoleAssignment, Person
+from .models import UserProfile
 
 
 WEEKDAY_CHOICES = [(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), (3, "Thursday"), (4, "Friday"), (5, "Saturday"), (6, "Sunday")]
+
+
+def lesson_instructor_queryset(team, *, iea=False):
+    """Return only people allowed to instruct the requested lesson domain."""
+    queryset = Person.objects.filter(team=team, active=True)
+    if iea:
+        return queryset.filter(user__profile__role=UserProfile.Role.COACH).distinct().order_by("last_name", "first_name")
+    return queryset.filter(
+        role_assignments__active=True,
+        role_assignments__role__in=[
+            OrganizationRoleAssignment.Role.TRAINER,
+            OrganizationRoleAssignment.Role.ASSISTANT_TRAINER,
+        ],
+    ).distinct().order_by("last_name", "first_name")
 
 
 class LessonProgramForm(forms.ModelForm):
@@ -33,7 +49,7 @@ class LessonSeriesForm(forms.ModelForm):
 
     def __init__(self, *args, program, **kwargs):
         super().__init__(*args, **kwargs); self.program = program; self.instance.program = program
-        self.fields["instructor"].queryset = Person.objects.filter(team=program.team, active=True).order_by("last_name", "first_name")
+        self.fields["instructor"].queryset = lesson_instructor_queryset(program.team, iea=False)
         self.fields["weekday"].widget = forms.Select(choices=WEEKDAY_CHOICES)
 
     def save(self, commit=True):
@@ -47,6 +63,7 @@ class IEALessonSeriesForm(LessonSeriesForm):
 
     def __init__(self, *args, program, season, **kwargs):
         self.season = season; super().__init__(*args, program=program, **kwargs)
+        self.fields["instructor"].queryset = lesson_instructor_queryset(program.team, iea=True)
         self.fields["start_date"].initial = season.start_date; self.fields["end_date"].initial = season.end_date
 
     def save(self, commit=True):
