@@ -1,10 +1,13 @@
 from django.urls import path
 
-from .view_modules import equine_care, equine_documents, hoofprint, horses
+from .view_modules import equine_care, equine_compliance, equine_documents, hoofprint, horses
 
 urlpatterns = [
     path("horses/", horses.horse_list, name="horse_list"),
     path("horses/add/", horses.horse_create, name="horse_create"),
+    path("horses/compliance/requirements/", equine_compliance.requirement_list, name="horse_compliance_requirements"),
+    path("horses/compliance/requirements/add/", equine_compliance.requirement_add, name="horse_compliance_requirement_add"),
+    path("horses/compliance/requirements/<int:pk>/edit/", equine_compliance.requirement_edit, name="horse_compliance_requirement_edit"),
     path("horses/<int:pk>/", horses.horse_detail, name="horse_detail"),
     path("horses/<int:pk>/edit/", horses.horse_edit, name="horse_edit"),
     path("horses/<int:horse_pk>/identifiers/add/", horses.horse_identifier_add, name="horse_identifier_add"),
