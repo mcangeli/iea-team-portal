@@ -186,6 +186,6 @@ def show_horse_award_edit(request, show_pk, pk):
 
 @login_required
 @require_POST
-def show_horse_award_delete(request, show_pk, pk):
+def show_horse_award_remove(request, show_pk, pk):
     team = organization_for_view_user(request.user); show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season); award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.horse.display_name} — {award.get_session_display()}"
     _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed Horse of the Day award for {label}"); award.delete(); messages.success(request, f"Removed Horse of the Day award for {label}."); return redirect("show_horses", show_pk=show.pk)
