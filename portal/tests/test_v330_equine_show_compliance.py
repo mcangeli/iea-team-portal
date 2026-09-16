@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from portal.equine_compliance import compliance_summary_for_horse
 from portal.horse_models import Horse, HorseCogginsRecord, HorseShowAssignment
 from portal.model_modules.equine_compliance_requirements import HorseComplianceRequirement
 from portal.model_modules.equine_documents import HorseDocument
@@ -39,20 +40,62 @@ class EquineShowComplianceTests(TestCase):
 
     def test_expiring_requirement_warns_without_blocking_readiness(self):
         HorseComplianceRequirement.objects.create(team=self.team, name="Registration papers", requirement_type="document", document_type="registration")
-        HorseDocument.objects.create(horse=self.horse, document_type="registration", title="Registration", file=self._file(), expiration_date=timezone.localdate() + timedelta(days=10))
+        expiration = max(timezone.localdate() + timedelta(days=10), self.show.show_date)
+        HorseDocument.objects.create(horse=self.horse, document_type="registration", title="Registration", file=self._file(), expiration_date=expiration)
         readiness = build_show_readiness(self.show)
         self.assertTrue(readiness["compliance_ready"])
         self.assertTrue(readiness["ready"])
-        self.assertEqual(readiness["compliance_warning_count"], 1)
+        if expiration <= timezone.localdate() + timedelta(days=30):
+            self.assertEqual(readiness["compliance_warning_count"], 1)
 
     def test_current_requirements_allow_show_readiness(self):
         HorseComplianceRequirement.objects.create(team=self.team, name="Current Coggins", requirement_type="coggins")
         today = timezone.localdate()
-        HorseCogginsRecord.objects.create(horse=self.horse, test_date=today, expiration_date=today + timedelta(days=365))
+        HorseCogginsRecord.objects.create(horse=self.horse, test_date=today, expiration_date=max(today + timedelta(days=365), self.show.show_date))
         readiness = build_show_readiness(self.show)
         self.assertTrue(readiness["compliance_ready"])
         self.assertTrue(readiness["ready"])
         self.assertEqual(readiness["compliance_warning_count"], 0)
+
+    def test_document_current_today_but_expiring_before_show_blocks_readiness(self):
+        HorseComplianceRequirement.objects.create(team=self.team, name="Registration papers", requirement_type="document", document_type="registration")
+        today = timezone.localdate()
+        future_show_date = today + timedelta(days=90)
+        self.show.show_date = future_show_date
+        self.show.save(update_fields=["show_date"])
+        HorseDocument.objects.create(horse=self.horse, document_type="registration", title="Registration", file=self._file(), expiration_date=today + timedelta(days=60))
+
+        registry_summary = compliance_summary_for_horse(self.horse)
+        readiness = build_show_readiness(self.show)
+
+        self.assertEqual(registry_summary.overall_status, "current")
+        self.assertFalse(readiness["compliance_ready"])
+        self.assertFalse(readiness["ready"])
+        self.assertEqual(readiness["compliance_warnings"][0]["summary"].items[0].status_label, "Not valid through date")
+
+    def test_coggins_current_today_but_expiring_before_show_blocks_readiness(self):
+        HorseComplianceRequirement.objects.create(team=self.team, name="Current Coggins", requirement_type="coggins")
+        today = timezone.localdate()
+        self.show.show_date = today + timedelta(days=90)
+        self.show.save(update_fields=["show_date"])
+        HorseCogginsRecord.objects.create(horse=self.horse, test_date=today, expiration_date=today + timedelta(days=60))
+
+        readiness = build_show_readiness(self.show)
+
+        self.assertFalse(readiness["compliance_ready"])
+        self.assertEqual(readiness["compliance_warnings"][0]["summary"].items[0].status_label, "Not valid through date")
+
+    def test_expiration_on_show_date_is_valid(self):
+        HorseComplianceRequirement.objects.create(team=self.team, name="Current Coggins", requirement_type="coggins")
+        today = timezone.localdate()
+        self.show.show_date = today + timedelta(days=90)
+        self.show.save(update_fields=["show_date"])
+        HorseCogginsRecord.objects.create(horse=self.horse, test_date=today, expiration_date=self.show.show_date)
+
+        readiness = build_show_readiness(self.show)
+
+        self.assertTrue(readiness["compliance_ready"])
+        self.assertTrue(readiness["ready"])
 
     def test_show_readiness_page_lists_exact_missing_requirement(self):
         HorseComplianceRequirement.objects.create(team=self.team, name="Registration papers", requirement_type="document", document_type="registration")
@@ -67,6 +110,18 @@ class EquineShowComplianceTests(TestCase):
         self.assertContains(response, "Compliance:")
         self.assertContains(response, "Needs attention")
         self.assertContains(response, "Registration papers — Missing")
+
+    def test_show_horse_card_uses_show_date_for_compliance(self):
+        HorseComplianceRequirement.objects.create(team=self.team, name="Registration papers", requirement_type="document", document_type="registration")
+        today = timezone.localdate()
+        self.show.show_date = today + timedelta(days=90)
+        self.show.save(update_fields=["show_date"])
+        HorseDocument.objects.create(horse=self.horse, document_type="registration", title="Registration", file=self._file(), expiration_date=today + timedelta(days=60))
+
+        response = self.client.get(reverse("show_horses", args=[self.show.pk]))
+
+        self.assertContains(response, "Needs attention")
+        self.assertContains(response, "Registration papers — Not valid through date")
 
     def test_rider_show_horse_card_retains_coggins_only_view(self):
         HorseComplianceRequirement.objects.create(team=self.team, name="Private insurance", requirement_type="document", document_type="insurance")
