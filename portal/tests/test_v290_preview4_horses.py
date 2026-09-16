@@ -36,7 +36,9 @@ class ArenaLinePreview4HorsePresentationTests(SimpleTestCase):
         show_horses = (template_dir / "show_horses.html").read_text()
         readiness = (template_dir / "show_readiness.html").read_text()
 
-        self.assertIn("HORSE &amp; HOOFPRINT MANAGEMENT", horse_detail)
+        # v3.3 deliberately broadens the horse profile into ArenaLine's generic
+        # equine-care registry while preserving IEA/Hoofprint-specific workflows.
+        self.assertIn("EQUINE CARE &amp; HORSE MANAGEMENT", horse_detail)
         self.assertIn("Hoofprint Builder", show_horses)
         self.assertIn("Hoofprint Builder", readiness)
         self.assertIn("Coggins", horse_detail)
