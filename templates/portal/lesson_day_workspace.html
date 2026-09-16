@@ -9,7 +9,6 @@
   </div>
   <div class="actions"><a class="btn secondary" href="{% url 'lesson_occurrence_detail' occurrence.pk %}">Occurrence details</a></div>
 </div>
-
 <section class="content-section">
   <div class="section-head">
     <div><div class="eyebrow">ROSTER</div><h2>Run the lesson</h2></div>
@@ -19,22 +18,17 @@
     <div class="empty-state">This occurrence does not have a prepared roster yet. Return to occurrence details and prepare the roster first.</div>
   {% else %}
   <form method="post">{% csrf_token %}
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead><tr><th>Participant</th><th>Attendance</th><th>Horse</th><th>Attendance note</th><th>Assignment note</th></tr></thead>
-        <tbody>
-        {% for row in rows %}
-          <tr>
-            <td><strong>{{ row.attendance.person }}</strong></td>
-            <td><select name="attendance_{{ row.attendance.person_id }}" {% if not editable %}disabled{% endif %}>{% for value,label in attendance_choices %}<option value="{{ value }}" {% if value == row.attendance.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
-            <td><select name="horse_{{ row.attendance.person_id }}" {% if not editable %}disabled{% endif %}><option value="">— Unassigned —</option>{% for horse in horses %}<option value="{{ horse.pk }}" {% if row.assignment and row.assignment.horse_id == horse.pk %}selected{% endif %}>{{ horse.name }}</option>{% endfor %}</select></td>
-            <td><input type="text" name="attendance_notes_{{ row.attendance.person_id }}" value="{{ row.attendance.notes }}" {% if not editable %}disabled{% endif %}></td>
-            <td><input type="text" name="assignment_notes_{{ row.attendance.person_id }}" value="{% if row.assignment %}{{ row.assignment.notes }}{% endif %}" {% if not editable %}disabled{% endif %}></td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <div class="table-wrap"><table class="data-table">
+      <thead><tr><th>Participant</th><th>Attendance</th><th>Horse</th><th>Attendance note</th><th>Assignment note</th><th></th></tr></thead>
+      <tbody>{% for row in rows %}<tr>
+        <td><strong>{{ row.attendance.person }}</strong></td>
+        <td><select name="attendance_{{ row.attendance.person_id }}" {% if not editable %}disabled{% endif %}>{% for value,label in attendance_choices %}<option value="{{ value }}" {% if value == row.attendance.status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></td>
+        <td><select name="horse_{{ row.attendance.person_id }}" {% if not editable %}disabled{% endif %}><option value="">— Unassigned —</option>{% for horse in horses %}<option value="{{ horse.pk }}" {% if row.assignment and row.assignment.horse_id == horse.pk %}selected{% endif %}>{{ horse.name }}</option>{% endfor %}</select></td>
+        <td><input type="text" name="attendance_notes_{{ row.attendance.person_id }}" value="{{ row.attendance.notes }}" {% if not editable %}disabled{% endif %}></td>
+        <td><input type="text" name="assignment_notes_{{ row.attendance.person_id }}" value="{% if row.assignment %}{{ row.assignment.notes }}{% endif %}" {% if not editable %}disabled{% endif %}></td>
+        <td>{% if editable %}<a class="btn secondary" href="{% url 'lesson_participant_move' occurrence.pk row.attendance.person_id %}">Move / Make-up</a>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
     {% if editable %}<div class="actions" style="margin-top:18px"><button class="btn" type="submit">Save lesson day</button><span class="muted">Attendance and horse assignments save together.</span></div>{% endif %}
   </form>
   {% endif %}
