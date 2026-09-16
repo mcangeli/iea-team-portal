@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Horse Compliance{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'horse_compliance_requirements' %}">← Back to Compliance Requirements</a></nav>
+<section class="page-intro horse-module-intro"><div><div class="eyebrow">HORSE READINESS</div><h1>{{ title }}</h1><p>Configure an organization-level requirement without changing or duplicating the underlying horse records.</p></div></section>
+<section class="card form-card"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save requirement</button><a class="btn secondary" href="{% url 'horse_compliance_requirements' %}">Cancel</a></div></form></section>
+{% endblock %}
