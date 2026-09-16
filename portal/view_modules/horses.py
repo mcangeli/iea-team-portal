@@ -128,7 +128,7 @@ def show_horses(request, show_pk):
     rows = []
     for assignment in assignments:
         coggins = assignment.horse.latest_coggins
-        rows.append({"assignment": assignment, "coggins": coggins, "coggins_status": coggins.status if coggins else "missing", "compliance": compliance_summary_for_horse(assignment.horse) if can_manage_registry else None})
+        rows.append({"assignment": assignment, "coggins": coggins, "coggins_status": coggins.status if coggins else "missing", "compliance": compliance_summary_for_horse(assignment.horse, as_of_date=show.show_date) if can_manage_registry else None})
     awards = show.horse_awards.select_related("assignment__horse").order_by("session")
     return render(request, "portal/show_horses.html", {"show": show, "rows": rows, "awards": awards, "can_manage": _can_manage_show_horses(request.user, show), "can_manage_registry": can_manage_registry})
 
@@ -174,6 +174,8 @@ def show_horse_award_edit(request, show_pk, pk):
 
 
 @login_required
-@require_POST
-def show_horse_award_remove(request, show_pk, pk):
-    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season); award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.horse.display_name} — {award.get_session_display()} Horse of the Day"; _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {label}"); award.delete(); messages.success(request, f"Removed {label}."); return redirect("show_horses", show_pk=show.pk)
+def show_horse_award_delete(request, show_pk, pk):
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season); award = get_object_or_404(HorseShowAward, pk=pk, show=show)
+    if request.method == "POST":
+        label = award.horse.display_name; _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {award.get_session_display()} Horse of the Day for {label}"); award.delete(); messages.success(request, "Horse of the Day award removed."); return redirect("show_horses", show_pk=show.pk)
+    return render(request, "portal/horse_show_award_confirm_delete.html", {"show": show, "award": award})
