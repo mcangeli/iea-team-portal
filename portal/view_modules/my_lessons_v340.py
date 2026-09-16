@@ -50,8 +50,9 @@ def my_lessons(request):
     moves = LessonParticipantMove.objects.filter(person=person).filter(
         source_occurrence_id__in=occurrence_ids
     ) | LessonParticipantMove.objects.filter(person=person, destination_occurrence_id__in=occurrence_ids)
-    source_moves = {move.source_occurrence_id: move for move in moves.select_related("source_occurrence", "destination_occurrence", "created_by")}
-    destination_moves = {move.destination_occurrence_id: move for move in moves.select_related("source_occurrence", "destination_occurrence", "created_by")}
+    moves = moves.select_related("source_occurrence", "destination_occurrence", "initiated_by_user")
+    source_moves = {move.source_occurrence_id: move for move in moves}
+    destination_moves = {move.destination_occurrence_id: move for move in moves}
     schedule = [{
         "attendance": attendance,
         "moved_to": source_moves.get(attendance.occurrence_id),
