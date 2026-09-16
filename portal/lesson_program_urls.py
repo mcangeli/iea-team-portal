@@ -2,6 +2,7 @@ from django.urls import path
 
 from .view_modules import lesson_day_v340
 from .view_modules import lesson_programs_v340 as views
+from .view_modules import my_lessons_v340
 
 urlpatterns = [
     path("lesson-programs/", views.lesson_program_list, name="lesson_program_list"),
@@ -11,6 +12,8 @@ urlpatterns = [
     path("lesson-programs/<int:program_pk>/series/add/", views.lesson_series_create, name="lesson_series_create"),
     path("iea/lessons/", views.iea_lesson_list, name="iea_lesson_list"),
     path("iea/lessons/add/", views.iea_lesson_series_create, name="iea_lesson_series_create"),
+    path("my-lessons/", my_lessons_v340.my_lessons, name="my_lessons"),
+    path("my-lessons/<int:pk>/reschedule/", my_lessons_v340.my_lesson_reschedule, name="my_lesson_reschedule"),
     path("lesson-series/<int:pk>/", views.lesson_series_detail, name="lesson_series_detail"),
     path("lesson-series/<int:pk>/edit/", views.lesson_series_edit, name="lesson_series_edit"),
     path("lesson-series/<int:pk>/generate/", views.lesson_series_generate, name="lesson_series_generate"),
