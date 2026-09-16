@@ -53,10 +53,10 @@ class UnifiedCalendarUITests(TestCase):
 
     def test_calendar_filter_is_grouped_by_operational_domain(self):
         response = self._get()
-        self.assertContains(response, '<optgroup label="Lessons">', html=True)
-        self.assertContains(response, '<optgroup label="Horses">', html=True)
-        self.assertContains(response, '<optgroup label="Competition">', html=True)
-        self.assertContains(response, '<optgroup label="Organization">', html=True)
+        self.assertContains(response, '<optgroup label="Lessons">')
+        self.assertContains(response, '<optgroup label="Horses">')
+        self.assertContains(response, '<optgroup label="Competition">')
+        self.assertContains(response, '<optgroup label="Organization">')
 
     def test_horse_filter_hides_lesson_and_organization_items(self):
         response = self._get(kind="horses")
