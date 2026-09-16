@@ -35,16 +35,28 @@ def update_lesson_day(occurrence: LessonOccurrence, rows: list[LessonDayRowUpdat
         raise ValidationError("Each lesson participant may only appear once.")
 
     with transaction.atomic():
-        attendance = {row.person_id: row for row in occurrence.attendance_records.select_for_update().select_related("person")}
+        # Lock only the rows being edited. In PostgreSQL, select_for_update()
+        # cannot lock the nullable side of an OUTER JOIN. LessonAssignment.horse
+        # is nullable, so joining horse in the locking query raises
+        # NotSupportedError whenever an assignment has no horse yet.
+        attendance = {
+            row.person_id: row
+            for row in occurrence.attendance_records.select_for_update().select_related("person")
+        }
         assignments = {
             row.person_id: row
-            for row in occurrence.assignments.select_for_update().filter(role=LessonAssignment.Role.PARTICIPANT).select_related("person", "horse")
+            for row in occurrence.assignments.select_for_update().filter(
+                role=LessonAssignment.Role.PARTICIPANT
+            ).select_related("person")
         }
         if requested_ids != set(attendance) or requested_ids != set(assignments):
             raise ValidationError("Lesson-day roster changed. Refresh the page before saving.")
 
         horse_ids = {row.horse_id for row in rows if row.horse_id}
-        horses = {horse.pk: horse for horse in Horse.objects.filter(team_id=team_id, active=True, pk__in=horse_ids)}
+        horses = {
+            horse.pk: horse
+            for horse in Horse.objects.filter(team_id=team_id, active=True, pk__in=horse_ids)
+        }
         if set(horses) != horse_ids:
             raise ValidationError("One or more selected horses are not active for this organization.")
 
@@ -58,11 +70,13 @@ def update_lesson_day(occurrence: LessonOccurrence, rows: list[LessonDayRowUpdat
             assignment = assignments[update.person_id]
             record.status = update.attendance_status
             record.notes = update.attendance_notes
-            record.full_clean(); record.save(update_fields=["status", "notes", "recorded_at"])
+            record.full_clean()
+            record.save(update_fields=["status", "notes", "recorded_at"])
             attendance_updated += 1
             assignment.horse = horses.get(update.horse_id)
             assignment.notes = update.assignment_notes
-            assignment.full_clean(); assignment.save(update_fields=["horse", "notes", "updated_at"])
+            assignment.full_clean()
+            assignment.save(update_fields=["horse", "notes", "updated_at"])
             assignments_updated += 1
             if assignment.horse_id is None:
                 unassigned += 1
