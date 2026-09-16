@@ -1,6 +1,7 @@
 from datetime import datetime, time, timedelta
 
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 
@@ -63,6 +64,27 @@ class LessonParticipantMoveTests(TestCase):
         later = LessonOccurrence.objects.create(series=self.series, title="Tuesday", starts_at=self.destination.starts_at + timedelta(days=7), ends_at=self.destination.ends_at + timedelta(days=7))
         with self.assertRaises(ValidationError):
             move_lesson_participant(source_occurrence=self.source, destination_occurrence=later, person=self.person)
+
+    def test_database_rejects_second_move_from_same_source_person(self):
+        LessonParticipantMove.objects.create(
+            source_occurrence=self.source,
+            destination_occurrence=self.destination,
+            person=self.person,
+        )
+        later = LessonOccurrence.objects.create(
+            series=self.series,
+            title="Later Tuesday",
+            starts_at=self.destination.starts_at + timedelta(days=7),
+            ends_at=self.destination.ends_at + timedelta(days=7),
+        )
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                LessonParticipantMove.objects.create(
+                    source_occurrence=self.source,
+                    destination_occurrence=later,
+                    person=self.person,
+                )
+        self.assertEqual(LessonParticipantMove.objects.filter(source_occurrence=self.source, person=self.person).count(), 1)
 
     def test_duplicate_destination_move_is_rejected(self):
         move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
