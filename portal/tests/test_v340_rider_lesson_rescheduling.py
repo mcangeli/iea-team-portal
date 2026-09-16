@@ -40,6 +40,12 @@ class RiderLessonReschedulingTests(TestCase):
         self.assertEqual(move.initiated_by_user, self.user)
         self.assertEqual(LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider).status, LessonAttendanceRecord.Status.MAKEUP)
 
+    def test_legacy_rider_role_with_canonical_person_can_use_my_lessons(self):
+        self.rider.role_assignments.all().delete()
+        response = self.client.get(reverse("my_lessons"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.source.title)
+
     def test_my_lessons_shows_reschedule_provenance(self):
         self.client.post(reverse("my_lesson_reschedule", args=[self.source.pk]), {"destination_occurrence": self.destination.pk, "reason": "School event"})
         response = self.client.get(reverse("my_lessons"))
@@ -74,6 +80,8 @@ class RiderLessonReschedulingTests(TestCase):
 
     def test_non_rider_person_cannot_use_my_lessons(self):
         self.rider.role_assignments.all().delete()
+        self.user.profile.role = "parent"
+        self.user.profile.save()
         response = self.client.get(reverse("my_lessons"))
         self.assertEqual(response.status_code, 403)
 
