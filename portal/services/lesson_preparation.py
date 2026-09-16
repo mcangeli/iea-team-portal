@@ -84,11 +84,12 @@ def prepare_lesson_occurrence(occurrence: LessonOccurrence) -> LessonOccurrenceP
     from SeasonMembership for the configured season and Futures/Upper team level,
     bridged to canonical Person through LegacyPersonLink. Preparation remains
     additive and idempotent; existing occurrence operations stay authoritative.
+    Scheduled and rescheduled occurrences are both operational lesson instances.
     """
     if not occurrence.pk:
         raise ValidationError("Lesson occurrence must be saved before preparation.")
-    if occurrence.status != LessonOccurrence.Status.SCHEDULED:
-        raise ValidationError("Only scheduled lesson occurrences can be prepared.")
+    if occurrence.status not in {LessonOccurrence.Status.SCHEDULED, LessonOccurrence.Status.RESCHEDULED}:
+        raise ValidationError("Only scheduled or rescheduled lesson occurrences can be prepared.")
 
     attendance_created = []
     attendance_existing = []
