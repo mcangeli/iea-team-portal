@@ -40,6 +40,30 @@ class RiderLessonReschedulingTests(TestCase):
         self.assertEqual(move.created_by, self.user)
         self.assertEqual(LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider).status, LessonAttendanceRecord.Status.MAKEUP)
 
+    def test_my_lessons_shows_reschedule_provenance(self):
+        self.client.post(reverse("my_lesson_reschedule", args=[self.source.pk]), {"destination_occurrence": self.destination.pk, "reason": "School event"})
+        response = self.client.get(reverse("my_lessons"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rescheduled:")
+        self.assertContains(response, "Make-up:")
+        self.assertContains(response, "School event")
+        self.assertContains(response, self.destination.starts_at.strftime("%b").replace("Sep", "Sep"))
+
+    def test_rescheduled_source_no_longer_offers_reschedule_action(self):
+        self.client.post(reverse("my_lesson_reschedule", args=[self.source.pk]), {"destination_occurrence": self.destination.pk})
+        response = self.client.get(reverse("my_lessons"))
+        source_row = next(row for row in response.context["schedule"] if row["attendance"].occurrence_id == self.source.pk)
+        self.assertIsNotNone(source_row["moved_to"])
+        response = self.client.get(reverse("my_lesson_reschedule", args=[self.source.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_prepared_expected_destination_is_available_to_rider(self):
+        prepare_lesson_occurrence(self.destination)
+        attendance = LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider)
+        self.assertEqual(attendance.status, LessonAttendanceRecord.Status.EXPECTED)
+        response = self.client.get(reverse("my_lesson_reschedule", args=[self.source.pk]))
+        self.assertContains(response, f'value="{self.destination.pk}"')
+
     def test_rider_cannot_reschedule_someone_elses_lesson(self):
         other_user = User.objects.create_user("blake", password="test")
         other = Person.objects.create(team=self.team, user=other_user, first_name="Blake", last_name="Rider")
