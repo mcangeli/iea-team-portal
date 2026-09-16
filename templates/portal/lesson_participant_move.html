@@ -7,6 +7,7 @@
 </div>
 <section class="content-section" style="max-width:820px">
   <div class="section-head"><div><div class="eyebrow">DESTINATION</div><h2>Choose another lesson</h2></div></div>
+  <p class="muted">{% if occurrence.series.is_iea_series %}IEA team lesson scheduling is managed by the Coach. Eligible destinations stay within this season and team level.{% else %}Barn lesson scheduling is managed by Trainers and Assistant Trainers. Eligible destinations stay within the barn lesson program.{% endif %}</p>
   {% if destinations %}
   <form method="post">{% csrf_token %}
     <div class="form-grid">
