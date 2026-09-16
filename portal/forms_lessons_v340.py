@@ -1,6 +1,6 @@
 from django import forms
 
-from .model_modules.lessons import LessonProgram, LessonSeries
+from .model_modules.lessons import LessonEnrollment, LessonProgram, LessonSeries
 from .model_modules.people import OrganizationGroup, Person
 
 
@@ -58,6 +58,34 @@ class LessonSeriesForm(forms.ModelForm):
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.program = self.program
+        if commit:
+            obj.full_clean()
+            obj.save()
+        return obj
+
+
+class LessonEnrollmentForm(forms.ModelForm):
+    class Meta:
+        model = LessonEnrollment
+        fields = ["person", "status", "start_date", "end_date", "notes"]
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+    def __init__(self, *args, series, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.series = series
+        self.instance.series = series
+        queryset = Person.objects.filter(team=series.program.team, active=True)
+        if not self.instance.pk:
+            enrolled_ids = series.enrollments.values_list("person_id", flat=True)
+            queryset = queryset.exclude(pk__in=enrolled_ids)
+        self.fields["person"].queryset = queryset.order_by("last_name", "first_name")
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.series = self.series
         if commit:
             obj.full_clean()
             obj.save()
