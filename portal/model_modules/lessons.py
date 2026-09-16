@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -191,6 +192,9 @@ class LessonParticipantMove(models.Model):
     class Kind(models.TextChoices):
         MOVE = "move", "Move"
         MAKEUP = "makeup", "Make-up"
+    class Initiator(models.TextChoices):
+        STAFF = "staff", "Staff"
+        RIDER = "rider", "Rider"
     source_occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.PROTECT, related_name="participant_moves_out")
     destination_occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.PROTECT, related_name="participant_moves_in")
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_participant_moves")
@@ -198,6 +202,8 @@ class LessonParticipantMove(models.Model):
     source_status = models.CharField(max_length=16, choices=LessonAttendanceRecord.Status.choices, default=LessonAttendanceRecord.Status.EXCUSED)
     carry_horse = models.BooleanField(default=False)
     reason = models.CharField(max_length=255, blank=True)
+    initiated_by = models.CharField(max_length=12, choices=Initiator.choices, default=Initiator.STAFF)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_created")
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ["-created_at", "id"]
