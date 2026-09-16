@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.2.3**
+**Current version: v3.3.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.2.3 completes the 3.2.x People & Operations release family: canonical People identity, multi-role barn participation, horse relationships, ArenaLine Station, work-history review, People Structure, privacy-aware public rider profiles, and the operational/accessibility hardening needed to carry those foundations into broader barn management.
+v3.3.0 expands ArenaLine's Horse Registry into a broader equine-care and horse-management system with care history and scheduling, documents, configurable compliance requirements, show-date readiness, Hoofprint compliance, protected horse records, and the People↔Horse care-team relationships built on the v3.2 People foundation.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,43 +15,39 @@ v3.2.3 completes the 3.2.x People & Operations release family: canonical People 
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.2.3.md`.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.3.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.2.3 highlights
+## v3.3.0 highlights
 
-### People-first identity and access
+### Equine care and history
 
-ArenaLine now treats **Person** as the durable human identity and a login account as optional access. Existing Rider, Guardian/Parent, UserProfile, season, finance, competition, and historical structures remain compatibility-safe while workflows move toward the canonical People model.
+Horse profiles now support durable identifiers, expanded care-provider relationships, historical care records, next-due dates, and a complete care history organized by year. Routine care can be tracked across vaccination, farrier, dental, veterinary, medication, wellness, and other care categories without overwriting prior records.
 
-A Person can hold multiple simultaneous barn roles and relationships without those labels automatically granting permissions. Parent/guardian relationships, login access, private profile visibility, family finance access, and public identity remain separate concerns.
+### Documents and compliance
 
-### Barn participation and People Structure
+Horse documents can track registration, vaccination, lease, ownership, veterinary, insurance, care, and other records with effective and expiration dates. Administrators/coaches can configure which Coggins/document records are required for horse compliance rather than treating every stored document as mandatory.
 
-People can participate as riders, boarders, trainers, assistant trainers, barn managers/staff, working students, board members, and parents/guardians. Effective dates preserve current and historical participation.
+Compliance distinguishes missing, expired, expiring-soon, and current requirements. Sensitive generic horse documents and Coggins attachments are served through authenticated, organization-scoped manager-only download routes.
 
-People Structure provides generic organization groups/programs and committees while keeping IEA-specific responsibilities and terminology intact. Horse relationships support ownership/responsible-party, boarding, lease, trainer, and caretaker participation and form the foundation for v3.3 Equine Care.
+### Show readiness and Hoofprint
 
-### ArenaLine Station and work history
+Show compliance is evaluated through the actual show date. A document or Coggins record that is valid today but expires before the show is not considered show-ready; expiration on the show date itself remains valid. Missing/expired/not-valid-through-show requirements block readiness and Hoofprint finalization, while expiring-soon records warn without blocking when they remain valid through the show.
 
-ArenaLine Station provides a shared-device barn workflow with device activation, separate Station PINs, restricted Person identification, and staff/working-student clock-in and clock-out. Managers can review, correct, approve, summarize, and export work history with audit coverage.
+Hoofprint preview and ordinary completeness warnings remain available/advisory. Existing IEA-specific Horse/Hoofprint terminology and historical Horse of the Day behavior remain intact.
 
-Station credentials do not reuse portal passwords and do not grant unrestricted portal access.
+### People and privacy
 
-### Public rider profiles and privacy
+The v3.2 People foundation continues to provide canonical Person identity, multi-role barn participation, ArenaLine Station, work history, groups/programs, committees, and People↔Horse relationships. v3.3 extends those horse relationships for veterinarian, farrier, dentist, and emergency-contact participation.
 
-Opted-in rider profiles can be deliberately published through the public ArenaLine site using allow-listed fields only. Public cards support photo, display name, bio, website, Instagram, and YouTube while private contact, birth-date, family, role, finance, and operational information remain private.
-
-### Presentation and accessibility
-
-The 3.2.3 closeout includes responsive People/Station/public-card presentation, keyboard and focus improvements, mobile navigation hardening, intentional empty states, and continued light/dark ArenaLine styling.
+Care, document, and detailed configurable compliance information remains manager-only; ordinary rider/parent show-horse views retain the narrower compatibility-safe presentation.
 
 ### Validation
 
-The final v3.2.3 staging baseline passed Django system checks and the complete `portal.tests` regression suite: **643/643 tests green**.
+The final v3.3.0 staging baseline passed Django system/migration checks, the **128/128 horse/show/Hoofprint regression sweep**, and the complete `portal` suite: **732/732 tests green**.
 
 ## Roles and dashboards
 
@@ -79,12 +75,13 @@ Administrators can open all role workspaces. Coaches receive the Coach workspace
 7. Add people through **People**, link/create login access only where needed, and assign current barn roles/relationships.
 8. Link riders to their current season, Futures/Upper team, home barn, and classes; link parents/guardians through the rider's family relationships.
 9. Configure organization groups/programs and committees where needed.
-10. Add Horses and maintain People↔Horse participation relationships.
-11. Add Shows, official show classes, availability, entries, and Show Lead assignments.
-12. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
-13. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
-14. If using Finance, configure its accounts/categories/rates before entering family activity.
-15. Add prior-season information through the historical-data tools when desired.
+10. Add Horses, maintain People↔Horse participation/care-team relationships, and configure required horse compliance records.
+11. Add care history, due dates, Coggins, and supporting horse documents as appropriate.
+12. Add Shows, official show classes, availability, entries, and Show Lead assignments.
+13. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
+14. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
+15. If using Finance, configure its accounts/categories/rates before entering family activity.
+16. Add prior-season information through the historical-data tools when desired.
 
 ## Core workflows
 
@@ -114,9 +111,13 @@ Team scoring eligibility is catalog-driven. H8/H14, W8/W14, and D8/D14 do not co
 
 Use **Competition → Standings** for individual progress and team scoring. Postseason records support Regionals, Zones, and Nationals, including individual and team results.
 
-### Horses and Hoofprint
+### Horses, care, compliance, and Hoofprint
 
-ArenaLine includes Horse Registry, Coggins tracking, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, post-show horse history/Record Book summaries, and People↔Horse participation relationships.
+ArenaLine includes Horse Registry, identifiers, People↔Horse relationships, care history/scheduling, protected documents, Coggins tracking, configurable compliance requirements, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, and post-show horse history/Record Book summaries.
+
+Care records preserve completed history and optional next-due dates. The latest dated record in a care category drives scheduling status while older records remain available in history.
+
+Coggins remains a specialized source of truth. Configured compliance requirements may require Coggins and selected generic horse-document types. Show workflows evaluate those requirements through the show's date, and unresolved required compliance blocks readiness/Hoofprint finalization.
 
 ### Station and work history
 
@@ -219,17 +220,17 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.2.3 explicitly:
+Or install v3.3.0 explicitly:
 
 ```bash
-./portalctl update v3.2.3
+./portalctl update v3.3.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.2.x migration chain adds the People/relationship and ArenaLine Station foundations on top of the v3.1 public-experience schema. See `docs/releases/v3.2.3.md` for the release-specific migration summary.
+The v3.3 migration chain adds horse identifiers, care records/scheduling choices, generic horse documents, expanded care relationships, and configurable compliance requirements on top of the v3.2 People/relationship foundation. See `docs/releases/v3.3.0.md` for the release-specific migration summary.
 
 ## Backups and rollback
 
@@ -247,9 +248,9 @@ Generic platform domains include Core, People, Horses, Operations, Finance, and 
 
 The public/external layer is a separate publication boundary. Anonymous routes consume explicit allow-listed publication payloads rather than authenticated internal views.
 
-The v3.2 People layer is compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures until callers can be migrated safely.
+The v3.2 People layer remains compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures. v3.3 layers care, documents, and compliance onto the existing Horse model rather than replacing historical Horse/competition records.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.2.3.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.3.0.md`.
 
 ## Release process
 
