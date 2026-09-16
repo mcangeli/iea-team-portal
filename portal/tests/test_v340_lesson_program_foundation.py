@@ -90,6 +90,14 @@ class LessonProgramFoundationTests(TestCase):
         with self.assertRaises(ValidationError):
             series.full_clean()
 
+    def test_series_effective_capacity_inherits_program_and_allows_override(self):
+        self.assertEqual(self.series.effective_capacity, 6)
+        self.series.capacity = 4
+        self.assertEqual(self.series.effective_capacity, 4)
+        self.series.capacity = None
+        self.program.default_capacity = None
+        self.assertIsNone(self.series.effective_capacity)
+
     def test_instructor_must_belong_to_program_organization(self):
         self.series.instructor = self.other_person
         with self.assertRaises(ValidationError):
@@ -100,6 +108,18 @@ class LessonProgramFoundationTests(TestCase):
         self.assertEqual(enrollment.person, self.rider)
         with self.assertRaises(IntegrityError), transaction.atomic():
             LessonEnrollment.objects.create(series=self.series, person=self.rider)
+
+    def test_enrollment_status_does_not_rewrite_occurrence_history(self):
+        enrollment = LessonEnrollment.objects.create(series=self.series, person=self.rider)
+        LessonAttendanceRecord.objects.create(
+            occurrence=self.occurrence, person=self.rider, status=LessonAttendanceRecord.Status.PRESENT
+        )
+        enrollment.status = LessonEnrollment.Status.WITHDRAWN
+        enrollment.save()
+        self.assertEqual(
+            self.occurrence.attendance_records.get(person=self.rider).status,
+            LessonAttendanceRecord.Status.PRESENT,
+        )
 
     def test_enrollment_rejects_cross_organization_person_and_bad_dates(self):
         enrollment = LessonEnrollment(series=self.series, person=self.other_person)
@@ -134,6 +154,14 @@ class LessonProgramFoundationTests(TestCase):
         self.assertEqual(self.occurrence.title, original_title)
         self.assertEqual(self.occurrence.location, original_location)
         self.assertEqual(self.occurrence.capacity, original_capacity)
+
+    def test_series_with_occurrence_is_protected_from_deletion(self):
+        with self.assertRaises(ProtectedError):
+            self.series.delete()
+
+    def test_program_with_series_is_protected_indirectly_by_occurrence_history(self):
+        with self.assertRaises(ProtectedError):
+            self.program.delete()
 
     def test_attendance_is_unique_and_organization_scoped(self):
         LessonAttendanceRecord.objects.create(occurrence=self.occurrence, person=self.rider)
