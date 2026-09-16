@@ -76,12 +76,22 @@ def iea_lesson_list(request):
     team = organization_for_view_user(request.user)
     season = active_period_for_organization(team)
     contexts = IEALessonSeriesContext.objects.none()
+    legacy_upcoming = []
+    legacy_recent = []
     if season:
         contexts = IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level", "series__name")
+        # v3.4 transition bridge: existing IEA lessons still live in the legacy
+        # Season -> Lesson structure. Keep them visible until the explicit data
+        # migration/cutover moves them into LessonSeries/LessonOccurrence.
+        legacy_lessons = season.lessons.select_related("group", "coach").prefetch_related("attendance__rider")
+        legacy_upcoming = legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at")
+        legacy_recent = legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
     return render(request, "portal/iea_lesson_list.html", {
         "season": season,
         "futures_contexts": contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),
         "upper_contexts": contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),
+        "legacy_upcoming": legacy_upcoming,
+        "legacy_recent": legacy_recent,
         "can_manage": _can_manage(request.user),
     })
 
