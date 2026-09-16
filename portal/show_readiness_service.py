@@ -39,7 +39,7 @@ def build_show_readiness(show):
     compliance_warnings = []
     compliance_summaries = []
     for assignment in registry_assignments:
-        summary = compliance_summary_for_horse(assignment.horse)
+        summary = compliance_summary_for_horse(assignment.horse, as_of_date=show.show_date)
         compliance_summaries.append({"assignment": assignment, "horse": assignment.horse, "summary": summary})
         if summary.overall_status != "current":
             compliance_warnings.append({"assignment": assignment, "horse": assignment.horse, "summary": summary})
