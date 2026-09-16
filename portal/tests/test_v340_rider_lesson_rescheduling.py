@@ -21,8 +21,8 @@ class RiderLessonReschedulingTests(TestCase):
         self.program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
         self.series = LessonSeries.objects.create(program=self.program, name="Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, capacity=4, start_date=date(2026,9,1), end_date=date(2026,10,31))
         LessonEnrollment.objects.create(series=self.series, person=self.rider)
-        generated = generate_lesson_occurrences(self.series, date(2026,9,22), date(2026,9,29)).created
-        self.source, self.destination = generated[0], generated[1]
+        generated = generate_lesson_occurrences(self.series, date(2026,9,22), date(2026,10,6)).created
+        self.source, self.destination, self.other_occurrence = generated[0], generated[1], generated[2]
         prepare_lesson_occurrence(self.source)
         self.client.force_login(self.user)
 
@@ -44,9 +44,8 @@ class RiderLessonReschedulingTests(TestCase):
         other_user = User.objects.create_user("blake", password="test")
         other = Person.objects.create(team=self.team, user=other_user, first_name="Blake", last_name="Rider")
         OrganizationRoleAssignment.objects.create(team=self.team, person=other, role=OrganizationRoleAssignment.Role.RIDER)
-        LessonEnrollment.objects.create(series=self.series, person=other)
-        prepare_lesson_occurrence(self.destination)
-        response = self.client.get(reverse("my_lesson_reschedule", args=[self.destination.pk]))
+        LessonAttendanceRecord.objects.create(occurrence=self.other_occurrence, person=other)
+        response = self.client.get(reverse("my_lesson_reschedule", args=[self.other_occurrence.pk]))
         self.assertEqual(response.status_code, 404)
 
     def test_non_rider_person_cannot_use_my_lessons(self):
@@ -59,4 +58,4 @@ class RiderLessonReschedulingTests(TestCase):
         other = Person.objects.create(team=self.team, first_name="Blake", last_name="Rider")
         LessonAttendanceRecord.objects.create(occurrence=self.destination, person=other)
         response = self.client.get(reverse("my_lesson_reschedule", args=[self.source.pk]))
-        self.assertContains(response, "No available make-up lessons right now")
+        self.assertNotContains(response, f'value="{self.destination.pk}"')
