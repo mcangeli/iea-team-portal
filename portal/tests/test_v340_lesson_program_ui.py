@@ -3,14 +3,16 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.model_modules.lessons import LessonProgram, LessonSeries
-from portal.models import Team, UserProfile
+from portal.models import Team
 
 
 class LessonProgramUITests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="UI Barn")
         self.admin = User.objects.create_user(username="lessonadmin", password="test-pass")
-        UserProfile.objects.create(user=self.admin, team=self.team, role="admin")
+        self.admin.profile.team = self.team
+        self.admin.profile.role = "admin"
+        self.admin.profile.save()
         self.client.login(username="lessonadmin", password="test-pass")
         self.program = LessonProgram.objects.create(team=self.team, name="Academy Lessons", default_capacity=6)
 
@@ -56,7 +58,9 @@ class LessonProgramUITests(TestCase):
 
     def test_program_create_requires_management_access(self):
         user = User.objects.create_user(username="rideruser", password="test-pass")
-        UserProfile.objects.create(user=user, team=self.team, role="rider")
+        user.profile.team = self.team
+        user.profile.role = "rider"
+        user.profile.save()
         self.client.login(username="rideruser", password="test-pass")
         response = self.client.get(reverse("lesson_program_create"))
         self.assertEqual(response.status_code, 403)
