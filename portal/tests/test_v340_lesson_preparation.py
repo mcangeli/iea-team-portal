@@ -141,18 +141,25 @@ class LessonOccurrencePreparationTests(TestCase):
         self.assertTrue(self.occurrence.attendance_records.filter(person=self.rider).exists())
         self.assertTrue(self.occurrence.assignments.filter(person=self.rider).exists())
 
-    def test_preparation_rejects_cancelled_completed_and_rescheduled_occurrences(self):
+    def test_preparation_rejects_cancelled_and_completed_occurrences(self):
         LessonEnrollment.objects.create(series=self.series, person=self.rider)
-        for status in (
-            LessonOccurrence.Status.CANCELLED,
-            LessonOccurrence.Status.COMPLETED,
-            LessonOccurrence.Status.RESCHEDULED,
-        ):
+        for status in (LessonOccurrence.Status.CANCELLED, LessonOccurrence.Status.COMPLETED):
             self.occurrence.status = status
             self.occurrence.save()
             with self.assertRaises(ValidationError):
                 prepare_lesson_occurrence(self.occurrence)
         self.assertEqual(self.occurrence.attendance_records.count(), 0)
+
+    def test_rescheduled_occurrence_can_be_prepared(self):
+        LessonEnrollment.objects.create(series=self.series, person=self.rider)
+        self.occurrence.status = LessonOccurrence.Status.RESCHEDULED
+        self.occurrence.starts_at += timedelta(days=1)
+        self.occurrence.ends_at += timedelta(days=1)
+        self.occurrence.save()
+        result = prepare_lesson_occurrence(self.occurrence)
+        self.assertEqual(len(result.attendance_created), 1)
+        self.assertEqual(len(result.assignments_created), 1)
+        self.assertTrue(self.occurrence.attendance_records.filter(person=self.rider).exists())
 
     def test_multiple_active_enrollments_prepare_independently(self):
         LessonEnrollment.objects.create(series=self.series, person=self.rider)
