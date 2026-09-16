@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, time, timedelta
 
 from django.core.exceptions import ValidationError
 from django.test import TestCase
@@ -8,7 +8,7 @@ from portal.model_modules.horses import Horse
 from portal.model_modules.lessons import LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonParticipantMove, LessonProgram, LessonSeries
 from portal.model_modules.people import Person
 from portal.models import Team
-from portal.services.lesson_participant_moves import move_lesson_participant
+from portal.services.lesson_participant_moves import destination_accepts_participant, move_lesson_participant
 from portal.services.lesson_preparation import prepare_lesson_occurrence
 
 
@@ -31,6 +31,15 @@ class LessonParticipantMoveTests(TestCase):
         self.assertEqual(result.destination_assignment.role, LessonAssignment.Role.PARTICIPANT)
         self.assertEqual(LessonParticipantMove.objects.count(), 1)
 
+    def test_prepared_expected_destination_is_reused_for_makeup(self):
+        prepare_lesson_occurrence(self.destination)
+        expected = LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.person)
+        self.assertEqual(expected.status, LessonAttendanceRecord.Status.EXPECTED)
+        self.assertTrue(destination_accepts_participant(self.destination, self.person))
+        result = move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
+        self.assertEqual(result.destination_attendance.pk, expected.pk)
+        self.assertEqual(result.destination_attendance.status, LessonAttendanceRecord.Status.MAKEUP)
+
     def test_regular_move_uses_expected_destination_status(self):
         result = move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person, kind=LessonParticipantMove.Kind.MOVE)
         self.assertEqual(result.destination_attendance.status, LessonAttendanceRecord.Status.EXPECTED)
@@ -49,8 +58,23 @@ class LessonParticipantMoveTests(TestCase):
         result = move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
         self.assertIsNone(result.destination_assignment.horse)
 
+    def test_second_move_from_same_source_is_rejected_even_to_different_destination(self):
+        move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
+        later = LessonOccurrence.objects.create(series=self.series, title="Tuesday", starts_at=self.destination.starts_at + timedelta(days=7), ends_at=self.destination.ends_at + timedelta(days=7))
+        with self.assertRaises(ValidationError):
+            move_lesson_participant(source_occurrence=self.source, destination_occurrence=later, person=self.person)
+
     def test_duplicate_destination_move_is_rejected(self):
         move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
+        with self.assertRaises(ValidationError):
+            move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
+
+    def test_existing_attendance_history_blocks_destination(self):
+        prepare_lesson_occurrence(self.destination)
+        attendance = LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.person)
+        attendance.status = LessonAttendanceRecord.Status.PRESENT
+        attendance.save()
+        self.assertFalse(destination_accepts_participant(self.destination, self.person))
         with self.assertRaises(ValidationError):
             move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
 
@@ -67,3 +91,8 @@ class LessonParticipantMoveTests(TestCase):
         self.destination.status = LessonOccurrence.Status.COMPLETED; self.destination.save()
         with self.assertRaises(ValidationError):
             move_lesson_participant(source_occurrence=self.source, destination_occurrence=self.destination, person=self.person)
+
+    def test_earlier_destination_is_rejected(self):
+        earlier = LessonOccurrence.objects.create(series=self.series, title="Earlier", starts_at=self.source.starts_at - timedelta(days=7))
+        with self.assertRaises(ValidationError):
+            move_lesson_participant(source_occurrence=self.source, destination_occurrence=earlier, person=self.person)
