@@ -18,6 +18,9 @@ class LessonSchedulingTests(TestCase):
         self.program = LessonProgram.objects.create(team=self.team, name="Lesson Program", default_capacity=6)
         self.series = LessonSeries.objects.create(program=self.program, name="Tuesday Intermediate", instructor=self.instructor, weekday=1, starts_at_time=time(17, 0), duration_minutes=60, default_location="Indoor Arena", start_date=date(2026, 9, 1), end_date=date(2026, 10, 31))
 
+    def _refresh_cutoff(self):
+        return timezone.make_aware(datetime(2026, 9, 1, 0, 0), timezone.get_current_timezone())
+
     def test_generation_materializes_only_matching_weekdays(self):
         result = generate_lesson_occurrences(self.series, date(2026, 9, 1), date(2026, 9, 30))
         self.assertEqual(len(result.created), 5)
@@ -86,37 +89,37 @@ class LessonSchedulingTests(TestCase):
         first, second, third = result.created
         first.status = LessonOccurrence.Status.COMPLETED; first.save(update_fields=["status"])
         self.series.default_location = "Outdoor Arena"; self.series.capacity = 8; self.series.save(update_fields=["default_location", "capacity"])
-        refreshed = refresh_future_lesson_occurrences(self.series, from_date=date(2026, 9, 1))
+        refreshed = refresh_future_lesson_occurrences(self.series, from_datetime=self._refresh_cutoff())
         first.refresh_from_db(); second.refresh_from_db(); third.refresh_from_db()
-        self.assertEqual(first.location, "Indoor Arena"); self.assertEqual(second.location, "Outdoor Arena"); self.assertEqual(third.capacity, 8); self.assertEqual(refreshed.updated, 2); self.assertEqual(refreshed.preserved, 1)
+        self.assertEqual(first.location, "Indoor Arena"); self.assertEqual(second.location, "Outdoor Arena"); self.assertEqual(third.capacity, 8); self.assertEqual(len(refreshed.updated), 2); self.assertEqual(len(refreshed.preserved), 1)
 
     def test_future_refresh_preserves_cancelled_and_rescheduled_occurrences(self):
         cancelled, rescheduled = generate_lesson_occurrences(self.series, date(2026, 9, 22), date(2026, 9, 29)).created
         cancelled.status = LessonOccurrence.Status.CANCELLED; cancelled.save(update_fields=["status"])
         rescheduled.status = LessonOccurrence.Status.RESCHEDULED; rescheduled.save(update_fields=["status"])
-        refreshed = refresh_future_lesson_occurrences(self.series, from_date=date(2026, 9, 1))
-        self.assertEqual(refreshed.updated, 0); self.assertEqual(refreshed.preserved, 2)
+        refreshed = refresh_future_lesson_occurrences(self.series, from_datetime=self._refresh_cutoff())
+        self.assertEqual(len(refreshed.updated), 0); self.assertEqual(len(refreshed.preserved), 2)
 
     def test_future_refresh_preserves_occurrence_with_attendance(self):
         occurrence = generate_lesson_occurrences(self.series, date(2026, 9, 22), date(2026, 9, 22)).created[0]
         rider = Person.objects.create(team=self.team, first_name="Riley", last_name="Student")
         LessonAttendanceRecord.objects.create(occurrence=occurrence, person=rider)
         self.series.default_location = "Changed"; self.series.save(update_fields=["default_location"])
-        refreshed = refresh_future_lesson_occurrences(self.series, from_date=date(2026, 9, 1))
-        occurrence.refresh_from_db(); self.assertEqual(occurrence.location, "Indoor Arena"); self.assertEqual(refreshed.preserved, 1)
+        refreshed = refresh_future_lesson_occurrences(self.series, from_datetime=self._refresh_cutoff())
+        occurrence.refresh_from_db(); self.assertEqual(occurrence.location, "Indoor Arena"); self.assertEqual(len(refreshed.preserved), 1)
 
     def test_future_refresh_preserves_occurrence_with_assignment(self):
         occurrence = generate_lesson_occurrences(self.series, date(2026, 9, 22), date(2026, 9, 22)).created[0]
         rider = Person.objects.create(team=self.team, first_name="Riley", last_name="Student")
         LessonAssignment.objects.create(occurrence=occurrence, person=rider)
-        refreshed = refresh_future_lesson_occurrences(self.series, from_date=date(2026, 9, 1))
-        self.assertEqual(refreshed.preserved, 1)
+        refreshed = refresh_future_lesson_occurrences(self.series, from_datetime=self._refresh_cutoff())
+        self.assertEqual(len(refreshed.preserved), 1)
 
     def test_refresh_does_not_move_occurrence_when_series_schedule_shape_changes(self):
         occurrence = generate_lesson_occurrences(self.series, date(2026, 9, 22), date(2026, 9, 22)).created[0]
         original_start = occurrence.starts_at; original_slot = occurrence.scheduled_for
         self.series.weekday = 3; self.series.starts_at_time = time(19); self.series.save(update_fields=["weekday", "starts_at_time"])
-        refresh_future_lesson_occurrences(self.series, from_date=date(2026, 9, 1))
+        refresh_future_lesson_occurrences(self.series, from_datetime=self._refresh_cutoff())
         occurrence.refresh_from_db(); self.assertEqual(occurrence.starts_at, original_start); self.assertEqual(occurrence.scheduled_for, original_slot)
 
     def test_cancel_rejects_completed_occurrence(self):
