@@ -1,8 +1,9 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from portal.forms_lessons_v340 import IEALessonSeriesForm, LessonSeriesForm
@@ -18,6 +19,7 @@ class LessonInstructorEligibilityTests(TestCase):
         self.iea_program = LessonProgram.objects.create(team=self.team, name="IEA Team Lessons")
         self.season = Season.objects.create(team=self.team, name="2026 IEA", start_date=date(2026, 8, 1), end_date=date(2027, 5, 31), is_active=True)
         self.coach = self._person("coach", profile_role="coach")
+        self.second_coach = self._person("coach2", profile_role="coach")
         self.trainer = self._person("trainer", person_role=OrganizationRoleAssignment.Role.TRAINER)
         self.assistant = self._person("assistant", person_role=OrganizationRoleAssignment.Role.ASSISTANT_TRAINER)
         self.rider = self._person("rider", person_role=OrganizationRoleAssignment.Role.RIDER)
@@ -35,6 +37,22 @@ class LessonInstructorEligibilityTests(TestCase):
     def _starts_at(self):
         return timezone.make_aware(datetime(2026, 9, 28, 17, 0), timezone.get_current_timezone())
 
+    def _iea_form_data(self, *, instructor=None, team_level=SeasonMembership.TeamLevel.UPPER, name="Upper lessons"):
+        return {
+            "name": name,
+            "instructor": (instructor or self.coach).pk,
+            "team_level": team_level,
+            "weekday": 1,
+            "starts_at_time": "17:00",
+            "duration_minutes": 60,
+            "default_location": "Main ring",
+            "capacity": 8,
+            "start_date": "2026-09-01",
+            "end_date": "2027-05-01",
+            "active": "on",
+            "notes": "",
+        }
+
     def test_barn_series_offers_trainers_and_assistant_trainers_only(self):
         form = LessonSeriesForm(program=self.program)
         ids = set(form.fields["instructor"].queryset.values_list("pk", flat=True))
@@ -43,7 +61,7 @@ class LessonInstructorEligibilityTests(TestCase):
     def test_iea_series_offers_coaches_only(self):
         form = IEALessonSeriesForm(program=self.iea_program, season=self.season)
         ids = set(form.fields["instructor"].queryset.values_list("pk", flat=True))
-        self.assertEqual(ids, {self.coach.pk})
+        self.assertEqual(ids, {self.coach.pk, self.second_coach.pk})
 
     def test_rider_is_never_selectable_as_lesson_instructor(self):
         barn_form = LessonSeriesForm(program=self.program)
@@ -74,3 +92,42 @@ class LessonInstructorEligibilityTests(TestCase):
         context = IEALessonSeriesContext(series=series, season=self.season, team_level=SeasonMembership.TeamLevel.UPPER)
         with self.assertRaises(ValidationError):
             context.full_clean()
+
+    def test_new_iea_series_can_be_created_with_coach_instructor(self):
+        form = IEALessonSeriesForm(self._iea_form_data(), program=self.iea_program, season=self.season)
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        series = form.save()
+        self.assertEqual(series.instructor, self.coach)
+        self.assertEqual(series.iea_context.season, self.season)
+        self.assertEqual(series.iea_context.team_level, SeasonMembership.TeamLevel.UPPER)
+        series.full_clean()
+        series.iea_context.full_clean()
+
+    def test_iea_series_edit_keeps_coach_queryset_and_updates_context(self):
+        form = IEALessonSeriesForm(self._iea_form_data(), program=self.iea_program, season=self.season)
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        series = form.save()
+        edit_form = IEALessonSeriesForm(instance=series, program=self.iea_program, season=self.season)
+        ids = set(edit_form.fields["instructor"].queryset.values_list("pk", flat=True))
+        self.assertEqual(ids, {self.coach.pk, self.second_coach.pk})
+        self.assertEqual(edit_form.fields["team_level"].initial, SeasonMembership.TeamLevel.UPPER)
+
+        data = self._iea_form_data(instructor=self.second_coach, team_level=SeasonMembership.TeamLevel.FUTURES, name=series.name)
+        edit_form = IEALessonSeriesForm(data, instance=series, program=self.iea_program, season=self.season)
+        self.assertTrue(edit_form.is_valid(), edit_form.errors.as_json())
+        edited = edit_form.save()
+        edited.refresh_from_db()
+        edited.iea_context.refresh_from_db()
+        self.assertEqual(edited.instructor, self.second_coach)
+        self.assertEqual(edited.iea_context.team_level, SeasonMembership.TeamLevel.FUTURES)
+
+    def test_iea_series_edit_view_uses_iea_aware_form(self):
+        form = IEALessonSeriesForm(self._iea_form_data(), program=self.iea_program, season=self.season)
+        self.assertTrue(form.is_valid(), form.errors.as_json())
+        series = form.save()
+        self.client.force_login(self.coach.user)
+        response = self.client.get(reverse("lesson_series_edit", args=[series.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response.context["form"], IEALessonSeriesForm)
+        ids = set(response.context["form"].fields["instructor"].queryset.values_list("pk", flat=True))
+        self.assertEqual(ids, {self.coach.pk, self.second_coach.pk})
