@@ -1,8 +1,9 @@
-from datetime import date, time
+from datetime import date, datetime, time
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from portal.model_modules.lessons import IEALessonSeriesContext, LessonProgram, LessonSeries
 from portal.model_modules.people import OrganizationRoleAssignment, Person
@@ -20,12 +21,15 @@ class LessonDomainPermissionTests(TestCase):
         self.rider = self._user("rider", "rider", OrganizationRoleAssignment.Role.RIDER)
         self.barn_program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
         self.barn_series = LessonSeries.objects.create(program=self.barn_program, name="Barn Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, start_date=date(2026,9,1))
-        self.barn_occurrence = create_manual_lesson_occurrence(self.barn_series, date(2026,9,22), time(17))
+        self.barn_occurrence = create_manual_lesson_occurrence(self.barn_series, starts_at=self._at(date(2026,9,22), time(17)))
         self.season = Season.objects.create(team=self.team, name="2026 IEA", start_date=date(2026,8,1), end_date=date(2027,5,31), active=True)
         self.iea_program = LessonProgram.objects.create(team=self.team, name="IEA Team Lessons")
         self.iea_series = LessonSeries.objects.create(program=self.iea_program, name="Upper Team", weekday=3, starts_at_time=time(18), duration_minutes=60, start_date=date(2026,9,1))
         IEALessonSeriesContext.objects.create(series=self.iea_series, season=self.season, team_level=SeasonMembership.TeamLevel.UPPER)
-        self.iea_occurrence = create_manual_lesson_occurrence(self.iea_series, date(2026,9,24), time(18))
+        self.iea_occurrence = create_manual_lesson_occurrence(self.iea_series, starts_at=self._at(date(2026,9,24), time(18)))
+
+    def _at(self, day, clock):
+        return timezone.make_aware(datetime.combine(day, clock), timezone.get_current_timezone())
 
     def _user(self, username, profile_role, person_role=None):
         user = User.objects.create_user(username, password="test")
