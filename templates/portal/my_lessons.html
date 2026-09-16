@@ -1,19 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}My Lessons{% endblock %}
 {% block content %}
-<div class="page-intro"><div><div class="eyebrow">RIDER</div><h1>My Lessons</h1><p>Upcoming lessons for {{ person }}.</p></div></div>
-<section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">UPCOMING</div><h2>Your schedule</h2></div></div>
-  {% if upcoming %}
-  <div class="table-wrap"><table class="data-table"><thead><tr><th>Date</th><th>Lesson</th><th>Program</th><th>Status</th><th></th></tr></thead><tbody>
-  {% for attendance in upcoming %}<tr>
-    <td>{{ attendance.occurrence.starts_at|date:"D, M j · g:i A" }}</td>
-    <td><strong>{{ attendance.occurrence.title }}</strong></td>
-    <td>{% if attendance.occurrence.series.is_iea_series %}IEA · {{ attendance.occurrence.series.iea_context.get_team_level_display }}{% else %}{{ attendance.occurrence.series.program.name }}{% endif %}</td>
-    <td>{{ attendance.get_status_display }}</td>
-    <td>{% if attendance.occurrence.status != 'completed' and attendance.occurrence.status != 'cancelled' %}<a class="btn secondary" href="{% url 'my_lesson_reschedule' attendance.occurrence.pk %}">Reschedule / Make-up</a>{% endif %}</td>
-  </tr>{% endfor %}
-  </tbody></table></div>
-  {% else %}<div class="empty-state">You do not have any upcoming lessons on your ArenaLine schedule.</div>{% endif %}
-</section>
+<div class="page-intro"><div><div class="eyebrow">RIDER · LESSONS</div><h1>My Lessons</h1><p>Your upcoming ArenaLine lesson schedule.</p></div><div class="actions"><a class="btn secondary" href="{% url 'calendar' %}">Calendar</a><a class="btn secondary" href="{% url 'my_account' %}">My Account</a></div></div>
+<div class="lesson-context-bar"><div><small>Rider</small><br><strong>{{ person }}</strong></div><span class="muted">Reschedule your own lesson without changing anyone else's schedule.</span></div>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">UPCOMING</div><h2>Your schedule</h2></div><div><strong>{{ upcoming|length }}</strong> lesson{{ upcoming|length|pluralize }}</div></div>
+{% if upcoming %}<div class="lesson-schedule-list">{% for attendance in upcoming %}<div class="lesson-schedule-card card"><div class="lesson-datebox"><span>{{ attendance.occurrence.starts_at|date:"M" }}</span><strong>{{ attendance.occurrence.starts_at|date:"j" }}</strong></div><div class="lesson-card-main"><small>{% if attendance.occurrence.series.is_iea_series %}IEA · {{ attendance.occurrence.series.iea_context.get_team_level_display }}{% else %}{{ attendance.occurrence.series.program.name }}{% endif %}</small><h3>{{ attendance.occurrence.title }}</h3><p>{{ attendance.occurrence.starts_at|date:"l · g:i A" }}{% if attendance.occurrence.location %} · {{ attendance.occurrence.location }}{% endif %} · <span class="lesson-status">{{ attendance.get_status_display }}</span></p></div><div class="lesson-card-action">{% if attendance.occurrence.status != 'completed' and attendance.occurrence.status != 'cancelled' %}<a class="btn secondary" href="{% url 'my_lesson_reschedule' attendance.occurrence.pk %}">Reschedule / Make-up</a>{% endif %}</div></div>{% endfor %}</div>{% else %}<div class="empty-state">You do not have any upcoming lessons on your ArenaLine schedule.</div>{% endif %}</section>
+<div class="actions"><a class="btn secondary" href="{% url 'calendar' %}">Back to calendar</a></div>
 {% endblock %}
