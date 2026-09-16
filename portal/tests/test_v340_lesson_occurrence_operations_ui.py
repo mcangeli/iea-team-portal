@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, time, timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -16,6 +16,11 @@ class LessonOccurrenceOperationsUITests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="Operations Barn")
         self.admin = User.objects.create_superuser("admin", "admin@example.com", "test")
+        # User creation auto-creates UserProfile. Scope that existing profile to
+        # the organization exactly as the real portal authorization layer expects.
+        self.admin.profile.team = self.team
+        self.admin.profile.role = "admin"
+        self.admin.profile.save()
         self.person = Person.objects.create(team=self.team, first_name="Riley", last_name="Rider")
         self.instructor = Person.objects.create(team=self.team, first_name="Casey", last_name="Coach")
         self.program = LessonProgram.objects.create(team=self.team, name="Barn Program")
