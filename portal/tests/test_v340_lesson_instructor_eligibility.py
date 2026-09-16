@@ -1,12 +1,14 @@
-from datetime import date
+from datetime import date, datetime
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from portal.forms_lessons_v340 import IEALessonSeriesForm, LessonSeriesForm
-from portal.model_modules.lessons import LessonProgram
+from portal.model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonOccurrence, LessonProgram, LessonSeries
 from portal.model_modules.people import OrganizationRoleAssignment, Person
-from portal.models import Season, Team
+from portal.models import Season, SeasonMembership, Team
 
 
 class LessonInstructorEligibilityTests(TestCase):
@@ -30,6 +32,9 @@ class LessonInstructorEligibilityTests(TestCase):
             OrganizationRoleAssignment.objects.create(team=self.team, person=person, role=person_role)
         return person
 
+    def _starts_at(self):
+        return timezone.make_aware(datetime(2026, 9, 28, 17, 0), timezone.get_current_timezone())
+
     def test_barn_series_offers_trainers_and_assistant_trainers_only(self):
         form = LessonSeriesForm(program=self.program)
         ids = set(form.fields["instructor"].queryset.values_list("pk", flat=True))
@@ -45,3 +50,27 @@ class LessonInstructorEligibilityTests(TestCase):
         iea_form = IEALessonSeriesForm(program=self.iea_program, season=self.season)
         self.assertNotIn(self.rider.pk, barn_form.fields["instructor"].queryset.values_list("pk", flat=True))
         self.assertNotIn(self.rider.pk, iea_form.fields["instructor"].queryset.values_list("pk", flat=True))
+
+    def test_barn_series_rejects_rider_instructor_at_model_boundary(self):
+        series = LessonSeries(program=self.program, name="Unsafe", instructor=self.rider)
+        with self.assertRaises(ValidationError):
+            series.full_clean()
+
+    def test_barn_occurrence_rejects_rider_instructor_at_model_boundary(self):
+        series = LessonSeries.objects.create(program=self.program, name="Safe", instructor=self.trainer)
+        occurrence = LessonOccurrence(series=series, title="Unsafe occurrence", instructor=self.rider, starts_at=self._starts_at())
+        with self.assertRaises(ValidationError):
+            occurrence.full_clean()
+
+    def test_instructor_assignment_rejects_rider(self):
+        series = LessonSeries.objects.create(program=self.program, name="Assignment", instructor=self.trainer)
+        occurrence = LessonOccurrence.objects.create(series=series, title="Assignment lesson", instructor=self.trainer, starts_at=self._starts_at())
+        assignment = LessonAssignment(occurrence=occurrence, person=self.rider, role=LessonAssignment.Role.INSTRUCTOR)
+        with self.assertRaises(ValidationError):
+            assignment.full_clean()
+
+    def test_iea_context_rejects_non_coach_series_instructor(self):
+        series = LessonSeries.objects.create(program=self.iea_program, name="IEA unsafe", instructor=self.trainer)
+        context = IEALessonSeriesContext(series=series, season=self.season, team_level=SeasonMembership.TeamLevel.UPPER)
+        with self.assertRaises(ValidationError):
+            context.full_clean()
