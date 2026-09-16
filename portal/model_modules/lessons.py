@@ -2,7 +2,25 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from portal.models import Season, SeasonMembership, Team
+from portal.models import Season, SeasonMembership, Team, UserProfile
+
+
+def _has_active_role(person, *roles):
+    return person.role_assignments.filter(active=True, role__in=roles).exists()
+
+
+def _is_coach(person):
+    return bool(person.user_id and hasattr(person.user, "profile") and person.user.profile.role == UserProfile.Role.COACH)
+
+
+def _validate_instructor(person, *, iea=False):
+    if not person:
+        return
+    if iea:
+        if not _is_coach(person):
+            raise ValidationError({"instructor": "IEA team lesson instructors must be Coaches."})
+    elif not _has_active_role(person, "trainer", "assistant_trainer"):
+        raise ValidationError({"instructor": "Barn lesson instructors must be Trainers or Assistant Trainers."})
 
 
 class LessonProgram(models.Model):
@@ -57,7 +75,9 @@ class LessonSeries(models.Model):
         if self.duration_minutes is not None and self.duration_minutes < 1: raise ValidationError({"duration_minutes": "Duration must be at least 1 minute."})
         if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1."})
         if self.start_date and self.end_date and self.end_date < self.start_date: raise ValidationError("Series end date cannot be before the start date.")
-        if self.instructor_id and self.instructor.team_id != self.program.team_id: raise ValidationError("Lesson series instructor must belong to the same organization.")
+        if self.instructor_id:
+            if self.instructor.team_id != self.program.team_id: raise ValidationError("Lesson series instructor must belong to the same organization.")
+            _validate_instructor(self.instructor, iea=self.is_iea_series)
     def __str__(self): return f"{self.program.name} — {self.name}"
 
 
@@ -78,6 +98,7 @@ class IEALessonSeriesContext(models.Model):
         super().clean()
         if self.series_id and self.season_id and self.series.program.team_id != self.season.team_id: raise ValidationError("IEA lesson series and season must belong to the same organization.")
         if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}: raise ValidationError({"team_level": "IEA lesson series must be Futures or Upper School."})
+        if self.series_id and self.series.instructor_id: _validate_instructor(self.series.instructor, iea=True)
     def __str__(self): return f"{self.season.name} · {self.get_team_level_display()} · {self.series.name}"
 
 
@@ -136,7 +157,9 @@ class LessonOccurrence(models.Model):
         super().clean()
         if self.ends_at and self.ends_at <= self.starts_at: raise ValidationError("Lesson occurrence end time must be after its start time.")
         if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1."})
-        if self.instructor_id and self.instructor.team_id != self.series.program.team_id: raise ValidationError("Lesson occurrence instructor must belong to the same organization.")
+        if self.instructor_id:
+            if self.instructor.team_id != self.series.program.team_id: raise ValidationError("Lesson occurrence instructor must belong to the same organization.")
+            _validate_instructor(self.instructor, iea=self.series.is_iea_series)
         if self.origin == self.Origin.GENERATED and self.scheduled_for is None: raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
         if self.origin != self.Origin.GENERATED and self.scheduled_for is not None: raise ValidationError({"scheduled_for": "Only generated lesson occurrences may have a recurrence slot."})
     def __str__(self): return f"{self.title} — {self.starts_at:%Y-%m-%d}"
@@ -183,7 +206,9 @@ class LessonAssignment(models.Model):
         super().clean(); team_id = self.occurrence.series.program.team_id
         if self.person_id and self.person.team_id != team_id: raise ValidationError("Lesson assignment person must belong to the same organization.")
         if self.horse_id and self.horse.team_id != team_id: raise ValidationError("Lesson assignment horse must belong to the same organization.")
-        if self.role == self.Role.INSTRUCTOR and self.horse_id: raise ValidationError("Instructor assignments cannot have a horse assignment.")
+        if self.role == self.Role.INSTRUCTOR:
+            if self.horse_id: raise ValidationError("Instructor assignments cannot have a horse assignment.")
+            _validate_instructor(self.person, iea=self.occurrence.series.is_iea_series)
     def __str__(self): return f"{self.person} — {self.get_role_display()} — {self.occurrence}"
 
 
@@ -210,18 +235,14 @@ class LessonParticipantMove(models.Model):
         constraints = [models.UniqueConstraint(fields=["source_occurrence", "destination_occurrence", "person"], name="unique_lesson_participant_move")]
     def clean(self):
         super().clean()
-        if self.source_occurrence_id and self.destination_occurrence_id:
-            if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Destination lesson must be different from the original lesson.")
-            source_team = self.source_occurrence.series.program.team_id
-            if self.destination_occurrence.series.program.team_id != source_team: raise ValidationError("Rider lesson moves must remain within one organization.")
-            if self.person_id and self.person.team_id != source_team: raise ValidationError("Rider lesson move must remain within one organization.")
-            if self.destination_occurrence.status in {LessonOccurrence.Status.COMPLETED, LessonOccurrence.Status.CANCELLED}: raise ValidationError("Riders cannot be moved into completed or cancelled lessons.")
-            source_iea = self.source_occurrence.series.is_iea_series
-            destination_iea = self.destination_occurrence.series.is_iea_series
-            if source_iea != destination_iea: raise ValidationError("Barn and IEA lesson rosters cannot be mixed by a rider move.")
-            if source_iea:
-                source_context = self.source_occurrence.series.iea_context
-                destination_context = self.destination_occurrence.series.iea_context
-                if source_context.season_id != destination_context.season_id or source_context.team_level != destination_context.team_level:
-                    raise ValidationError("IEA rider moves must stay within the same season and team level.")
-    def __str__(self): return f"{self.person} · {self.source_occurrence} → {self.destination_occurrence}"
+        if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lessons must be different.")
+        if self.person_id:
+            source_team = self.source_occurrence.series.program.team_id; destination_team = self.destination_occurrence.series.program.team_id
+            if source_team != destination_team or self.person.team_id != source_team: raise ValidationError("Lesson moves must remain within one organization.")
+        if self.destination_occurrence.status in {LessonOccurrence.Status.COMPLETED, LessonOccurrence.Status.CANCELLED}: raise ValidationError("Destination lesson must still be active.")
+        source_iea = self.source_occurrence.series.is_iea_series; destination_iea = self.destination_occurrence.series.is_iea_series
+        if source_iea != destination_iea: raise ValidationError("A rider cannot be moved between Barn and IEA lesson domains.")
+        if source_iea:
+            source_context = self.source_occurrence.series.iea_context; destination_context = self.destination_occurrence.series.iea_context
+            if source_context.season_id != destination_context.season_id or source_context.team_level != destination_context.team_level: raise ValidationError("IEA lesson moves must stay within the same season and team level.")
+    def __str__(self): return f"{self.person} · {self.get_kind_display()} · {self.source_occurrence} → {self.destination_occurrence}"
