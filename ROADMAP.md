@@ -204,7 +204,7 @@ v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfil
 
 **Status: release-complete.**
 
-v3.3 expands the competition/Hoofprint-oriented Horse Registry into broader equine-care, document, compliance, and show-readiness functionality while preserving existing competition and historical workflows.
+v3.3 expands the competition/Hoofprint-oriented Horse Registry into broader equine-care, document, compliance, delegated-management, and show-readiness functionality while preserving existing competition and historical workflows.
 
 Major outcomes:
 
@@ -216,11 +216,14 @@ Major outcomes:
 - show-date-aware compliance that requires records to remain valid through the actual show date;
 - Show Readiness and Show Horses compliance integration with blocking and warning states;
 - Hoofprint compliance enforcement while preserving preview and advisory completeness warnings;
-- protected organization-scoped manager-only document and Coggins downloads;
+- protected organization-scoped horse document and Coggins downloads;
+- explicit Manage Horses capability for organization-wide delegation without Coach/Admin access;
+- current Boarder / Responsible Party relationships provide effective-date-aware management of only their related horse records;
+- structural relationship, season, and show authority remains separately restricted from delegated horse-record management;
 - privacy-safe presentation that does not expose private care/compliance details to ordinary rider/parent views;
 - preserved Horse of the Day, Hoofprint, show-assignment, and historical compatibility.
 
-Final validation: clean Django system/migration checks, **128/128 horse/show/Hoofprint regression tests passing**, and **732/732 portal tests passing** on staging.
+Final validation: clean Django system/migration checks, **128/128 horse/show/Hoofprint regression tests passing**, **56/56 affected horse/People authorization regressions passing**, and **747/747 portal tests passing** on staging.
 
 Detailed release notes: `docs/releases/v3.3.0.md`.
 
