@@ -68,11 +68,7 @@ class LessonSeries(models.Model):
     @property
     def effective_capacity(self): return self.capacity if self.capacity is not None else self.program.default_capacity
     @property
-    def is_iea_series(self):
-        # ModelForms validate the LessonSeries before a brand-new IEA context can
-        # exist. IEALessonSeriesForm marks that transient instance explicitly so
-        # model validation uses Coach rules during both form validation and save.
-        return getattr(self, "_lesson_domain", None) == "iea" or hasattr(self, "iea_context")
+    def is_iea_series(self): return getattr(self, "_lesson_domain_iea", False) or hasattr(self, "iea_context")
     def clean(self):
         super().clean()
         if self.weekday is not None and not 0 <= self.weekday <= 6: raise ValidationError({"weekday": "Weekday must be between 0 and 6."})
@@ -103,7 +99,7 @@ class IEALessonSeriesContext(models.Model):
         if self.series_id and self.season_id and self.series.program.team_id != self.season.team_id: raise ValidationError("IEA lesson series and season must belong to the same organization.")
         if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}: raise ValidationError({"team_level": "IEA lesson series must be Futures or Upper School."})
         if self.series_id and self.series.instructor_id: _validate_instructor(self.series.instructor, iea=True)
-    def __str__(self): return f"{self.season.name} · {self.get_team_level_display()} · {self.series.name}"
+    def __str__(self): return f"{self.season} · {self.get_team_level_display()} · {self.series.name}"
 
 
 class LessonEnrollment(models.Model):
@@ -125,9 +121,9 @@ class LessonEnrollment(models.Model):
         constraints = [models.UniqueConstraint(fields=["series", "person"], name="unique_lesson_series_person_enrollment")]
     def clean(self):
         super().clean()
-        if self.series_id and self.series.is_iea_series: raise ValidationError("IEA team lesson rosters come from season team membership, not barn lesson enrollment.")
-        if self.person_id and self.person.team_id != self.series.program.team_id: raise ValidationError("Lesson enrollment must remain within one organization.")
-        if self.start_date and self.end_date and self.end_date < self.start_date: raise ValidationError("Enrollment end date cannot be before the start date.")
+        if self.series_id and self.series.is_iea_series: raise ValidationError("IEA team lesson rosters come from season team membership, not lesson enrollment.")
+        if self.person_id and self.person.team_id != self.series.program.team_id: raise ValidationError("Lesson enrollment person must belong to the same organization.")
+        if self.start_date and self.end_date and self.end_date < self.start_date: raise ValidationError("Lesson enrollment end date cannot be before the start date.")
     def __str__(self): return f"{self.person} — {self.series}"
 
 
@@ -140,42 +136,44 @@ class LessonOccurrence(models.Model):
     class Origin(models.TextChoices):
         GENERATED = "generated", "Generated"
         MANUAL = "manual", "Manual"
-        LEGACY = "legacy", "Legacy conversion"
+        LEGACY = "legacy", "Legacy"
     series = models.ForeignKey(LessonSeries, on_delete=models.PROTECT, related_name="occurrences")
-    title = models.CharField(max_length=160)
+    title = models.CharField(max_length=180)
     instructor = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_occurrences_instructed")
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
-    origin = models.CharField(max_length=12, choices=Origin.choices, default=Origin.MANUAL)
-    scheduled_for = models.DateTimeField(null=True, blank=True, help_text="Immutable recurrence slot for generated occurrences.")
     location = models.CharField(max_length=180, blank=True)
     capacity = models.PositiveSmallIntegerField(null=True, blank=True)
+    origin = models.CharField(max_length=16, choices=Origin.choices, default=Origin.MANUAL)
+    scheduled_for = models.DateTimeField(null=True, blank=True, editable=False)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.SCHEDULED)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
         ordering = ["starts_at", "id"]
-        constraints = [models.UniqueConstraint(fields=["series", "scheduled_for"], name="unique_lesson_series_scheduled_slot")]
+        constraints = [models.UniqueConstraint(fields=["series", "scheduled_for"], name="unique_lesson_series_scheduled_for")]
     def clean(self):
         super().clean()
         if self.ends_at and self.ends_at <= self.starts_at: raise ValidationError("Lesson occurrence end time must be after its start time.")
         if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1."})
+        if self.origin == self.Origin.GENERATED and not self.scheduled_for: raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
+        if self.scheduled_for and self.origin == self.Origin.MANUAL: raise ValidationError({"scheduled_for": "Manual lesson occurrences do not use recurrence identity."})
+        if self.pk:
+            original = type(self).objects.filter(pk=self.pk).values("scheduled_for").first()
+            if original and original["scheduled_for"] != self.scheduled_for: raise ValidationError({"scheduled_for": "The original recurrence slot is immutable."})
         if self.instructor_id:
             if self.instructor.team_id != self.series.program.team_id: raise ValidationError("Lesson occurrence instructor must belong to the same organization.")
             _validate_instructor(self.instructor, iea=self.series.is_iea_series)
-        if self.origin == self.Origin.GENERATED and self.scheduled_for is None: raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
-        if self.origin != self.Origin.GENERATED and self.scheduled_for is not None: raise ValidationError({"scheduled_for": "Only generated lesson occurrences may have a recurrence slot."})
-    def __str__(self): return f"{self.title} — {self.starts_at:%Y-%m-%d}"
+    def __str__(self): return f"{self.title} — {self.starts_at:%Y-%m-%d %H:%M}"
 
 
 class LegacyIEALessonOccurrenceLink(models.Model):
-    """Durable provenance between one legacy IEA lesson partition and its v3.4 occurrence."""
     class TeamLevel(models.TextChoices):
         FUTURES = SeasonMembership.TeamLevel.FUTURES, "Futures Team"
         UPPER = SeasonMembership.TeamLevel.UPPER, "Upper School Team"
     legacy_lesson = models.ForeignKey("portal.Lesson", on_delete=models.PROTECT, related_name="v340_occurrence_links")
-    occurrence = models.OneToOneField(LessonOccurrence, on_delete=models.PROTECT, related_name="legacy_iea_provenance")
+    occurrence = models.OneToOneField(LessonOccurrence, on_delete=models.PROTECT, related_name="legacy_iea_link")
     team_level = models.CharField(max_length=20, choices=TeamLevel.choices)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
@@ -259,7 +257,7 @@ class LessonParticipantMove(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering = ["-created_at", "-id"]
-        constraints = [models.UniqueConstraint(fields=["source_occurrence", "destination_occurrence", "person"], name="unique_lesson_participant_move")]
+        constraints = [models.UniqueConstraint(fields=["source_occurrence", "person"], name="unique_lesson_participant_move_source_person")]
     def clean(self):
         super().clean()
         if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lesson occurrences must be different.")
