@@ -10,6 +10,7 @@ from ..forms_lessons_v340 import IEALessonSeriesForm, LessonAttendanceRecordForm
 from ..model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
 from ..platform import active_period_for_organization, organization_for_view_user
+from ..services.lesson_completion import complete_lesson_occurrence
 from ..services.lesson_operations import materialize_lesson_series
 from ..services.lesson_permissions import can_manage_lesson_occurrence, can_manage_lesson_series, is_barn_lesson_manager, is_iea_lesson_manager, require_barn_lesson_manager, require_iea_lesson_manager, require_lesson_occurrence_manager
 from ..services.lesson_preparation import prepare_lesson_occurrence
@@ -128,8 +129,11 @@ def lesson_assignment_edit(request,pk):
 def lesson_occurrence_complete(request,pk):
     team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk); require_lesson_occurrence_manager(request.user,occurrence)
     if request.method=="POST":
-        if occurrence.status==LessonOccurrence.Status.CANCELLED: messages.error(request,"A cancelled lesson cannot be completed.")
-        else: occurrence.status=LessonOccurrence.Status.COMPLETED; occurrence.full_clean(); occurrence.save(update_fields=["status","updated_at"]); messages.success(request,"Lesson marked complete.")
+        try:
+            complete_lesson_occurrence(occurrence)
+            messages.success(request,"Lesson marked complete.")
+        except ValidationError as exc:
+            messages.error(request," ".join(exc.messages))
     return redirect("lesson_occurrence_detail",pk=pk)
 
 @login_required
