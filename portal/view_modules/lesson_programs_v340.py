@@ -73,7 +73,11 @@ def lesson_series_detail(request,pk):
 
 @login_required
 def lesson_series_edit(request,pk):
-    team=organization_for_view_user(request.user); series=get_object_or_404(LessonSeries.objects.select_related("program"),pk=pk,program__team=team); _require_series_manager(request.user,series); form=LessonSeriesForm(request.POST or None,instance=series,program=series.program)
+    team=organization_for_view_user(request.user); series=get_object_or_404(LessonSeries.objects.select_related("program","iea_context__season"),pk=pk,program__team=team); _require_series_manager(request.user,series)
+    if series.is_iea_series:
+        form=IEALessonSeriesForm(request.POST or None,instance=series,program=series.program,season=series.iea_context.season)
+    else:
+        form=LessonSeriesForm(request.POST or None,instance=series,program=series.program)
     if form.is_valid(): form.save(); messages.success(request,"Lesson series updated. Existing occurrences were not silently moved."); return redirect("lesson_series_detail",pk=series.pk)
     return render(request,"portal/form.html",{"form":form,"title":f"Edit {series.name}","eyebrow":series.program.name})
 
