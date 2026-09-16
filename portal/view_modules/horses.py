@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -110,6 +113,14 @@ def horse_coggins_edit(request, horse_pk, pk):
 
 
 @login_required
+def horse_coggins_document(request, horse_pk, pk):
+    _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk); record = get_object_or_404(HorseCogginsRecord, pk=pk, horse=horse)
+    if not record.document: raise Http404("No Coggins document is attached to this record.")
+    file_obj = record.document.open("rb"); filename = Path(record.document.name).name
+    response = FileResponse(file_obj, as_attachment=False, filename=filename); response["Cache-Control"] = "private, no-store"; response["Pragma"] = "no-cache"; return response
+
+
+@login_required
 def horse_season_profile(request, horse_pk, season_pk=None):
     _require_horse_manage(request.user); horse = _horse_for_user(request.user, horse_pk); team = horse.team
     if season_pk: season = get_object_or_404(Season, pk=season_pk, team=team)
@@ -174,8 +185,7 @@ def show_horse_award_edit(request, show_pk, pk):
 
 
 @login_required
+@require_POST
 def show_horse_award_delete(request, show_pk, pk):
-    team = organization_for_view_user(request.user); show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season); award = get_object_or_404(HorseShowAward, pk=pk, show=show)
-    if request.method == "POST":
-        label = award.horse.display_name; _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed {award.get_session_display()} Horse of the Day for {label}"); award.delete(); messages.success(request, "Horse of the Day award removed."); return redirect("show_horses", show_pk=show.pk)
-    return render(request, "portal/horse_show_award_confirm_delete.html", {"show": show, "award": award})
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show.objects.select_related("season"), pk=show_pk, team=team); _require_show_horse_manage(request.user, show); _ensure_season_open(show.season); award = get_object_or_404(HorseShowAward, pk=pk, show=show); label = f"{award.horse.display_name} — {award.get_session_display()}"
+    _audit_event(team=team, actor=request.user, action=AuditEvent.Action.REMOVED, obj=award, season=show.season, summary=f"Removed Horse of the Day award for {label}"); award.delete(); messages.success(request, f"Removed Horse of the Day award for {label}."); return redirect("show_horses", show_pk=show.pk)
