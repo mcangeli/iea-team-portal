@@ -1,7 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from portal.models import Team
+from portal.models import Season, SeasonMembership, Team
 
 
 class LessonProgram(models.Model):
@@ -21,9 +21,7 @@ class LessonProgram(models.Model):
 
     class Meta:
         ordering = ["name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["team", "name"], name="unique_lesson_program_team_name"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["team", "name"], name="unique_lesson_program_team_name")]
 
     def clean(self):
         super().clean()
@@ -44,10 +42,7 @@ class LessonProgram(models.Model):
 class LessonSeries(models.Model):
     program = models.ForeignKey(LessonProgram, on_delete=models.CASCADE, related_name="series")
     name = models.CharField(max_length=160)
-    instructor = models.ForeignKey(
-        "portal.Person", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="lesson_series_instructed",
-    )
+    instructor = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_series_instructed")
     weekday = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Monday=0 through Sunday=6.")
     starts_at_time = models.TimeField(null=True, blank=True)
     duration_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
@@ -62,13 +57,15 @@ class LessonSeries(models.Model):
 
     class Meta:
         ordering = ["program__name", "name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["program", "name"], name="unique_lesson_series_program_name"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["program", "name"], name="unique_lesson_series_program_name")]
 
     @property
     def effective_capacity(self):
         return self.capacity if self.capacity is not None else self.program.default_capacity
+
+    @property
+    def is_iea_series(self):
+        return hasattr(self, "iea_context")
 
     def clean(self):
         super().clean()
@@ -85,6 +82,42 @@ class LessonSeries(models.Model):
 
     def __str__(self):
         return f"{self.program.name} — {self.name}"
+
+
+class IEALessonSeriesContext(models.Model):
+    """IEA specialization layered onto the generic lesson engine.
+
+    LessonSeries remains generic. This one-to-one context identifies a series as
+    an IEA team lesson for a particular Season and Futures/Upper team level.
+    IEA roster preparation should derive from SeasonMembership rather than the
+    general barn LessonEnrollment roster.
+    """
+    class TeamLevel(models.TextChoices):
+        FUTURES = SeasonMembership.TeamLevel.FUTURES, "Futures Team"
+        UPPER = SeasonMembership.TeamLevel.UPPER, "Upper School Team"
+
+    series = models.OneToOneField(LessonSeries, on_delete=models.CASCADE, related_name="iea_context")
+    season = models.ForeignKey(Season, on_delete=models.PROTECT, related_name="iea_lesson_series")
+    team_level = models.CharField(max_length=20, choices=TeamLevel.choices)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-season__start_date", "team_level", "series__name", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["season", "team_level", "series"], name="unique_iea_lesson_series_context")
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.series_id and self.season_id and self.series.program.team_id != self.season.team_id:
+            raise ValidationError("IEA lesson series and season must belong to the same organization.")
+        if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}:
+            raise ValidationError({"team_level": "IEA lesson series must be Futures or Upper School."})
+
+    def __str__(self):
+        return f"{self.season.name} · {self.get_team_level_display()} · {self.series.name}"
 
 
 class LessonEnrollment(models.Model):
@@ -105,12 +138,12 @@ class LessonEnrollment(models.Model):
 
     class Meta:
         ordering = ["person__last_name", "person__first_name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["series", "person"], name="unique_lesson_series_person_enrollment"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["series", "person"], name="unique_lesson_series_person_enrollment")]
 
     def clean(self):
         super().clean()
+        if self.series_id and self.series.is_iea_series:
+            raise ValidationError("IEA team lesson rosters come from season team membership, not barn lesson enrollment.")
         if self.person_id and self.person.team_id != self.series.program.team_id:
             raise ValidationError("Lesson enrollment must remain within one organization.")
         if self.start_date and self.end_date and self.end_date < self.start_date:
@@ -129,10 +162,7 @@ class LessonOccurrence(models.Model):
 
     series = models.ForeignKey(LessonSeries, on_delete=models.PROTECT, related_name="occurrences")
     title = models.CharField(max_length=160)
-    instructor = models.ForeignKey(
-        "portal.Person", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="lesson_occurrences_instructed",
-    )
+    instructor = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_occurrences_instructed")
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField(null=True, blank=True)
     location = models.CharField(max_length=180, blank=True)
@@ -176,9 +206,7 @@ class LessonAttendanceRecord(models.Model):
 
     class Meta:
         ordering = ["person__last_name", "person__first_name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["occurrence", "person"], name="unique_lesson_occurrence_person_attendance"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["occurrence", "person"], name="unique_lesson_occurrence_person_attendance")]
 
     def clean(self):
         super().clean()
@@ -197,19 +225,14 @@ class LessonAssignment(models.Model):
     occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.CASCADE, related_name="assignments")
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="lesson_assignments")
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.PARTICIPANT)
-    horse = models.ForeignKey(
-        "portal.Horse", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="lesson_assignments",
-    )
+    horse = models.ForeignKey("portal.Horse", on_delete=models.PROTECT, null=True, blank=True, related_name="lesson_assignments")
     notes = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["role", "person__last_name", "person__first_name", "id"]
-        constraints = [
-            models.UniqueConstraint(fields=["occurrence", "person", "role"], name="unique_lesson_occurrence_person_role"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["occurrence", "person", "role"], name="unique_lesson_occurrence_person_role")]
 
     def clean(self):
         super().clean()
