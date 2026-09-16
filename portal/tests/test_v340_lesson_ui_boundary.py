@@ -33,9 +33,9 @@ class LessonUIBoundaryTests(TestCase):
     def test_iea_workspace_separates_futures_and_upper(self):
         response = self.client.get(reverse("iea_lesson_list"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Futures lessons")
+        self.assertContains(response, "Futures lesson series")
         self.assertContains(response, "Futures Practice")
-        self.assertContains(response, "Upper lessons")
+        self.assertContains(response, "Upper lesson series")
         self.assertContains(response, "Upper Practice")
 
     def test_iea_series_detail_has_team_membership_roster_language(self):
