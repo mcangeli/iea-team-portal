@@ -1,5 +1,6 @@
 from math import ceil
 
+from .equine_compliance import compliance_summary_for_horse
 from .models import ShowEntry
 
 
@@ -17,11 +18,9 @@ def build_show_readiness(show):
     registry_assignments = list(
         show.horse_assignments.filter(available=True)
         .select_related("horse")
-        .prefetch_related("show_classes", "horse__coggins_records")
+        .prefetch_related("show_classes", "horse__coggins_records", "horse__documents")
     )
-    leased_horses = list(
-        show.leased_horses.filter(available=True).prefetch_related("show_classes")
-    )
+    leased_horses = list(show.leased_horses.filter(available=True).prefetch_related("show_classes"))
     available_horses = len(registry_assignments) + len(leased_horses)
 
     entered_class_ids = set(active_entries.values_list("show_class_id", flat=True))
@@ -37,22 +36,18 @@ def build_show_readiness(show):
         .order_by("sort_order", "class_number", "name")
     )
 
-    coggins_warnings = []
+    compliance_warnings = []
+    compliance_summaries = []
     for assignment in registry_assignments:
-        record = assignment.horse.latest_coggins
-        status = record.status if record else "missing"
-        if status != "current":
-            coggins_warnings.append({
-                "assignment": assignment,
-                "horse": assignment.horse,
-                "record": record,
-                "status": status,
-                "label": record.status_label if record else "Missing",
-            })
+        summary = compliance_summary_for_horse(assignment.horse)
+        compliance_summaries.append({"assignment": assignment, "horse": assignment.horse, "summary": summary})
+        if summary.overall_status != "current":
+            compliance_warnings.append({"assignment": assignment, "horse": assignment.horse, "summary": summary})
 
     horse_shortage = max(required_horses - available_horses, 0)
     count_ready = available_horses >= required_horses
     coverage_ready = not uncovered
+    compliance_ready = not any(item["summary"].overall_status == "attention" for item in compliance_warnings)
 
     return {
         "total_rides": total_rides,
@@ -66,7 +61,12 @@ def build_show_readiness(show):
         "coverage_ready": coverage_ready,
         "uncovered_classes": uncovered,
         "uncovered_class_count": len(uncovered),
-        "coggins_warnings": coggins_warnings,
-        "coggins_warning_count": len(coggins_warnings),
-        "ready": count_ready and coverage_ready,
+        "compliance_summaries": compliance_summaries,
+        "compliance_warnings": compliance_warnings,
+        "compliance_warning_count": len(compliance_warnings),
+        "compliance_ready": compliance_ready,
+        # Compatibility keys retained while callers/tests migrate from Coggins-only readiness.
+        "coggins_warnings": compliance_warnings,
+        "coggins_warning_count": len(compliance_warnings),
+        "ready": count_ready and coverage_ready and compliance_ready,
     }
