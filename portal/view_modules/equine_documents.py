@@ -1,6 +1,9 @@
+from pathlib import Path
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from ..equine_document_forms import HorseDocumentForm
@@ -69,3 +72,17 @@ def horse_document_edit(request, horse_pk, pk):
         "document": document,
         "title": f"Edit document — {horse.display_name}",
     })
+
+
+@login_required
+def horse_document_download(request, horse_pk, pk):
+    """Serve sensitive horse records only through authenticated manager access."""
+    _require_horse_manage(request.user)
+    horse = _horse_for_user(request.user, horse_pk)
+    document = get_object_or_404(HorseDocument, pk=pk, horse=horse)
+    file_obj = document.file.open("rb")
+    filename = Path(document.file.name).name
+    response = FileResponse(file_obj, as_attachment=False, filename=filename)
+    response["Cache-Control"] = "private, no-store"
+    response["Pragma"] = "no-cache"
+    return response
