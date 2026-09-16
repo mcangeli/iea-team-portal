@@ -45,13 +45,20 @@ def _latest_document_for_type(documents, document_type):
     return max(matches, key=lambda document: (document.effective_date or document.created_at.date(), document.pk))
 
 
-def _dated_status(expiration_date, as_of_date):
-    """Return compliance status relative to the date the record must remain valid through."""
+def _dated_status(expiration_date, as_of_date, *, today=None):
+    """Return compliance status relative to the date the record must remain valid through.
+
+    Keep the established registry/profile labels when evaluating today.  A future
+    event date gets the more specific ``Not valid through date`` label when the
+    record expires before that event.
+    """
+    today = today or timezone.localdate()
     if expiration_date is None:
         return "current", "Current"
+    if expiration_date < today:
+        return "attention", "Expired"
     if expiration_date < as_of_date:
         return "attention", "Not valid through date"
-    today = timezone.localdate()
     if expiration_date <= today + timedelta(days=30):
         return "warning", "Expiring soon"
     return "current", "Current"
@@ -64,7 +71,8 @@ def compliance_summary_for_horse(horse, as_of_date=None):
     behavior. Show workflows pass the show date so a record that is current now
     but expires before the event cannot make the horse show-ready.
     """
-    as_of_date = as_of_date or timezone.localdate()
+    today = timezone.localdate()
+    as_of_date = as_of_date or today
     prefetched = getattr(horse, "_prefetched_objects_cache", {}).get("documents")
     documents = list(prefetched if prefetched is not None else horse.documents.all())
     requirements = list(HorseComplianceRequirement.objects.filter(team=horse.team, active=True))
@@ -77,14 +85,14 @@ def compliance_summary_for_horse(horse, as_of_date=None):
                 if record is None:
                     items.append(HorseComplianceItem("coggins", requirement.name, "attention", "Missing", "No Coggins record on file."))
                 else:
-                    status, status_label = _dated_status(record.expiration_date, as_of_date)
+                    status, status_label = _dated_status(record.expiration_date, as_of_date, today=today)
                     items.append(HorseComplianceItem("coggins", requirement.name, status, status_label, f"Expires {record.expiration_date:%b %d, %Y}", record))
             else:
                 document = _latest_document_for_type(documents, requirement.document_type)
                 if document is None:
                     items.append(HorseComplianceItem("document", requirement.name, "attention", "Missing", f"Required {requirement.get_document_type_display()} is not on file."))
                 else:
-                    status, status_label = _dated_status(document.expiration_date, as_of_date)
+                    status, status_label = _dated_status(document.expiration_date, as_of_date, today=today)
                     detail = document.title
                     if document.expiration_date:
                         detail += f" · Expires {document.expiration_date:%b %d, %Y}"
@@ -94,10 +102,10 @@ def compliance_summary_for_horse(horse, as_of_date=None):
         if coggins is None:
             items.append(HorseComplianceItem("coggins", "Coggins", "attention", "Missing", "No Coggins record on file."))
         else:
-            status, status_label = _dated_status(coggins.expiration_date, as_of_date)
+            status, status_label = _dated_status(coggins.expiration_date, as_of_date, today=today)
             items.append(HorseComplianceItem("coggins", "Coggins", status, status_label, f"Expires {coggins.expiration_date:%b %d, %Y}", coggins))
         for document in documents:
-            status, status_label = _dated_status(document.expiration_date, as_of_date)
+            status, status_label = _dated_status(document.expiration_date, as_of_date, today=today)
             if status == "current":
                 continue
             detail = document.get_document_type_display()
