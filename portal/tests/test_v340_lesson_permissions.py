@@ -22,7 +22,7 @@ class LessonDomainPermissionTests(TestCase):
         self.barn_program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
         self.barn_series = LessonSeries.objects.create(program=self.barn_program, name="Barn Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, start_date=date(2026,9,1))
         self.barn_occurrence = create_manual_lesson_occurrence(self.barn_series, starts_at=self._at(date(2026,9,22), time(17)))
-        self.season = Season.objects.create(team=self.team, name="2026 IEA", start_date=date(2026,8,1), end_date=date(2027,5,31), active=True)
+        self.season = Season.objects.create(team=self.team, name="2026 IEA", start_date=date(2026,8,1), end_date=date(2027,5,31), is_active=True)
         self.iea_program = LessonProgram.objects.create(team=self.team, name="IEA Team Lessons")
         self.iea_series = LessonSeries.objects.create(program=self.iea_program, name="Upper Team", weekday=3, starts_at_time=time(18), duration_minutes=60, start_date=date(2026,9,1))
         IEALessonSeriesContext.objects.create(series=self.iea_series, season=self.season, team_level=SeasonMembership.TeamLevel.UPPER)
