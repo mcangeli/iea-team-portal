@@ -37,7 +37,7 @@ class RiderLessonReschedulingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         move = LessonParticipantMove.objects.get(person=self.rider)
         self.assertEqual(move.initiated_by, LessonParticipantMove.Initiator.RIDER)
-        self.assertEqual(move.created_by, self.user)
+        self.assertEqual(move.initiated_by_user, self.user)
         self.assertEqual(LessonAttendanceRecord.objects.get(occurrence=self.destination, person=self.rider).status, LessonAttendanceRecord.Status.MAKEUP)
 
     def test_my_lessons_shows_reschedule_provenance(self):
