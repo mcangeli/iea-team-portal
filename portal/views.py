@@ -47,6 +47,7 @@ from .view_modules.show_planning import *
 from .view_modules.lessons_helpers import *
 from .view_modules.lessons_helpers import _seed_lesson_attendance, _sync_lesson_calendar
 from .view_modules.lessons import *
+from .view_modules.lesson_programs_v340 import *
 from .view_modules.history_helpers import *
 from .view_modules.history_helpers import (
     _accessiea_show_column, _accessiea_split_name, _accessiea_team_level,
