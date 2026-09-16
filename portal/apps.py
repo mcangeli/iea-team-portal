@@ -20,6 +20,7 @@ class PortalConfig(AppConfig):
         from .model_modules import public_site  # noqa: F401
         from .model_modules import show_day_state  # noqa: F401
         from .model_modules import people  # noqa: F401
+        from .model_modules import capabilities  # noqa: F401
         from .model_modules import barn_participation  # noqa: F401
         from .model_modules import station  # noqa: F401
         from . import course_models  # noqa: F401
