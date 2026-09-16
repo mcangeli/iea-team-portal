@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -17,7 +18,15 @@ from ..services.lesson_preparation import prepare_lesson_occurrence
 from ..services.lesson_scheduling import cancel_lesson_occurrence, reschedule_lesson_occurrence
 
 
-def _barn_programs(team): return LessonProgram.objects.filter(team=team).exclude(series__iea_context__isnull=False).distinct()
+def _barn_programs(team):
+    # A program belongs in the Barn workspace when it is empty or contains at
+    # least one Barn series. Pure IEA containers stay in the Team Lessons
+    # workspace, while an accidental/legacy mixed container does not hide its
+    # Barn series from Barn operations.
+    return LessonProgram.objects.filter(team=team).filter(
+        Q(series__isnull=True) | Q(series__iea_context__isnull=True)
+    ).distinct()
+
 def _occurrence_for_team(team, pk): return get_object_or_404(LessonOccurrence.objects.select_related("series__program", "series__iea_context__season", "instructor").prefetch_related("attendance_records__person", "assignments__person", "assignments__horse"), pk=pk, series__program__team=team)
 def _require_series_manager(user, series):
     if not can_manage_lesson_series(user, series):
