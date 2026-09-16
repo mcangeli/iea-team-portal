@@ -42,21 +42,13 @@ class CalendarItem:
         return self.kind_label
 
 
-FILTER_CHOICES = (
-    ("all", "All calendar items"),
-    ("lessons", "All lessons"),
-    ("iea_lesson", "IEA team lessons"),
-    ("barn_lesson", "Barn lessons"),
-    ("horses", "Horse care & compliance"),
-    ("horse_care", "Horse care due"),
-    ("coggins", "Coggins expiration"),
-    ("horse_document", "Horse document expiration"),
-    ("show", "Shows"),
-    ("meeting", "Meetings"),
-    ("deadline", "Deadlines"),
-    ("social", "Social"),
-    ("other", "Other"),
+FILTER_GROUPS = (
+    ("Lessons", (("lessons", "All lessons"), ("iea_lesson", "IEA team lessons"), ("barn_lesson", "Barn lessons"))),
+    ("Horses", (("horses", "All horse care & compliance"), ("horse_care", "Care due"), ("coggins", "Coggins expiration"), ("horse_document", "Document expiration"))),
+    ("Competition", (("show", "Shows"),)),
+    ("Organization", (("meeting", "Meetings"), ("deadline", "Deadlines"), ("social", "Social"), ("other", "Other"))),
 )
+FILTER_CHOICES = (("all", "All calendar items"),) + tuple(choice for _group, choices in FILTER_GROUPS for choice in choices)
 VALID_FILTERS = {value for value, _label in FILTER_CHOICES}
 
 
@@ -91,106 +83,41 @@ def _manual_item(event):
 def _lesson_item(occurrence):
     if occurrence.series.is_iea_series:
         context = occurrence.series.iea_context
-        kind = "iea_lesson"
-        label = "IEA Team Lesson"
-        team_level = context.team_level
+        kind, label, team_level = "iea_lesson", "IEA Team Lesson", context.team_level
     else:
-        kind = "barn_lesson"
-        label = "Barn Lesson"
-        team_level = ""
-    return CalendarItem(
-        source="lesson_occurrence",
-        source_id=occurrence.pk,
-        category="lessons",
-        kind=kind,
-        kind_label=label,
-        title=occurrence.title,
-        starts_at=occurrence.starts_at,
-        ends_at=occurrence.ends_at,
-        location=occurrence.location,
-        url=reverse("lesson_occurrence_detail", args=[occurrence.pk]),
-        status=occurrence.status,
-        team_level=team_level,
-    )
+        kind, label, team_level = "barn_lesson", "Barn Lesson", ""
+    return CalendarItem(source="lesson_occurrence", source_id=occurrence.pk, category="lessons", kind=kind, kind_label=label, title=occurrence.title, starts_at=occurrence.starts_at, ends_at=occurrence.ends_at, location=occurrence.location, url=reverse("lesson_occurrence_detail", args=[occurrence.pk]), status=occurrence.status, team_level=team_level)
 
 
 def _care_item(record):
-    return CalendarItem(
-        source="horse_care_record",
-        source_id=record.pk,
-        category="horses",
-        kind="horse_care",
-        kind_label=f"{record.get_care_type_display()} due",
-        title=f"{record.horse.display_name} — {record.title}",
-        starts_at=_date_at_midnight(record.next_due_date),
-        all_day=True,
-        url=reverse("horse_care_history", args=[record.horse_id]),
-        status=record.due_status,
-    )
+    return CalendarItem(source="horse_care_record", source_id=record.pk, category="horses", kind="horse_care", kind_label=f"{record.get_care_type_display()} due", title=f"{record.horse.display_name} — {record.title}", starts_at=_date_at_midnight(record.next_due_date), all_day=True, url=reverse("horse_care_history", args=[record.horse_id]), status=record.due_status)
 
 
 def _coggins_item(record):
-    return CalendarItem(
-        source="horse_coggins",
-        source_id=record.pk,
-        category="horses",
-        kind="coggins",
-        kind_label="Coggins expiration",
-        title=f"{record.horse.display_name} — Coggins expires",
-        starts_at=_date_at_midnight(record.expiration_date),
-        all_day=True,
-        url=reverse("horse_detail", args=[record.horse_id]),
-        status=record.status,
-    )
+    return CalendarItem(source="horse_coggins", source_id=record.pk, category="horses", kind="coggins", kind_label="Coggins expiration", title=f"{record.horse.display_name} — Coggins expires", starts_at=_date_at_midnight(record.expiration_date), all_day=True, url=reverse("horse_detail", args=[record.horse_id]), status=record.status)
 
 
 def _document_item(document):
-    return CalendarItem(
-        source="horse_document",
-        source_id=document.pk,
-        category="horses",
-        kind="horse_document",
-        kind_label="Horse document expiration",
-        title=f"{document.horse.display_name} — {document.title} expires",
-        starts_at=_date_at_midnight(document.expiration_date),
-        all_day=True,
-        url=reverse("horse_detail", args=[document.horse_id]),
-        status=document.expiration_status,
-    )
+    return CalendarItem(source="horse_document", source_id=document.pk, category="horses", kind="horse_document", kind_label="Horse document expiration", title=f"{document.horse.display_name} — {document.title} expires", starts_at=_date_at_midnight(document.expiration_date), all_day=True, url=reverse("horse_detail", args=[document.horse_id]), status=document.expiration_status)
 
 
 def _show_matches_team(event, selected_team):
     if event.kind != CalendarEvent.Kind.SHOW or not event.show_id:
         return True
-    return event.show.classes.filter(
-        season_class__team_level__in=[selected_team, SeasonClass.TeamLevel.BOTH]
-    ).exists()
+    return event.show.classes.filter(season_class__team_level__in=[selected_team, SeasonClass.TeamLevel.BOTH]).exists()
 
 
 def calendar_items(team, start_dt, end_dt, *, selected_kind="all", selected_team="all", include_private=False):
     """Aggregate authoritative domain records into one sorted calendar stream."""
-    manual = team.events.select_related("show", "lesson", "lesson__group", "season").filter(
-        starts_at__gte=start_dt,
-        starts_at__lt=end_dt,
-    )
+    manual = team.events.select_related("show", "lesson", "lesson__group", "season").filter(starts_at__gte=start_dt, starts_at__lt=end_dt)
     if not include_private:
         manual = manual.filter(visible_to_all=True)
 
-    occurrences = LessonOccurrence.objects.select_related(
-        "series__program", "series__iea_context", "series__iea_context__season"
-    ).filter(series__program__team=team, starts_at__gte=start_dt, starts_at__lt=end_dt)
-
-    start_date = timezone.localtime(start_dt).date()
-    end_date = timezone.localtime(end_dt).date()
-    care_records = HorseCareRecord.objects.select_related("horse").filter(
-        horse__team=team, next_due_date__gte=start_date, next_due_date__lt=end_date
-    )
-    coggins_records = HorseCogginsRecord.objects.select_related("horse").filter(
-        horse__team=team, expiration_date__gte=start_date, expiration_date__lt=end_date
-    )
-    documents = HorseDocument.objects.select_related("horse").filter(
-        horse__team=team, expiration_date__gte=start_date, expiration_date__lt=end_date
-    )
+    occurrences = LessonOccurrence.objects.select_related("series__program", "series__iea_context", "series__iea_context__season").filter(series__program__team=team, starts_at__gte=start_dt, starts_at__lt=end_dt)
+    start_date, end_date = timezone.localtime(start_dt).date(), timezone.localtime(end_dt).date()
+    care_records = HorseCareRecord.objects.select_related("horse").filter(horse__team=team, next_due_date__gte=start_date, next_due_date__lt=end_date)
+    coggins_records = HorseCogginsRecord.objects.select_related("horse").filter(horse__team=team, expiration_date__gte=start_date, expiration_date__lt=end_date)
+    documents = HorseDocument.objects.select_related("horse").filter(horse__team=team, expiration_date__gte=start_date, expiration_date__lt=end_date)
 
     items = [_manual_item(event) for event in manual]
     items.extend(_lesson_item(occurrence) for occurrence in occurrences)
