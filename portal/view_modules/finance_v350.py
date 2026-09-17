@@ -63,7 +63,7 @@ def _operation_form(request,pk,form_class,title,submit_label,operation):
         try:selected=account.charges.get(pk=charge_id,status=ReceivableCharge.Status.POSTED)
         except (ReceivableCharge.DoesNotExist,ValueError):selected=None
         if selected and selected.balance>ZERO:initial["charge_id"]=selected.pk
-    form=form_class(request.POST or None,initial=initial)
+    form=form_class(request.POST or None,initial=initial,**({"team":team,"finance_domain":account.finance_domain} if form_class is FinancePaymentForm else {}))
     if request.method=="POST" and form.is_valid():
         try:operation(request.user,account.pk,team=team,**form.cleaned_data)
         except ValidationError as exc:form.add_error(None,exc)
