@@ -38,7 +38,10 @@ def reconcile_legacy_account(account: ReceivableAccount) -> dict:
     """Compare migrated IEA charge balances with the legacy family ledger."""
     if not account.legacy_membership_id:
         return {"legacy_amount_due": ZERO, "receivable_amount_due": account.amount_due, "difference": account.amount_due}
-    legacy_amount_due = sum((charge.balance for charge in account.legacy_membership.family_charges.all()), ZERO)
+    legacy_amount_due = sum(
+        (charge.balance for charge in account.legacy_membership.charges.all()),
+        ZERO,
+    )
     receivable_amount_due = account.amount_due
     return {
         "legacy_amount_due": legacy_amount_due,
