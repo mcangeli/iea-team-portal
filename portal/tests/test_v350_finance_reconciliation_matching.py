@@ -26,3 +26,25 @@ class ReconciliationMatchingTests(TestCase):
         row=self._row();tx=self._tx();match=generate_match_candidates(row)[0];confirm_reconciliation(match);row.refresh_from_db();match.refresh_from_db();self.assertEqual(row.status,ImportedBankTransaction.Status.RECONCILED);self.assertEqual(match.status,ReconciliationMatch.Status.CONFIRMED)
         row2=self._row(day=11,reference="REF-2");match2=ReconciliationMatch.objects.create(imported_transaction=row2,financial_transaction=tx,score=50)
         with self.assertRaises(ValidationError):confirm_reconciliation(match2)
+
+    def test_regeneration_rejects_stale_candidates_and_restores_staged_when_none_remain(self):
+        row=self._row();tx=self._tx();match=generate_match_candidates(row)[0]
+        tx.amount=Decimal("101.00");tx.save(update_fields=["amount"])
+        self.assertEqual(generate_match_candidates(row),[])
+        row.refresh_from_db();match.refresh_from_db()
+        self.assertEqual(row.status,ImportedBankTransaction.Status.STAGED)
+        self.assertEqual(match.status,ReconciliationMatch.Status.REJECTED)
+
+    def test_confirmation_revalidates_candidate_against_current_ledger(self):
+        row=self._row();tx=self._tx();match=generate_match_candidates(row)[0]
+        tx.status=FinancialTransaction.Status.VOID;tx.save(update_fields=["status"])
+        with self.assertRaises(ValidationError):confirm_reconciliation(match)
+        row.refresh_from_db();match.refresh_from_db()
+        self.assertNotEqual(row.status,ImportedBankTransaction.Status.RECONCILED)
+        self.assertNotEqual(match.status,ReconciliationMatch.Status.CONFIRMED)
+
+    def test_confirming_same_match_is_idempotent(self):
+        row=self._row();self._tx();match=generate_match_candidates(row)[0]
+        first=confirm_reconciliation(match);second=confirm_reconciliation(first)
+        self.assertEqual(first.pk,second.pk)
+        self.assertEqual(ReconciliationMatch.objects.filter(imported_transaction=row,status=ReconciliationMatch.Status.CONFIRMED).count(),1)
