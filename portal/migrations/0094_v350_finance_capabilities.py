@@ -2,7 +2,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [("portal", "0093_v350_repair_receivable_overallocations")]
+    dependencies = [("portal", "0093_v350_repair_legacy_receivable_allocations")]
 
     operations = [
         migrations.AlterField(
