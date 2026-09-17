@@ -2,7 +2,7 @@
 from decimal import Decimal
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from portal.model_modules.finance import ReceivableAccount, ReceivableAccountPerson, ReceivableCharge
+from portal.model_modules.finance import ReceivableAccount, ReceivableAccountPerson, ReceivableAllocation, ReceivableCharge
 from portal.services.finance_access import can_manage_finance_domain, finance_account_for_user
 from portal.services.finance_receivables import allocate_source, post_credit, post_payment, void_payment
 
@@ -61,3 +61,13 @@ def void_payment_for_user(user,account_id,*,payment_id,reason="",team=None):
     try: payment=account.payments.get(pk=payment_id)
     except account.payments.model.DoesNotExist as exc: raise ValidationError("Payment is not available on this receivable account.") from exc
     return void_payment(payment=payment,user=user,reason=reason)
+
+@transaction.atomic
+def unallocate_payment_for_user(user,account_id,*,allocation_id,reason="",team=None):
+    account=_authorized_account(user,account_id,team)
+    try:allocation=ReceivableAllocation.objects.select_related("charge","payment").get(pk=allocation_id,payment__account=account,status=ReceivableAllocation.Status.POSTED)
+    except ReceivableAllocation.DoesNotExist as exc:raise ValidationError("Payment allocation is not available on this receivable account.") from exc
+    allocation.status=ReceivableAllocation.Status.VOID
+    note=reason.strip()
+    if note:allocation.notes=((allocation.notes+" | ") if allocation.notes else "")+f"Unallocated: {note}"
+    allocation.full_clean();allocation.save(update_fields=["status","notes"]);return allocation
