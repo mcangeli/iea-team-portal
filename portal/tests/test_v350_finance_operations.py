@@ -5,7 +5,7 @@ from django.test import TestCase
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount
 from portal.model_modules.people import Person
-from portal.models import Team, UserProfile
+from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team, UserProfile
 from portal.services.finance_operations import allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user
 
 
@@ -74,3 +74,29 @@ class FinanceOperationsTests(TestCase):
     def test_charge_from_other_account_cannot_be_targeted(self):
         user = self._user("target-boundary", role=UserProfile.Role.ADMIN); charge = create_charge_for_user(user, self.iea.pk, description="Show fee", amount="100.00", charge_date=date(2026, 9, 1), team=self.team); payment = post_payment_for_user(user, self.general.pk, amount="100.00", received_date=date(2026, 9, 2), team=self.team)
         with self.assertRaises(ValidationError): allocate_payment_for_user(user, self.general.pk, payment_id=payment.pk, charge_id=charge.pk, team=self.team)
+
+    def test_generic_payment_posts_matching_financial_transaction_without_season(self):
+        user=self._user("ledger-admin",role=UserProfile.Role.ADMIN)
+        deposit=FinancialAccount.objects.create(team=self.team,name="General Checking",finance_domain=FinanceDomain.GENERAL)
+        category=FinancialCategory.objects.create(team=self.team,name="Barn Income",kind=FinancialCategory.Kind.INCOME)
+        payment=post_payment_for_user(user,self.general.pk,amount="125.00",received_date=date(2026,9,5),deposit_account=deposit,income_category=category,reference="CHK-101",team=self.team)
+        self.assertIsNotNone(payment.financial_transaction_id)
+        tx=payment.financial_transaction
+        self.assertEqual(tx.kind,FinancialTransaction.Kind.INCOME);self.assertEqual(tx.account,deposit);self.assertEqual(tx.category,category);self.assertEqual(tx.amount,payment.amount);self.assertIsNone(tx.season)
+
+    def test_payment_rejects_deposit_account_from_other_finance_domain(self):
+        user=self._user("domain-ledger-admin",role=UserProfile.Role.ADMIN)
+        iea_deposit=FinancialAccount.objects.create(team=self.team,name="IEA Checking",finance_domain=FinanceDomain.IEA)
+        category=FinancialCategory.objects.create(team=self.team,name="Income",kind=FinancialCategory.Kind.INCOME)
+        with self.assertRaises(ValidationError):
+            post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,5),deposit_account=iea_deposit,income_category=category,team=self.team)
+
+    def test_payment_form_scopes_deposit_accounts_to_receivable_domain(self):
+        user=self._user("form-ledger-admin",role=UserProfile.Role.ADMIN)
+        general_deposit=FinancialAccount.objects.create(team=self.team,name="General Bank",finance_domain=FinanceDomain.GENERAL)
+        iea_deposit=FinancialAccount.objects.create(team=self.team,name="IEA Bank",finance_domain=FinanceDomain.IEA)
+        FinancialCategory.objects.create(team=self.team,name="Income",kind=FinancialCategory.Kind.INCOME)
+        self.client.force_login(user)
+        response=self.client.get(__import__("django.urls",fromlist=["reverse"]).reverse("finance_payment_add",args=[self.general.pk]))
+        qs=response.context["form"].fields["deposit_account"].queryset
+        self.assertIn(general_deposit,qs);self.assertNotIn(iea_deposit,qs)
