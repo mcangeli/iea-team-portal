@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from portal.model_modules.horses import Horse
 from portal.model_modules.lessons import LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
-from portal.model_modules.people import Person
+from portal.model_modules.people import OrganizationRoleAssignment, Person
 from portal.models import Team
 from portal.services.lesson_scheduling import generate_lesson_occurrences
 
@@ -23,6 +23,11 @@ class LessonOccurrenceOperationsUITests(TestCase):
         self.admin.profile.save()
         self.person = Person.objects.create(team=self.team, first_name="Riley", last_name="Rider")
         self.instructor = Person.objects.create(team=self.team, first_name="Casey", last_name="Coach")
+        OrganizationRoleAssignment.objects.create(
+            team=self.team,
+            person=self.instructor,
+            role=OrganizationRoleAssignment.Role.TRAINER,
+        )
         self.program = LessonProgram.objects.create(team=self.team, name="Barn Program")
         self.series = LessonSeries.objects.create(program=self.program, name="Tuesday Lesson", instructor=self.instructor, weekday=1, starts_at_time=time(17), duration_minutes=60, start_date=date(2026,9,1), end_date=date(2026,10,31))
         LessonEnrollment.objects.create(series=self.series, person=self.person)
