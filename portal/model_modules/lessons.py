@@ -156,7 +156,7 @@ class LessonOccurrence(models.Model):
     def clean(self):
         super().clean()
         if self.ends_at and self.ends_at <= self.starts_at: raise ValidationError("Lesson occurrence end time must be after its start time.")
-        if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1 minute."})
+        if self.capacity is not None and self.capacity < 1: raise ValidationError({"capacity": "Capacity must be at least 1."})
         if self.origin == self.Origin.GENERATED and not self.scheduled_for: raise ValidationError({"scheduled_for": "Generated lesson occurrences require their original recurrence slot."})
         if self.scheduled_for and self.origin == self.Origin.MANUAL: raise ValidationError({"scheduled_for": "Manual lesson occurrences do not use recurrence identity."})
         if self.pk:
@@ -224,6 +224,9 @@ class LessonAssignment(models.Model):
         super().clean()
         if self.person_id and self.person.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson assignment person must belong to the same organization.")
         if self.horse_id and self.horse.team_id != self.occurrence.series.program.team_id: raise ValidationError("Lesson assignment horse must belong to the same organization.")
+        if self.role == self.Role.INSTRUCTOR:
+            if self.horse_id: raise ValidationError({"horse": "Instructor assignments cannot carry a horse."})
+            _validate_instructor(self.person, iea=self.occurrence.series.is_iea_series)
     def __str__(self): return f"{self.person} — {self.occurrence} — {self.get_role_display()}"
 
 
@@ -245,12 +248,11 @@ class LessonParticipantMove(models.Model):
     initiated_by_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="lesson_participant_moves_initiated")
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
-        ordering = ["-created_at", "id"]
+        ordering = ["-created_at", "-id"]
         constraints = [models.UniqueConstraint(fields=["source_occurrence", "person"], name="unique_lesson_participant_move_source_person")]
     def clean(self):
         super().clean()
         if self.source_occurrence_id == self.destination_occurrence_id: raise ValidationError("Source and destination lessons must be different.")
         if self.person_id and self.person.team_id != self.source_occurrence.series.program.team_id: raise ValidationError("Participant must belong to the source lesson organization.")
         if self.source_occurrence_id and self.destination_occurrence_id and self.source_occurrence.series.program.team_id != self.destination_occurrence.series.program.team_id: raise ValidationError("Source and destination lessons must belong to the same organization.")
-        if self.initiated_by == self.Initiator.RIDER and not self.initiated_by_user_id: raise ValidationError("Rider-initiated lesson changes must record the signed-in user.")
-    def __str__(self): return f"{self.person}: {self.source_occurrence} → {self.destination_occurrence}"
+    def __str__(self): return f"{self.person} — {self.source_occurrence} → {self.destination_occurrence}"
