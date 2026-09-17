@@ -28,7 +28,7 @@ class ReceivableAccount(models.Model):
     def __str__(self): return self.name
 class ReceivableAccountPerson(models.Model):
     class Role(models.TextChoices):
-        RESPONSIBLE_PARTY="responsible_party","Responsible party"; BILLING_CONTACT="billing_contact","Billing contact"; PARTICIPANT="participant","Rider / participant"; STATEMENT_RECIPIENT="statement_recipient","Statement recipient"
+        RESPONSIBLE_PARTY="responsible_party","Responsible party"; BILLING_CONTACT="billing_contact","Billing contact"; PARTICIPANT="participant","Rider / participant"
     account=models.ForeignKey(ReceivableAccount,on_delete=models.CASCADE,related_name="people_links"); person=models.ForeignKey("portal.Person",on_delete=models.PROTECT,related_name="receivable_account_links"); role=models.CharField(max_length=24,choices=Role.choices,default=Role.PARTICIPANT); statement_recipient=models.BooleanField(default=False); active=models.BooleanField(default=True); notes=models.CharField(max_length=255,blank=True); created_at=models.DateTimeField(auto_now_add=True)
     class Meta:
         ordering=["account_id","role","person_id"]; constraints=[models.UniqueConstraint(fields=["account","person","role"],name="unique_receivable_account_person_role")]
@@ -94,3 +94,35 @@ class ReceivableAllocation(models.Model):
         if self.amount and source and self.amount>source.unapplied_amount+(self.amount if self.pk else ZERO): raise ValidationError("Allocation exceeds the source's unapplied amount.")
         if self.amount and self.amount>self.charge.balance+(self.amount if self.pk else ZERO): raise ValidationError("Allocation exceeds the charge balance.")
     def __str__(self): return f"{self.charge}: {self.amount}"
+
+
+class BankImportProfile(models.Model):
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="bank_import_profiles"); financial_account=models.ForeignKey(FinancialAccount,on_delete=models.PROTECT,related_name="import_profiles"); name=models.CharField(max_length=120); file_type=models.CharField(max_length=8,choices=[("csv","CSV"),("xlsx","Excel")],default="csv"); column_mapping=models.JSONField(default=dict); active=models.BooleanField(default=True); created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: ordering=["name","id"]; constraints=[models.UniqueConstraint(fields=["team","financial_account","name"],name="unique_bank_import_profile_account_name")]
+    def clean(self):
+        super().clean()
+        if self.financial_account_id and self.financial_account.team_id!=self.team_id:raise ValidationError({"financial_account":"Import profile account must belong to the same organization."})
+
+class BankImportBatch(models.Model):
+    class Status(models.TextChoices): STAGED="staged","Staged"; REVIEWED="reviewed","Reviewed"; COMPLETED="completed","Completed"; VOID="void","Void"
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="bank_import_batches"); financial_account=models.ForeignKey(FinancialAccount,on_delete=models.PROTECT,related_name="import_batches"); profile=models.ForeignKey(BankImportProfile,on_delete=models.PROTECT,null=True,blank=True,related_name="batches"); finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices); source_name=models.CharField(max_length=255); source_fingerprint=models.CharField(max_length=64); status=models.CharField(max_length=12,choices=Status.choices,default=Status.STAGED); imported_at=models.DateTimeField(auto_now_add=True)
+    class Meta: ordering=["-imported_at","-id"]; constraints=[models.UniqueConstraint(fields=["team","financial_account","source_fingerprint"],name="unique_bank_import_batch_fingerprint")]
+    def clean(self):
+        super().clean()
+        if self.financial_account_id and (self.financial_account.team_id!=self.team_id or self.financial_account.finance_domain!=self.finance_domain):raise ValidationError({"financial_account":"Import batch account must match the organization and finance domain."})
+        if self.profile_id and self.profile.financial_account_id!=self.financial_account_id:raise ValidationError({"profile":"Import profile must belong to the selected financial account."})
+
+class ImportedBankTransaction(models.Model):
+    class Direction(models.TextChoices): CREDIT="credit","Money in"; DEBIT="debit","Money out"
+    class Status(models.TextChoices): STAGED="staged","Staged"; MATCHED="matched","Matched"; RECONCILED="reconciled","Reconciled"; IGNORED="ignored","Ignored"
+    batch=models.ForeignKey(BankImportBatch,on_delete=models.CASCADE,related_name="transactions"); transaction_date=models.DateField(); posted_date=models.DateField(null=True,blank=True); amount=models.DecimalField(max_digits=12,decimal_places=2); direction=models.CharField(max_length=8,choices=Direction.choices); description=models.CharField(max_length=255); reference=models.CharField(max_length=160,blank=True); external_id=models.CharField(max_length=160,blank=True); row_fingerprint=models.CharField(max_length=64); raw_data=models.JSONField(default=dict); status=models.CharField(max_length=12,choices=Status.choices,default=Status.STAGED); created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: ordering=["transaction_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="imported_bank_transaction_amount_gt_zero"),models.UniqueConstraint(fields=["batch","row_fingerprint"],name="unique_imported_bank_transaction_batch_row")]
+
+class ReconciliationMatch(models.Model):
+    class Status(models.TextChoices): SUGGESTED="suggested","Suggested"; CONFIRMED="confirmed","Confirmed"; REJECTED="rejected","Rejected"
+    imported_transaction=models.ForeignKey(ImportedBankTransaction,on_delete=models.PROTECT,related_name="matches"); financial_transaction=models.ForeignKey(FinancialTransaction,on_delete=models.PROTECT,related_name="bank_matches"); status=models.CharField(max_length=12,choices=Status.choices,default=Status.SUGGESTED); score=models.PositiveSmallIntegerField(default=0); rationale=models.CharField(max_length=255,blank=True); confirmed_at=models.DateTimeField(null=True,blank=True); created_at=models.DateTimeField(auto_now_add=True)
+    class Meta: ordering=["-score","id"]; constraints=[models.UniqueConstraint(fields=["imported_transaction","financial_transaction"],name="unique_reconciliation_candidate")]
+    def clean(self):
+        super().clean()
+        imported_account=self.imported_transaction.batch.financial_account if self.imported_transaction_id else None
+        if imported_account and self.financial_transaction_id and (self.financial_transaction.team_id!=self.imported_transaction.batch.team_id or self.financial_transaction.account_id!=imported_account.id):raise ValidationError("Reconciliation matches must stay within the imported financial account.")
