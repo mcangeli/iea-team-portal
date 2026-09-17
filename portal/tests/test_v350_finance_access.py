@@ -63,7 +63,7 @@ class FinanceAccessBoundaryTests(TestCase):
     def test_legacy_treasurer_role_is_iea_only(self):
         user, _ = self._user("legacy-treasurer")
         season = Season.objects.create(team=self.team, name="2026-27", start_date=date(2026, 8, 1), end_date=date(2027, 7, 31))
-        CommitteeAssignment.objects.create(season=season, user=user, role=CommitteeAssignment.Role.TREASURER, active=True)
+        CommitteeAssignment.objects.create(team=self.team, season=season, user=user, role=CommitteeAssignment.Role.TREASURER, active=True)
         self.assertEqual(allowed_finance_domains(user, self.team), frozenset({FinanceDomain.IEA}))
         self.assertEqual(list(finance_accounts_for_user(user, self.team)), [self.iea])
 
