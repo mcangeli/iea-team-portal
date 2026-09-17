@@ -76,6 +76,7 @@ from .view_modules.finance_reports import *
 from .view_modules.show_finance_helpers import *
 from .view_modules.show_finance_helpers import _require_adult_finance_participant, _show_finance_totals
 from .view_modules.show_finance import *
+from .view_modules.finance_v350 import *
 
 # v3.2.3 compatibility refinements intentionally override legacy roster
 # implementations while preserving the public portal.views names.
