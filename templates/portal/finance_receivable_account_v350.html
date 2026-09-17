@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ account.name }} · Finance · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro finance-intro">
+  <div><div class="eyebrow">ARENALINE · FINANCE · {{ account.get_finance_domain_display|upper }}</div><h1>{{ account.name }}</h1><p>{% if account.primary_person %}{{ account.primary_person }} · {% endif %}Receivable account activity and current position.</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'finance_workspace' %}">Finance workspace</a><a class="btn" href="{% url 'finance_receivable_statement' account.pk %}">Statement</a></div>
+</section>
+<section class="finance-stat-grid">
+  <article class="finance-stat"><span>Amount due</span><strong>${{ account.amount_due|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Net balance</span><strong>${{ account.balance|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Unapplied payments</span><strong>${{ account.unapplied_payment_total|floatformat:2 }}</strong></article>
+  <article class="finance-stat"><span>Unapplied credits</span><strong>${{ account.unapplied_credit_total|floatformat:2 }}</strong></article>
+</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">ACCOUNT LEDGER</div><h2>Activity</h2></div></div><div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Date</th><th>Activity</th><th>Amount</th><th>Running balance</th></tr></thead><tbody>{% for row in activity %}<tr><td>{{ row.date|date:"M j, Y" }}</td><td><strong>{{ row.description }}</strong><small>{{ row.kind|title }}</small></td><td>${{ row.amount|floatformat:2 }}</td><td>${{ row.balance|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4" class="muted">No posted activity on this account.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}
