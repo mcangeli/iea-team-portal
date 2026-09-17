@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}New Receivable Account · Finance · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · BARN FINANCE</div><h1>New receivable account</h1><p>Create a customer account in the General Barn or IEA ledger you are authorized to manage.</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_workspace' %}">Cancel</a></div></section>
+<section class="content-section form-section"><form method="post" class="stacked-form">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div class="field-row">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}<div class="actions"><button class="btn" type="submit">Create account</button><a class="btn secondary" href="{% url 'finance_workspace' %}">Cancel</a></div></form></section>
+{% endblock %}
