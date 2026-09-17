@@ -15,20 +15,11 @@ class FinanceDomain(models.TextChoices):
     IEA = "iea", "IEA"
 
 
-# FinancialAccount is still defined in the legacy model module. Contribute the
-# v3.5 domain field here so model state stays modular without moving the legacy
-# class during the compatibility-first release.
 if not hasattr(FinancialAccount, "finance_domain"):
-    models.CharField(
-        max_length=12,
-        choices=FinanceDomain.choices,
-        default=FinanceDomain.GENERAL,
-    ).contribute_to_class(FinancialAccount, "finance_domain")
+    models.CharField(max_length=12, choices=FinanceDomain.choices, default=FinanceDomain.GENERAL).contribute_to_class(FinancialAccount, "finance_domain")
 
 
 class ReceivableAccount(models.Model):
-    """Organization-scoped account receivable, separate from bank/cash accounts."""
-
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
         CLOSED = "closed", "Closed"
@@ -36,14 +27,8 @@ class ReceivableAccount(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="receivable_accounts")
     name = models.CharField(max_length=180)
     finance_domain = models.CharField(max_length=12, choices=FinanceDomain.choices, default=FinanceDomain.GENERAL)
-    primary_person = models.ForeignKey(
-        "portal.Person", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="primary_receivable_accounts",
-    )
-    legacy_membership = models.ForeignKey(
-        "portal.SeasonMembership", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="receivable_accounts",
-    )
+    primary_person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="primary_receivable_accounts")
+    legacy_membership = models.ForeignKey("portal.SeasonMembership", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_accounts")
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.ACTIVE)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -52,11 +37,8 @@ class ReceivableAccount(models.Model):
     class Meta:
         ordering = ["name", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["team", "name"], name="unique_receivable_account_team_name"),
-            models.UniqueConstraint(
-                fields=["legacy_membership", "finance_domain"],
-                name="unique_receivable_legacy_membership_domain",
-            ),
+            models.UniqueConstraint(fields=["team", "finance_domain", "name"], name="unique_receivable_account_team_domain_name"),
+            models.UniqueConstraint(fields=["legacy_membership", "finance_domain"], name="unique_receivable_legacy_membership_domain"),
         ]
 
     def clean(self):
@@ -67,11 +49,21 @@ class ReceivableAccount(models.Model):
             raise ValidationError({"legacy_membership": "Legacy membership must belong to the same organization."})
 
     @property
+    def amount_due(self):
+        return sum((charge.balance for charge in self.charges.all()), ZERO)
+
+    @property
+    def unapplied_payment_total(self):
+        return sum((payment.unapplied_amount for payment in self.payments.all()), ZERO)
+
+    @property
+    def unapplied_credit_total(self):
+        return sum((credit.unapplied_amount for credit in self.credits.all()), ZERO)
+
+    @property
     def balance(self):
-        charges = self.charges.filter(status=ReceivableCharge.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
-        credits = self.credits.filter(status=ReceivableCredit.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
-        payments = self.payments.filter(status=ReceivablePayment.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
-        return charges - credits - payments
+        """Net account position: positive is due; negative is customer credit."""
+        return self.amount_due - self.unapplied_payment_total - self.unapplied_credit_total
 
     def __str__(self):
         return self.name
@@ -85,10 +77,7 @@ class ReceivableCharge(models.Model):
 
     account = models.ForeignKey(ReceivableAccount, on_delete=models.PROTECT, related_name="charges")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_charges")
-    legacy_family_charge = models.OneToOneField(
-        "portal.FamilyCharge", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="receivable_charge",
-    )
+    legacy_family_charge = models.OneToOneField("portal.FamilyCharge", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_charge")
     description = models.CharField(max_length=220)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     charge_date = models.DateField()
@@ -170,10 +159,7 @@ class ReceivablePayment(models.Model):
 
     account = models.ForeignKey(ReceivableAccount, on_delete=models.PROTECT, related_name="payments")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_payments")
-    legacy_family_payment = models.OneToOneField(
-        "portal.FamilyPayment", on_delete=models.PROTECT, null=True, blank=True,
-        related_name="receivable_payment",
-    )
+    legacy_family_payment = models.OneToOneField("portal.FamilyPayment", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_payment")
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     received_date = models.DateField()
     method = models.CharField(max_length=40, blank=True)
@@ -233,10 +219,7 @@ class ReceivableAllocation(models.Model):
         ordering = ["created_at", "id"]
         constraints = [
             models.CheckConstraint(condition=models.Q(amount__gt=0), name="receivable_allocation_amount_gt_zero"),
-            models.CheckConstraint(
-                condition=(models.Q(payment__isnull=False, credit__isnull=True) | models.Q(payment__isnull=True, credit__isnull=False)),
-                name="receivable_allocation_exactly_one_source",
-            ),
+            models.CheckConstraint(condition=(models.Q(payment__isnull=False, credit__isnull=True) | models.Q(payment__isnull=True, credit__isnull=False)), name="receivable_allocation_exactly_one_source"),
         ]
 
     @property
