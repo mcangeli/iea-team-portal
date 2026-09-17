@@ -29,3 +29,6 @@ class FinanceAllocationForm(forms.Form):
 
 class FinanceVoidPaymentForm(forms.Form):
     reason=forms.CharField(max_length=255,widget=forms.Textarea(attrs={"rows":3}),help_text="Required audit reason for voiding this payment.")
+
+class FinanceUnallocateForm(forms.Form):
+    reason=forms.CharField(max_length=255,required=False,widget=forms.Textarea(attrs={"rows":3}),help_text="Optional note explaining the allocation correction.")
