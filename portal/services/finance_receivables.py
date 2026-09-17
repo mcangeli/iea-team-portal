@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from portal.models import FinancialTransaction
 
@@ -109,3 +110,26 @@ def post_credit(*, account: ReceivableAccount, description: str, amount: Decimal
     if charge is not None:
         allocate_source(charge=charge, credit=credit)
     return credit
+
+
+@transaction.atomic
+def void_payment(*, payment: ReceivablePayment, user=None, reason: str = "") -> ReceivablePayment:
+    """Void a receivable payment and its linked bookkeeping transaction together."""
+    if payment.status != payment.Status.POSTED:
+        raise ValidationError("Only posted payments may be voided.")
+    if payment.allocations.filter(status=ReceivableAllocation.Status.POSTED).exists():
+        raise ValidationError("Allocated payments must be unallocated before they can be voided.")
+    tx = payment.financial_transaction
+    if tx is not None:
+        if tx.status != FinancialTransaction.Status.POSTED:
+            raise ValidationError("Linked financial transaction is not posted.")
+        tx.status = FinancialTransaction.Status.VOID
+        tx.voided_at = timezone.now()
+        tx.voided_by = user
+        tx.void_reason = reason.strip()
+        tx.save(update_fields=["status","voided_at","voided_by","void_reason","updated_at"])
+    payment.status = payment.Status.VOID
+    if reason.strip():
+        payment.notes = (payment.notes + "\n" if payment.notes else "") + f"Void: {reason.strip()}"
+    payment.save(update_fields=["status","notes","updated_at"])
+    return payment
