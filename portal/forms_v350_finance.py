@@ -1,5 +1,5 @@
 from django import forms
-from portal.model_modules.finance import FinanceDomain, ReceivableAccountPerson
+from portal.model_modules.finance import BankImportProfile, FinanceDomain, ReceivableAccountPerson
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory
 
@@ -32,3 +32,32 @@ class FinanceVoidPaymentForm(forms.Form):
 
 class FinanceUnallocateForm(forms.Form):
     reason=forms.CharField(max_length=255,required=False,widget=forms.Textarea(attrs={"rows":3}),help_text="Optional note explaining the allocation correction.")
+
+
+class BankImportUploadForm(forms.Form):
+    financial_account=forms.ModelChoiceField(queryset=FinancialAccount.objects.none(),label="Bank account")
+    statement=forms.FileField(help_text="Upload a CSV or XLSX statement.")
+    profile=forms.ModelChoiceField(queryset=BankImportProfile.objects.none(),required=False,empty_label="Use manual mapping",label="Saved import profile")
+    def __init__(self,*args,team=None,allowed_domains=None,**kwargs):
+        super().__init__(*args,**kwargs);domains=list(allowed_domains or [])
+        self.fields["financial_account"].queryset=FinancialAccount.objects.filter(team=team,finance_domain__in=domains,active=True).order_by("finance_domain","name") if team else FinancialAccount.objects.none()
+        self.fields["profile"].queryset=BankImportProfile.objects.filter(team=team,financial_account__finance_domain__in=domains,active=True).select_related("financial_account").order_by("financial_account__name","name") if team else BankImportProfile.objects.none()
+    def clean_statement(self):
+        uploaded=self.cleaned_data["statement"];name=uploaded.name.lower()
+        if not (name.endswith(".csv") or name.endswith(".xlsx")):raise forms.ValidationError("Upload a CSV or XLSX bank statement.")
+        return uploaded
+
+class BankImportMappingForm(forms.Form):
+    date=forms.CharField(max_length=120,label="Transaction date column")
+    posted_date=forms.CharField(max_length=120,required=False,label="Posted date column")
+    description=forms.CharField(max_length=120,label="Description column")
+    amount=forms.CharField(max_length=120,required=False,label="Signed amount column")
+    credit=forms.CharField(max_length=120,required=False,label="Credit column")
+    debit=forms.CharField(max_length=120,required=False,label="Debit column")
+    reference=forms.CharField(max_length=120,required=False,label="Reference column")
+    external_id=forms.CharField(max_length=120,required=False,label="External ID column")
+    profile_name=forms.CharField(max_length=160,required=False,label="Save mapping as")
+    def clean(self):
+        cleaned=super().clean()
+        if not cleaned.get("amount") and not (cleaned.get("credit") and cleaned.get("debit")):raise forms.ValidationError("Map either a signed amount column or both credit and debit columns.")
+        return cleaned
