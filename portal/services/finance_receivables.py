@@ -38,16 +38,9 @@ def reconcile_legacy_account(account: ReceivableAccount) -> dict:
     """Compare migrated IEA charge balances with the legacy family ledger."""
     if not account.legacy_membership_id:
         return {"legacy_amount_due": ZERO, "receivable_amount_due": account.amount_due, "difference": account.amount_due}
-    legacy_amount_due = sum(
-        (charge.balance for charge in account.legacy_membership.charges.all()),
-        ZERO,
-    )
+    legacy_amount_due = sum((charge.balance for charge in account.legacy_membership.charges.all()), ZERO)
     receivable_amount_due = account.amount_due
-    return {
-        "legacy_amount_due": legacy_amount_due,
-        "receivable_amount_due": receivable_amount_due,
-        "difference": receivable_amount_due - legacy_amount_due,
-    }
+    return {"legacy_amount_due": legacy_amount_due, "receivable_amount_due": receivable_amount_due, "difference": receivable_amount_due - legacy_amount_due}
 
 
 @transaction.atomic
@@ -70,7 +63,6 @@ def allocate_source(*, charge: ReceivableCharge, payment: ReceivablePayment | No
     if requested <= ZERO or available <= ZERO:
         return None
     allocation_amount = min(requested, available)
-
     allocation = ReceivableAllocation(charge=charge, payment=payment, credit=credit, amount=allocation_amount, notes=notes)
     allocation.full_clean()
     allocation.save()
