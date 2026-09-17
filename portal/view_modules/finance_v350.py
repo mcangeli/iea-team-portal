@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
 from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm
-from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ReceivableCharge
+from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ReceivableCharge\nfrom portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
 from portal.services.finance_imports import stage_bank_import\nfrom portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
