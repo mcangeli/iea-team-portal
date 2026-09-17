@@ -10,13 +10,24 @@ from portal.models import FinancialAccount, FinancialCategory, FinancialTransact
 ZERO = Decimal("0.00")
 
 
-class ReceivableAccount(models.Model):
-    """Organization-scoped account receivable.
+class FinanceDomain(models.TextChoices):
+    GENERAL = "general", "General barn"
+    IEA = "iea", "IEA"
 
-    This is deliberately separate from FinancialAccount, which represents the
-    organization's bank/cash/clearing accounts. ReceivableAccount represents a
-    party that owes (or has credit with) the organization.
-    """
+
+# FinancialAccount is still defined in the legacy model module. Contribute the
+# v3.5 domain field here so model state stays modular without moving the legacy
+# class during the compatibility-first release.
+if not hasattr(FinancialAccount, "finance_domain"):
+    models.CharField(
+        max_length=12,
+        choices=FinanceDomain.choices,
+        default=FinanceDomain.GENERAL,
+    ).contribute_to_class(FinancialAccount, "finance_domain")
+
+
+class ReceivableAccount(models.Model):
+    """Organization-scoped account receivable, separate from bank/cash accounts."""
 
     class Status(models.TextChoices):
         ACTIVE = "active", "Active"
@@ -24,9 +35,14 @@ class ReceivableAccount(models.Model):
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="receivable_accounts")
     name = models.CharField(max_length=180)
+    finance_domain = models.CharField(max_length=12, choices=FinanceDomain.choices, default=FinanceDomain.GENERAL)
     primary_person = models.ForeignKey(
         "portal.Person", on_delete=models.PROTECT, null=True, blank=True,
         related_name="primary_receivable_accounts",
+    )
+    legacy_membership = models.ForeignKey(
+        "portal.SeasonMembership", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="receivable_accounts",
     )
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.ACTIVE)
     notes = models.TextField(blank=True)
@@ -36,13 +52,19 @@ class ReceivableAccount(models.Model):
     class Meta:
         ordering = ["name", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["team", "name"], name="unique_receivable_account_team_name")
+            models.UniqueConstraint(fields=["team", "name"], name="unique_receivable_account_team_name"),
+            models.UniqueConstraint(
+                fields=["legacy_membership", "finance_domain"],
+                name="unique_receivable_legacy_membership_domain",
+            ),
         ]
 
     def clean(self):
         super().clean()
         if self.primary_person_id and self.primary_person.team_id != self.team_id:
             raise ValidationError({"primary_person": "Account contact must belong to the same organization."})
+        if self.legacy_membership_id and self.legacy_membership.season.team_id != self.team_id:
+            raise ValidationError({"legacy_membership": "Legacy membership must belong to the same organization."})
 
     @property
     def balance(self):
@@ -63,6 +85,10 @@ class ReceivableCharge(models.Model):
 
     account = models.ForeignKey(ReceivableAccount, on_delete=models.PROTECT, related_name="charges")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_charges")
+    legacy_family_charge = models.OneToOneField(
+        "portal.FamilyCharge", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="receivable_charge",
+    )
     description = models.CharField(max_length=220)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     charge_date = models.DateField()
@@ -81,6 +107,8 @@ class ReceivableCharge(models.Model):
         super().clean()
         if self.season_id and self.season.team_id != self.account.team_id:
             raise ValidationError({"season": "Charge season must belong to the account organization."})
+        if self.legacy_family_charge_id and self.legacy_family_charge.membership.season.team_id != self.account.team_id:
+            raise ValidationError({"legacy_family_charge": "Legacy charge must belong to the account organization."})
 
     @property
     def allocated_total(self):
@@ -103,6 +131,9 @@ class ReceivableCredit(models.Model):
 
     account = models.ForeignKey(ReceivableAccount, on_delete=models.PROTECT, related_name="credits")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_credits")
+    legacy_family_credit = models.OneToOneField("portal.FamilyCredit", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_credit")
+    legacy_service_credit = models.OneToOneField("portal.ServiceAgreementCredit", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_credit")
+    legacy_assistance_claim = models.OneToOneField("portal.AssistanceClaim", on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_credit")
     description = models.CharField(max_length=220)
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     credit_date = models.DateField()
@@ -139,6 +170,10 @@ class ReceivablePayment(models.Model):
 
     account = models.ForeignKey(ReceivableAccount, on_delete=models.PROTECT, related_name="payments")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="receivable_payments")
+    legacy_family_payment = models.OneToOneField(
+        "portal.FamilyPayment", on_delete=models.PROTECT, null=True, blank=True,
+        related_name="receivable_payment",
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     received_date = models.DateField()
     method = models.CharField(max_length=40, blank=True)
@@ -160,8 +195,11 @@ class ReceivablePayment(models.Model):
         team_id = self.account.team_id
         if self.season_id and self.season.team_id != team_id:
             raise ValidationError({"season": "Payment season must belong to the account organization."})
-        if self.deposit_account_id and self.deposit_account.team_id != team_id:
-            raise ValidationError({"deposit_account": "Deposit account must belong to the same organization."})
+        if self.deposit_account_id:
+            if self.deposit_account.team_id != team_id:
+                raise ValidationError({"deposit_account": "Deposit account must belong to the same organization."})
+            if self.deposit_account.finance_domain != self.account.finance_domain:
+                raise ValidationError({"deposit_account": "Deposit account must belong to the same finance domain."})
         if self.income_category_id and self.income_category.team_id != team_id:
             raise ValidationError({"income_category": "Income category must belong to the same organization."})
         if self.financial_transaction_id and self.financial_transaction.team_id != team_id:
@@ -212,6 +250,8 @@ class ReceivableAllocation(models.Model):
         source = self.source
         if source and source.account_id != self.charge.account_id:
             raise ValidationError("Allocation source and charge must belong to the same receivable account.")
+        if source and source.account.finance_domain != self.charge.account.finance_domain:
+            raise ValidationError("Allocation source and charge must belong to the same finance domain.")
         if self.status == self.Status.POSTED and source:
             if source.status != source.Status.POSTED:
                 raise ValidationError("A void source cannot be allocated.")
