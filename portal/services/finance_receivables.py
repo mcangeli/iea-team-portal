@@ -8,6 +8,8 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from portal.models import FinancialTransaction
+
 from portal.model_modules.finance import (
     ZERO,
     ReceivableAccount,
@@ -75,6 +77,24 @@ def post_payment(*, account: ReceivableAccount, amount: Decimal, received_date,
     payment = ReceivablePayment(account=account, amount=amount, received_date=received_date, **kwargs)
     payment.full_clean()
     payment.save()
+    if payment.deposit_account_id and payment.income_category_id and not payment.financial_transaction_id:
+        transaction_row = FinancialTransaction(
+            team=account.team,
+            season=payment.season,
+            transaction_date=payment.received_date,
+            kind=FinancialTransaction.Kind.INCOME,
+            account=payment.deposit_account,
+            category=payment.income_category,
+            amount=payment.amount,
+            payee=account.name,
+            description=f"Receivable payment — {account.name}",
+            reference=payment.reference,
+            notes=payment.notes,
+        )
+        transaction_row.full_clean()
+        transaction_row.save()
+        payment.financial_transaction=transaction_row
+        payment.save(update_fields=["financial_transaction","updated_at"])
     if charge is not None:
         allocate_source(charge=charge, payment=payment)
     return payment
