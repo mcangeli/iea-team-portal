@@ -4,6 +4,32 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.4.0 — Lesson Program
+
+Released September 2026.
+
+v3.4.0 introduces ArenaLine's generic Lesson Program architecture for recurring barn instruction and IEA Team Lessons while preserving legacy lesson history and compatibility.
+
+Highlights:
+
+- generic Lesson Program → Lesson Series → Lesson Occurrence hierarchy with canonical Person/Horse attendance and assignments;
+- recurring schedule generation, one-off lessons, immutable recurrence identity, safe future refresh, cancellation and rescheduling;
+- Barn enrollment/capacity and IEA season/team roster preparation kept as separate domain concepts;
+- Barn instructor eligibility restricted to active Trainer / Assistant Trainer roles and IEA Team Lessons to Coaches;
+- durable occurrence snapshots so later series edits do not rewrite history;
+- lesson-day attendance, horse assignment, bulk operations, completion safeguards, and role-aware management;
+- single-rider move/make-up workflow with capacity/history validation, audit provenance, and rider self-service limited to the rider's own participation;
+- legacy IEA lesson conversion with deterministic, idempotent provenance while original records remain unchanged;
+- unified operational calendar projection for Barn/IEA lessons alongside shows, horse care, organization events, and other supported operational sources;
+- separated Barn Lesson Programs, Team Lessons, and My Lessons navigation with responsive ArenaLine presentation;
+- Finance navigation compatibility retained ahead of the dedicated v3.5 Barn Finance & Business Operations release.
+
+Migrations: `0079_v340_lesson_program_foundation.py` through `0089_v340_lesson_model_state_closeout.py`.
+
+Validation: clean Django system checks, `makemigrations --check --dry-run` reporting **No changes detected**, and **949/949 portal tests passing** on the final v3.4.0 staging baseline.
+
+Detailed notes: `docs/releases/v3.4.0.md`.
+
 ## v3.3.0 — Equine Care & Horse Management
 
 Released September 2026.
@@ -45,7 +71,7 @@ Highlights:
 - multiple simultaneous, effective-date-aware barn roles and parent/guardian relationships;
 - generic organization Groups/Programs and generalized Committees/Committee Memberships;
 - People↔Horse ownership, boarding, lease, trainer, responsible-party, and caretaker relationships;
-- People directory/profile and Person-first login/family management workflows;
+- Person-first login/family management workflows;
 - Barn Operations and People Structure operational views with current-effective relationship handling;
 - ArenaLine Station shared-device authentication, Person PINs, work-role clock-in/out, manager review/correction/approval, summaries, export, and audit history;
 - privacy-aware My Account and Person work-history access;

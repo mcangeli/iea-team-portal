@@ -11,13 +11,12 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **2.9.x — ArenaLine Platform Foundation:** released.
 - **3.0.0 — IEA Class Catalog & Competition Foundation:** released.
 - **3.1.0 — Public / Live Spectator Experience:** released.
-- **3.2.0 — Unified People & Organization Foundation:** completed development milestone.
-- **3.2.1 — Barn Participation & Horse Relationships:** completed development milestone.
-- **3.2.2 — ArenaLine Station:** completed development milestone.
-- **3.2.3 — People & Operations Polish:** released; closes the 3.2.x family.
-- **3.3.0 — Equine Care & Horse Management:** release-complete.
-- **3.4.0 — Lesson Program:** committed next major release.
-- **3.5.0 — Barn Finance & Business Operations:** committed future release.
+- **3.2.x — People, Relationships & Barn Operations:** released with v3.2.3.
+- **3.3.0 — Equine Care & Horse Management:** released.
+- **3.4.0 — Lesson Program:** release-complete.
+- **3.5.x — Barn Finance & Business Operations:** committed next release family.
+- **3.6.x — Dashboard Rework:** committed future release family.
+- **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
 
 ---
 
@@ -129,80 +128,25 @@ v3.2 moved ArenaLine from separate rider/parent/user assumptions toward a unifie
 
 Roles, relationships, permissions, and public identity remain separate concepts.
 
-## v3.2.0 — Unified People & Organization Foundation
+Major outcomes across v3.2.0–v3.2.3:
 
-**Status: completed development milestone.**
-
-Major outcomes:
-
-- canonical `Person` identity layer with optional login account;
-- compatibility relationships from existing Rider, Guardian/Parent, User/Profile, and committee data;
-- multiple concurrent organization role assignments;
-- explicit parent/guardian/dependent person-to-person relationships;
-- expanded Person profiles with preferred/display identity and private profile information;
-- privacy/visibility boundaries for private Person information;
-- organization Groups/Programs as reusable scopes;
-- generalized Committees and Committee Memberships;
-- permissions kept independent from organizational labels and roles;
-- compatibility-first migration strategy preserving Rider, Guardian, UserProfile, SeasonMembership, finance, competition, and historical references.
-
-## v3.2.1 — Barn Participation & Horse Relationships
-
-**Status: completed development milestone.**
-
-Major outcomes:
-
-- broader organization participation roles including rider, boarder, trainer/assistant trainer, barn manager/staff, working student, and board member concepts;
-- Person participation independent of age or login identity;
-- horse ownership/responsible-party relationships;
-- boarding and lease relationship foundations, including shared/partial participation patterns;
-- date-aware participation and relationship history;
-- People/horse relationship architecture designed to feed v3.3 Equine Care.
-
-## v3.2.2 — ArenaLine Station
-
-**Status: completed development milestone.**
-
-Major outcomes:
-
-- tablet-first shared barn Station experience;
-- trusted station/device model and limited Station identity/PIN separate from full portal passwords;
-- staff and working-student clock-in/clock-out;
-- manager review/correction/approval, summaries, export, and audit history;
-- touch-first presentation with restricted administrative exposure;
-- shared-device authentication boundary that does not grant unrestricted portal access.
-
-## v3.2.3 — People & Operations Polish
-
-**Status: released.**
-
-Closeout outcomes:
-
-- canonical People presentation for rider/family relationships and current IEA participation;
-- People-first private rider/family authorization with compatibility fallbacks;
-- explicit family-finance authorization boundaries separate from ordinary operational rider visibility;
-- People-aware communications and canonical account identity synchronization;
-- Person-first login-access creation/management and My Account surfaces;
-- current-effective role, family, committee, Barn Operations, and People↔Horse relationship handling;
-- work-time review/approval, work-history visibility, Working Student tracking, and Station review queues;
-- group/program/committee presentation polish;
-- public rider/person cards using explicit allow-listed publication fields;
-- privacy, mobile/tablet, keyboard, accessibility, and audit hardening;
-- full-suite regression reconciliation against the current People-first architecture and terminology.
+- canonical `Person` identity with optional login account and compatibility bridges for Rider/Guardian/User structures;
+- multiple simultaneous effective-date-aware organization roles and family relationships;
+- organization Groups/Programs and generalized Committees;
+- People↔Horse ownership, boarding, lease, trainer, responsible-party, and caretaker relationships;
+- Person-first login/family/account workflows and privacy-aware public profile publication;
+- ArenaLine Station shared-device authentication, Person PINs, work clock-in/out, manager review/approval, summaries, export, and audit history;
+- People & Operations presentation, accessibility, privacy, and regression hardening.
 
 Final validation: clean Django system checks and **643/643 portal tests passing** on staging.
 
 Detailed release notes: `docs/releases/v3.2.3.md`.
 
-## Migration strategy
-
-v3.2 remains compatibility-first. Existing `Rider`, Guardian/Parent, `UserProfile`, `SeasonMembership`, committee, competition, finance, and historical records are not destructively rewritten merely to achieve cleaner naming. Person/relationship/group abstractions are layered alongside existing structures, linked conservatively, with stable URLs and historical references preserved.
-
 ---
 
 # 3.3.0 — Equine Care & Horse Management
 
-**Status: release-complete.**
+**Status: released.**
 
 v3.3 expands the competition/Hoofprint-oriented Horse Registry into broader equine-care, document, compliance, delegated-management, and show-readiness functionality while preserving existing competition and historical workflows.
 
@@ -213,17 +157,12 @@ Major outcomes:
 - scheduling intelligence for overdue, due-soon, and current care;
 - generic horse documents with effective/expiration dates and optional care-record linkage;
 - configurable organization compliance requirements for Coggins and selected document types;
-- show-date-aware compliance that requires records to remain valid through the actual show date;
-- Show Readiness and Show Horses compliance integration with blocking and warning states;
-- Hoofprint compliance enforcement while preserving preview and advisory completeness warnings;
-- protected organization-scoped horse document and Coggins downloads;
-- explicit Manage Horses capability for organization-wide delegation without Coach/Admin access;
-- current Boarder / Responsible Party relationships provide effective-date-aware management of only their related horse records;
-- structural relationship, season, and show authority remains separately restricted from delegated horse-record management;
-- privacy-safe presentation that does not expose private care/compliance details to ordinary rider/parent views;
-- preserved Horse of the Day, Hoofprint, show-assignment, and historical compatibility.
+- show-date-aware compliance and Hoofprint/Show Readiness enforcement;
+- protected organization-scoped horse document/Coggins downloads;
+- explicit Manage Horses capability and scoped Boarder / Responsible Party management;
+- privacy-safe presentation with preserved Horse of the Day, Hoofprint, show-assignment, and historical compatibility.
 
-Final validation: clean Django system/migration checks, **128/128 horse/show/Hoofprint regression tests passing**, **56/56 affected horse/People authorization regressions passing**, and **747/747 portal tests passing** on staging.
+Final validation: clean Django system/migration checks and **747/747 portal tests passing** on staging.
 
 Detailed release notes: `docs/releases/v3.3.0.md`.
 
@@ -231,19 +170,78 @@ Detailed release notes: `docs/releases/v3.3.0.md`.
 
 # 3.4.0 — Lesson Program
 
-**Status: committed next major release.**
+**Status: release-complete.**
 
-Planned areas include lesson enrollment/recurring schedules, groups/programs and trainer assignments, rider/horse assignment, capacity/waitlists, cancellations/makeups, Station attendance integration, lesson/trainer notes, progression/history, workload visibility, and billing hooks needed by v3.5 without duplicating Finance logic.
+v3.4 introduces a generic lesson-program architecture for both Barn instruction and IEA Team Lessons without baking IEA behavior into the generic lesson core.
+
+Major outcomes:
+
+- `LessonProgram → LessonSeries → LessonOccurrence` hierarchy with enrollment, attendance, and Person/Horse assignments;
+- recurring scheduling, one-off lessons, immutable recurrence identity, safe future refresh, cancellation and rescheduling;
+- Barn enrollment/capacity and IEA season/team roster specialization;
+- Trainer / Assistant Trainer instructor boundary for Barn lessons and Coach boundary for IEA Team Lessons;
+- durable occurrence snapshots and idempotent roster/instructor preparation;
+- lesson-day attendance, horse assignment, bulk operations, and completion safeguards;
+- single-rider move/make-up workflow with capacity/history validation, audit provenance, and rider self-service;
+- deterministic/idempotent legacy IEA conversion with durable provenance while legacy records remain unchanged;
+- unified operational calendar projection with domain-owned navigation;
+- role-aware Barn Lesson Programs, Team Lessons, and My Lessons presentation;
+- compatibility and migration-state hardening through migration 0089.
+
+Final validation: clean Django system checks, **No changes detected** from the migration-state gate, and **949/949 portal tests passing** on staging.
+
+Detailed release notes: `docs/releases/v3.4.0.md`.
 
 ---
 
-# 3.5.0 — Barn Finance & Business Operations
+# 3.5.x — Barn Finance & Business Operations
 
-**Status: committed future release.**
+**Status: committed next release family.**
 
-Potential operational finance areas include boarding/lease/lesson/training charges, horse-care pass-through expenses, show/team/program fees, memberships and working-student credits, staff/work-hour inputs, family/customer balances, payments/credits/reimbursements/fundraising, statements, reporting, and exports.
+ArenaLine Finance should handle operational accounting/account management for an equestrian organization without trying to become a complete external accounting/general-ledger package.
 
-ArenaLine should remain focused on operational finance/account management and integrations/exports rather than trying to replace a complete external accounting/general-ledger system without a deliberate future decision.
+Committed scope includes:
+
+- customer/family accounts, charges, credits, payments, allocations, balances, statements and invoices;
+- lesson billing for private/group lessons, packages, cancellations and make-ups using v3.4 operational facts rather than duplicating lesson logic;
+- recurring boarding charges and horse lease-related account activity;
+- training fees and horse-care pass-through expenses tied to canonical Horse/Equine Care records;
+- show, team, membership and program-specific fees while keeping IEA specialization outside the generic finance core;
+- working-student/service credits, reimbursements and operational adjustments;
+- business reporting, revenue/activity views, balances, statements and exports;
+- fundraising as part of the broader operational-finance picture where it fits existing ArenaLine workflows.
+
+The preferred generic financial architecture is:
+
+```text
+Account
+  → Charge / Credit
+  → Payment
+  → Allocation
+  → Balance / Statement
+```
+
+Boarding, lessons, horse care, shows and IEA workflows should produce financial activity through explicit boundaries rather than owning parallel ledgers.
+
+A detailed Preview-by-Preview v3.5.x implementation plan will be locked before development begins.
+
+---
+
+# 3.6.x — Dashboard Rework
+
+**Status: committed future release family.**
+
+v3.6 is reserved for a dedicated dashboard and information-architecture rework after People, Horses, Lessons, Calendar and Finance have mature operational data.
+
+The release should rethink dashboards around role-aware actionable information rather than simply adding more cards. Planned design areas include useful metrics, upcoming work/events, attention queues, cross-domain operational signals, stronger hierarchy, responsive presentation, and the premium ArenaLine visual system. Dashboard authorization must continue to follow underlying domain permissions rather than exposing data merely because it is useful as a metric.
+
+---
+
+# 3.7.x — Deferred former v3.6 scope
+
+**Status: committed sequence; detailed scope to be carried forward.**
+
+The work previously assigned to v3.6 is moved intact to v3.7 so the dashboard rework can have a dedicated release. Its detailed roadmap should be restored/locked when v3.7 planning begins rather than compressed into v3.6.
 
 ---
 

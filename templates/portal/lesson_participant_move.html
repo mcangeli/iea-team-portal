@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Move / Make-up · {{ person }}{% endblock %}
+{% block content %}
+<div class="page-intro">
+  <div><div class="eyebrow">RIDER SCHEDULING</div><h1>Move / Make-up</h1><p>{{ person }} · originally {{ occurrence.starts_at|date:"l, F j · g:i A" }}</p></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'lesson_day_workspace' occurrence.pk %}">Back to lesson</a></div>
+</div>
+<section class="content-section" style="max-width:820px">
+  <div class="section-head"><div><div class="eyebrow">DESTINATION</div><h2>Choose another lesson</h2></div></div>
+  <p class="muted">{% if occurrence.series.is_iea_series %}IEA team lesson scheduling is managed by the Coach. Eligible destinations stay within this season and team level.{% else %}Barn lesson scheduling is managed by Trainers and Assistant Trainers. Eligible destinations stay within the barn lesson program.{% endif %}</p>
+  {% if destinations %}
+  <form method="post">{% csrf_token %}
+    <div class="form-grid">
+      <label>New lesson<select name="destination_occurrence" required><option value="">Select an upcoming lesson…</option>{% for destination in destinations %}<option value="{{ destination.pk }}">{{ destination.starts_at|date:"D, M j · g:i A" }} — {{ destination.title }}{% if destination.location %} · {{ destination.location }}{% endif %}</option>{% endfor %}</select></label>
+      <label>Type<select name="kind">{% for value,label in kind_choices %}<option value="{{ value }}" {% if value == 'makeup' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Original lesson status<select name="source_status">{% for value,label in source_status_choices %}<option value="{{ value }}" {% if value == 'excused' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label>Reason<input type="text" name="reason" maxlength="255" placeholder="Optional — school event, illness, schedule conflict…"></label>
+    </div>
+    <label style="display:flex;gap:10px;align-items:center;margin-top:18px"><input type="checkbox" name="carry_horse"> Carry the current horse assignment to the new lesson</label>
+    <p class="muted">The original lesson remains in the rider's history. A make-up is recorded as Make-up on the destination lesson; a move is recorded as Expected.</p>
+    <div class="actions" style="margin-top:20px"><button class="btn" type="submit">Schedule rider</button><a class="btn secondary" href="{% url 'lesson_day_workspace' occurrence.pk %}">Cancel</a></div>
+  </form>
+  {% else %}
+    <div class="empty-state"><strong>No eligible upcoming lessons.</strong><br>There are no future lessons currently available for this rider in the appropriate lesson domain. Create or generate another occurrence, then return here.</div>
+  {% endif %}
+</section>
+{% endblock %}

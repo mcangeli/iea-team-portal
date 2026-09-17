@@ -1,0 +1,21 @@
+/* ArenaLine v3.4 lesson program presentation — shared Barn, IEA, and rider self-service surfaces. */
+.section-my_lessons .lesson-schedule-list,.section-my_lesson_reschedule .lesson-choice-list{display:grid;gap:.85rem}
+.lesson-context-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:-.2rem 0 1.15rem;padding:.8rem 1rem;border:1px solid color-mix(in srgb,var(--arena-gold) 14%,var(--line));border-radius:12px;background:var(--surface-soft)}
+.lesson-context-bar small{color:var(--club-brass);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.lesson-context-bar a{font-weight:750;text-decoration:none}
+.lesson-schedule-card{display:grid;grid-template-columns:76px minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1rem 1.1rem;text-decoration:none;color:inherit}
+.lesson-datebox{overflow:hidden;text-align:center;border:1px solid color-mix(in srgb,var(--arena-gold) 22%,var(--line));border-radius:12px;background:var(--surface)}
+.lesson-datebox span{display:block;padding:4px;background:var(--arena-blue);color:#fff;font-size:.62rem;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+.lesson-datebox strong{display:block;padding:5px 4px 7px;font-family:var(--arena-serif);font-size:1.55rem}
+.lesson-card-main small{color:var(--club-brass);font-size:.68rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.lesson-card-main h3{margin:.12rem 0;font-family:var(--arena-serif);font-size:1.35rem;font-weight:600;color:var(--heading)}
+.lesson-card-main p{margin:.15rem 0 0;color:var(--muted)}
+.lesson-status{display:inline-flex;align-items:center;padding:.3rem .55rem;border:1px solid color-mix(in srgb,var(--arena-gold) 18%,var(--line));border-radius:999px;background:var(--surface-soft);font-size:.72rem;font-weight:800}
+.lesson-form-shell{max-width:840px}
+.lesson-form-shell label{display:grid;gap:.42rem;color:var(--heading);font-size:.82rem;font-weight:800}
+.lesson-form-shell select,.lesson-form-shell input[type=text]{width:100%;padding:.72rem .8rem;border:1px solid var(--control-border);border-radius:10px;background:var(--control-bg);color:var(--ink);font:inherit}
+.lesson-form-shell .lesson-help{margin:.15rem 0 1.15rem;padding:.8rem 1rem;border-left:3px solid var(--arena-gold);background:color-mix(in srgb,var(--arena-gold) 7%,var(--surface));color:var(--muted)}
+.lesson-form-shell .actions{border-top:1px solid var(--line);padding-top:1rem}
+.section-lesson_day_workspace .data-table td:last-child,.section-lesson_participant_move .actions,.section-my_lesson_reschedule .actions{white-space:nowrap}
+.section-lesson_participant_move .content-section,.section-my_lesson_reschedule .content-section{border-color:color-mix(in srgb,var(--arena-gold) 14%,var(--line));box-shadow:var(--arena-shadow)}
+@media(max-width:760px){.lesson-context-bar{align-items:flex-start;flex-direction:column}.lesson-schedule-card{grid-template-columns:64px minmax(0,1fr)}.lesson-schedule-card .lesson-card-action{grid-column:2}.lesson-schedule-card .lesson-card-action .btn{width:100%;justify-content:center;text-align:center}.section-lesson_day_workspace .data-table{min-width:900px}}
