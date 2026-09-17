@@ -10,6 +10,7 @@ urlpatterns=[
  path("finance/workspace/accounts/<int:pk>/charges/add/",finance_v350.finance_charge_add,name="finance_charge_add"),
  path("finance/workspace/accounts/<int:pk>/payments/add/",finance_v350.finance_payment_add,name="finance_payment_add"),
  path("finance/workspace/accounts/<int:pk>/credits/add/",finance_v350.finance_credit_add,name="finance_credit_add"),
+ path("finance/workspace/accounts/<int:pk>/payments/<int:payment_id>/void/",finance_v350.finance_payment_void,name="finance_payment_void"),
  path("finance/workspace/accounts/<int:pk>/payments/<int:payment_id>/allocate/",finance_v350.finance_payment_allocate,name="finance_payment_allocate"),
  path("finance/workspace/accounts/<int:pk>/credits/<int:credit_id>/allocate/",finance_v350.finance_credit_allocate,name="finance_credit_allocate"),
 ]
