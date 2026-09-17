@@ -5,11 +5,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
-from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm
+from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceVoidPaymentForm
 from portal.model_modules.finance import FinanceDomain, ReceivableCharge
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 ZERO=Decimal("0.00")
 
@@ -39,7 +39,7 @@ def finance_receivable_account_add(request):
 @login_required
 def finance_receivable_account_detail(request,pk):
     team,account=_account_for_request(request,pk);open_charges=[c for c in account.charges.filter(status=ReceivableCharge.Status.POSTED) if c.balance>ZERO]
-    return render(request,"portal/finance_receivable_account_v350.html",{"team":team,"account":account,"activity":account_activity(account),"people_links":account.people_links.filter(active=True).select_related("person"),"open_charges":open_charges,"unapplied_payments":[p for p in account.payments.filter(status="posted") if p.unapplied_amount>ZERO],"unapplied_credits":[c for c in account.credits.filter(status="posted") if c.unapplied_amount>ZERO]})
+    return render(request,"portal/finance_receivable_account_v350.html",{"team":team,"account":account,"activity":account_activity(account),"people_links":account.people_links.filter(active=True).select_related("person"),"open_charges":open_charges,"posted_payments":account.payments.filter(status="posted").select_related("financial_transaction"),"unapplied_payments":[p for p in account.payments.filter(status="posted") if p.unapplied_amount>ZERO],"unapplied_credits":[c for c in account.credits.filter(status="posted") if c.unapplied_amount>ZERO]})
 @login_required
 def finance_account_person_add(request,pk):
     team,account=_account_for_request(request,pk);form=FinanceAccountPersonForm(request.POST or None,team=team)
@@ -100,3 +100,15 @@ def finance_receivable_statement(request,pk):
     statement=statement_for_user(request.user,account.pk,start_date=start_date,end_date=end_date,team=team)
     if statement is None:raise PermissionDenied
     return render(request,"portal/finance_statement_v350.html",{"team":team,"account":account,"statement":statement,"start_date":start_date,"end_date":end_date})
+
+@login_required
+def finance_payment_void(request,pk,payment_id):
+    team,account=_account_for_request(request,pk)
+    try:payment=account.payments.select_related("financial_transaction").get(pk=payment_id,status="posted")
+    except account.payments.model.DoesNotExist:raise PermissionDenied
+    form=FinanceVoidPaymentForm(request.POST or None)
+    if request.method=="POST" and form.is_valid():
+        try:void_payment_for_user(request.user,account.pk,payment_id=payment.pk,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Payment voided.");return redirect("finance_receivable_account_detail",pk=account.pk)
+    return render(request,"portal/finance_payment_void_v350.html",{"team":team,"account":account,"payment":payment,"form":form})
