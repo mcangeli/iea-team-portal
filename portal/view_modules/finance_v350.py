@@ -5,11 +5,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
-from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, FinanceVoidPaymentForm
-from portal.model_modules.finance import FinanceDomain, ReceivableCharge
+from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm
+from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ReceivableCharge
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_imports import stage_bank_import\nfrom portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 ZERO=Decimal("0.00")
 
@@ -125,3 +125,48 @@ def finance_payment_unallocate(request,pk,allocation_id):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Payment allocation removed. The funds are now available to reallocate.");return redirect("finance_receivable_account_detail",pk=account.pk)
     return render(request,"portal/finance_unallocate_v350.html",{"team":team,"account":account,"form":form})
+
+
+@login_required
+def finance_bank_reconciliation(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    form=BankImportUploadForm(request.POST or None,request.FILES or None,team=team,allowed_domains=domains)
+    if request.method=="POST" and form.is_valid():
+        uploaded=form.cleaned_data["statement"];account=form.cleaned_data["financial_account"];profile=form.cleaned_data.get("profile")
+        if profile and profile.financial_account_id!=account.pk:form.add_error("profile","Choose a profile saved for this bank account.")
+        else:
+            data=uploaded.read();file_type="xlsx" if uploaded.name.lower().endswith(".xlsx") else "csv"
+            if profile:
+                try:batch=stage_bank_import(team=team,financial_account=account,source_name=uploaded.name,data=data,file_type=file_type,column_mapping=profile.column_mapping,profile=profile)
+                except ValidationError as exc:form.add_error(None,exc)
+                else:messages.success(request,f"Statement staged with {batch.transactions.count()} transaction(s).");return redirect("finance_bank_import_batch",batch_id=batch.pk)
+            else:
+                request.session["finance_bank_import"]={"account_id":account.pk,"source_name":uploaded.name,"file_type":file_type,"data":data.hex()}
+                return redirect("finance_bank_import_mapping")
+    batches=BankImportBatch.objects.filter(team=team,finance_domain__in=domains).select_related("financial_account","profile").order_by("-imported_at")[:20]
+    return render(request,"portal/finance_bank_reconciliation_v350.html",{"team":team,"form":form,"batches":batches})
+
+@login_required
+def finance_bank_import_mapping(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);pending=request.session.get("finance_bank_import")
+    if not pending: return redirect("finance_bank_reconciliation")
+    try:account=FinancialAccount.objects.get(pk=pending["account_id"],team=team,finance_domain__in=domains)
+    except FinancialAccount.DoesNotExist:raise PermissionDenied
+    form=BankImportMappingForm(request.POST or None)
+    if request.method=="POST" and form.is_valid():
+        mapping={key:value for key,value in form.cleaned_data.items() if key!="profile_name" and value};data=bytes.fromhex(pending["data"])
+        try:batch=stage_bank_import(team=team,financial_account=account,source_name=pending["source_name"],data=data,file_type=pending["file_type"],column_mapping=mapping)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:
+            profile_name=form.cleaned_data.get("profile_name")
+            if profile_name:BankImportProfile.objects.update_or_create(team=team,financial_account=account,name=profile_name,defaults={"file_type":pending["file_type"],"column_mapping":mapping,"active":True})
+            request.session.pop("finance_bank_import",None);messages.success(request,f"Statement staged with {batch.transactions.count()} transaction(s).");return redirect("finance_bank_import_batch",batch_id=batch.pk)
+    return render(request,"portal/finance_bank_import_mapping_v350.html",{"team":team,"account":account,"form":form,"source_name":pending["source_name"]})
+
+@login_required
+def finance_bank_import_batch(request,batch_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    try:batch=BankImportBatch.objects.select_related("financial_account","profile").get(pk=batch_id,team=team,finance_domain__in=domains)
+    except BankImportBatch.DoesNotExist:raise PermissionDenied
+    rows=batch.transactions.prefetch_related("matches__financial_transaction").order_by("transaction_date","id")
+    return render(request,"portal/finance_bank_import_batch_v350.html",{"team":team,"batch":batch,"rows":rows})
