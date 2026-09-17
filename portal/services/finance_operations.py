@@ -18,7 +18,9 @@ def _posted_charge(account,charge_id):
 @transaction.atomic
 def create_account_for_user(user,*,team,name,finance_domain,primary_person=None,notes=""):
     if not can_manage_finance_domain(user,finance_domain,team):raise PermissionDenied
-    account=ReceivableAccount(team=team,name=name.strip(),finance_domain=finance_domain,primary_person=primary_person,notes=notes.strip());account.full_clean();account.save();return account
+    account=ReceivableAccount(team=team,name=name.strip(),finance_domain=finance_domain,primary_person=primary_person,notes=notes.strip());account.full_clean();account.save()
+    if primary_person:ReceivableAccountPerson.objects.create(account=account,person=primary_person,role=ReceivableAccountPerson.Role.RESPONSIBLE_PARTY,statement_recipient=True)
+    return account
 
 @transaction.atomic
 def add_account_person_for_user(user,account_id,*,person,role,statement_recipient=False,notes="",team=None):
