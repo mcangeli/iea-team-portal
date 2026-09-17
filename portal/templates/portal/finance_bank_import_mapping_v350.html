@@ -1,0 +1,3 @@
+{% extends "portal/base.html" %}{% block title %}Map Bank Statement · ArenaLine{% endblock %}{% block content %}
+<div class="finance-shell"><div class="page-header"><div><p class="eyebrow">Finance · Bank reconciliation</p><h1>Map {{ source_name }}</h1><p class="muted">Account: {{ account.name }}. Use a signed amount column, or separate credit and debit columns.</p></div></div><div class="card"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary" type="submit">Stage statement</button> <a class="btn btn-secondary" href="{% url 'finance_bank_reconciliation' %}">Cancel</a></form></div></div>
+{% endblock %}
