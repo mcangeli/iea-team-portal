@@ -15,9 +15,6 @@ def backfill_legacy_iea_receivables(apps, schema_editor):
     ReceivablePayment = apps.get_model("portal", "ReceivablePayment")
     ReceivableAllocation = apps.get_model("portal", "ReceivableAllocation")
 
-    # ArenaLine's pre-v3.5 finance module was IEA finance. Preserve that
-    # classification explicitly rather than allowing old accounts to leak into
-    # the new general-barn domain.
     FinancialAccount.objects.all().update(finance_domain="iea")
 
     account_by_membership = {}
@@ -146,13 +143,16 @@ def backfill_legacy_iea_receivables(apps, schema_editor):
 
 
 def noop_reverse(apps, schema_editor):
-    # Compatibility records are intentionally retained on rollback of later
-    # application code. The schema migration itself remains reversible by
-    # Django once the new tables/fields are removed.
     pass
 
 
 class Migration(migrations.Migration):
+    # PostgreSQL cannot create the deferred indexes for the newly-added foreign
+    # keys while RunPython has pending trigger events in the same transaction.
+    # Running this compatibility migration non-atomically lets each schema
+    # operation finish before the data backfill begins.
+    atomic = False
+
     dependencies = [("portal", "0090_v350_receivables_foundation")]
 
     operations = [
