@@ -53,3 +53,19 @@ class FinanceWorkspaceTests(TestCase):
         user,_=self._user("preselect-admin",UserProfile.Role.ADMIN);self.client.force_login(user);r=self.client.get(reverse("finance_payment_add",args=[self.general.pk]),{"charge":self.general_charge.pk});self.assertEqual(r.status_code,200);self.assertEqual(r.context["form"].initial.get("charge_id"),self.general_charge.pk)
     def test_payment_charge_query_does_not_preselect_other_account_charge(self):
         user,_=self._user("preselect-other-admin",UserProfile.Role.ADMIN);self.client.force_login(user);r=self.client.get(reverse("finance_payment_add",args=[self.general.pk]),{"charge":self.iea_charge.pk});self.assertEqual(r.status_code,200);self.assertIsNone(r.context["form"].initial.get("charge_id"))
+
+    def test_admin_can_void_unallocated_payment_through_ui(self):
+        user,_=self._user("void-ui-admin",UserProfile.Role.ADMIN)
+        payment=ReceivablePayment.objects.create(account=self.general,amount="25.00",received_date=date(2026,9,7))
+        self.client.force_login(user)
+        response=self.client.post(reverse("finance_payment_void",args=[self.general.pk,payment.pk]),{"reason":"Duplicate"})
+        self.assertRedirects(response,reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        payment.refresh_from_db();self.assertEqual(payment.status,payment.Status.VOID)
+
+    def test_iea_treasurer_cannot_void_general_payment_by_url(self):
+        user,_=self._user("void-ui-iea",UserProfile.Role.PARENT,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        payment=ReceivablePayment.objects.create(account=self.general,amount="25.00",received_date=date(2026,9,7))
+        self.client.force_login(user)
+        response=self.client.post(reverse("finance_payment_void",args=[self.general.pk,payment.pk]),{"reason":"Forbidden"})
+        self.assertEqual(response.status_code,403)
+        payment.refresh_from_db();self.assertEqual(payment.status,payment.Status.POSTED)
