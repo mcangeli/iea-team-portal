@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.3.0**
+**Current version: v3.4.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.3.0 expands ArenaLine's Horse Registry into a broader equine-care and horse-management system with care history and scheduling, documents, configurable compliance requirements, show-date readiness, Hoofprint compliance, protected horse records, delegated horse management, and the People↔Horse care-team relationships built on the v3.2 People foundation.
+v3.4.0 adds a generic Lesson Program system for recurring Barn instruction and IEA Team Lessons, including scheduling, enrollment/roster preparation, lesson-day attendance and horse assignments, move/make-up workflows, rider self-service, completion safeguards, and unified-calendar projection while preserving legacy lesson compatibility.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,54 +15,51 @@ v3.3.0 expands ArenaLine's Horse Registry into a broader equine-care and horse-m
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.3.0.md`.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.4.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.3.0 highlights
+## v3.4.0 highlights
 
-### Equine care and history
+### Lesson programs and recurring schedules
 
-Horse profiles now support durable identifiers, expanded care-provider relationships, historical care records, next-due dates, and a complete care history organized by year. Routine care can be tracked across vaccination, farrier, dental, veterinary, medication, wellness, and other care categories without overwriting prior records.
+ArenaLine now models lessons as **Lesson Program → Lesson Series → Lesson Occurrence**. Programs describe an offering, series describe recurring instructional groups, and occurrences preserve the actual scheduled lesson. Enrollment, attendance, and operational assignments remain separate concepts.
 
-### Documents and compliance
+Recurring schedules can generate durable occurrences, one-off lessons remain supported, and generated lessons preserve immutable recurrence identity when rescheduled. Occurrences snapshot instructor, location, capacity, title, and time so later series changes do not rewrite history.
 
-Horse documents can track registration, vaccination, lease, ownership, veterinary, insurance, care, and other records with effective and expiration dates. Administrators/coaches can configure which Coggins/document records are required for horse compliance rather than treating every stored document as mandatory.
+### Barn and IEA Team Lessons
 
-Compliance distinguishes missing, expired, expiring-soon, and current requirements. Sensitive generic horse documents and Coggins attachments are served through authenticated, organization-scoped horse-management download routes.
+Barn lesson programs use normal lesson enrollment and capacity. Eligible Barn instructors are active Trainers or Assistant Trainers.
 
-### Delegated horse management
+IEA Team Lessons use season and Futures/Upper team context rather than baking IEA-specific behavior into the generic lesson model. Their roster comes from season membership and eligible instructors are Coaches. Legacy IEA lessons remain available for compatibility and can be converted idempotently into the new occurrence architecture with durable provenance.
 
-Horse-management authorization is separate from a person's job title. Administrators can grant a Person/account the **Manage Horses** capability for organization-wide Horse Registry management without making that person a Coach or Administrator.
+### Lesson-day operations and make-ups
 
-A Person with a current **Boarder / Responsible Party** relationship can manage the related horse's profile, identifiers, care records, Coggins, documents, and compliance information. That relationship-derived access is effective-date-aware and does not extend to unrelated horses. Horse relationship administration, season eligibility, show assignments, Horse of the Day, organization compliance configuration, People administration, Finance, and account administration remain separately restricted.
+Authorized staff can manage attendance, horse assignments, bulk lesson-day updates, rescheduling, and completion. Completion requires expected attendance to be resolved and cannot be applied to cancelled lessons.
 
-### Show readiness and Hoofprint
+Individual riders can be moved to a compatible future lesson without rescheduling the whole group. ArenaLine validates capacity, destination history, domain compatibility, duplicate moves, and occurrence state. Riders with eligible identity can reschedule only themselves; staff/rider initiation remains auditable.
 
-Show compliance is evaluated through the actual show date. A document or Coggins record that is valid today but expires before the show is not considered show-ready; expiration on the show date itself remains valid. Missing/expired/not-valid-through-show requirements block readiness and Hoofprint finalization, while expiring-soon records warn without blocking when they remain valid through the show.
+### Unified operational calendar
 
-Hoofprint preview and ordinary completeness warnings remain available/advisory. Existing IEA-specific Horse/Hoofprint terminology and historical Horse of the Day behavior remain intact.
+The Calendar projects domain-owned operational records rather than becoming a duplicate source of truth. Barn/IEA lessons can appear alongside shows, horse care, organization events, volunteer/committee activity, and other supported sources, with links returning to the owning domain. Legacy-conversion provenance prevents duplicate lesson entries.
 
-### People and privacy
+### Compatibility and validation
 
-The v3.2 People foundation continues to provide canonical Person identity, multi-role barn participation, ArenaLine Station, work history, groups/programs, committees, and People↔Horse relationships. v3.3 extends those horse relationships for veterinarian, farrier, dentist, and emergency-contact participation and uses Person/account capabilities for delegated horse management.
+v3.4 remains compatibility-first. Existing lesson history is preserved while the generic lesson architecture operates alongside legacy structures. Existing Finance remains available; v3.5 will deliberately rework/expand Barn Finance & Business Operations rather than hiding Finance inside Lessons.
 
-Care, document, and detailed configurable compliance information remains restricted to authorized horse managers; ordinary rider/parent show-horse views retain the narrower compatibility-safe presentation.
-
-### Validation
-
-The final v3.3.0 staging baseline passed Django system/migration checks, the **128/128 horse/show/Hoofprint regression sweep**, the **56/56 affected horse/People authorization checkpoint**, and the complete `portal` suite: **747/747 tests green**.
+Final v3.4.0 staging validation completed with clean Django system checks, **No changes detected** from `makemigrations --check --dry-run`, and **949/949 portal tests passing**.
 
 ## Roles and dashboards
 
 | Role / assignment | Primary use |
 | --- | --- |
 | Administrator | Full organization administration; can review every operational dashboard |
-| Coach | Roster, classes, shows, results, qualification, lessons, availability and organization operations |
+| Coach | Roster, classes, shows, results, qualification, IEA Team Lessons, availability and organization operations |
+| Trainer / Assistant Trainer | Barn Lesson Program instruction and permitted Barn lesson operations |
 | Parent/Guardian | Linked riders, family-visible schedules, actions, volunteer activity and permitted family finance |
-| Rider | Own rider/team information; staff strategy and private information remain restricted |
+| Rider | Own rider/team information and My Lessons/self-rescheduling where eligible; staff strategy and private information remain restricted |
 | Futures / Upper Team Parent | Squad-scoped coordination dashboard |
 | Show Lead | Assigned-show operations, planning, volunteers and Show Day |
 | Secretary / Points Secretary | Standings, missing results and qualification review |
@@ -70,7 +67,7 @@ The final v3.3.0 staging baseline passed Django system/migration checks, the **1
 | Manage Horses capability | Organization-wide horse records/care/documents without broader Coach/Admin authority |
 | Current Boarder / Responsible Party | Scoped management of the related horse's records only |
 
-Administrators can open all role workspaces. Coaches receive the Coach workspace by role and only receive Team Parent, Show Lead, or Points Secretary dashboards when explicitly assigned that responsibility. Horse-management capability is deliberately independent of those organizational roles.
+Administrators can open all role workspaces. Lesson management follows its own domain permissions: Coaches manage IEA Team Lessons, while active Trainers / Assistant Trainers manage Barn Lesson Programs. Horse-management capability remains independent of organizational lesson roles.
 
 ## Recommended first-time setup
 
@@ -84,13 +81,14 @@ Administrators can open all role workspaces. Coaches receive the Coach workspace
 8. Grant **Manage Horses** from a Person profile when someone needs organization-wide horse management without broader Coach/Admin access.
 9. Link riders to their current season, Futures/Upper team, home barn, and classes; link parents/guardians through the rider's family relationships.
 10. Configure organization groups/programs and committees where needed.
-11. Add Horses, maintain People↔Horse participation/care-team relationships, and configure required horse compliance records. A current Boarder / Responsible Party relationship can provide scoped management of that horse.
+11. Add Horses, maintain People↔Horse participation/care-team relationships, and configure required horse compliance records.
 12. Add care history, due dates, Coggins, and supporting horse documents as appropriate.
 13. Add Shows, official show classes, availability, entries, and Show Lead assignments.
-14. Add Lessons, Calendar events, announcements, volunteer requirements, and Action Items.
-15. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
-16. If using Finance, configure its accounts/categories/rates before entering family activity.
-17. Add prior-season information through the historical-data tools when desired.
+14. Configure Barn Lesson Programs/Series and IEA Team Lessons; generate or create occurrences and prepare lesson rosters.
+15. Add Calendar events, announcements, volunteer requirements, and Action Items.
+16. Configure ArenaLine Station devices/PINs if using shared-device work tracking.
+17. If using Finance, configure its accounts/categories/rates before entering family activity.
+18. Add prior-season information through the historical-data tools when desired.
 
 ## Core workflows
 
@@ -124,23 +122,27 @@ Use **Competition → Standings** for individual progress and team scoring. Post
 
 ArenaLine includes Horse Registry, identifiers, People↔Horse relationships, care history/scheduling, protected documents, Coggins tracking, configurable compliance requirements, season class eligibility, show horse assignments, Horse of the Day, Horse Readiness, Show Horse Lists, Course Operations, Hoofprint Builder/finalized snapshots, and post-show horse history/Record Book summaries.
 
-Care records preserve completed history and optional next-due dates. The latest dated record in a care category drives scheduling status while older records remain available in history.
+Care records preserve completed history and optional next-due dates. Coggins remains a specialized source of truth. Show workflows evaluate configured requirements through the show's date, and unresolved required compliance blocks readiness/Hoofprint finalization.
 
-Coggins remains a specialized source of truth. Configured compliance requirements may require Coggins and selected generic horse-document types. Show workflows evaluate those requirements through the show's date, and unresolved required compliance blocks readiness/Hoofprint finalization.
+Organization-wide horse management may be delegated with **Manage Horses**. A current Boarder / Responsible Party relationship provides management only for the related horse.
 
-Organization-wide horse management may be delegated with **Manage Horses**. A current Boarder / Responsible Party relationship provides management only for the related horse. These permissions do not grant competition/show administration or allow the scoped manager to alter the relationship that grants access.
+### Lessons
+
+Barn Lesson Programs are managed separately from IEA Team Lessons. A Barn program contains recurring series with enrollment, capacity, eligible Trainer/Assistant Trainer instruction, and generated or manual occurrences. IEA series add season/team context and use the existing season roster with Coach instruction.
+
+The lesson-day workspace records attendance and Person/Horse assignments against the actual occurrence. Occurrences preserve historical snapshots even when a recurring series later changes.
+
+Move/make-up operations move one participant rather than the entire lesson and preserve source/destination history. Eligible Riders can use **My Lessons** to reschedule only themselves. Whole-occurrence rescheduling remains a separate staff operation.
 
 ### Station and work history
 
 ArenaLine Station is a tablet/shared-device surface for barn operations. Station devices use their own activation secrets and Person PINs rather than full portal credentials. Staff and working students can clock in/out for their current work roles; managers can review, edit, approve, summarize, and export work history.
 
-### Calendar, communication, lessons, and volunteers
+### Calendar, communication, and volunteers
 
-Calendar supports Month and Agenda views, event-type filtering, RSVP-enabled events, and Futures/Upper filtering where the source record carries a squad.
+Calendar supports Month and Agenda views, event-type filtering, RSVP-enabled events, and operational projections from supported domains including lessons and horse care.
 
-Announcements are for organization communication. Action Items are for work needing an owner, response, or completion state. Notifications surface relevant ArenaLine activity.
-
-Lessons support groups, scheduled lessons, and rider attendance. Volunteer requirements/logs support service tracking and approval. Committee assignments delegate operational responsibility without granting full Administrator access.
+Announcements are for organization communication. Action Items are for work needing an owner, response, or completion state. Notifications surface relevant ArenaLine activity. Volunteer requirements/logs support service tracking and approval. Committee assignments delegate operational responsibility without granting full Administrator access.
 
 ### Finance
 
@@ -151,7 +153,7 @@ Finance is intentionally restricted:
 - **Rider:** no Finance access.
 - **Coach alone:** does not automatically grant Finance access.
 
-Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising, and reporting.
+Existing Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising, and reporting. v3.5 is planned to establish the broader generic Barn Finance & Business Operations architecture and connect lesson, boarding/lease, horse-care, show, and program activity through explicit financial boundaries.
 
 ### History and Record Book
 
@@ -231,17 +233,17 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.3.0 explicitly:
+Or install v3.4.0 explicitly:
 
 ```bash
-./portalctl update v3.3.0
+./portalctl update v3.4.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.3 migration chain adds horse identifiers, care records/scheduling choices, generic horse documents, expanded care relationships, configurable compliance requirements, and organization capability assignments on top of the v3.2 People/relationship foundation. See `docs/releases/v3.3.0.md` for the release-specific migration summary.
+The v3.4 migration chain adds the generic Lesson Program hierarchy, IEA lesson context/provenance, recurrence identity, participant move/make-up audit/uniqueness, and final migration-state alignment on top of the v3.3 People/Horse foundation. See `docs/releases/v3.4.0.md` for the release-specific migration summary.
 
 ## Backups and rollback
 
@@ -259,9 +261,9 @@ Generic platform domains include Core, People, Horses, Operations, Finance, and 
 
 The public/external layer is a separate publication boundary. Anonymous routes consume explicit allow-listed publication payloads rather than authenticated internal views.
 
-The v3.2 People layer remains compatibility-first: Person/relationship/group abstractions coexist with legacy Rider, Guardian/Parent, UserProfile, season, committee, finance, and competition structures. v3.3 layers care, documents, compliance, and capability-based horse authorization onto the existing Horse/People models rather than replacing historical records.
+Person remains the canonical human identity and Horse the canonical equine identity. v3.4 layers the generic lesson hierarchy onto those foundations. Barn enrollment and IEA season/team roster membership remain distinct, and IEA-specific lesson context is layered onto generic series rather than encoded into the generic lesson core.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.3.0.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.4.0.md`.
 
 ## Release process
 
