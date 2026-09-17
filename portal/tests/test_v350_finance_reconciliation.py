@@ -14,6 +14,7 @@ from portal.services.finance_receivables import (
     allocate_source,
     post_credit,
     post_payment,
+    reconcile_legacy_account,
 )
 
 
@@ -83,3 +84,9 @@ class FinanceReconciliationTests(TestCase):
         payment.save(update_fields=["status"])
         self.assertEqual(payment.unapplied_amount, Decimal("0.00"))
         self.assertEqual(self.account.balance, Decimal("100.00"))
+
+    def test_nonlegacy_account_reconciliation_reports_current_amount_due(self):
+        result = reconcile_legacy_account(self.account)
+        self.assertEqual(result["legacy_amount_due"], Decimal("0.00"))
+        self.assertEqual(result["receivable_amount_due"], Decimal("100.00"))
+        self.assertEqual(result["difference"], Decimal("100.00"))
