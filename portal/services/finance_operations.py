@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from portal.model_modules.finance import ReceivableAccount, ReceivableAccountPerson, ReceivableCharge
 from portal.services.finance_access import can_manage_finance_domain, finance_account_for_user
-from portal.services.finance_receivables import allocate_source, post_credit, post_payment
+from portal.services.finance_receivables import allocate_source, post_credit, post_payment, void_payment
 
 def _authorized_account(user,account_id,team=None):
     account=finance_account_for_user(user,account_id,team)
@@ -53,3 +53,11 @@ def allocate_credit_for_user(user,account_id,*,credit_id,charge_id,amount=None,n
     try:credit=account.credits.get(pk=credit_id,status=account.credits.model.Status.POSTED)
     except account.credits.model.DoesNotExist as exc:raise ValidationError("Credit is not available on this receivable account.") from exc
     return allocate_source(charge=charge,credit=credit,amount=amount,notes=notes.strip())
+
+
+@transaction.atomic
+def void_payment_for_user(user,account_id,*,payment_id,reason="",team=None):
+    account=_authorized_account(user,account_id,team)
+    try: payment=account.payments.get(pk=payment_id)
+    except account.payments.model.DoesNotExist as exc: raise ValidationError("Payment is not available on this receivable account.") from exc
+    return void_payment(payment=payment,user=user,reason=reason)
