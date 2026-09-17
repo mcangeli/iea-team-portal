@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Add account person · {{ account.name }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · FINANCE · PEOPLE & BILLING</div><h1>Add account person</h1><p>{{ account.name }} · {{ account.get_finance_domain_display }}</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_receivable_account_detail' account.pk %}">Back to account</a></div></section>
+<section class="form-section"><form method="post" class="stacked-form">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div class="field-row"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}<div class="actions"><button class="btn" type="submit">Add person</button><a class="btn secondary" href="{% url 'finance_receivable_account_detail' account.pk %}">Cancel</a></div></form></section>
+{% endblock %}
