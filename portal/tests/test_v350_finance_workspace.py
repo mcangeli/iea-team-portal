@@ -63,7 +63,7 @@ class FinanceWorkspaceTests(TestCase):
         payment.refresh_from_db();self.assertEqual(payment.status,payment.Status.VOID)
 
     def test_iea_treasurer_cannot_void_general_payment_by_url(self):
-        user,_=self._user("void-ui-iea",UserProfile.Role.PARENT,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        user,p=self._user("void-ui-iea");self._grant(p,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
         payment=ReceivablePayment.objects.create(account=self.general,amount="25.00",received_date=date(2026,9,7))
         self.client.force_login(user)
         response=self.client.post(reverse("finance_payment_void",args=[self.general.pk,payment.pk]),{"reason":"Forbidden"})
