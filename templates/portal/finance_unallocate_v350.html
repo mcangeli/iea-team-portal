@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Correct allocation · {{ account.name }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · FINANCE</div><h1>Correct payment allocation</h1><p>{{ account.name }}</p></div></section>
+<section class="content-section form-section"><p class="muted">This removes the allocation without deleting history. The payment becomes available to allocate again and the charge balance is restored.</p><form method="post" class="stacked-form">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Remove allocation</button><a class="btn secondary" href="{% url 'finance_receivable_account_detail' account.pk %}">Cancel</a></div></form></section>
+{% endblock %}
