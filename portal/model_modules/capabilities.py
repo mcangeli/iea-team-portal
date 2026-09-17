@@ -7,6 +7,8 @@ class OrganizationCapabilityAssignment(models.Model):
 
     class Capability(models.TextChoices):
         MANAGE_HORSES = "manage_horses", "Manage Horses"
+        MANAGE_IEA_FINANCE = "manage_iea_finance", "Manage IEA Finance"
+        MANAGE_ALL_FINANCE = "manage_all_finance", "Manage All Finance"
 
     team = models.ForeignKey(
         "portal.Team",
