@@ -19,29 +19,32 @@ from portal.model_modules.finance import (
 
 
 def account_amount_due(account: ReceivableAccount) -> Decimal:
-    """Outstanding posted charge balances; never reduced below zero."""
-    return sum((charge.balance for charge in account.charges.all()), ZERO)
+    return account.amount_due
 
 
 def account_unapplied_payments(account: ReceivableAccount) -> Decimal:
-    return sum((payment.unapplied_amount for payment in account.payments.all()), ZERO)
+    return account.unapplied_payment_total
 
 
 def account_unapplied_credits(account: ReceivableAccount) -> Decimal:
-    return sum((credit.unapplied_amount for credit in account.credits.all()), ZERO)
+    return account.unapplied_credit_total
 
 
 def account_net_balance(account: ReceivableAccount) -> Decimal:
-    """Customer net position: positive is due, negative is available credit."""
-    return account_amount_due(account) - account_unapplied_payments(account) - account_unapplied_credits(account)
+    return account.balance
 
 
-def _remaining_charge_amount(charge: ReceivableCharge) -> Decimal:
-    return max(charge.balance, ZERO)
-
-
-def _remaining_source_amount(source) -> Decimal:
-    return max(source.unapplied_amount, ZERO)
+def reconcile_legacy_account(account: ReceivableAccount) -> dict:
+    """Compare migrated IEA charge balances with the legacy family ledger."""
+    if not account.legacy_membership_id:
+        return {"legacy_amount_due": ZERO, "receivable_amount_due": account.amount_due, "difference": account.amount_due}
+    legacy_amount_due = sum((charge.balance for charge in account.legacy_membership.family_charges.all()), ZERO)
+    receivable_amount_due = account.amount_due
+    return {
+        "legacy_amount_due": legacy_amount_due,
+        "receivable_amount_due": receivable_amount_due,
+        "difference": receivable_amount_due - legacy_amount_due,
+    }
 
 
 @transaction.atomic
@@ -59,21 +62,13 @@ def allocate_source(*, charge: ReceivableCharge, payment: ReceivablePayment | No
     if source.status != source.Status.POSTED or charge.status != charge.Status.POSTED:
         raise ValidationError("Only posted sources may be allocated to posted charges.")
 
-    available = min(_remaining_charge_amount(charge), _remaining_source_amount(source))
+    available = min(charge.balance, source.unapplied_amount)
     requested = available if amount is None else Decimal(amount)
-    if requested <= ZERO:
+    if requested <= ZERO or available <= ZERO:
         return None
     allocation_amount = min(requested, available)
-    if allocation_amount <= ZERO:
-        return None
 
-    allocation = ReceivableAllocation(
-        charge=charge,
-        payment=payment,
-        credit=credit,
-        amount=allocation_amount,
-        notes=notes,
-    )
+    allocation = ReceivableAllocation(charge=charge, payment=payment, credit=credit, amount=allocation_amount, notes=notes)
     allocation.full_clean()
     allocation.save()
     return allocation
@@ -82,12 +77,7 @@ def allocate_source(*, charge: ReceivableCharge, payment: ReceivablePayment | No
 @transaction.atomic
 def post_payment(*, account: ReceivableAccount, amount: Decimal, received_date,
                  charge: ReceivableCharge | None = None, **kwargs) -> ReceivablePayment:
-    payment = ReceivablePayment(
-        account=account,
-        amount=amount,
-        received_date=received_date,
-        **kwargs,
-    )
+    payment = ReceivablePayment(account=account, amount=amount, received_date=received_date, **kwargs)
     payment.full_clean()
     payment.save()
     if charge is not None:
@@ -98,13 +88,7 @@ def post_payment(*, account: ReceivableAccount, amount: Decimal, received_date,
 @transaction.atomic
 def post_credit(*, account: ReceivableAccount, description: str, amount: Decimal,
                 credit_date, charge: ReceivableCharge | None = None, **kwargs) -> ReceivableCredit:
-    credit = ReceivableCredit(
-        account=account,
-        description=description,
-        amount=amount,
-        credit_date=credit_date,
-        **kwargs,
-    )
+    credit = ReceivableCredit(account=account, description=description, amount=amount, credit_date=credit_date, **kwargs)
     credit.full_clean()
     credit.save()
     if charge is not None:
