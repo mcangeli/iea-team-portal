@@ -6,7 +6,7 @@ from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team, UserProfile
-from portal.services.finance_operations import allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user
+from portal.services.finance_operations import allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, void_payment_for_user
 
 
 class FinanceOperationsTests(TestCase):
@@ -100,3 +100,21 @@ class FinanceOperationsTests(TestCase):
         response=self.client.get(__import__("django.urls",fromlist=["reverse"]).reverse("finance_payment_add",args=[self.general.pk]))
         qs=response.context["form"].fields["deposit_account"].queryset
         self.assertIn(general_deposit,qs);self.assertNotIn(iea_deposit,qs)
+
+    def test_void_payment_voids_linked_financial_transaction(self):
+        user=self._user("void-ledger-admin",role=UserProfile.Role.ADMIN)
+        deposit=FinancialAccount.objects.create(team=self.team,name="Void Bank",finance_domain=FinanceDomain.GENERAL)
+        category=FinancialCategory.objects.create(team=self.team,name="Void Income",kind=FinancialCategory.Kind.INCOME)
+        payment=post_payment_for_user(user,self.general.pk,amount="90.00",received_date=date(2026,9,6),deposit_account=deposit,income_category=category,team=self.team)
+        tx_id=payment.financial_transaction_id
+        void_payment_for_user(user,self.general.pk,payment_id=payment.pk,reason="Duplicate payment",team=self.team)
+        payment.refresh_from_db();tx=FinancialTransaction.objects.get(pk=tx_id)
+        self.assertEqual(payment.status,payment.Status.VOID);self.assertEqual(tx.status,FinancialTransaction.Status.VOID);self.assertEqual(tx.void_reason,"Duplicate payment");self.assertEqual(tx.voided_by,user)
+
+    def test_allocated_payment_must_be_unallocated_before_void(self):
+        user=self._user("void-allocated-admin",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="50.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,6),charge_id=charge.pk,team=self.team)
+        with self.assertRaises(ValidationError):
+            void_payment_for_user(user,self.general.pk,payment_id=payment.pk,reason="Cannot void yet",team=self.team)
+        payment.refresh_from_db();self.assertEqual(payment.status,payment.Status.POSTED)
