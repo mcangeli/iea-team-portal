@@ -94,7 +94,13 @@ def finance_receivable_statement(request, pk):
     if end_date < start_date:
         start_date, end_date = end_date, start_date
 
-    statement = statement_for_user(request.user, account.pk, start_date, end_date, team=team)
+    statement = statement_for_user(
+        request.user,
+        account.pk,
+        start_date=start_date,
+        end_date=end_date,
+        team=team,
+    )
     if statement is None:
         raise PermissionDenied
     return render(request, "portal/finance_statement_v350.html", {
