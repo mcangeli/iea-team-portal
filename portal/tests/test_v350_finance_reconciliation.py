@@ -70,3 +70,9 @@ class FinanceReconciliationTests(TestCase):
         payment = post_payment(account=other, amount=Decimal("25.00"), received_date=date(2026, 9, 2))
         with self.assertRaises(ValidationError):
             allocate_source(charge=self.charge, payment=payment)
+
+    def test_explicit_allocation_above_available_is_capped(self):
+        payment = post_payment(account=self.account, amount=Decimal("150.00"), received_date=date(2026, 9, 2))
+        allocation = allocate_source(charge=self.charge, payment=payment, amount=Decimal("150.00"))
+        self.assertEqual(allocation.amount, Decimal("100.00"))
+        self.assertEqual(payment.unapplied_amount, Decimal("50.00"))
