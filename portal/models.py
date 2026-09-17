@@ -1070,7 +1070,7 @@ class FinancialTransaction(models.Model):
         VOID = "void", "Void"
 
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="financial_transactions")
-    season = models.ForeignKey(Season, on_delete=models.PROTECT, related_name="financial_transactions")
+    season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="financial_transactions")
     transaction_date = models.DateField()
     kind = models.CharField(max_length=20, choices=Kind.choices)
     account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT, related_name="transactions")
