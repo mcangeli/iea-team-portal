@@ -1,6 +1,9 @@
 from django.urls import path
 from portal.view_modules import finance_v350
-urlpatterns=[\n path("finance/workspace/reconciliation/",finance_v350.finance_bank_reconciliation,name="finance_bank_reconciliation"),\n path("finance/workspace/reconciliation/mapping/",finance_v350.finance_bank_import_mapping,name="finance_bank_import_mapping"),\n path("finance/workspace/reconciliation/batches/<int:batch_id>/",finance_v350.finance_bank_import_batch,name="finance_bank_import_batch"),
+urlpatterns=[
+ path("finance/workspace/reconciliation/",finance_v350.finance_bank_reconciliation,name="finance_bank_reconciliation"),
+ path("finance/workspace/reconciliation/mapping/",finance_v350.finance_bank_import_mapping,name="finance_bank_import_mapping"),
+ path("finance/workspace/reconciliation/batches/<int:batch_id>/",finance_v350.finance_bank_import_batch,name="finance_bank_import_batch"),
  path("finance/workspace/",finance_v350.finance_workspace,name="finance_workspace"),
  path("finance/workspace/accounts/add/",finance_v350.finance_receivable_account_add,name="finance_receivable_account_add"),
  path("finance/workspace/accounts/<int:pk>/",finance_v350.finance_receivable_account_detail,name="finance_receivable_account_detail"),
