@@ -76,3 +76,10 @@ class FinanceReconciliationTests(TestCase):
         allocation = allocate_source(charge=self.charge, payment=payment, amount=Decimal("150.00"))
         self.assertEqual(allocation.amount, Decimal("100.00"))
         self.assertEqual(payment.unapplied_amount, Decimal("50.00"))
+
+    def test_void_payment_is_not_counted_as_unapplied_credit(self):
+        payment = post_payment(account=self.account, amount=Decimal("25.00"), received_date=date(2026, 9, 2))
+        payment.status = payment.Status.VOID
+        payment.save(update_fields=["status"])
+        self.assertEqual(payment.unapplied_amount, Decimal("0.00"))
+        self.assertEqual(self.account.balance, Decimal("100.00"))
