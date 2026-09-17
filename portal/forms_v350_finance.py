@@ -1,5 +1,21 @@
 from django import forms
 
+from portal.model_modules.finance import FinanceDomain
+from portal.model_modules.people import Person
+
+
+class FinanceAccountForm(forms.Form):
+    name = forms.CharField(max_length=160)
+    finance_domain = forms.ChoiceField(choices=FinanceDomain.choices)
+    primary_person = forms.ModelChoiceField(queryset=Person.objects.none(), required=False, empty_label="No primary person")
+    notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}))
+
+    def __init__(self, *args, team=None, allowed_domains=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["primary_person"].queryset = Person.objects.filter(team=team, active=True).order_by("last_name", "first_name") if team else Person.objects.none()
+        allowed = set(allowed_domains or [])
+        self.fields["finance_domain"].choices = [(value, label) for value, label in FinanceDomain.choices if value in allowed]
+
 
 class FinanceChargeForm(forms.Form):
     description = forms.CharField(max_length=220)
