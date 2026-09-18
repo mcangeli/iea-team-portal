@@ -8,9 +8,9 @@ from portal import views
 
 class RoleDashboardArchitectureTests(SimpleTestCase):
     def test_dashboard_views_live_in_expected_domain_modules(self):
-        # The root/general dashboard remains the roster-domain compatibility
-        # surface; role-specific operational workspaces live in dashboards.
-        self.assertEqual(views.dashboard.__module__, "portal.view_modules.roster")
+        # v3.6 makes the root route the generic ArenaLine barn dashboard;
+        # IEA role-specific operational workspaces also live in dashboards.
+        self.assertEqual(views.dashboard.__module__, "portal.view_modules.dashboards")
         for name in (
             "dashboard_general",
             "dashboard_coach",
