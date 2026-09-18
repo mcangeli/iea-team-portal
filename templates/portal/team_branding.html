@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Team Branding{% endblock %}
+{% block title %}Organization Branding{% endblock %}
 {% block content %}
 <div class="page-title">
   <div>
     <div class="eyebrow">APPEARANCE</div>
-    <h1>Team branding</h1>
-    <p>Control the photographic cover treatment for the overall program and give the Futures and Upper teams their own visual identity.</p>
+    <h1>Organization branding</h1>
+    <p>Give the general Barn Dashboard and the IEA team experience their own photographic identity, with optional Futures and Upper squad imagery.</p>
   </div>
 </div>
 
@@ -27,8 +27,11 @@
 
   <aside class="branding-preview-card">
     <div class="eyebrow">LIVE PREVIEWS</div>
+    <div class="branding-preview{% if branding.barn_hero_image %} has-team-photo{% elif branding.hero_image %} has-team-photo{% endif %}"{% if branding.barn_hero_image %} style="--team-hero-image:url('{{ branding.barn_hero_image.url }}');--team-hero-position:{{ branding.barn_hero_image_position }};"{% elif branding.hero_image %} style="--team-hero-image:url('{{ branding.hero_image.url }}');--team-hero-position:{{ branding.hero_image_position }};"{% endif %}>
+      <div><small>BARN DASHBOARD</small><h2>What's happening<br>around the barn.</h2></div>
+    </div>
     <div class="branding-preview{% if branding.hero_image %} has-team-photo{% endif %}"{% if branding.hero_image %} style="--team-hero-image:url('{{ branding.hero_image.url }}');--team-hero-position:{{ branding.hero_image_position }};"{% endif %}>
-      <div><small>PROGRAM</small><h2>Ride together.<br>Compete together.</h2></div>
+      <div><small>IEA TEAM</small><h2>Your team.<br>Your season.</h2></div>
     </div>
     <div class="branding-preview squad-branding-preview{% if branding.futures_hero_image %} has-team-photo{% endif %}"{% if branding.futures_hero_image %} style="--team-hero-image:url('{{ branding.futures_hero_image.url }}');--team-hero-position:{{ branding.futures_hero_image_position }};"{% endif %}>
       <div><small>FUTURES TEAM</small><h2>The next chapter<br>starts here.</h2></div>
@@ -36,7 +39,7 @@
     <div class="branding-preview squad-branding-preview{% if branding.upper_hero_image %} has-team-photo{% endif %}"{% if branding.upper_hero_image %} style="--team-hero-image:url('{{ branding.upper_hero_image.url }}');--team-hero-position:{{ branding.upper_hero_image_position }};"{% endif %}>
       <div><small>UPPER TEAM</small><h2>Compete with<br>purpose.</h2></div>
     </div>
-    <p class="muted">Use wide landscape photos with the main subject away from the left-side text area. Each image can have its own crop position.</p>
+    <p class="muted">The Barn Dashboard and IEA Team can use different wide landscape photos. If no Barn image is set, ArenaLine falls back to the IEA Team image. Futures and Upper may each override the team image.</p>
   </aside>
 </div>
 {% endblock %}
