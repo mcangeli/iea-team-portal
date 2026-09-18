@@ -1,6 +1,8 @@
 """ArenaLine v3.5 finance workspace views."""
 from datetime import date
 from decimal import Decimal
+import csv
+from io import StringIO
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -46,6 +48,26 @@ def finance_reporting(request):
         report=finance_report_for_user(request.user,team,form.cleaned_data["finance_domain"],start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"),as_of=form.cleaned_data.get("as_of"),season=form.cleaned_data.get("season"))
         if report is None:raise PermissionDenied
     return render(request,"portal/finance_reporting_v350.html",{"team":team,"form":form,"report":report})
+
+@login_required
+def finance_reporting_export(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    form=FinanceReportFilterForm(request.GET,team=team,allowed_domains=domains)
+    if not form.is_valid():raise PermissionDenied
+    report=finance_report_for_user(request.user,team,form.cleaned_data["finance_domain"],start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"),as_of=form.cleaned_data.get("as_of"),season=form.cleaned_data.get("season"))
+    if report is None:raise PermissionDenied
+    out=StringIO(newline="");writer=csv.writer(out)
+    writer.writerow(["ArenaLine Finance Report",report.finance_domain])
+    writer.writerow(["Income",f"{report.income:.2f}"]);writer.writerow(["Expenses",f"{report.expenses:.2f}"]);writer.writerow(["Net",f"{report.net:.2f}"]);writer.writerow(["Receivables",f"{report.receivables:.2f}"]);writer.writerow(["Overdue receivables",f"{report.overdue_receivables:.2f}"])
+    writer.writerow([]);writer.writerow(["Category","Type","Total"])
+    for row in report.category_rows:writer.writerow([row["category"],row["kind"],f'{row["total"]:.2f}'])
+    writer.writerow([]);writer.writerow(["Financial account","Income","Expenses","Net"])
+    for row in report.account_rows:writer.writerow([row["account"],f'{row["income"]:.2f}',f'{row["expenses"]:.2f}',f'{row["net"]:.2f}'])
+    writer.writerow([]);writer.writerow(["Receivable account","Description","Due date","Aging bucket","Balance"])
+    for row in report.aging_rows:writer.writerow([row["account"],row["description"],row["due_date"].isoformat() if row["due_date"] else "",row["bucket"],f'{row["balance"]:.2f}'])
+    response=HttpResponse(out.getvalue(),content_type="text/csv")
+    response["Content-Disposition"]=f'attachment; filename="arenaline-finance-report-{report.finance_domain}.csv"'
+    return response
 
 @login_required
 def finance_receivable_account_add(request):
