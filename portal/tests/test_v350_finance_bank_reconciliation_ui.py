@@ -2,7 +2,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from portal.model_modules.finance import BankImportBatch, FinanceDomain, ImportedBankTransaction, ReconciliationMatch
-from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team\nfrom datetime import date\nfrom decimal import Decimal
+from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team
+from datetime import date
+from decimal import Decimal
 
 class BankReconciliationWorkspaceTests(TestCase):
     def setUp(self):
