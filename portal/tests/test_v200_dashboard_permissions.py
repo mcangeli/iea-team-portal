@@ -7,7 +7,7 @@ class DashboardPermissionSourceTests(SimpleTestCase):
         root = Path(__file__).resolve().parents[2]
         source = (root / "portal/view_modules/dashboards.py").read_text()
         self.assertIn("admin = _is_admin(user)", source)
-        self.assertIn('if admin:\n        links.append({"label": "Team overview"', source)
+        self.assertIn('return [{"label": "My Team", "url": reverse("my_team")}, *role_links]', source)
         self.assertIn("admin or profile_role == UserProfile.Role.COACH", source)
         self.assertIn("admin or roles.intersection(parent_roles)", source)
         self.assertIn("admin or CommitteeAssignment.Role.POINTS_SECRETARY in roles", source)
