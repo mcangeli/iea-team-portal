@@ -1,5 +1,5 @@
 from django import forms
-from portal.model_modules.finance import BankImportProfile, FinanceDomain, ReceivableAccountPerson
+from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, ReceivableAccountPerson
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory
 
@@ -60,4 +60,24 @@ class BankImportMappingForm(forms.Form):
     def clean(self):
         cleaned=super().clean()
         if not cleaned.get("amount") and not (cleaned.get("credit") and cleaned.get("debit")):raise forms.ValidationError("Map either a signed amount column or both credit and debit columns.")
+        return cleaned
+
+
+class AccountingExportProfileForm(forms.ModelForm):
+    use_quickbooks_preset=forms.BooleanField(required=False,initial=True,label="Use QuickBooks-friendly columns")
+    class Meta:
+        model=AccountingExportProfile
+        fields=["name","finance_domain","file_type","active"]
+    def __init__(self,*args,allowed_domains=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        allowed=set(allowed_domains or [])
+        self.fields["finance_domain"].choices=[(v,l) for v,l in FinanceDomain.choices if v in allowed]
+
+class AccountingExportRunForm(forms.Form):
+    start_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    end_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    def clean(self):
+        cleaned=super().clean()
+        if cleaned.get("start_date") and cleaned.get("end_date") and cleaned["start_date"]>cleaned["end_date"]:
+            raise forms.ValidationError("Start date must be on or before end date.")
         return cleaned
