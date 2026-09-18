@@ -55,7 +55,15 @@ def _workspace_links(user, team, season):
     admin = _is_admin(user)
 
     if admin:
-        links.append({"label": "Team overview", "url": reverse("dashboard_general")})
+        links.extend([
+            {"label": "Team overview", "url": reverse("dashboard_general")},
+            {"label": "Coach", "url": reverse("dashboard_coach")},
+            {"label": "Team Parent", "url": reverse("dashboard_team_parent")},
+            {"label": "Points Secretary", "url": reverse("dashboard_secretary")},
+            {"label": "Show Lead", "url": reverse("dashboard_show_lead")},
+            {"label": "Show Manager", "url": reverse("dashboard_show_manager")},
+        ])
+        return links
 
     if admin or profile_role == UserProfile.Role.COACH:
         links.append({"label": "Coach", "url": reverse("dashboard_coach")})
