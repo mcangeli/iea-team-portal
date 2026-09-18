@@ -257,6 +257,40 @@ def _general_context(request, team, season):
     if season:
         operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
 
+    schedule_items = []
+    for event in events:
+        schedule_items.append({
+            "kind": "event",
+            "label": event.get_kind_display(),
+            "title": event.title,
+            "starts_at": event.starts_at,
+            "location": event.location,
+            "url": reverse("calendar"),
+        })
+    for occurrence in lesson_occurrences[:5]:
+        schedule_items.append({
+            "kind": "lesson",
+            "label": occurrence.series.program.name,
+            "title": occurrence.series.name,
+            "starts_at": occurrence.starts_at,
+            "location": getattr(occurrence, "location", ""),
+            "url": reverse("lesson_occurrence_detail", args=[occurrence.pk]),
+        })
+    schedule_items.sort(key=lambda item: item["starts_at"])
+    schedule_items = schedule_items[:6]
+
+    attention_items = []
+    if pending_event_rsvps:
+        attention_items.append({"key": "rsvp", "count": pending_event_rsvps, "label": "Event responses waiting", "url": reverse("my_team")})
+    if overdue_actions and _can_manage(request.user):
+        attention_items.append({"key": "overdue", "count": overdue_actions, "label": "Overdue action items", "url": reverse("action_item_list")})
+    if unclaimed_actions and _can_manage(request.user):
+        attention_items.append({"key": "unclaimed", "count": unclaimed_actions, "label": "Unclaimed team tasks", "url": reverse("action_item_list")})
+    if pending_volunteer and _can_manage(request.user):
+        attention_items.append({"key": "volunteer", "count": pending_volunteer, "label": "Volunteer entries awaiting approval", "url": reverse("volunteer_dashboard")})
+    if pending_availability and _can_manage(request.user):
+        attention_items.append({"key": "availability", "count": pending_availability, "label": "Show availability responses outstanding", "url": reverse("show_list")})
+
     return {
         "season": season,
         "announcements": announcements,
@@ -283,6 +317,8 @@ def _general_context(request, team, season):
         "roster_count": memberships.count() if season else riders.count(),
         "qualifier_count": qualifier_count,
         "attention_count": pending_availability + pending_event_rsvps + len(my_action_items),
+        "schedule_items": schedule_items,
+        "attention_items": attention_items,
         "workspace_links": _workspace_links(request.user, team, season),
         "arena_person": person,
         "active_barn_roles": tuple(active_roles),
