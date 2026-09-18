@@ -45,7 +45,6 @@ class V323MyAccountTests(TestCase):
             reverse("my_account_edit"),
             {
                 "preferred_name": "Jay",
-                "email": "jay@example.com",
                 "phone": "555-0100",
                 "school": "New School",
                 "graduation_year": "2029",
@@ -66,8 +65,8 @@ class V323MyAccountTests(TestCase):
         self.person.refresh_from_db()
         self.user.refresh_from_db()
         self.assertEqual(self.person.preferred_name, "Jay")
-        self.assertEqual(self.person.email, "jay@example.com")
-        self.assertEqual(self.user.email, "jay@example.com")
+        self.assertEqual(self.person.email, "old@example.com")
+        self.assertEqual(self.user.email, "old@example.com")
         self.assertEqual(self.person.school, "New School")
         self.assertEqual(self.person.graduation_year, 2029)
         self.assertEqual(self.person.instagram_url, "https://instagram.com/jay")
@@ -84,6 +83,7 @@ class V323MyAccountTests(TestCase):
         response = self.client.get(reverse("my_account_edit"))
         fields = response.context["form"].fields
         self.assertIn("school", fields)
+        self.assertNotIn("email", fields)
         self.assertIn("graduation_year", fields)
         self.assertIn("instagram_url", fields)
         self.assertIn("youtube_url", fields)
