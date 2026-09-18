@@ -25,7 +25,7 @@ Highlights:
 
 Migrations: v3.6 adds Team Branding barn-hero fields plus account email-verification and MFA profile state. The applied migration filenames include `0067_userprofile_email_verification.py`, `0068_userprofile_mfa.py`, and `0069_teambranding_barn_hero.py`; deployment validation must rely on Django's migration graph rather than filename ordering.
 
-Validation: focused v3.6 dashboard/security regression coverage and manual dashboard/MFA presentation testing completed on staging. Clean system/migration checks and the complete portal suite remain the final release-promotion gate.
+Validation: focused v3.6 dashboard/security regressions and manual dashboard/MFA presentation testing completed on staging, with clean Django system and migration-state checks, all v3.6 migrations applied, verified Postfix delivery, and **1152/1152 portal tests passing** before promotion to `main`.
 
 Detailed notes: `docs/releases/v3.6.0.md`.
 
