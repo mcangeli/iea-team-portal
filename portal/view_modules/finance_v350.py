@@ -6,12 +6,12 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
 from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm
-from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ReceivableCharge
+from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
 from portal.services.finance_imports import stage_bank_import
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates\nfrom portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 ZERO=Decimal("0.00")
 
@@ -172,3 +172,27 @@ def finance_bank_import_batch(request,batch_id):
     except BankImportBatch.DoesNotExist:raise PermissionDenied
     rows=batch.transactions.prefetch_related("matches__financial_transaction").order_by("transaction_date","id")
     return render(request,"portal/finance_bank_import_batch_v350.html",{"team":team,"batch":batch,"rows":rows})
+
+@login_required
+def finance_bank_generate_candidates(request,batch_id,row_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    if request.method!="POST":raise PermissionDenied
+    try:row=ImportedBankTransaction.objects.select_related("batch").get(pk=row_id,batch_id=batch_id,batch__team=team,batch__finance_domain__in=domains)
+    except ImportedBankTransaction.DoesNotExist:raise PermissionDenied
+    try:matches=generate_match_candidates(row)
+    except ValidationError as exc:messages.error(request,str(exc))
+    else:
+        if matches:messages.success(request,f"Found {len(matches)} possible ledger match(es). Review them before confirming.")
+        else:messages.info(request,"No matching posted ledger transactions were found.")
+    return redirect("finance_bank_import_batch",batch_id=batch_id)
+
+@login_required
+def finance_bank_confirm_match(request,batch_id,row_id,match_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    if request.method!="POST":raise PermissionDenied
+    try:match=ReconciliationMatch.objects.select_related("imported_transaction__batch").get(pk=match_id,imported_transaction_id=row_id,imported_transaction__batch_id=batch_id,imported_transaction__batch__team=team,imported_transaction__batch__finance_domain__in=domains)
+    except ReconciliationMatch.DoesNotExist:raise PermissionDenied
+    try:confirm_reconciliation(match)
+    except ValidationError as exc:messages.error(request,str(exc))
+    else:messages.success(request,"Bank transaction reconciled to the selected ledger transaction.")
+    return redirect("finance_bank_import_batch",batch_id=batch_id)
