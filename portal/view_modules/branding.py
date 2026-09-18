@@ -14,6 +14,7 @@ class TeamBrandingForm(forms.ModelForm):
     class Meta:
         model = TeamBranding
         fields = [
+            "barn_hero_image", "barn_hero_image_position",
             "hero_image", "hero_image_position",
             "futures_hero_image", "futures_hero_image_position",
             "upper_hero_image", "upper_hero_image_position",
