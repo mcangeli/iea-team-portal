@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Edit {{ profile.name }} · Accounting Export{% endblock %}
 {% block content %}
-<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · ACCOUNTING EXPORT</div><h1>Edit {{ profile.name }}</h1><p>Choose a standard QuickBooks-friendly layout or define a custom outbound column mapping.</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_accounting_export_detail' profile.pk %}">Cancel</a></div></section>
-<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<p class="muted">Available ArenaLine fields: transaction_date, kind, account, category, amount, signed_amount, payee, description, reference, status.</p><button class="btn" type="submit">Save export profile</button></form></section>
+<div class="finance-shell finance-export-shell"><section class="page-intro finance-intro"><div><div class="eyebrow">ArenaLine · Accounting Export</div><h1>Edit {{ profile.name }}</h1><p>Choose the standard QuickBooks-friendly layout or define a custom outbound column mapping.</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_accounting_export_detail' profile.pk %}">Cancel</a></div></section>
+<section class="card finance-export-card"><form class="stacked-form" method="post">{% csrf_token %}{{ form.as_p }}<div class="finance-export-note"><strong>Custom mapping fields</strong><span>transaction_date, kind, account, category, amount, signed_amount, payee, description, reference, status</span></div><div class="actions"><button class="btn" type="submit">Save export profile</button></div></form></section></div>
 {% endblock %}
