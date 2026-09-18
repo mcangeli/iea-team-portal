@@ -114,3 +114,18 @@ class FinanceReportingTests(TestCase):
         FinancialTransaction.objects.create(team=self.team,transaction_date=date(2026,8,20),kind="income",account=self.general,category=self.income,amount=Decimal("300.00"),description="August board")
         report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,start_date=date(2026,9,1),end_date=date(2026,9,30))
         self.assertEqual(len(report.period_rows),1);self.assertEqual(report.period_rows[0]["month"],9)
+
+    def test_receivables_as_of_excludes_future_charges(self):
+        account=ReceivableAccount.objects.create(team=self.team,name="Future Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableCharge.objects.create(account=account,description="Existing",amount=Decimal("80.00"),charge_date=date(2026,9,1),due_date=date(2026,9,10))
+        ReceivableCharge.objects.create(account=account,description="October board",amount=Decimal("120.00"),charge_date=date(2026,10,1),due_date=date(2026,10,15))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
+        self.assertEqual(report.receivables,Decimal("80.00"))
+        self.assertEqual(len([row for row in report.aging_rows if row["account"]=="Future Family"]),1)
+
+    def test_aging_detail_exposes_display_labels(self):
+        account=ReceivableAccount.objects.create(team=self.team,name="Labels Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableCharge.objects.create(account=account,description="Past due",amount=Decimal("25.00"),charge_date=date(2026,8,1),due_date=date(2026,8,15))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
+        row=next(row for row in report.aging_rows if row["account"]=="Labels Family")
+        self.assertEqual(row["bucket_label"],"31–60 days")
