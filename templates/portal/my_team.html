@@ -12,6 +12,14 @@
   <div class="actions"><a class="btn" href="{% url 'action_item_list' %}">Action items</a><a class="btn secondary" href="{% url 'calendar' %}">Calendar</a><a class="btn secondary" href="{% url 'my_account' %}">My Account</a></div>
 </section>
 
+{% if team_workspace_links %}
+<nav class="dashboard-workspaces team-workspaces" aria-label="IEA team workspaces">
+  {% for workspace in team_workspace_links %}
+    <a class="dashboard-workspace-link" href="{{ workspace.url }}">{{ workspace.label }}</a>
+  {% endfor %}
+</nav>
+{% endif %}
+
 {% if rider_rows %}
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">MY RIDERS</div><h2>{% if can_manage %}Current riders{% else %}My family{% endif %}</h2></div></div>
