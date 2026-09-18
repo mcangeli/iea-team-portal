@@ -237,12 +237,23 @@ def _general_context(request, team, season):
         {"key": "calendar", "label": "Calendar", "url": reverse("calendar"), "summary": "Events, lessons, shows, and barn schedule."},
         {"key": "people", "label": "People", "url": reverse("people_directory"), "summary": "People, relationships, roles, and access."},
     ]
+
+    quick_actions = [
+        {"key": "calendar", "label": "Open calendar", "url": reverse("calendar"), "hint": "See the full program schedule."},
+        {"key": "actions", "label": "Action items", "url": reverse("action_item_list"), "hint": "Review work that needs follow-up."},
+    ]
+    if _can_manage(request.user):
+        quick_actions.append({"key": "people", "label": "Add person", "url": reverse("person_create"), "hint": "Add a rider, family member, staff member, or volunteer."})
     if lesson_occurrences.exists() or _can_manage(request.user) or any(role in active_roles for role in ("trainer", "assistant_trainer")):
         operational_areas.append({"key": "lessons", "label": "Lessons", "url": reverse("lesson_program_list"), "summary": "Barn programs, series, occurrences, and attendance."})
+        quick_actions.append({"key": "lessons", "label": "Lesson programs", "url": reverse("lesson_program_list"), "hint": "Plan series, occurrences, attendance, and assignments."})
     if can_manage_horses:
         operational_areas.append({"key": "horses", "label": "Horses", "url": reverse("horse_list"), "summary": "Registry, care, compliance, and horse operations."})
+        quick_actions.append({"key": "horses", "label": "Horse registry", "url": reverse("horse_list"), "hint": "Review horses, care, compliance, and relationships."})
     if finance_domains:
-        operational_areas.append({"key": "finance", "label": "Finance", "url": reverse("finance_dashboard"), "summary": "Receivables, reconciliation, exports, and reporting."})
+        finance_url = reverse("finance_workspace") if "general" in finance_domains else reverse("finance_dashboard")
+        operational_areas.append({"key": "finance", "label": "Finance", "url": finance_url, "summary": "Receivables, reconciliation, exports, and reporting."})
+        quick_actions.append({"key": "finance", "label": "Finance workspace", "url": finance_url, "hint": "Open the finance tools available to your role."})
     if season:
         operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
 
@@ -280,6 +291,7 @@ def _general_context(request, team, season):
         "can_manage_horses": can_manage_horses,
         "active_horse_count": Horse.objects.filter(team=team, active=True).count() if can_manage_horses else None,
         "operational_areas": operational_areas,
+        "quick_actions": quick_actions[:6],
     }
 
 
