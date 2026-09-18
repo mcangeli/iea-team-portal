@@ -1,8 +1,17 @@
 {% extends 'base.html' %}
 {% block title %}{{ dashboard_role_label }}{% endblock %}
+{% load portal_access %}
 {% block content %}
-<section class="hero dashboard-hero club-hero">
-  <div class="hero-copy"><div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div><div class="eyebrow light">{% if season %}{{ season.name }} · COMPETITION SEASON{% else %}TEAM PORTAL{% endif %}</div><h1>{{ dashboard_role_label }}</h1><p>{{ dashboard_role_subtitle }}</p></div>
+{% family_squad_hero portal_team rider_rows can_manage as role_team_hero %}
+<style>
+.role-team-hero{position:relative;overflow:hidden;isolation:isolate;min-height:15rem;padding:2rem;border-radius:1.25rem;background:linear-gradient(125deg,#0b2025 0%,#173b3b 55%,#876b34 145%);color:#fff}
+.role-team-hero.has-image{background-image:linear-gradient(90deg,rgba(8,27,31,.96) 0%,rgba(8,27,31,.79) 50%,rgba(8,27,31,.2) 100%),var(--role-team-hero-image);background-size:cover;background-position:center var(--role-team-hero-position)}
+.role-team-hero .eyebrow,.role-team-hero p{color:rgba(255,255,255,.84)}
+.role-team-hero .team-workspace-badge{display:inline-flex;margin-top:.9rem;padding:.4rem .7rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(5,21,24,.28);font-size:.76rem;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:700px){.role-team-hero{min-height:12rem;padding:1.35rem}}
+</style>
+<section class="hero dashboard-hero club-hero role-team-hero{% if role_team_hero %} has-image{% endif %}"{% if role_team_hero %} style="--role-team-hero-image:url('{{ role_team_hero.image.url }}');--role-team-hero-position:{{ role_team_hero.position }};"{% endif %}>
+  <div class="hero-copy"><div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div><div class="eyebrow light">ARENALINE · IEA TEAM{% if season %} · {{ season.name }}{% endif %}</div><h1>{{ dashboard_role_label }}</h1><p>{{ dashboard_role_subtitle }}</p><span class="team-workspace-badge">Team workspace · {{ dashboard_role_label }}</span></div>
   {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
 </section>
 
