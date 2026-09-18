@@ -64,19 +64,20 @@ def void_payment_for_user(user,account_id,*,payment_id,reason="",team=None):
     except account.payments.model.DoesNotExist as exc: raise ValidationError("Payment is not available on this receivable account.") from exc
     return void_payment(payment=payment,user=user,reason=reason)
 
-@transaction.atomic
 def _void_allocation_for_account(account,allocation,reason=""):
-    return _void_allocation_for_account(account,allocation,reason)
+    allocation.status=ReceivableAllocation.Status.VOID
+    note=reason.strip()
+    if note:allocation.notes=((allocation.notes+" | ") if allocation.notes else "")+f"Unallocated: {note}"
+    allocation.full_clean()
+    allocation.save(update_fields=["status","notes"])
+    return allocation
 
 @transaction.atomic
 def unallocate_payment_for_user(user,account_id,*,allocation_id,reason="",team=None):
     account=_authorized_account(user,account_id,team)
     try:allocation=ReceivableAllocation.objects.select_related("charge","payment").get(pk=allocation_id,payment__account=account,status=ReceivableAllocation.Status.POSTED)
     except ReceivableAllocation.DoesNotExist as exc:raise ValidationError("Payment allocation is not available on this receivable account.") from exc
-    allocation.status=ReceivableAllocation.Status.VOID
-    note=reason.strip()
-    if note:allocation.notes=((allocation.notes+" | ") if allocation.notes else "")+f"Unallocated: {note}"
-    allocation.full_clean();allocation.save(update_fields=["status","notes"]);return allocation
+    return _void_allocation_for_account(account,allocation,reason)
 
 @transaction.atomic
 def unallocate_credit_for_user(user,account_id,*,allocation_id,reason="",team=None):
