@@ -11,14 +11,6 @@
   {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
 </section>
 
-{% if workspace_links %}
-<nav class="dashboard-workspaces" aria-label="Role workspaces">
-  {% for workspace in workspace_links %}
-    <a class="dashboard-workspace-link{% if request.path == workspace.url %} active{% endif %}" href="{{ workspace.url }}">{{ workspace.label }}</a>
-  {% endfor %}
-</nav>
-{% endif %}
-
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">TODAY &amp; COMING UP</div><h2>Your program at a glance</h2></div><a class="text-link" href="{% url 'calendar' %}">Full calendar →</a></div>
   <div class="club-summary">
