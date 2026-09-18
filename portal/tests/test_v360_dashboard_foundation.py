@@ -59,5 +59,5 @@ class V360DashboardFoundationTests(TestCase):
 
     def test_empty_dashboard_has_useful_cockpit_states(self):
         response = self.client.get(reverse("dashboard_general"))
-        self.assertContains(response, "The runway is clear.")
+        self.assertContains(response, "The in gate is open.")
         self.assertContains(response, "Nothing is calling for attention.")
