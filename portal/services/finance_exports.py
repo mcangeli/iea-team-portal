@@ -17,7 +17,17 @@ EXPORT_FIELDS={
     "reference": lambda tx: tx.reference or "",
     "status": lambda tx: tx.status,
 }
-QUICKBOOKS_MAPPING={"Date":"transaction_date","Transaction Type":"kind","Account":"account","Category":"category","Amount":"signed_amount","Name":"payee","Memo":"description","Reference":"reference"}\n\ndef validate_export_mapping(mapping):\n    if not isinstance(mapping,dict) or not mapping:\n        raise ValidationError("Choose at least one export column.")\n    if any(not str(column).strip() for column in mapping):\n        raise ValidationError("Export column names cannot be blank.")\n    unknown=set(mapping.values())-set(EXPORT_FIELDS)\n    if unknown:\n        raise ValidationError("Unknown export field(s): "+", ".join(sorted(unknown)))\n    return mapping
+QUICKBOOKS_MAPPING={"Date":"transaction_date","Transaction Type":"kind","Account":"account","Category":"category","Amount":"signed_amount","Name":"payee","Memo":"description","Reference":"reference"}
+
+def validate_export_mapping(mapping):
+    if not isinstance(mapping,dict) or not mapping:
+        raise ValidationError("Choose at least one export column.")
+    if any(not str(column).strip() for column in mapping):
+        raise ValidationError("Export column names cannot be blank.")
+    unknown=set(mapping.values())-set(EXPORT_FIELDS)
+    if unknown:
+        raise ValidationError("Unknown export field(s): "+", ".join(sorted(unknown)))
+    return mapping
 
 def export_transactions_for_profile(user,profile,*,start_date=None,end_date=None):
     if profile.finance_domain not in allowed_finance_domains(user,profile.team):
