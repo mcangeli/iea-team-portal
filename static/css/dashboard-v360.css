@@ -269,3 +269,30 @@ body.section-dashboard .attention-grid:empty::before,body.section-dashboard_gene
 /* v3.6 root route uses section-dashboard; keep shared selectors grouped above. */
 body.section-dashboard .dashboard-hero,
 body.section-dashboard_general .dashboard-hero{margin-top:0}
+
+
+/* v3.6 presentation pass — deliberate root dashboard rhythm and density. */
+body.section-dashboard .dashboard-hero{margin-bottom:0!important}
+body.section-dashboard .dashboard-hero + .content-section{margin-top:2.4rem!important}
+body.section-dashboard .dashboard-hero + .content-section .section-head{margin-bottom:1.15rem!important}
+body.section-dashboard .dashboard-hero + .content-section .section-head h2{margin-top:.3rem!important}
+body.section-dashboard .club-summary{position:relative;z-index:1}
+body.section-dashboard .dashboard-command-bar{margin-top:1.4rem!important;grid-template-columns:minmax(175px,.48fr) minmax(0,2.15fr);align-items:start}
+body.section-dashboard .dashboard-command-copy{padding:.15rem .2rem}
+body.section-dashboard .dashboard-command-actions{gap:.7rem}
+body.section-dashboard .dashboard-command-action{min-height:76px;padding:.85rem 1rem}
+body.section-dashboard .dashboard-cockpit{margin-top:2.4rem!important}
+body.section-dashboard .dashboard-domain-section{margin-top:2.4rem!important}
+body.section-dashboard .dashboard-domain-section + .content-section{margin-top:2.4rem!important}
+body.section-dashboard .grid2.content-section{margin-top:2.4rem!important}
+@media(max-width:1000px){
+  body.section-dashboard .dashboard-command-bar{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  body.section-dashboard .dashboard-hero + .content-section{margin-top:1.6rem!important}
+  body.section-dashboard .dashboard-command-bar,
+  body.section-dashboard .dashboard-cockpit,
+  body.section-dashboard .dashboard-domain-section,
+  body.section-dashboard .dashboard-domain-section + .content-section,
+  body.section-dashboard .grid2.content-section{margin-top:1.6rem!important}
+}
