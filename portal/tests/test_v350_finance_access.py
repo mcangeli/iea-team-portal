@@ -1,12 +1,13 @@
 from datetime import date, timedelta
 
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCharge, ReceivableCredit, ReceivablePayment
 from portal.model_modules.people import Person
 from portal.models import CommitteeAssignment, Season, Team, UserProfile
+from portal.context_processors import portal_context
 from portal.services.finance_access import (
     allowed_finance_domains,
     finance_account_for_user,
@@ -94,3 +95,29 @@ class FinanceAccessBoundaryTests(TestCase):
     def test_superuser_can_see_both_domains(self):
         user = User.objects.create_superuser(username="root-finance", email="root@example.com", password="pass12345")
         self.assertEqual(set(finance_accounts_for_user(user, self.team)), {self.general, self.iea})
+
+    def test_context_exposes_general_finance_domains_without_iea_leakage(self):
+        user, person = self._user("general-nav")
+        self._capability(person, OrganizationCapabilityAssignment.Capability.MANAGE_ALL_FINANCE)
+        request = RequestFactory().get("/")
+        request.user = user
+        context = portal_context(request)
+        self.assertTrue(context["portal_can_finance"])
+        self.assertEqual(context["portal_finance_domains"], frozenset({FinanceDomain.GENERAL, FinanceDomain.IEA}))
+
+    def test_context_exposes_iea_only_finance_domain(self):
+        user, person = self._user("iea-nav")
+        self._capability(person, OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        request = RequestFactory().get("/")
+        request.user = user
+        context = portal_context(request)
+        self.assertTrue(context["portal_can_finance"])
+        self.assertEqual(context["portal_finance_domains"], frozenset({FinanceDomain.IEA}))
+
+    def test_context_hides_finance_for_unprivileged_user(self):
+        user, _ = self._user("no-finance-nav")
+        request = RequestFactory().get("/")
+        request.user = user
+        context = portal_context(request)
+        self.assertFalse(context["portal_can_finance"])
+        self.assertEqual(context["portal_finance_domains"], frozenset())
