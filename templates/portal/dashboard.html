@@ -1,8 +1,6 @@
 {% extends 'base.html' %}
 {% block title %}Home · ArenaLine{% endblock %}
-{% load portal_access %}
 {% block content %}
-{% barn_hero portal_team as dashboard_barn_hero %}
 <style>
 .barn-dashboard-hero{position:relative;overflow:hidden;isolation:isolate;min-height:17rem;padding:2.35rem;border-radius:1.35rem;background:linear-gradient(125deg,#102d29 0%,#173d35 58%,#8a6b32 140%);color:#fff}
 .barn-dashboard-hero.has-image{background-image:linear-gradient(90deg,rgba(8,31,29,.96) 0%,rgba(8,31,29,.78) 48%,rgba(8,31,29,.22) 100%),var(--barn-hero-image);background-size:cover;background-position:center var(--barn-hero-position)}
@@ -10,7 +8,7 @@
 .barn-dashboard-hero .barn-hero-context{display:inline-flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.42rem .72rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(6,25,23,.28);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
 @media(max-width:700px){.barn-dashboard-hero{min-height:13rem;padding:1.45rem}}
 </style>
-<section class="hero dashboard-hero club-hero barn-dashboard-hero{% if dashboard_barn_hero %} has-image{% endif %}"{% if dashboard_barn_hero %} style="--barn-hero-image:url('{{ dashboard_barn_hero.image.url }}');--barn-hero-position:{{ dashboard_barn_hero.position }};"{% endif %}>
+<section class="hero dashboard-hero club-hero barn-dashboard-hero{% if barn_hero_image %} has-image{% endif %}"{% if barn_hero_image %} style="--barn-hero-image:url('{{ barn_hero_image.url }}');--barn-hero-position:{{ barn_hero_position }};"{% endif %}>
   <div class="hero-copy">
     <div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div>
     <div class="eyebrow light">ARENALINE · BARN DASHBOARD</div>
