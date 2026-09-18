@@ -221,17 +221,17 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.5.0 explicitly:
+Or install v3.6.0 explicitly:
 
 ```bash
-./portalctl update v3.5.0
+./portalctl update v3.6.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.5 migration chain adds the generic Barn Finance foundation, receivables/business operations, bank import/reconciliation persistence, and accounting export profiles on top of the v3.4 Lesson Program foundation. See `docs/releases/v3.5.0.md` for the release-specific migration summary.
+The v3.6 migration chain adds account email-verification and MFA state on top of the v3.5 Barn Finance foundation. See `docs/releases/v3.6.0.md` for the release-specific migration and deployment summary.
 
 ## Backups and rollback
 
@@ -251,7 +251,7 @@ The public/external layer is a separate publication boundary. Anonymous routes c
 
 Person remains the canonical human identity and Horse the canonical equine identity. v3.4 layers the generic lesson hierarchy onto those foundations. Barn enrollment and IEA season/team roster membership remain distinct, and IEA-specific lesson context is layered onto generic series rather than encoded into the generic lesson core.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.5.0.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.6.0.md`.
 
 ## Release process
 
