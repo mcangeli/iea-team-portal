@@ -41,7 +41,7 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     if season is not None:charges=charges.filter(season=season)
     receivables=sum((charge.balance for charge in charges),ZERO)
     overdue=ZERO
-    aging={"current":ZERO,"1_30":ZERO,"31_60":ZERO,"61_90":ZERO,"90_plus":ZERO}
+    aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
     if as_of:
         for charge in charges:
             balance=charge.balance
@@ -50,10 +50,10 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
                 aging["current"]+=balance;continue
             days=(as_of-charge.due_date).days
             overdue+=balance
-            if days<=30:aging["1_30"]+=balance
-            elif days<=60:aging["31_60"]+=balance
-            elif days<=90:aging["61_90"]+=balance
-            else:aging["90_plus"]+=balance
+            if days<=30:aging["days_1_30"]+=balance
+            elif days<=60:aging["days_31_60"]+=balance
+            elif days<=90:aging["days_61_90"]+=balance
+            else:aging["days_90_plus"]+=balance
     account_rows=[]
     for account in qs.values("account__name").annotate(
         income=Sum("amount",filter=Q(kind="income")),
