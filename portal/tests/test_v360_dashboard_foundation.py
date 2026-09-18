@@ -61,3 +61,15 @@ class V360DashboardFoundationTests(TestCase):
         response = self.client.get(reverse("dashboard_general"))
         self.assertContains(response, "The in gate is open.")
         self.assertContains(response, "Nothing is calling for attention.")
+
+    def test_admin_dashboard_exposes_permission_aware_domain_snapshots(self):
+        response = self.client.get(reverse("dashboard_general"))
+        keys = {snapshot["key"] for snapshot in response.context["domain_snapshots"]}
+        self.assertIn("horses", keys)
+        self.assertIn("lessons", keys)
+        self.assertIn("finance", keys)
+
+    def test_dashboard_renders_operations_pulse(self):
+        response = self.client.get(reverse("dashboard_general"))
+        self.assertContains(response, "Operations pulse", html=False)
+        self.assertContains(response, "Across the barn")
