@@ -60,7 +60,8 @@ class MFAEnrollmentViewTests(TestCase):
         self.team = Team.objects.create(name="MFA View Barn")
         self.user = User.objects.create_user(username="mfa-view", email="view@example.com", password="secure-test-password")
         self.user.profile.team = self.team
-        self.user.profile.save(update_fields=["team"])
+        self.user.profile.must_change_password = False
+        self.user.profile.save(update_fields=["team", "must_change_password"])
         self.client.force_login(self.user)
 
     def test_setup_requires_valid_code_and_shows_recovery_codes_once(self):
