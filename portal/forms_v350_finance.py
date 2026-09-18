@@ -77,7 +77,8 @@ class AccountingExportProfileForm(forms.ModelForm):
         allowed=set(allowed_domains or [])
         self.fields["finance_domain"].choices=[(v,l) for v,l in FinanceDomain.choices if v in allowed]
         if self.instance and self.instance.pk:
-            self.fields["preset"].initial=self.PRESET_CUSTOM
+            from portal.services.finance_exports import QUICKBOOKS_MAPPING
+            self.fields["preset"].initial = self.PRESET_QUICKBOOKS if self.instance.column_mapping == QUICKBOOKS_MAPPING else self.PRESET_CUSTOM
     def clean(self):
         cleaned=super().clean()
         from portal.services.finance_exports import QUICKBOOKS_MAPPING, validate_export_mapping
