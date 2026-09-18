@@ -13,8 +13,8 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.1.0 — Public / Live Spectator Experience:** released.
 - **3.2.x — People, Relationships & Barn Operations:** released with v3.2.3.
 - **3.3.0 — Equine Care & Horse Management:** released.
-- **3.4.0 — Lesson Program:** release-complete.
-- **3.5.x — Barn Finance & Business Operations:** committed next release family.
+- **3.4.0 — Lesson Program:** released.
+- **3.5.0 — Barn Finance & Business Operations:** release candidate / final validation.
 - **3.6.x — Dashboard Rework:** committed future release family.
 - **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
 
@@ -196,7 +196,7 @@ Detailed release notes: `docs/releases/v3.4.0.md`.
 
 # 3.5.x — Barn Finance & Business Operations
 
-**Status: committed next release family.**
+**Status: release candidate / final validation.**
 
 ArenaLine Finance should handle operational accounting/account management for an equestrian organization without trying to become a complete external accounting/general-ledger package.
 
@@ -223,7 +223,7 @@ Account
 
 Boarding, lessons, horse care, shows and IEA workflows should produce financial activity through explicit boundaries rather than owning parallel ledgers.
 
-A detailed Preview-by-Preview v3.5.x implementation plan will be locked before development begins.
+Implemented v3.5 outcomes include domain-separated finance authorization, generic receivables and correction workflows, bank import/reconciliation, accounting export profiles, and business reporting. The release keeps ArenaLine's operational ledger authoritative and leaves full external general-ledger/accounting ownership outside ArenaLine.
 
 ---
 
