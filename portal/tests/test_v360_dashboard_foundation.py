@@ -3,9 +3,9 @@ from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, timedelta
 
-from portal.models import ShowAvailability, Team, UserProfile
+from portal.models import CommitteeAssignment, Season, Show, ShowAvailability, ShowLeadAssignment, Team, UserProfile
 from portal.model_modules.lessons import LessonProgram, LessonSeries, LessonOccurrence, LessonAssignment
 from portal.model_modules.people import Person
 
@@ -89,6 +89,7 @@ class V360DashboardFoundationTests(TestCase):
             reverse("dashboard_coach"),
             reverse("dashboard_team_parent"),
             reverse("dashboard_secretary"),
+            reverse("finance_dashboard"),
             reverse("dashboard_show_lead"),
             reverse("dashboard_show_manager"),
         }
@@ -104,6 +105,59 @@ class V360DashboardFoundationTests(TestCase):
         self.assertNotIn(reverse("dashboard_general"), urls)
         self.assertContains(response, "TEAM NOTES")
         self.assertContains(response, "Announcements")
+
+    def test_parent_my_team_stays_primary_while_committee_roles_are_switchable(self):
+        parent = User.objects.create_user(username="dashboard-parent-roles", password="pass12345")
+        parent.profile.team = self.team
+        parent.profile.role = UserProfile.Role.PARENT
+        parent.profile.save(update_fields=["team", "role"])
+        season = Season.objects.create(
+            team=self.team,
+            name="2026-2027",
+            start_date=date(2026, 8, 1),
+            end_date=date(2027, 7, 31),
+            is_active=True,
+        )
+        CommitteeAssignment.objects.create(
+            team=self.team, season=season, user=parent,
+            role=CommitteeAssignment.Role.UPPER_PARENT,
+        )
+        CommitteeAssignment.objects.create(
+            team=self.team, season=season, user=parent,
+            role=CommitteeAssignment.Role.POINTS_SECRETARY,
+        )
+        CommitteeAssignment.objects.create(
+            team=self.team, season=season, user=parent,
+            role=CommitteeAssignment.Role.TREASURER,
+        )
+        show = Show.objects.create(
+            team=self.team, season=season, name="Role Test Show",
+            show_date=date(2026, 10, 1),
+        )
+        ShowLeadAssignment.objects.create(show=show, user=parent, active=True)
+
+        parent_client = Client()
+        parent_client.force_login(parent)
+        response = parent_client.get(reverse("my_team"))
+        self.assertEqual(response.status_code, 200)
+        links = response.context["team_workspace_links"]
+        self.assertEqual(links[0]["url"], reverse("my_team"))
+        urls = {link["url"] for link in links}
+        self.assertIn(reverse("dashboard_team_parent"), urls)
+        self.assertIn(reverse("dashboard_secretary"), urls)
+        self.assertIn(reverse("finance_dashboard"), urls)
+        self.assertIn(reverse("dashboard_show_lead"), urls)
+
+    def test_parent_without_operational_role_has_no_workspace_switcher(self):
+        parent = User.objects.create_user(username="dashboard-parent-only", password="pass12345")
+        parent.profile.team = self.team
+        parent.profile.role = UserProfile.Role.PARENT
+        parent.profile.save(update_fields=["team", "role"])
+        parent_client = Client()
+        parent_client.force_login(parent)
+        response = parent_client.get(reverse("my_team"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["team_workspace_links"], [])
 
     def test_non_admin_dashboard_does_not_inherit_admin_workspace_switcher(self):
         rider_user = User.objects.create_user(username="dashboard-rider", password="pass12345")
