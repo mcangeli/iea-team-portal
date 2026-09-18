@@ -242,6 +242,11 @@ def my_team(request):
             "can_view_family_account": bool(membership and _can_view_family_account(request.user, membership)),
         })
 
+    # IEA-specific operational workspaces are surfaced from My Team. Import
+    # locally to avoid coupling the roster module back into dashboard imports.
+    from .dashboards import _workspace_links
+    team_workspace_links = _workspace_links(request.user, team, season)
+
     return render(request, "portal/my_team.html", {
         "team": team,
         "season": season,
@@ -249,6 +254,7 @@ def my_team(request):
         "event_rows": event_rows,
         "action_items": action_items,
         "can_manage": _can_manage(request.user),
+        "team_workspace_links": team_workspace_links,
     })
 
 @login_required
