@@ -11,7 +11,8 @@ from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
 from portal.services.finance_imports import stage_bank_import
-from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates\nfrom portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 ZERO=Decimal("0.00")
 
@@ -171,7 +172,8 @@ def finance_bank_import_batch(request,batch_id):
     try:batch=BankImportBatch.objects.select_related("financial_account","profile").get(pk=batch_id,team=team,finance_domain__in=domains)
     except BankImportBatch.DoesNotExist:raise PermissionDenied
     rows=batch.transactions.prefetch_related("matches__financial_transaction").order_by("transaction_date","id")
-    return render(request,"portal/finance_bank_import_batch_v350.html",{"team":team,"batch":batch,"rows":rows})
+    counts={status:batch.transactions.filter(status=status).count() for status in ("staged","matched","reconciled","ignored")}
+    return render(request,"portal/finance_bank_import_batch_v350.html",{"team":team,"batch":batch,"rows":rows,"counts":counts})
 
 @login_required
 def finance_bank_generate_candidates(request,batch_id,row_id):
@@ -195,4 +197,42 @@ def finance_bank_confirm_match(request,batch_id,row_id,match_id):
     try:confirm_reconciliation(match)
     except ValidationError as exc:messages.error(request,str(exc))
     else:messages.success(request,"Bank transaction reconciled to the selected ledger transaction.")
+    return redirect("finance_bank_import_batch",batch_id=batch_id)
+
+
+def _refresh_bank_batch_status(batch):
+    unresolved=batch.transactions.filter(status__in=[ImportedBankTransaction.Status.STAGED,ImportedBankTransaction.Status.MATCHED]).exists()
+    target=BankImportBatch.Status.REVIEWED if unresolved else BankImportBatch.Status.COMPLETED
+    if batch.status!=target:
+        batch.status=target
+        batch.save(update_fields=["status"])
+    return batch
+
+@login_required
+def finance_bank_ignore_row(request,batch_id,row_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    if request.method!="POST":raise PermissionDenied
+    try:row=ImportedBankTransaction.objects.select_related("batch").get(pk=row_id,batch_id=batch_id,batch__team=team,batch__finance_domain__in=domains)
+    except ImportedBankTransaction.DoesNotExist:raise PermissionDenied
+    if row.status==ImportedBankTransaction.Status.RECONCILED:
+        messages.error(request,"A reconciled bank transaction cannot be ignored.")
+    else:
+        row.matches.filter(status=ReconciliationMatch.Status.SUGGESTED).update(status=ReconciliationMatch.Status.REJECTED)
+        row.status=ImportedBankTransaction.Status.IGNORED;row.save(update_fields=["status"])
+        _refresh_bank_batch_status(row.batch);messages.success(request,"Bank transaction marked ignored. No ledger entry was changed.")
+    return redirect("finance_bank_import_batch",batch_id=batch_id)
+
+@login_required
+def finance_bank_complete_review(request,batch_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    if request.method!="POST":raise PermissionDenied
+    try:batch=BankImportBatch.objects.get(pk=batch_id,team=team,finance_domain__in=domains)
+    except BankImportBatch.DoesNotExist:raise PermissionDenied
+    unresolved=batch.transactions.filter(status__in=[ImportedBankTransaction.Status.STAGED,ImportedBankTransaction.Status.MATCHED]).count()
+    if unresolved:
+        batch.status=BankImportBatch.Status.REVIEWED;batch.save(update_fields=["status"])
+        messages.error(request,f"{unresolved} transaction(s) still need reconciliation or an explicit ignore decision.")
+    else:
+        batch.status=BankImportBatch.Status.COMPLETED;batch.save(update_fields=["status"])
+        messages.success(request,"Bank statement review completed.")
     return redirect("finance_bank_import_batch",batch_id=batch_id)
