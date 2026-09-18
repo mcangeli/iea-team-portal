@@ -8,6 +8,10 @@ from django.urls import reverse
 from django.utils import timezone
 
 from ..host_show_models import ShowManagerAssignment
+from ..model_modules.lessons import LessonOccurrence
+from ..model_modules.people import Person, OrganizationRoleAssignment
+from ..model_modules.horses import Horse
+from ..services.finance_access import allowed_finance_domains
 from ..models import (
     ActionItem,
     CommitteeAssignment,
@@ -141,12 +145,7 @@ def _general_context(request, team, season):
             status=VolunteerLog.Status.PENDING,
         ).count()
 
-        upcoming_shows_qs = season.shows.filter(show_date__gte=today)
-        for show in upcoming_shows_qs:
-            for rider in riders:
-                ShowAvailability.objects.get_or_create(show=show, rider=rider)
-
-        pending_availability = ShowAvailability.objects.filter(
+        upcoming_shows_qs = season.shows.filter(show_date__gte=today)\n\n        pending_availability = ShowAvailability.objects.filter(
             show__in=upcoming_shows_qs,
             rider__in=riders,
             status=ShowAvailability.Status.PENDING,
@@ -202,6 +201,49 @@ def _general_context(request, team, season):
             if row["qualified"] and row["rider"] in riders
         )
 
+    person = Person.objects.filter(team=team, user=request.user, active=True).first()
+    active_roles = []
+    if person:
+        active_roles = list(
+            OrganizationRoleAssignment.objects.filter(
+                team=team, person=person, active=True
+            ).values_list("role", flat=True)
+        )
+
+    lesson_occurrences = LessonOccurrence.objects.filter(
+        series__program__team=team,
+        starts_at__gte=now,
+        status=LessonOccurrence.Status.SCHEDULED,
+    ).select_related("series__program", "instructor").order_by("starts_at")
+    if not _can_manage(request.user):
+        if person:
+            lesson_occurrences = lesson_occurrences.filter(
+                Q(series__enrollments__person=person, series__enrollments__status="active")
+                | Q(participants__person=person)
+            ).distinct()
+        else:
+            lesson_occurrences = lesson_occurrences.none()
+
+    finance_domains = allowed_finance_domains(request.user, team)
+    can_manage_horses = _is_admin(request.user) or bool(
+        person and person.capability_assignments.filter(
+            team=team, active=True, capability="manage_horses"
+        ).exists()
+    )
+
+    operational_areas = [
+        {"key": "calendar", "label": "Calendar", "url": reverse("calendar"), "summary": "Events, lessons, shows, and barn schedule."},
+        {"key": "people", "label": "People", "url": reverse("people_list"), "summary": "People, relationships, roles, and access."},
+    ]
+    if lesson_occurrences.exists() or _can_manage(request.user) or any(role in active_roles for role in ("trainer", "assistant_trainer")):
+        operational_areas.append({"key": "lessons", "label": "Lessons", "url": reverse("lesson_program_list"), "summary": "Barn programs, series, occurrences, and attendance."})
+    if can_manage_horses:
+        operational_areas.append({"key": "horses", "label": "Horses", "url": reverse("horse_list"), "summary": "Registry, care, compliance, and horse operations."})
+    if finance_domains:
+        operational_areas.append({"key": "finance", "label": "Finance", "url": reverse("finance_workspace_v350"), "summary": "Receivables, reconciliation, exports, and reporting."})
+    if season:
+        operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
+
     return {
         "season": season,
         "announcements": announcements,
@@ -229,6 +271,13 @@ def _general_context(request, team, season):
         "qualifier_count": qualifier_count,
         "attention_count": pending_availability + pending_event_rsvps + len(my_action_items),
         "workspace_links": _workspace_links(request.user, team, season),
+        "arena_person": person,
+        "active_barn_roles": tuple(active_roles),
+        "upcoming_lesson_occurrences": lesson_occurrences[:5],
+        "finance_domains": finance_domains,
+        "can_manage_horses": can_manage_horses,
+        "active_horse_count": Horse.objects.filter(team=team, active=True).count() if can_manage_horses else None,
+        "operational_areas": operational_areas,
     }
 
 
