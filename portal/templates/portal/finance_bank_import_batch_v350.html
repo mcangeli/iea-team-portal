@@ -1,4 +1,50 @@
 {% extends "portal/base.html" %}{% block title %}Review Bank Import · ArenaLine{% endblock %}{% block content %}
-<div class="finance-shell"><div class="page-header"><div><p class="eyebrow">Finance · Bank reconciliation</p><h1>{{ batch.source_name }}</h1><p class="muted">{{ batch.financial_account.name }} · {{ batch.get_finance_domain_display }} · {{ batch.get_status_display }}</p></div><a class="btn btn-secondary" href="{% url 'finance_bank_reconciliation' %}">All imports</a></div>
-<div class="card"><h2>Staged transactions</h2><p class="muted">These rows are review data only. Nothing here changes the ArenaLine ledger until a match is explicitly confirmed.</p>{% if rows %}<div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Reference</th><th>Direction</th><th>Amount</th><th>Status</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.transaction_date|date:"M j, Y" }}</td><td>{{ row.description }}</td><td>{{ row.reference|default:"—" }}</td><td>{{ row.get_direction_display }}</td><td>${{ row.amount }}</td><td>{{ row.get_status_display }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">This import contains no staged transactions.</p>{% endif %}</div></div>
+<div class="finance-shell">
+  <div class="page-header">
+    <div><p class="eyebrow">Finance · Bank reconciliation</p><h1>{{ batch.source_name }}</h1><p class="muted">{{ batch.financial_account.name }} · {{ batch.get_finance_domain_display }} · {{ batch.get_status_display }}</p></div>
+    <a class="btn btn-secondary" href="{% url 'finance_bank_reconciliation' %}">All imports</a>
+  </div>
+  <div class="card">
+    <h2>Statement review</h2>
+    <p class="muted">ArenaLine can suggest ledger matches, but it never confirms one automatically. Every reconciliation requires an explicit confirmation.</p>
+    {% if rows %}
+      {% for row in rows %}
+      <section class="finance-reconcile-row">
+        <div class="finance-reconcile-summary">
+          <div><strong>{{ row.transaction_date|date:"M j, Y" }}</strong><br><span>{{ row.description }}</span><br><small class="muted">{{ row.reference|default:"No bank reference" }}</small></div>
+          <div><span>{{ row.get_direction_display }}</span><br><strong>${{ row.amount }}</strong></div>
+          <div><span class="badge">{{ row.get_status_display }}</span></div>
+          <div>
+            {% if row.status != "reconciled" and row.status != "ignored" %}
+            <form method="post" action="{% url 'finance_bank_generate_candidates' batch.pk row.pk %}">{% csrf_token %}<button class="btn btn-secondary" type="submit">{% if row.status == "matched" %}Refresh matches{% else %}Find matches{% endif %}</button></form>
+            {% endif %}
+          </div>
+        </div>
+        {% if row.matches.all %}
+        <div class="finance-match-list">
+          {% for match in row.matches.all %}
+            {% if match.status != "rejected" %}
+            <div class="finance-match-card">
+              <div><strong>{{ match.score }}% match</strong><br><small class="muted">{{ match.rationale }}</small></div>
+              <div><strong>{{ match.financial_transaction.transaction_date|date:"M j, Y" }}</strong><br>{{ match.financial_transaction.description }}{% if match.financial_transaction.payee %} · {{ match.financial_transaction.payee }}{% endif %}<br><small class="muted">{{ match.financial_transaction.reference|default:"No ledger reference" }}</small></div>
+              <div><strong>${{ match.financial_transaction.amount }}</strong></div>
+              <div>
+                {% if match.status == "confirmed" %}
+                  <span class="badge">Confirmed</span>
+                {% elif row.status != "reconciled" %}
+                  <form method="post" action="{% url 'finance_bank_confirm_match' batch.pk row.pk match.pk %}">{% csrf_token %}<button class="btn btn-primary" type="submit">Confirm match</button></form>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+        {% elif row.status == "staged" %}
+          <p class="muted">No candidate matches have been generated for this transaction.</p>
+        {% endif %}
+      </section>
+      {% endfor %}
+    {% else %}<p class="muted">This import contains no staged transactions.</p>{% endif %}
+  </div>
+</div>
 {% endblock %}
