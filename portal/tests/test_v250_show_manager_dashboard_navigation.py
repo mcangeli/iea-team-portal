@@ -45,7 +45,7 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
     def test_assigned_show_manager_gets_show_manager_workspace(self):
         links = self.workspace_links(self.manager)
         labels = [link["label"] for link in links]
-        self.assertIn("Team overview", labels)
+        self.assertIn("My Team", labels)
         self.assertIn("Show Manager", labels)
         self.assertIn(
             reverse("dashboard_show_manager"),
@@ -79,7 +79,7 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
         response = self.client.get(reverse("dashboard_show_manager"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Hosted Invitational")
-        self.assertContains(response, "Team overview")
+        self.assertContains(response, "My Team")
         self.assertContains(response, "Show Manager")
         self.assertContains(response, "Publish Family Show Info")
 
@@ -87,6 +87,6 @@ class V250ShowManagerDashboardNavigationTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("dashboard_show_manager"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Team overview")
+        self.assertContains(response, "My Team")
         self.assertContains(response, "Coach")
         self.assertContains(response, "Show Manager")
