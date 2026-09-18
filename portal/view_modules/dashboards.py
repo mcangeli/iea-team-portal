@@ -119,7 +119,9 @@ def _dashboard_shell(user, team, season, role_key, role_label, role_subtitle):
 def _general_context(request, team, season):
     now = timezone.now()
     today = timezone.localdate()
-    announcements = _visible_announcements(request.user, team)[:5]
+    # Legacy Announcement records are IEA-team communications and belong on
+    # My Team / role workspaces, not the general barn operations dashboard.
+    announcements = []
     events = team.events.filter(starts_at__gte=now)[:6]
     riders = _visible_riders(request.user, team).filter(active=True)
     # The general ArenaLine home is barn-wide. IEA season/show/volunteer
