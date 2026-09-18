@@ -20,6 +20,15 @@
 </nav>
 {% endif %}
 
+<section class="content-section team-announcements">
+  <div class="section-head"><div><div class="eyebrow">TEAM NOTES</div><h2>Announcements</h2></div></div>
+  {% for a in team_announcements %}
+    <article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>
+  {% empty %}
+    <div class="empty-state">No current team announcements.</div>
+  {% endfor %}
+</section>
+
 {% if rider_rows %}
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">MY WEEK</div><h2>Coming up</h2></div><a class="text-link" href="{% url 'calendar' %}">Full calendar →</a></div>
