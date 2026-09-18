@@ -124,3 +124,22 @@ def finance_allocations_for_user(user, team=None):
     from portal.model_modules.finance import ReceivableAllocation
     accounts = finance_accounts_for_user(user, team)
     return ReceivableAllocation.objects.filter(charge__account__in=accounts)
+
+
+def financial_transactions_for_user(user, team=None, finance_domain=None):
+    """Ledger visibility for exports/reports, constrained by financial-account domain."""
+    from portal.models import FinancialTransaction
+    if not getattr(user, "is_authenticated", False):
+        return FinancialTransaction.objects.none()
+    team = team or organization_for_view_user(user)
+    if not team:
+        return FinancialTransaction.objects.none()
+    domains = allowed_finance_domains(user, team)
+    if finance_domain is not None:
+        if finance_domain not in domains:
+            return FinancialTransaction.objects.none()
+        domains = {finance_domain}
+    return FinancialTransaction.objects.filter(
+        team=team,
+        account__finance_domain__in=domains,
+    )
