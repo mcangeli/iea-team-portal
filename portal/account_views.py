@@ -7,8 +7,9 @@ from django.core import signing
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 
-from .account_forms import EmailChangeForm, MyAccountForm
+from .account_forms import EmailChangeForm, MFAConfirmForm, MFADisableForm, MyAccountForm
 from .account_security import begin_email_verification, complete_email_verification, read_email_verification_token, send_email_verification
+from .mfa import disable_mfa, enable_mfa, new_totp_secret, provisioning_uri
 from .forms import NotificationPreferenceForm
 from .model_modules.people import Person
 
@@ -156,3 +157,49 @@ def email_verify(request, token):
 
     messages.success(request, "Your email address has been verified.")
     return redirect("my_account")
+
+
+@login_required
+def mfa_setup(request):
+    if request.user.profile.mfa_enabled:
+        messages.info(request, "Multi-factor authentication is already enabled.")
+        return redirect("my_account")
+    secret = request.session.get("mfa_enrollment_secret")
+    if not secret:
+        secret = new_totp_secret()
+        request.session["mfa_enrollment_secret"] = secret
+    form = MFAConfirmForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        recovery_codes = enable_mfa(request.user.profile, secret, form.cleaned_data["code"])
+        if recovery_codes is None:
+            form.add_error("code", "That authenticator code is not valid. Check your device time and try again.")
+        else:
+            request.session.pop("mfa_enrollment_secret", None)
+            request.session["mfa_recovery_codes_once"] = recovery_codes
+            return redirect("mfa_recovery_codes")
+    return render(request, "portal/mfa_setup.html", {
+        "form": form, "secret": secret, "provisioning_uri": provisioning_uri(request.user, secret),
+    })
+
+
+@login_required
+def mfa_recovery_codes(request):
+    codes = request.session.pop("mfa_recovery_codes_once", None)
+    if not codes:
+        return redirect("my_account")
+    return render(request, "portal/mfa_recovery_codes.html", {"recovery_codes": codes})
+
+
+@login_required
+def mfa_disable(request):
+    if not request.user.profile.mfa_enabled:
+        return redirect("my_account")
+    form = MFADisableForm(request.POST or None, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        disable_mfa(request.user.profile)
+        request.session.pop("mfa_enrollment_secret", None)
+        messages.success(request, "Multi-factor authentication has been disabled.")
+        return redirect("my_account")
+    return render(request, "portal/form.html", {
+        "form": form, "title": "Disable multi-factor authentication", "eyebrow": "ACCOUNT SECURITY",
+    })
