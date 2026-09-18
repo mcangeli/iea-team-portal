@@ -21,6 +21,7 @@ class FinanceReport:
     aging_buckets:dict
     account_rows:tuple
     aging_rows:tuple
+    period_rows:tuple
 
 def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=None,as_of=None,season=None):
     if finance_domain not in allowed_finance_domains(user,team):
@@ -61,6 +62,14 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
             else:bucket="days_90_plus"
             aging[bucket]+=balance
             aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket})
+    period_rows=[]
+    grouped_periods=qs.values("transaction_date__year","transaction_date__month").annotate(
+        income=Sum("amount",filter=Q(kind="income")),
+        expenses=Sum("amount",filter=Q(kind="expense")),
+    ).order_by("transaction_date__year","transaction_date__month")
+    for period in grouped_periods:
+        inc=period["income"] or ZERO;exp=period["expenses"] or ZERO
+        period_rows.append({"year":period["transaction_date__year"],"month":period["transaction_date__month"],"income":inc,"expenses":exp,"net":inc-exp})
     account_rows=[]
     for account in qs.values("account__name").annotate(
         income=Sum("amount",filter=Q(kind="income")),
@@ -68,4 +77,4 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     ).order_by("account__name"):
         inc=account["income"] or ZERO;exp=account["expenses"] or ZERO
         account_rows.append({"account":account["account__name"],"income":inc,"expenses":exp,"net":inc-exp})
-    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,category_rows,aging,tuple(account_rows),tuple(aging_rows))
+    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,category_rows,aging,tuple(account_rows),tuple(aging_rows),tuple(period_rows))
