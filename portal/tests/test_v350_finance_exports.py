@@ -38,6 +38,14 @@ class AccountingExportServiceTests(TestCase):
     def test_export_is_domain_scoped(self):
         rows=normalized_export_rows(self.user,self.export)
         self.assertEqual(len(rows),1);self.assertEqual(rows[0]["Memo"],"Board");self.assertEqual(rows[0]["Amount"],"100.00")
+    def test_export_uses_accounting_friendly_type_and_excludes_void_transactions(self):
+        posted=normalized_export_rows(self.user,self.export)
+        self.assertEqual(posted[0]["Transaction Type"],"Deposit")
+        tx=FinancialTransaction.objects.filter(account=self.general).first();tx.status="void";tx.save(update_fields=["status"])
+        self.assertEqual(normalized_export_rows(self.user,self.export),[])
+    def test_unsupported_file_type_is_rejected(self):
+        self.export.file_type="pdf"
+        with self.assertRaises(ValidationError):render_accounting_export(self.user,self.export)
     def test_csv_renderer_has_quickbooks_friendly_headers(self):
         data,mime=render_accounting_export(self.user,self.export)
         text=data.decode("utf-8-sig");self.assertEqual(mime,"text/csv");self.assertIn("Date,Transaction Type,Account,Category,Amount,Name,Memo,Reference",text);self.assertIn("Board",text);self.assertNotIn("Show fee",text)
