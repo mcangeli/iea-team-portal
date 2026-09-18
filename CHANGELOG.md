@@ -4,6 +4,31 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.6.0 — Dashboard Refresh & Account Security
+
+Released September 2026.
+
+v3.6.0 gives ArenaLine a clearer operational home while separating the general barn/program experience from the IEA team workspace, and adds self-service email verification plus optional multi-factor authentication.
+
+Highlights:
+
+- rebuilt the root Dashboard as a permission-aware general barn/program cockpit for schedules, action items, operational snapshots, quick actions, horses, lessons, and authorized finance information;
+- established **My Team** as the distinct IEA team hub, with Coach, Team Parent, Points Secretary, Treasurer, Show Lead, and Show Manager workspaces kept inside the team experience;
+- parent-first My Team behavior preserves the family view while allowing parents with operational assignments to switch into their authorized team workspaces;
+- IEA announcements and competition-specific information stay out of the general Barn Dashboard;
+- independently configurable Barn Dashboard and IEA Team hero imagery, with Futures/Upper squad branding retained and safe fallback behavior;
+- account email changes now require the current password and verification of the new address before replacing the active login email;
+- existing accounts are migrated as verified, while pending email state and replay/stale-token protections preserve account integrity;
+- optional TOTP MFA can be enrolled from My Account using authenticator-app QR/manual setup, with one-time recovery codes and password-protected disablement;
+- MFA-enabled login requires the second factor after password authentication and supports single-use recovery codes;
+- local Postfix is the default mail-delivery target, avoiding embedded third-party SMTP credentials in ArenaLine configuration.
+
+Migrations: v3.6 adds Team Branding barn-hero fields plus account email-verification and MFA profile state. The applied migration filenames include `0067_userprofile_email_verification.py`, `0068_userprofile_mfa.py`, and `0069_teambranding_barn_hero.py`; deployment validation must rely on Django's migration graph rather than filename ordering.
+
+Validation: focused v3.6 dashboard/security regression coverage and manual dashboard/MFA presentation testing completed on staging. Clean system/migration checks and the complete portal suite remain the final release-promotion gate.
+
+Detailed notes: `docs/releases/v3.6.0.md`.
+
 ## v3.5.0 — Barn Finance & Business Operations
 
 Released September 2026.
