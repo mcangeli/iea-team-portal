@@ -22,7 +22,7 @@ class ArenaLinePreview4DashboardTests(SimpleTestCase):
     def test_role_dashboard_uses_shared_dashboard_components(self):
         template = (Path(settings.BASE_DIR) / "templates/portal/dashboard_role.html").read_text()
 
-        self.assertIn('class="hero dashboard-hero club-hero"', template)
+        self.assertIn('class="hero dashboard-hero club-hero role-team-hero', template)
         self.assertIn('class="dashboard-workspaces"', template)
         self.assertIn("dashboard-role-summary", template)
         self.assertIn("course-status-card", template)
