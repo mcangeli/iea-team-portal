@@ -60,3 +60,21 @@ class EmailChangeForm(forms.Form):
         if self.user and not self.user.check_password(password):
             raise forms.ValidationError("Your current password is incorrect.")
         return password
+
+
+class MFAConfirmForm(forms.Form):
+    code = forms.CharField(label="6-digit authenticator code", max_length=12)
+
+
+class MFADisableForm(forms.Form):
+    current_password = forms.CharField(label="Current password", widget=forms.PasswordInput)
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_current_password(self):
+        password = self.cleaned_data.get("current_password")
+        if self.user and not self.user.check_password(password):
+            raise forms.ValidationError("Your current password is incorrect.")
+        return password
