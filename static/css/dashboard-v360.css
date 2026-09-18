@@ -1,0 +1,76 @@
+/* ArenaLine v3.6 Preview 2 — operations home presentation. */
+.section-dashboard_general main{max-width:1440px}
+.section-dashboard_general .dashboard-hero{
+  min-height:300px;
+  padding:clamp(1.8rem,4vw,3.5rem);
+  border-radius:28px;
+}
+.section-dashboard_general .dashboard-hero h1{font-size:clamp(2.7rem,5vw,5rem);line-height:.92}
+.section-dashboard_general .dashboard-hero p{max-width:680px;font-size:1.08rem}
+.section-dashboard_general .dashboard-workspaces{
+  display:flex;gap:.5rem;overflow-x:auto;padding:.35rem 0 .7rem;
+  scrollbar-width:thin;
+}
+.section-dashboard_general .dashboard-workspace-link{
+  flex:0 0 auto;padding:.55rem .9rem;border:1px solid var(--line);border-radius:999px;
+  background:var(--surface);color:var(--muted);font-size:.82rem;font-weight:700;text-decoration:none;
+}
+.section-dashboard_general .dashboard-workspace-link.active{
+  border-color:color-mix(in srgb,var(--arena-gold) 55%,var(--line));
+  color:var(--heading);background:color-mix(in srgb,var(--arena-gold) 10%,var(--surface));
+}
+.section-dashboard_general .content-section{margin-top:clamp(1.6rem,3vw,2.6rem)}
+.section-dashboard_general .section-head{align-items:end;margin-bottom:1rem}
+.section-dashboard_general .section-head h2{margin:.15rem 0 0;font-size:clamp(1.55rem,2.5vw,2.2rem)}
+.section-dashboard_general .club-summary{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;overflow:hidden;
+  border:1px solid var(--line);border-radius:22px;background:var(--line);
+  box-shadow:0 16px 38px rgba(12,28,24,.07);
+}
+.section-dashboard_general .club-summary article{
+  min-width:0;padding:1.25rem 1.35rem;background:var(--surface);
+}
+.section-dashboard_general .club-summary-label{
+  display:block;margin-bottom:.55rem;color:var(--muted);font-size:.72rem;font-weight:750;letter-spacing:.1em;text-transform:uppercase;
+}
+.section-dashboard_general .club-summary strong{
+  display:block;color:var(--heading);font-family:var(--arena-serif);font-size:2.2rem;line-height:1;
+}
+.section-dashboard_general .club-summary small{display:block;margin-top:.45rem;color:var(--muted);line-height:1.35}
+.section-dashboard_general .ops-list{display:grid;gap:.7rem}
+.section-dashboard_general .ops-row{
+  display:grid;grid-template-columns:58px minmax(0,1fr);gap:1rem;align-items:center;
+  padding:1rem 1.1rem;text-decoration:none;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.section-dashboard_general .ops-row:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--arena-gold) 45%,var(--line));box-shadow:0 12px 28px rgba(12,28,24,.08)}
+.section-dashboard_general .ops-row h3{margin:.1rem 0;color:var(--heading)}
+.section-dashboard_general .ops-row p,.section-dashboard_general .ops-row small{margin:0;color:var(--muted)}
+.section-dashboard_general .attention-grid{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.85rem;
+}
+.section-dashboard_general .attention-card{
+  display:flex;min-height:132px;flex-direction:column;justify-content:flex-end;padding:1.15rem 1.2rem;
+  text-decoration:none;position:relative;overflow:hidden;
+}
+.section-dashboard_general .attention-card:before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(var(--arena-gold),color-mix(in srgb,var(--arena-gold) 12%,transparent));
+}
+.section-dashboard_general .attention-card strong{
+  color:var(--heading);font-family:var(--arena-serif);font-size:2.25rem;line-height:1;
+}
+.section-dashboard_general .attention-card h3{margin:.25rem 0;color:var(--heading);font-size:1.08rem}
+.section-dashboard_general .attention-card span,.section-dashboard_general .attention-card small{color:var(--muted);line-height:1.45}
+.section-dashboard_general .grid2{gap:1.25rem;align-items:start}
+.section-dashboard_general .announcement,.section-dashboard_general .event-row{margin-bottom:.75rem}
+@media(max-width:1000px){
+  .section-dashboard_general .club-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .section-dashboard_general .attention-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:640px){
+  .section-dashboard_general .dashboard-hero{padding:1.5rem;border-radius:20px}
+  .section-dashboard_general .dashboard-hero h1{font-size:2.55rem}
+  .section-dashboard_general .club-summary,.section-dashboard_general .attention-grid{grid-template-columns:1fr}
+  .section-dashboard_general .club-summary article{padding:1rem 1.1rem}
+  .section-dashboard_general .section-head{align-items:flex-start}
+}
