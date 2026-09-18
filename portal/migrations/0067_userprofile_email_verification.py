@@ -10,7 +10,7 @@ def trust_existing_emails(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("portal", "0066_lesson_occurrence_horse_assignment"),
+        ("portal", "0099_v350_accounting_export_profiles"),
     ]
 
     operations = [
