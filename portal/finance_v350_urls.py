@@ -2,6 +2,7 @@ from django.urls import path
 from portal.view_modules import finance_v350
 urlpatterns=[
  path("finance/workspace/reports/",finance_v350.finance_reporting,name="finance_reporting"),
+ path("finance/workspace/reports/export.csv",finance_v350.finance_reporting_export,name="finance_reporting_export"),
  path("finance/workspace/exports/",finance_v350.finance_accounting_exports,name="finance_accounting_exports"),
  path("finance/workspace/exports/<int:profile_id>/",finance_v350.finance_accounting_export_detail,name="finance_accounting_export_detail"),
  path("finance/workspace/exports/<int:profile_id>/edit/",finance_v350.finance_accounting_export_edit,name="finance_accounting_export_edit"),
