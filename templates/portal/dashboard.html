@@ -11,7 +11,7 @@
   {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
 </section>
 
-<section class="content-section">
+<section class="content-section dashboard-glance">
   <div class="section-head"><div><div class="eyebrow">TODAY &amp; COMING UP</div><h2>Your program at a glance</h2></div><a class="text-link" href="{% url 'calendar' %}">Full calendar →</a></div>
   <div class="club-summary">
     <article><span class="club-summary-label">Next event</span>{% if events %}<strong>{{ events.0.starts_at|date:"M j" }}</strong><small>{{ events.0.title }}</small>{% else %}<strong>—</strong><small>No upcoming event</small>{% endif %}</article>
