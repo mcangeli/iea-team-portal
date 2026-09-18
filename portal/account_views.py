@@ -1,3 +1,6 @@
+import base64
+import io
+
 from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -6,6 +9,7 @@ from django.core.exceptions import PermissionDenied
 from django.core import signing
 from django.shortcuts import redirect, render
 from django.db import transaction
+import qrcode
 
 from .account_forms import EmailChangeForm, MFAConfirmForm, MFADisableForm, MyAccountForm
 from .account_security import begin_email_verification, complete_email_verification, read_email_verification_token, send_email_verification
@@ -176,8 +180,15 @@ def mfa_setup(request):
             # response; forcing save here can be overwritten by middleware.
             request.session["mfa_recovery_codes_once"] = recovery_codes
             return redirect("mfa_recovery_codes")
+    uri = provisioning_uri(request.user, secret)
+    qr_buffer = io.BytesIO()
+    qrcode.make(uri).save(qr_buffer, format="PNG")
+    qr_code_data = base64.b64encode(qr_buffer.getvalue()).decode("ascii")
     return render(request, "portal/mfa_setup.html", {
-        "form": form, "secret": secret, "provisioning_uri": provisioning_uri(request.user, secret),
+        "form": form,
+        "secret": secret,
+        "provisioning_uri": uri,
+        "qr_code_data": qr_code_data,
     })
 
 
