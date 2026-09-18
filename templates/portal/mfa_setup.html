@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-shell narrow-shell">
+  <div class="page-heading"><small>ACCOUNT SECURITY</small><h1>Set up multi-factor authentication</h1><p>Add ArenaLine to your authenticator app, then enter the current six-digit code to confirm setup.</p></div>
+  <article class="card">
+    <h2>Authenticator setup</h2>
+    <p><strong>Setup key</strong></p>
+    <p><code>{{ secret }}</code></p>
+    <details><summary>Authenticator URI</summary><p class="break-word"><code>{{ provisioning_uri }}</code></p></details>
+    <form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn primary" type="submit">Verify and enable MFA</button> <a class="btn secondary" href="{% url 'my_account' %}">Cancel</a></form>
+  </article>
+</section>
+{% endblock %}
