@@ -5,7 +5,7 @@ from django.test import TestCase
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCharge
 from portal.model_modules.people import Person
-from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team
+from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 from portal.services.finance_reports import finance_report_for_user
 
 class FinanceReportingTests(TestCase):
@@ -55,3 +55,27 @@ class FinanceReportingTests(TestCase):
         self.assertEqual(report.account_rows,({"account":"Operating","income":Decimal("500.00"),"expenses":Decimal("125.00"),"net":Decimal("375.00")},))
     def test_report_rejects_reversed_date_range(self):
         with self.assertRaises(ValueError):finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,start_date=date(2026,9,30),end_date=date(2026,9,1))
+
+    def test_report_can_filter_one_season(self):
+        season=Season.objects.create(team=self.team,name="2026-27",start_date=date(2026,7,1),end_date=date(2027,6,30))
+        FinancialTransaction.objects.create(team=self.team,season=season,transaction_date=date(2026,9,5),kind="income",account=self.general,category=self.income,amount=Decimal("225.00"),description="Season income")
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,season=season)
+        self.assertEqual(report.income,Decimal("225.00"))
+        self.assertEqual(report.account_rows[0]["net"],Decimal("225.00"))
+    def test_reporting_workspace_renders_authorized_report(self):
+        from django.urls import reverse
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("finance_reporting"),{"finance_domain":FinanceDomain.GENERAL,"as_of":"2026-09-17"})
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"Finance reporting")
+        self.assertContains(response,"375.00")
+    def test_iea_reporter_workspace_does_not_offer_general_domain(self):
+        from django.urls import reverse
+        user=get_user_model().objects.create_user(username="iea-ui",password="pass");p=user.profile;p.team=self.team;p.save(update_fields=["team"])
+        person=Person.objects.create(team=self.team,user=user,first_name="IEA",last_name="UI")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        response=self.client.get(reverse("finance_reporting"))
+        self.assertEqual(response.status_code,200)
+        self.assertNotContains(response,'value="general"')
+        self.assertContains(response,'value="iea"')
