@@ -190,3 +190,60 @@ body.section-dashboard_general .grid2.content-section{margin-top:3rem!important;
   body.section-dashboard_general .section-head{align-items:flex-start!important;flex-direction:column!important;gap:.4rem!important}
   body.section-dashboard_general .dashboard-cockpit-panel .section-head{min-height:0}
 }
+
+
+/* Preview 2 presentation hardening — make the operations hierarchy visibly structural. */
+body.section-dashboard_general .dashboard-workspaces{
+  padding:.65rem!important;
+  border:1px solid var(--line)!important;
+  border-radius:18px!important;
+  background:var(--surface-raised)!important;
+}
+body.section-dashboard_general .dashboard-command-bar{
+  padding:1.35rem!important;
+  border:1px solid var(--line)!important;
+  background:var(--surface-raised)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+body.section-dashboard_general .dashboard-cockpit-panel{
+  padding:1.25rem!important;
+  border:1px solid var(--line)!important;
+  border-radius:22px!important;
+  background:var(--surface-raised)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+body.section-dashboard_general .dashboard-empty{
+  width:100%!important;
+  min-height:155px!important;
+  padding:1.25rem 1.35rem!important;
+  border:1px dashed var(--club-brass)!important;
+  border-radius:18px!important;
+  background:var(--surface)!important;
+}
+body.section-dashboard_general .dashboard-empty-good{
+  border-style:solid!important;
+}
+body.section-dashboard_general .dashboard-domain-section{
+  padding:1.35rem!important;
+  border:1px solid var(--line)!important;
+  border-radius:24px!important;
+  background:var(--surface-raised)!important;
+}
+body.section-dashboard_general .dashboard-domain-card,
+body.section-dashboard_general .attention-card{
+  border:1px solid var(--line)!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow-sm)!important;
+}
+body.section-dashboard_general .dashboard-domain-card strong,
+body.section-dashboard_general .attention-card h3,
+body.section-dashboard_general .dashboard-command-copy h2,
+body.section-dashboard_general .dashboard-cockpit-panel h2{
+  color:var(--heading)!important;
+}
+@media(max-width:640px){
+  body.section-dashboard_general .dashboard-workspaces,
+  body.section-dashboard_general .dashboard-command-bar,
+  body.section-dashboard_general .dashboard-cockpit-panel,
+  body.section-dashboard_general .dashboard-domain-section{padding:1rem!important}
+}
