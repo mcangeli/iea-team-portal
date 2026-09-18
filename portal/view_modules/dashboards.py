@@ -204,11 +204,15 @@ def _general_context(request, team, season):
 
     next_show = shows.first() if shows else None
     qualifier_count = 0
-    if season:
+    if season and _can_manage(request.user):
+        # Qualification is IEA-team operational data. The general barn
+        # dashboard only needs it for managers; family/rider team details live
+        # under My Team.
+        visible_rider_ids = set(riders.values_list("pk", flat=True))
         qualifier_count = sum(
             1
             for row in _qualification_rows(season)
-            if row["qualified"] and row["rider"] in riders
+            if row["qualified"] and row["rider"].pk in visible_rider_ids
         )
 
     person = Person.objects.filter(team=team, user=request.user, active=True).first()
@@ -262,8 +266,7 @@ def _general_context(request, team, season):
         finance_url = reverse("finance_workspace") if "general" in finance_domains else reverse("finance_dashboard")
         operational_areas.append({"key": "finance", "label": "Finance", "url": finance_url, "summary": "Receivables, reconciliation, exports, and reporting."})
         quick_actions.append({"key": "finance", "label": "Finance workspace", "url": finance_url, "hint": "Open the finance tools available to your role."})
-    if season:
-        operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
+
 
     domain_snapshots = []
     if can_manage_horses:
@@ -287,11 +290,6 @@ def _general_context(request, team, season):
             "key": "finance", "label": "Finance access", "value": len(finance_domains),
             "detail": "finance domain" + ("" if len(finance_domains) == 1 else "s") + " available",
             "url": finance_url,
-        })
-    if season:
-        domain_snapshots.append({
-            "key": "competition", "label": "IEA season", "value": shows.count(),
-            "detail": "upcoming shows in view", "url": reverse("show_list"),
         })
 
     schedule_items = []
