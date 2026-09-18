@@ -8,10 +8,26 @@ from .models import (
     HomeBarn, MembershipDuesRate, FamilyCharge, FamilyCredit, ServiceAgreementCredit,
     FinancialAssistanceAward, AssistanceClaim, FamilyPayment,
 )
+from .model_modules.branding import TeamBranding
+
+class TeamBrandingInline(admin.StackedInline):
+    model = TeamBranding
+    extra = 0
+    max_num = 1
+    fieldsets = (
+        ("Barn dashboard", {"fields": ("barn_hero_image", "barn_hero_image_position")}),
+        ("IEA team", {"fields": ("hero_image", "hero_image_position")}),
+        ("IEA squads", {"fields": (
+            ("futures_hero_image", "futures_hero_image_position"),
+            ("upper_hero_image", "upper_hero_image_position"),
+        )}),
+    )
+
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
     list_display = ("name", "discipline")
+    inlines = [TeamBrandingInline]
 
 @admin.register(Season)
 class SeasonAdmin(admin.ModelAdmin):
