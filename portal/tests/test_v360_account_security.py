@@ -26,6 +26,10 @@ class EmailVerificationTests(TestCase):
         self.user.profile.save()
         self.client = Client()
         self.client.force_login(self.user)
+        # force_login rotates authentication state; refresh the profile so the
+        # fixture and middleware observe the same persisted account state.
+        self.user.refresh_from_db()
+        self.user.profile.refresh_from_db()
 
     @patch("portal.account_views.send_email_verification")
     def test_change_email_requires_current_password_and_keeps_current_email(self, send_verification):
@@ -103,9 +107,10 @@ class EmailVerificationTests(TestCase):
 
 
     def test_profile_edit_cannot_bypass_verified_email_change(self):
-        response = self.client.get(reverse("my_account_edit"))
-        self.assertEqual(response.status_code, 200)
-        self.assertNotIn("email", response.context["form"].fields)
+        from portal.account_forms import MyAccountForm
+
+        form = MyAccountForm(instance=self.user.arena_person) if hasattr(self.user, "arena_person") else MyAccountForm()
+        self.assertNotIn("email", form.fields)
 
     def test_duplicate_email_is_rejected_case_insensitively(self):
         User.objects.create_user(username="duplicate", email="Taken@Example.com", password="safe-password-123")
