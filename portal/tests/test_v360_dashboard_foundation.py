@@ -73,3 +73,18 @@ class V360DashboardFoundationTests(TestCase):
         response = self.client.get(reverse("dashboard_general"))
         self.assertContains(response, "Operations pulse", html=False)
         self.assertContains(response, "Across the barn")
+
+    def test_admin_can_open_every_role_dashboard(self):
+        response = self.client.get(reverse("dashboard_general"))
+        urls = {link["url"] for link in response.context["workspace_links"]}
+        expected = {
+            reverse("dashboard_general"),
+            reverse("dashboard_coach"),
+            reverse("dashboard_team_parent"),
+            reverse("dashboard_secretary"),
+            reverse("dashboard_show_lead"),
+            reverse("dashboard_show_manager"),
+        }
+        self.assertEqual(urls, expected)
+        for url in expected:
+            self.assertEqual(self.client.get(url).status_code, 200)
