@@ -59,6 +59,8 @@ def finance_reporting_export(request):
     out=StringIO(newline="");writer=csv.writer(out)
     writer.writerow(["ArenaLine Finance Report",report.finance_domain])
     writer.writerow(["Income",f"{report.income:.2f}"]);writer.writerow(["Expenses",f"{report.expenses:.2f}"]);writer.writerow(["Net",f"{report.net:.2f}"]);writer.writerow(["Receivables",f"{report.receivables:.2f}"]);writer.writerow(["Overdue receivables",f"{report.overdue_receivables:.2f}"])
+    writer.writerow([]);writer.writerow(["Period","Income","Expenses","Net movement"])
+    for row in report.period_rows:writer.writerow([f'{row["month"]:02d}/{row["year"]}',f'{row["income"]:.2f}',f'{row["expenses"]:.2f}',f'{row["net"]:.2f}'])
     writer.writerow([]);writer.writerow(["Category","Type","Total"])
     for row in report.category_rows:writer.writerow([row["category"],row["kind"],f'{row["total"]:.2f}'])
     writer.writerow([]);writer.writerow(["Financial account","Income","Expenses","Net"])
