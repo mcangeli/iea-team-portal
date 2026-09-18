@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 
 from portal.model_modules.people import Person
 
@@ -11,7 +11,6 @@ class MyAccountForm(forms.ModelForm):
         model = Person
         fields = [
             "preferred_name",
-            "email",
             "phone",
             "school",
             "graduation_year",
@@ -24,7 +23,6 @@ class MyAccountForm(forms.ModelForm):
         ]
         labels = {
             "preferred_name": "Preferred name",
-            "email": "Email address",
             "phone": "Phone",
             "school": "School",
             "graduation_year": "Graduation year",
@@ -37,8 +35,6 @@ class MyAccountForm(forms.ModelForm):
         }
         widgets = {"bio": forms.Textarea(attrs={"rows": 5})}
 
-    def clean_email(self):
-        return (self.cleaned_data.get("email") or "").strip()
 
 
 class EmailChangeForm(forms.Form):
@@ -53,6 +49,11 @@ class EmailChangeForm(forms.Form):
         email = (self.cleaned_data.get("email") or "").strip().lower()
         if self.user and email == (self.user.email or "").strip().lower():
             raise forms.ValidationError("That is already your current email address.")
+        users = get_user_model().objects.filter(email__iexact=email)
+        if self.user:
+            users = users.exclude(pk=self.user.pk)
+        if users.exists():
+            raise forms.ValidationError("That email address is already associated with another ArenaLine account.")
         return email
 
     def clean_current_password(self):
