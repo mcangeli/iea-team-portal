@@ -33,7 +33,9 @@
 <section class="content-section dashboard-announcements">
   <div class="section-head"><div><div class="eyebrow">PROGRAM NOTES</div><h2>Announcements</h2></div></div>
   {% for a in announcements %}<article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>{% empty %}<div class="empty-state">No current announcements.</div>{% endfor %}
-</section>\n\n<div class="dashboard-cockpit content-section">
+</section>
+
+<div class="dashboard-cockpit content-section">
   <section class="dashboard-cockpit-panel">
     <div class="section-head"><div><div class="eyebrow">COMING UP</div><h2>On the schedule</h2></div><a class="text-link" href="{% url 'calendar' %}">Calendar →</a></div>
     {% if schedule_items %}
