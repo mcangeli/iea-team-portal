@@ -76,8 +76,8 @@ class V360DashboardFoundationTests(TestCase):
         self.assertContains(response, "Across the barn")
 
     def test_admin_can_open_every_role_dashboard(self):
-        response = self.client.get(reverse("dashboard_general"))
-        urls = {link["url"] for link in response.context["workspace_links"]}
+        response = self.client.get(reverse("my_team"))
+        urls = {link["url"] for link in response.context["team_workspace_links"]}
         expected = {
             reverse("dashboard_general"),
             reverse("dashboard_coach"),
@@ -147,3 +147,17 @@ class V360DashboardFoundationTests(TestCase):
         self.assertIn(reverse("dashboard_secretary"), urls)
         self.assertIn(reverse("dashboard_show_lead"), urls)
         self.assertIn(reverse("dashboard_show_manager"), urls)
+
+
+    def test_rider_root_dashboard_is_general_barn_safe(self):
+        rider_user = User.objects.create_user(username="dashboard-rider-root", password="pass12345")
+        rider_user.profile.team = self.team
+        rider_user.profile.role = UserProfile.Role.RIDER
+        rider_user.profile.save(update_fields=["team", "role"])
+        rider_client = Client()
+        rider_client.force_login(rider_user)
+        response = rider_client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "portal/dashboard.html")
+        self.assertNotIn("competition", {area["key"] for area in response.context["operational_areas"]})
+        self.assertNotIn("competition", {snapshot["key"] for snapshot in response.context["domain_snapshots"]})
