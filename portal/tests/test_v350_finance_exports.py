@@ -86,6 +86,17 @@ class AccountingExportUITests(AccountingExportServiceTests):
         })
         self.assertEqual(response.status_code,302)
         self.export.refresh_from_db();self.assertEqual(self.export.name,"Bookkeeper Export");self.assertEqual(self.export.column_mapping["Txn Date"],"transaction_date")
+    def test_quickbooks_profile_edit_defaults_to_quickbooks_preset(self):
+        from portal.forms_v350_finance import AccountingExportProfileForm
+        form=AccountingExportProfileForm(instance=self.export,allowed_domains={FinanceDomain.GENERAL})
+        self.assertEqual(form.fields["preset"].initial,AccountingExportProfileForm.PRESET_QUICKBOOKS)
+
+    def test_custom_profile_edit_defaults_to_custom_preset(self):
+        from portal.forms_v350_finance import AccountingExportProfileForm
+        self.export.column_mapping={"Txn Date":"transaction_date","Memo":"description"};self.export.save(update_fields=["column_mapping"])
+        form=AccountingExportProfileForm(instance=self.export,allowed_domains={FinanceDomain.GENERAL})
+        self.assertEqual(form.fields["preset"].initial,AccountingExportProfileForm.PRESET_CUSTOM)
+
     def test_custom_mapping_rejects_unknown_fields(self):
         from django.urls import reverse
         self.client.force_login(self.user)
