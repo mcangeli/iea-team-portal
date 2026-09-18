@@ -75,6 +75,17 @@ class AccountingExportUITests(AccountingExportServiceTests):
         self.assertEqual(preview.status_code,200);self.assertContains(preview,"Board");self.assertNotContains(preview,"Show fee")
         download=self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk]))
         self.assertEqual(download.status_code,200);self.assertIn("attachment;",download["Content-Disposition"])
+    def test_download_filename_includes_profile_and_date_range(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        response=self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk]),{"start_date":"2026-09-01","end_date":"2026-09-30"})
+        self.assertEqual(response.status_code,200)
+        self.assertIn('arenaline-general-quickbooks-2026-09-01-2026-09-30.csv',response["Content-Disposition"])
+    def test_invalid_date_range_is_not_downloaded(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        response=self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk]),{"start_date":"2026-10-01","end_date":"2026-09-01"})
+        self.assertEqual(response.status_code,403)
     def test_iea_only_user_cannot_open_general_export_url(self):
         from django.urls import reverse
         user=get_user_model().objects.create_user(username="ieaexportui",password="pass")
