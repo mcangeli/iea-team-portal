@@ -103,3 +103,14 @@ class FinanceReportingTests(TestCase):
         self.client.force_login(user)
         response=self.client.get(reverse("finance_reporting_export"),{"finance_domain":FinanceDomain.GENERAL})
         self.assertEqual(response.status_code,403)
+
+    def test_report_builds_monthly_cash_flow_trend(self):
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2026,8,20),kind="income",account=self.general,category=self.income,amount=Decimal("300.00"),description="August board")
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2026,8,21),kind="expense",account=self.general,category=self.expense,amount=Decimal("80.00"),description="August feed")
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL)
+        self.assertEqual(report.period_rows[0],{"year":2026,"month":8,"income":Decimal("300.00"),"expenses":Decimal("80.00"),"net":Decimal("220.00")})
+        self.assertEqual(report.period_rows[1],{"year":2026,"month":9,"income":Decimal("500.00"),"expenses":Decimal("125.00"),"net":Decimal("375.00")})
+    def test_monthly_cash_flow_respects_report_range(self):
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2026,8,20),kind="income",account=self.general,category=self.income,amount=Decimal("300.00"),description="August board")
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,start_date=date(2026,9,1),end_date=date(2026,9,30))
+        self.assertEqual(len(report.period_rows),1);self.assertEqual(report.period_rows[0]["month"],9)
