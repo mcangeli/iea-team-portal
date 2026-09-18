@@ -3,9 +3,12 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
+from django.core import signing
+from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
 
-from .account_forms import MyAccountForm
+from .account_forms import EmailChangeForm, MyAccountForm
+from .account_security import begin_email_verification, complete_email_verification, read_email_verification_token, send_email_verification
 from .forms import NotificationPreferenceForm
 from .model_modules.people import Person
 
@@ -93,3 +96,63 @@ def my_notification_preferences(request):
     return render(request, "portal/form.html", {
         "form": form, "title": "Notification preferences", "eyebrow": "MY ACCOUNT",
     })
+
+
+@login_required
+def email_change(request):
+    form = EmailChangeForm(request.POST or None, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        begin_email_verification(request.user, form.cleaned_data["email"])
+        send_email_verification(request, request.user)
+        messages.success(request, "Verification sent to your new email address. Your current email remains active until verification is complete.")
+        return redirect("my_account")
+    return render(request, "portal/form.html", {
+        "form": form, "title": "Change email address", "eyebrow": "ACCOUNT SECURITY",
+    })
+
+
+@login_required
+def email_verification_resend(request):
+    if request.method == "POST":
+        if send_email_verification(request, request.user):
+            messages.success(request, "A new verification email has been sent.")
+        else:
+            messages.error(request, "Add an email address before requesting verification.")
+    return redirect("my_account")
+
+
+@login_required
+def email_verify(request, token):
+    try:
+        payload = read_email_verification_token(token)
+    except signing.SignatureExpired:
+        messages.error(request, "That verification link has expired. Request a new one from My Account.")
+        return redirect("my_account")
+    except signing.BadSignature:
+        messages.error(request, "That verification link is invalid.")
+        return redirect("my_account")
+
+    if payload.get("user_id") != request.user.pk:
+        messages.error(request, "That verification link belongs to a different ArenaLine account.")
+        return redirect("my_account")
+    if not complete_email_verification(request.user, payload.get("email", "")):
+        messages.error(request, "That verification request is no longer current.")
+        return redirect("my_account")
+
+    # Synchronize canonical contact records only after the new login email is verified.
+    email = request.user.email
+    person = _account_person(request.user)
+    if person and person.email != email:
+        person.email = email
+        person.save(update_fields=["email"])
+    rider = getattr(request.user, "rider_record", None)
+    if rider and rider.email != email:
+        rider.email = email
+        rider.save(update_fields=["email"])
+    guardian = getattr(request.user, "guardian_contact", None)
+    if guardian and guardian.email != email:
+        guardian.email = email
+        guardian.save(update_fields=["email"])
+
+    messages.success(request, "Your email address has been verified.")
+    return redirect("my_account")
