@@ -175,11 +175,10 @@ def mfa_setup(request):
             form.add_error("code", "That authenticator code is not valid. Check your device time and try again.")
         else:
             request.session.pop("mfa_enrollment_secret", None)
+            # Do not rotate or re-save the session during the enrollment POST.
+            # Django's session middleware persists this payload after the
+            # response; forcing save here can be overwritten by middleware.
             request.session["mfa_recovery_codes_once"] = recovery_codes
-            # Persist the one-time payload before redirecting. This makes the
-            # enrollment handoff deterministic across session backends.
-            request.session.modified = True
-            request.session.save()
             return redirect("mfa_recovery_codes")
     return render(request, "portal/mfa_setup.html", {
         "form": form, "secret": secret, "provisioning_uri": provisioning_uri(request.user, secret),
