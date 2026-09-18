@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.4.0**
+**Current version: v3.5.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.4.0 adds a generic Lesson Program system for recurring Barn instruction and IEA Team Lessons, including scheduling, enrollment/roster preparation, lesson-day attendance and horse assignments, move/make-up workflows, rider self-service, completion safeguards, and unified-calendar projection while preserving legacy lesson compatibility.
+v3.5.0 adds Barn Finance & Business Operations: domain-separated receivables, charges/credits/payments and allocations, bank import and reconciliation, QuickBooks-friendly accounting exports, and operational business reporting while preserving the existing IEA finance workflows.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,41 +15,31 @@ v3.4.0 adds a generic Lesson Program system for recurring Barn instruction and I
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.4.0.md`.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.5.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.4.0 highlights
+## v3.5.0 highlights
 
-### Lesson programs and recurring schedules
+### Barn finance and receivables
 
-ArenaLine now models lessons as **Lesson Program → Lesson Series → Lesson Occurrence**. Programs describe an offering, series describe recurring instructional groups, and occurrences preserve the actual scheduled lesson. Enrollment, attendance, and operational assignments remain separate concepts.
+ArenaLine now provides a generic Barn Finance workspace with finance-domain authorization, customer/family receivable accounts, charges, credits, payments, allocations, balances, correction/unallocation workflows, and relationship-aware billing contacts. General Barn and IEA finance remain explicitly separated.
 
-Recurring schedules can generate durable occurrences, one-off lessons remain supported, and generated lessons preserve immutable recurrence identity when rescheduled. Occurrences snapshot instructor, location, capacity, title, and time so later series changes do not rewrite history.
+### Bank reconciliation and accounting exports
 
-### Barn and IEA Team Lessons
+Financial accounts can use configurable CSV/XLSX bank-import profiles. Imported rows are staged for review, candidate matches are generated against posted ledger activity, and reconciliation requires explicit confirmation. Review completion is also explicit. Accounting export profiles provide configurable CSV/XLSX output suitable for QuickBooks-friendly workflows without mutating ArenaLine's authoritative ledger.
 
-Barn lesson programs use normal lesson enrollment and capacity. Eligible Barn instructors are active Trainers or Assistant Trainers.
+### Business reporting
 
-IEA Team Lessons use season and Futures/Upper team context rather than baking IEA-specific behavior into the generic lesson model. Their roster comes from season membership and eligible instructors are Coaches. Legacy IEA lessons remain available for compatibility and can be converted idempotently into the new occurrence architecture with durable provenance.
+Finance reporting provides posted income/expense/net activity, monthly cash-flow trends, financial-account and category summaries, receivable balances and aging drill-down, season/date/domain filtering, and CSV export. Point-in-time receivable reports exclude charges that did not yet exist on the selected as-of date.
 
-### Lesson-day operations and make-ups
+### Authorization and compatibility
 
-Authorized staff can manage attendance, horse assignments, bulk lesson-day updates, rescheduling, and completion. Completion requires expected attendance to be resolved and cannot be applied to cancelled lessons.
+Finance authorization is capability/domain based. Administrators and all-finance managers can work across General and IEA domains; IEA-only finance managers remain restricted to IEA data. Existing IEA finance workflows remain available as compatibility surfaces while the generic Barn Finance architecture becomes the broader operational boundary.
 
-Individual riders can be moved to a compatible future lesson without rescheduling the whole group. ArenaLine validates capacity, destination history, domain compatibility, duplicate moves, and occurrence state. Riders with eligible identity can reschedule only themselves; staff/rider initiation remains auditable.
-
-### Unified operational calendar
-
-The Calendar projects domain-owned operational records rather than becoming a duplicate source of truth. Barn/IEA lessons can appear alongside shows, horse care, organization events, volunteer/committee activity, and other supported sources, with links returning to the owning domain. Legacy-conversion provenance prevents duplicate lesson entries.
-
-### Compatibility and validation
-
-v3.4 remains compatibility-first. Existing lesson history is preserved while the generic lesson architecture operates alongside legacy structures. Existing Finance remains available; v3.5 will deliberately rework/expand Barn Finance & Business Operations rather than hiding Finance inside Lessons.
-
-Final v3.4.0 staging validation completed with clean Django system checks, **No changes detected** from `makemigrations --check --dry-run`, and **949/949 portal tests passing**.
+Focused v3.5 regression validation completed with **154/154 v3.5 tests passing** on staging. Final system/migration checks and the complete ArenaLine portal suite remain release-promotion gates.
 
 ## Roles and dashboards
 
@@ -233,7 +223,7 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.4.0 explicitly:
+Or install v3.5.0 explicitly:
 
 ```bash
 ./portalctl update v3.4.0
