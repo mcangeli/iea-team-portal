@@ -7,11 +7,28 @@ from ..models import Team
 
 class TeamBranding(models.Model):
     team = models.OneToOneField(Team, on_delete=models.CASCADE, related_name="branding")
+    barn_hero_image = models.ImageField(
+        upload_to="team_branding/",
+        blank=True,
+        null=True,
+        help_text="Wide barn/program photograph used on the general ArenaLine dashboard.",
+    )
+    barn_hero_image_position = models.CharField(
+        max_length=8,
+        choices=[
+            ("20%", "Favor top"),
+            ("50%", "Center"),
+            ("80%", "Favor bottom"),
+        ],
+        default="50%",
+        help_text="Adjust which part of the barn photograph remains visible when it is cropped.",
+    )
+
     hero_image = models.ImageField(
         upload_to="team_branding/",
         blank=True,
         null=True,
-        help_text="Wide team/show photograph used on the dashboard and sign-in presentation.",
+        help_text="Wide IEA team/show photograph used on My Team and the sign-in presentation.",
     )
     hero_image_position = models.CharField(
         max_length=8,
