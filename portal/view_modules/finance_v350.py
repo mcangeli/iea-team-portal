@@ -241,10 +241,9 @@ def finance_bank_confirm_match(request,batch_id,row_id,match_id):
 
 
 def _refresh_bank_batch_status(batch):
-    unresolved=batch.transactions.filter(status__in=[ImportedBankTransaction.Status.STAGED,ImportedBankTransaction.Status.MATCHED]).exists()
-    target=BankImportBatch.Status.REVIEWED if unresolved else BankImportBatch.Status.COMPLETED
-    if batch.status!=target:
-        batch.status=target
+    """Mark a batch reviewed after row decisions; completion remains explicit."""
+    if batch.status not in (BankImportBatch.Status.COMPLETED,BankImportBatch.Status.VOID) and batch.status!=BankImportBatch.Status.REVIEWED:
+        batch.status=BankImportBatch.Status.REVIEWED
         batch.save(update_fields=["status"])
     return batch
 
