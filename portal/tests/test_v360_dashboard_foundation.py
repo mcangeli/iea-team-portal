@@ -85,7 +85,7 @@ class V360DashboardFoundationTests(TestCase):
         response = self.client.get(reverse("my_team"))
         urls = {link["url"] for link in response.context["team_workspace_links"]}
         expected = {
-            reverse("dashboard_general"),
+            reverse("my_team"),
             reverse("dashboard_coach"),
             reverse("dashboard_team_parent"),
             reverse("dashboard_secretary"),
@@ -95,6 +95,15 @@ class V360DashboardFoundationTests(TestCase):
         self.assertEqual(urls, expected)
         for url in expected:
             self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_iea_role_workspaces_stay_anchored_to_my_team_and_show_announcements(self):
+        response = self.client.get(reverse("dashboard_coach"))
+        self.assertEqual(response.status_code, 200)
+        urls = {link["url"] for link in response.context["workspace_links"]}
+        self.assertIn(reverse("my_team"), urls)
+        self.assertNotIn(reverse("dashboard_general"), urls)
+        self.assertContains(response, "TEAM NOTES")
+        self.assertContains(response, "Announcements")
 
     def test_non_admin_dashboard_does_not_inherit_admin_workspace_switcher(self):
         rider_user = User.objects.create_user(username="dashboard-rider", password="pass12345")
