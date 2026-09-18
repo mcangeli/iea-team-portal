@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
 
@@ -88,3 +89,32 @@ class V360DashboardFoundationTests(TestCase):
         self.assertEqual(urls, expected)
         for url in expected:
             self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_non_admin_dashboard_does_not_inherit_admin_workspace_switcher(self):
+        rider_user = User.objects.create_user(username="dashboard-rider", password="pass12345")
+        rider_user.profile.team = self.team
+        rider_user.profile.role = UserProfile.Role.RIDER
+        rider_user.profile.save(update_fields=["team", "role"])
+        rider_client = Client()
+        rider_client.force_login(rider_user)
+        response = rider_client.get(reverse("dashboard_general"))
+        urls = {link["url"] for link in response.context["workspace_links"]}
+        self.assertNotIn(reverse("dashboard_coach"), urls)
+        self.assertNotIn(reverse("dashboard_secretary"), urls)
+        self.assertNotIn(reverse("dashboard_show_lead"), urls)
+        self.assertNotIn(reverse("dashboard_show_manager"), urls)
+
+    def test_non_admin_dashboard_does_not_expose_admin_operational_domains(self):
+        rider_user = User.objects.create_user(username="dashboard-rider-domains", password="pass12345")
+        rider_user.profile.team = self.team
+        rider_user.profile.role = UserProfile.Role.RIDER
+        rider_user.profile.save(update_fields=["team", "role"])
+        rider_client = Client()
+        rider_client.force_login(rider_user)
+        response = rider_client.get(reverse("dashboard_general"))
+        area_keys = {area["key"] for area in response.context["operational_areas"]}
+        snapshot_keys = {snapshot["key"] for snapshot in response.context["domain_snapshots"]}
+        self.assertNotIn("horses", area_keys)
+        self.assertNotIn("finance", area_keys)
+        self.assertNotIn("horses", snapshot_keys)
+        self.assertNotIn("finance", snapshot_keys)
