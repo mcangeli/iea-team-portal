@@ -712,7 +712,20 @@ def dashboard_general(request):
     if not team:
         return render(request, "portal/no_team.html")
     season = active_period_for_organization(team)
-    return render(request, "portal/dashboard.html", _general_context(request, team, season))
+    context = _general_context(request, team, season)
+    if _is_admin(request.user):
+        context["dashboard_debug"] = {
+            "user": request.user.username,
+            "profile_role": getattr(getattr(request.user, "profile", None), "role", None),
+            "superuser": request.user.is_superuser,
+            "quick_actions": len(context.get("quick_actions", [])),
+            "operational_areas": len(context.get("operational_areas", [])),
+            "domain_snapshots": len(context.get("domain_snapshots", [])),
+            "workspace_links": len(context.get("workspace_links", [])),
+            "can_manage_horses": bool(context.get("can_manage_horses")),
+            "active_horse_count": context.get("active_horse_count"),
+        }
+    return render(request, "portal/dashboard.html", context)
 
 
 @login_required
