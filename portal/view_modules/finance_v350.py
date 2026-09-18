@@ -247,7 +247,7 @@ def finance_accounting_exports(request):
     form=AccountingExportProfileForm(request.POST or None,allowed_domains=domains)
     if request.method=="POST" and form.is_valid():
         profile=form.save(commit=False);profile.team=team
-        profile.column_mapping=QUICKBOOKS_MAPPING if form.cleaned_data.get("use_quickbooks_preset") else QUICKBOOKS_MAPPING
+        profile.column_mapping=form.cleaned_data["column_mapping"]
         profile.full_clean();profile.save()
         messages.success(request,"Accounting export profile created.")
         return redirect("finance_accounting_export_detail",profile_id=profile.pk)
@@ -257,6 +257,16 @@ def _export_profile_for_user(user,profile_id):
     team=_team_for_finance_user(user);domains=allowed_finance_domains(user,team)
     try:return AccountingExportProfile.objects.get(pk=profile_id,team=team,finance_domain__in=domains)
     except AccountingExportProfile.DoesNotExist:raise PermissionDenied
+
+@login_required
+def finance_accounting_export_edit(request,profile_id):
+    profile=_export_profile_for_user(request.user,profile_id);domains=allowed_finance_domains(request.user,profile.team)
+    form=AccountingExportProfileForm(request.POST or None,instance=profile,allowed_domains=domains)
+    if request.method=="POST" and form.is_valid():
+        updated=form.save(commit=False);updated.team=profile.team;updated.column_mapping=form.cleaned_data["column_mapping"];updated.full_clean();updated.save()
+        messages.success(request,"Accounting export profile updated.")
+        return redirect("finance_accounting_export_detail",profile_id=profile.pk)
+    return render(request,"portal/finance_accounting_export_edit_v350.html",{"profile":profile,"form":form})
 
 @login_required
 def finance_accounting_export_detail(request,profile_id):
