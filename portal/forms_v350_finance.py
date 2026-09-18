@@ -64,14 +64,27 @@ class BankImportMappingForm(forms.Form):
 
 
 class AccountingExportProfileForm(forms.ModelForm):
-    use_quickbooks_preset=forms.BooleanField(required=False,initial=True,label="Use QuickBooks-friendly columns")
+    PRESET_QUICKBOOKS="quickbooks"
+    PRESET_CUSTOM="custom"
+    preset=forms.ChoiceField(choices=[(PRESET_QUICKBOOKS,"QuickBooks-friendly"),(PRESET_CUSTOM,"Custom mapping")],initial=PRESET_QUICKBOOKS)
+    column_mapping=forms.JSONField(required=False,widget=forms.Textarea(attrs={"rows":8}),help_text='JSON object mapping export column names to ArenaLine fields.')
     class Meta:
         model=AccountingExportProfile
-        fields=["name","finance_domain","file_type","active"]
+        fields=["name","finance_domain","file_type","active","column_mapping"]
     def __init__(self,*args,allowed_domains=None,**kwargs):
         super().__init__(*args,**kwargs)
         allowed=set(allowed_domains or [])
         self.fields["finance_domain"].choices=[(v,l) for v,l in FinanceDomain.choices if v in allowed]
+        if self.instance and self.instance.pk:
+            self.fields["preset"].initial=self.PRESET_CUSTOM
+    def clean(self):
+        cleaned=super().clean()
+        from portal.services.finance_exports import QUICKBOOKS_MAPPING, validate_export_mapping
+        mapping=QUICKBOOKS_MAPPING.copy() if cleaned.get("preset")==self.PRESET_QUICKBOOKS else cleaned.get("column_mapping")
+        try:validate_export_mapping(mapping)
+        except ValidationError as exc:self.add_error("column_mapping",exc)
+        cleaned["column_mapping"]=mapping
+        return cleaned
 
 class AccountingExportRunForm(forms.Form):
     start_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
