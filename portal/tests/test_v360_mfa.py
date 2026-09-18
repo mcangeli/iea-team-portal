@@ -70,6 +70,8 @@ class MFAEnrollmentViewTests(TestCase):
         secret = self.client.session["mfa_enrollment_secret"]
         response = self.client.post(reverse("mfa_setup"), {"code": pyotp.TOTP(secret).now()})
         self.assertRedirects(response, reverse("mfa_recovery_codes"))
+        self.assertIn("mfa_recovery_codes_once", self.client.session)
+        self.assertEqual(len(self.client.session["mfa_recovery_codes_once"]), 8)
         self.user.profile.refresh_from_db()
         self.assertTrue(self.user.profile.mfa_enabled)
 
