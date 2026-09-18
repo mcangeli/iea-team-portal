@@ -20,6 +20,7 @@ class FinanceReport:
     category_rows:tuple
     aging_buckets:dict
     account_rows:tuple
+    aging_rows:tuple
 
 def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=None,as_of=None,season=None):
     if finance_domain not in allowed_finance_domains(user,team):
@@ -37,23 +38,29 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     grouped=qs.values("category__name","kind").annotate(total=Sum("amount")).order_by("kind","category__name")
     category_rows=tuple({"category":row["category__name"],"kind":row["kind"],"total":row["total"]} for row in grouped)
     accounts=finance_accounts_for_user(user,team).filter(finance_domain=finance_domain)
-    charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED)
+    charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED).select_related("account")
     if season is not None:charges=charges.filter(season=season)
     receivables=sum((charge.balance for charge in charges),ZERO)
     overdue=ZERO
+    aging_rows=[]
     aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
     if as_of:
         for charge in charges:
             balance=charge.balance
             if balance<=ZERO:continue
             if not charge.due_date or charge.due_date>=as_of:
-                aging["current"]+=balance;continue
+                bucket="current"
+                aging[bucket]+=balance
+                aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket})
+                continue
             days=(as_of-charge.due_date).days
             overdue+=balance
-            if days<=30:aging["days_1_30"]+=balance
-            elif days<=60:aging["days_31_60"]+=balance
-            elif days<=90:aging["days_61_90"]+=balance
-            else:aging["days_90_plus"]+=balance
+            if days<=30:bucket="days_1_30"
+            elif days<=60:bucket="days_31_60"
+            elif days<=90:bucket="days_61_90"
+            else:bucket="days_90_plus"
+            aging[bucket]+=balance
+            aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket})
     account_rows=[]
     for account in qs.values("account__name").annotate(
         income=Sum("amount",filter=Q(kind="income")),
@@ -61,4 +68,4 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     ).order_by("account__name"):
         inc=account["income"] or ZERO;exp=account["expenses"] or ZERO
         account_rows.append({"account":account["account__name"],"income":inc,"expenses":exp,"net":inc-exp})
-    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,category_rows,aging,tuple(account_rows))
+    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,category_rows,aging,tuple(account_rows),tuple(aging_rows))
