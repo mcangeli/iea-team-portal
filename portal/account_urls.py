@@ -8,5 +8,8 @@ urlpatterns = [
     path("account/email/", account_views.email_change, name="email_change"),
     path("account/email/resend/", account_views.email_verification_resend, name="email_verification_resend"),
     path("account/email/verify/<str:token>/", account_views.email_verify, name="email_verify"),
+    path("account/mfa/setup/", account_views.mfa_setup, name="mfa_setup"),
+    path("account/mfa/recovery-codes/", account_views.mfa_recovery_codes, name="mfa_recovery_codes"),
+    path("account/mfa/disable/", account_views.mfa_disable, name="mfa_disable"),
     path("account/notifications/", account_views.my_notification_preferences, name="my_notification_preferences"),
 ]
