@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import authenticate
 
 from portal.model_modules.people import Person
 
@@ -38,3 +39,24 @@ class MyAccountForm(forms.ModelForm):
 
     def clean_email(self):
         return (self.cleaned_data.get("email") or "").strip()
+
+
+class EmailChangeForm(forms.Form):
+    email = forms.EmailField(label="New email address")
+    current_password = forms.CharField(label="Current password", widget=forms.PasswordInput)
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if self.user and email == (self.user.email or "").strip().lower():
+            raise forms.ValidationError("That is already your current email address.")
+        return email
+
+    def clean_current_password(self):
+        password = self.cleaned_data.get("current_password")
+        if self.user and not self.user.check_password(password):
+            raise forms.ValidationError("Your current password is incorrect.")
+        return password
