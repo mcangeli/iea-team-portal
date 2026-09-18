@@ -8,6 +8,15 @@
 
 {% if workspace_links|length > 1 %}<nav class="dashboard-workspaces" aria-label="Dashboard workspaces">{% for workspace in workspace_links %}<a class="dashboard-workspace-link{% if request.path == workspace.url %} active{% endif %}" href="{{ workspace.url }}">{{ workspace.label }}</a>{% endfor %}</nav>{% endif %}
 
+<section class="content-section team-announcements dashboard-role-announcements">
+  <div class="section-head"><div><div class="eyebrow">TEAM NOTES</div><h2>Announcements</h2></div></div>
+  {% for a in announcements %}
+    <article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>
+  {% empty %}
+    <div class="empty-state">No current team announcements.</div>
+  {% endfor %}
+</section>
+
 {% if dashboard_role == "coach" %}
 <section class="club-summary dashboard-role-summary" aria-label="Coach summary"><article><span class="club-summary-label">Active roster</span><strong>{{ roster_count }}</strong><small>riders this season</small></article><article><span class="club-summary-label">Qualified</span><strong>{{ qualified_count }}</strong><small>rider / class combinations</small></article><article><span class="club-summary-label">Availability</span><strong>{{ pending_availability }}</strong><small>responses outstanding</small></article><article><span class="club-summary-label">My tasks</span><strong>{{ portal_assigned_actions|length }}</strong><small>assigned to you</small></article></section>
 {% if course_show %}<section class="content-section"><div class="section-head"><div><div class="eyebrow">COURSE OPERATIONS</div><h2>Next show course board</h2><p class="muted">{{ course_show.name }} · {{ course_show.show_date|date:"M j" }}</p></div></div><article class="card course-status-card"><div><div class="course-status-state">{{ course_status }}</div><div class="course-status-meta"><span>{{ course_count }} course record{{ course_count|pluralize }}</span><span>{{ course_media_count }} with media</span><span>{{ course_walk_count }} walk time{{ course_walk_count|pluralize }}</span></div></div><a class="btn" href="{% url 'show_courses' course_show.pk %}">Open Course Information</a></article></section>{% endif %}
