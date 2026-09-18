@@ -168,6 +168,19 @@ Accounting exports are read-only projections of authorized posted ledger activit
 
 Reporting remains domain-, organization-, date-, season-, and permission-scoped. An `as_of` receivable report excludes charges created after that date; historical balances still reflect the persisted allocation state rather than pretending ArenaLine has a separate historical general ledger.
 
+
+## v3.6 dashboard and account-security boundary
+
+v3.6 makes the navigation semantics explicit: the root Dashboard is the generic ArenaLine barn/program operational home, while My Team owns IEA team context and the specialized Coach, Team Parent, Points Secretary, Treasurer, Show Lead, and Show Manager workspaces. Organizational/admin authority may broaden what a user can see or switch into, but it does not change those surface meanings. IEA announcements remain team-domain content and are not projected onto the general Barn Dashboard.
+
+Dashboard presentation uses separate Barn and IEA Team hero branding. The Barn hero is additive and falls back to the Team hero when unset; legacy Team-photo CSS must not override a configured Barn hero.
+
+Account identity now distinguishes the active login email from a pending replacement email. Email replacement is completed only through an account-bound signed verification flow after current-password confirmation. Existing compatibility contact records are synchronized only after verification succeeds.
+
+MFA is optional per account and uses TOTP plus hashed single-use recovery codes. Password authentication for an MFA-enabled account creates only a pending challenge; authenticated session state is established after the second factor succeeds. MFA secrets/recovery material belong to account security and are not Person/profile presentation data.
+
+Mail delivery is deployment infrastructure rather than an ArenaLine domain. The default target is a local Postfix listener. Container deployments must explicitly provide a restricted route from the web container to the host MTA; loopback inside the container is not the host.
+
 ## Presentation boundary
 
 Shared presentation belongs in static stylesheets and common components rather than template-local style blocks. `docs/PRODUCT_AND_UI_GUIDE.md` is the standing presentation/product guide.
