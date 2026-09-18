@@ -143,7 +143,7 @@ Finance is intentionally restricted:
 - **Rider:** no Finance access.
 - **Coach alone:** does not automatically grant Finance access.
 
-Existing Finance includes family charges/credits/payments, dues and service credits, assistance, budgets, reimbursements, show funding/allocation, fundraising, and reporting. v3.5 is planned to establish the broader generic Barn Finance & Business Operations architecture and connect lesson, boarding/lease, horse-care, show, and program activity through explicit financial boundaries.
+ArenaLine Finance now combines the established IEA finance workflows with the generic Barn Finance & Business Operations architecture. Authorized users can manage domain-separated receivables, charges, credits, payments and allocations, bank imports/reconciliation, accounting exports, and business reporting. Lesson, boarding/lease, horse-care, show, and program activity connect through explicit finance boundaries rather than parallel ledgers.
 
 ### History and Record Book
 
@@ -226,14 +226,14 @@ cd /opt/iea-team-portal/app
 Or install v3.5.0 explicitly:
 
 ```bash
-./portalctl update v3.4.0
+./portalctl update v3.5.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.4 migration chain adds the generic Lesson Program hierarchy, IEA lesson context/provenance, recurrence identity, participant move/make-up audit/uniqueness, and final migration-state alignment on top of the v3.3 People/Horse foundation. See `docs/releases/v3.4.0.md` for the release-specific migration summary.
+The v3.5 migration chain adds the generic Barn Finance foundation, receivables/business operations, bank import/reconciliation persistence, and accounting export profiles on top of the v3.4 Lesson Program foundation. See `docs/releases/v3.5.0.md` for the release-specific migration summary.
 
 ## Backups and rollback
 
@@ -253,7 +253,7 @@ The public/external layer is a separate publication boundary. Anonymous routes c
 
 Person remains the canonical human identity and Horse the canonical equine identity. v3.4 layers the generic lesson hierarchy onto those foundations. Barn enrollment and IEA season/team roster membership remain distinct, and IEA-specific lesson context is layered onto generic series rather than encoded into the generic lesson core.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.4.0.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.5.0.md`.
 
 ## Release process
 
