@@ -49,7 +49,7 @@ class FinanceReportingTests(TestCase):
             ("45 days","30.00",date(2026,8,3)),("75 days","40.00",date(2026,7,4)),("Old","50.00",date(2026,5,1)),
         ]:ReceivableCharge.objects.create(account=account,description=description,amount=Decimal(amount),charge_date=due,due_date=due)
         report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
-        self.assertEqual(report.aging_buckets,{"current":Decimal("10.00"),"1_30":Decimal("20.00"),"31_60":Decimal("30.00"),"61_90":Decimal("40.00"),"90_plus":Decimal("50.00")})
+        self.assertEqual(report.aging_buckets,{"current":Decimal("10.00"),"days_1_30":Decimal("20.00"),"days_31_60":Decimal("30.00"),"days_61_90":Decimal("40.00"),"days_90_plus":Decimal("50.00")})
     def test_report_builds_financial_account_summary(self):
         report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL)
         self.assertEqual(report.account_rows,({"account":"Operating","income":Decimal("500.00"),"expenses":Decimal("125.00"),"net":Decimal("375.00")},))
