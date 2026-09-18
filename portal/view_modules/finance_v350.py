@@ -5,12 +5,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
-from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm
-from portal.model_modules.finance import BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
+from django.http import HttpResponse
+from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm
+from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
 from portal.services.finance_imports import stage_bank_import
+from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_export_rows, render_accounting_export
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
 from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
@@ -236,3 +238,39 @@ def finance_bank_complete_review(request,batch_id):
         batch.status=BankImportBatch.Status.COMPLETED;batch.save(update_fields=["status"])
         messages.success(request,"Bank statement review completed.")
     return redirect("finance_bank_import_batch",batch_id=batch_id)
+
+
+@login_required
+def finance_accounting_exports(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    profiles=AccountingExportProfile.objects.filter(team=team,finance_domain__in=domains).order_by("finance_domain","name")
+    form=AccountingExportProfileForm(request.POST or None,allowed_domains=domains)
+    if request.method=="POST" and form.is_valid():
+        profile=form.save(commit=False);profile.team=team
+        profile.column_mapping=QUICKBOOKS_MAPPING if form.cleaned_data.get("use_quickbooks_preset") else QUICKBOOKS_MAPPING
+        profile.full_clean();profile.save()
+        messages.success(request,"Accounting export profile created.")
+        return redirect("finance_accounting_export_detail",profile_id=profile.pk)
+    return render(request,"portal/finance_accounting_exports_v350.html",{"team":team,"profiles":profiles,"form":form})
+
+def _export_profile_for_user(user,profile_id):
+    team=_team_for_finance_user(user);domains=allowed_finance_domains(user,team)
+    try:return AccountingExportProfile.objects.get(pk=profile_id,team=team,finance_domain__in=domains)
+    except AccountingExportProfile.DoesNotExist:raise PermissionDenied
+
+@login_required
+def finance_accounting_export_detail(request,profile_id):
+    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET or None)
+    rows=[]
+    if form.is_valid():rows=normalized_export_rows(request.user,profile,start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"))[:25]
+    return render(request,"portal/finance_accounting_export_detail_v350.html",{"profile":profile,"form":form,"rows":rows,"headers":list(profile.column_mapping)})
+
+@login_required
+def finance_accounting_export_download(request,profile_id):
+    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET or None)
+    if not form.is_valid():raise PermissionDenied
+    data,mime=render_accounting_export(request.user,profile,start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"))
+    extension="xlsx" if profile.file_type==AccountingExportProfile.FileType.XLSX else "csv"
+    response=HttpResponse(data,content_type=mime)
+    response["Content-Disposition"]=f'attachment; filename="arenaline-{profile.finance_domain}-export.{extension}"'
+    return response
