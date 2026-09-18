@@ -4,10 +4,10 @@
     <div><p class="eyebrow">Finance · Bank reconciliation</p><h1>{{ batch.source_name }}</h1><p class="muted">{{ batch.financial_account.name }} · {{ batch.get_finance_domain_display }} · {{ batch.get_status_display }}</p></div>
     <div><a class="btn btn-secondary" href="{% url 'finance_bank_reconciliation' %}">All imports</a> <form method="post" action="{% url 'finance_bank_complete_review' batch.pk %}" style="display:inline">{% csrf_token %}<button class="btn btn-primary" type="submit">Complete review</button></form></div>
   </div>
-  <div class="card">
+  <div class="finance-review-stats"><div><span>Reconciled</span><strong>{{ counts.reconciled }}</strong></div><div><span>Ignored</span><strong>{{ counts.ignored }}</strong></div><div><span>Awaiting decision</span><strong>{{ counts.matched }}</strong></div><div><span>Unmatched</span><strong>{{ counts.staged }}</strong></div></div>\n  <div class="card">
     <h2>Statement review</h2>
     <p class="muted">ArenaLine can suggest ledger matches, but it never confirms one automatically. Every reconciliation requires an explicit confirmation.</p>
-    <p class="muted"><strong>{{ counts.reconciled }}</strong> reconciled · <strong>{{ counts.ignored }}</strong> ignored · <strong>{{ counts.matched }}</strong> awaiting match decision · <strong>{{ counts.staged }}</strong> unmatched</p>
+    
     {% if rows %}
       {% for row in rows %}
       <section class="finance-reconcile-row">
