@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Verify sign in · {{ product_name|default:'ArenaLine' }}{% endblock %}
+{% block content %}
+<section class="login-layout">
+  <div class="login-intro"><div class="eyebrow light">ARENALINE · ACCOUNT SECURITY</div><h1>One more<br>stride.</h1><p>Verify this sign-in with your authenticator or a recovery code.</p><div class="rail-line" aria-hidden="true"></div></div>
+  <div class="auth-card"><div class="eyebrow">MULTI-FACTOR AUTHENTICATION</div><h2>Verify sign in</h2><p class="muted">Enter the six-digit code from your authenticator app. You can also use one of your one-time recovery codes.</p><form method="post" class="stack-form">{% csrf_token %}{% for field in form %}<div class="field-wrap"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<div class="field-error">{{ field.errors|striptags }}</div>{% endif %}</div>{% endfor %}<button class="btn wide" type="submit">Verify and enter ArenaLine</button></form></div>
+</section>
+{% endblock %}
