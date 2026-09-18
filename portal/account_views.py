@@ -4,8 +4,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.core import signing
-from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
+from django.db import transaction
 
 from .account_forms import EmailChangeForm, MFAConfirmForm, MFADisableForm, MyAccountForm
 from .account_security import begin_email_verification, complete_email_verification, read_email_verification_token, send_email_verification
@@ -51,17 +51,6 @@ def my_account_edit(request):
     form = MyAccountForm(request.POST or None, request.FILES or None, instance=person)
     if request.method == "POST" and form.is_valid():
         person = form.save()
-        if request.user.email != person.email:
-            request.user.email = person.email
-            request.user.save(update_fields=["email"])
-        rider = getattr(request.user, "rider_record", None)
-        if rider:
-            rider.email = person.email
-            rider.save(update_fields=["email"])
-        guardian = getattr(request.user, "guardian_contact", None)
-        if guardian:
-            guardian.email = person.email
-            guardian.save(update_fields=["email"])
         messages.success(request, "Your profile information has been updated.")
         return redirect("my_account")
     return render(request, "portal/form.html", {
@@ -103,8 +92,15 @@ def my_notification_preferences(request):
 def email_change(request):
     form = EmailChangeForm(request.POST or None, user=request.user)
     if request.method == "POST" and form.is_valid():
-        begin_email_verification(request.user, form.cleaned_data["email"])
-        send_email_verification(request, request.user)
+        try:
+            with transaction.atomic():
+                begin_email_verification(request.user, form.cleaned_data["email"])
+                send_email_verification(request, request.user)
+        except Exception:
+            messages.error(request, "ArenaLine could not send the verification email. Your current email address is unchanged.")
+            return render(request, "portal/form.html", {
+                "form": form, "title": "Change email address", "eyebrow": "ACCOUNT SECURITY",
+            })
         messages.success(request, "Verification sent to your new email address. Your current email remains active until verification is complete.")
         return redirect("my_account")
     return render(request, "portal/form.html", {
