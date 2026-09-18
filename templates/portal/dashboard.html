@@ -29,6 +29,17 @@
   </div>
 </section>
 
+{% if quick_actions %}
+<section class="dashboard-command-bar content-section" aria-label="Quick actions">
+  <div class="dashboard-command-copy"><div class="eyebrow">QUICK ACTIONS</div><h2>Move the day forward</h2></div>
+  <div class="dashboard-command-actions">
+    {% for action in quick_actions %}
+    <a class="dashboard-command-action" href="{{ action.url }}"><span>{{ action.label }}</span><small>{{ action.hint }}</small><b aria-hidden="true">→</b></a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% if upcoming_lesson_occurrences %}
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">LESSON PROGRAM</div><h2>Upcoming lessons</h2></div><a class="text-link" href="{% url 'lesson_program_list' %}">Lesson programs →</a></div>
