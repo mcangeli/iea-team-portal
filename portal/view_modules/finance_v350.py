@@ -260,7 +260,7 @@ def _export_profile_for_user(user,profile_id):
 
 @login_required
 def finance_accounting_export_detail(request,profile_id):
-    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET or None)
+    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET)
     rows=[]
     if form.is_valid():rows=normalized_export_rows(request.user,profile,start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"))[:25]
     return render(request,"portal/finance_accounting_export_detail_v350.html",{"profile":profile,"form":form,"rows":rows,"headers":list(profile.column_mapping)})
