@@ -280,7 +280,7 @@ def _general_context(request, team, season):
         attention_items.append({"key": "overdue", "count": overdue_actions, "label": "Overdue action items", "url": reverse("action_item_list")})
     if unclaimed_actions and _can_manage(request.user):
         attention_items.append({"key": "unclaimed", "count": unclaimed_actions, "label": "Unclaimed team tasks", "url": reverse("action_item_list")})
-     return {
+    return {
         "season": season,
         "announcements": announcements,
         "events": events,
