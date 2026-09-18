@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}Home · ArenaLine{% endblock %}
 {% block content %}
+{% if dashboard_debug %}
+<!-- ARENALINE_DASHBOARD_DEBUG user={{ dashboard_debug.user }} role={{ dashboard_debug.profile_role }} superuser={{ dashboard_debug.superuser }} quick_actions={{ dashboard_debug.quick_actions }} operational_areas={{ dashboard_debug.operational_areas }} domain_snapshots={{ dashboard_debug.domain_snapshots }} workspace_links={{ dashboard_debug.workspace_links }} can_manage_horses={{ dashboard_debug.can_manage_horses }} active_horse_count={{ dashboard_debug.active_horse_count }} -->
+{% endif %}
 <section class="hero dashboard-hero club-hero">
   <div class="hero-copy">
     <div class="welcome-kicker">Welcome, <strong>{{ user.first_name|default:user.username }}</strong></div>
