@@ -32,7 +32,7 @@ def remove_account_person_for_user(user,account_id,*,link_id,team=None):
     account=_authorized_account(user,account_id,team)
     try:link=account.people_links.get(pk=link_id)
     except ReceivableAccountPerson.DoesNotExist as exc:raise ValidationError("Person relationship is not available on this receivable account.") from exc
-    link.delete()
+    link.active=False;link.statement_recipient=False;link.save(update_fields=["active","statement_recipient"])
 
 @transaction.atomic
 def create_charge_for_user(user,account_id,*,description,amount,charge_date,due_date=None,charge_type="",season=None,notes="",team=None):
@@ -65,6 +65,10 @@ def void_payment_for_user(user,account_id,*,payment_id,reason="",team=None):
     return void_payment(payment=payment,user=user,reason=reason)
 
 @transaction.atomic
+def _void_allocation_for_account(account,allocation,reason=""):
+    return _void_allocation_for_account(account,allocation,reason)
+
+@transaction.atomic
 def unallocate_payment_for_user(user,account_id,*,allocation_id,reason="",team=None):
     account=_authorized_account(user,account_id,team)
     try:allocation=ReceivableAllocation.objects.select_related("charge","payment").get(pk=allocation_id,payment__account=account,status=ReceivableAllocation.Status.POSTED)
@@ -73,3 +77,10 @@ def unallocate_payment_for_user(user,account_id,*,allocation_id,reason="",team=N
     note=reason.strip()
     if note:allocation.notes=((allocation.notes+" | ") if allocation.notes else "")+f"Unallocated: {note}"
     allocation.full_clean();allocation.save(update_fields=["status","notes"]);return allocation
+
+@transaction.atomic
+def unallocate_credit_for_user(user,account_id,*,allocation_id,reason="",team=None):
+    account=_authorized_account(user,account_id,team)
+    try:allocation=ReceivableAllocation.objects.select_related("charge","credit").get(pk=allocation_id,credit__account=account,status=ReceivableAllocation.Status.POSTED)
+    except ReceivableAllocation.DoesNotExist as exc:raise ValidationError("Credit allocation is not available on this receivable account.") from exc
+    return _void_allocation_for_account(account,allocation,reason)
