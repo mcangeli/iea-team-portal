@@ -88,3 +88,16 @@ from .view_modules.roster_v323 import (
     rider_guardian_link,
     rider_guardian_unlink,
 )
+
+
+# v3.6.0 dashboard entry points must win over the legacy dashboard symbol
+# exported by roster.py. Keep My Team in the IEA roster domain while the
+# product Dashboard remains the generic ArenaLine barn operations home.
+from .view_modules.dashboards import (
+    dashboard,
+    dashboard_general,
+    dashboard_coach,
+    dashboard_team_parent,
+    dashboard_show_lead,
+    dashboard_secretary,
+)
