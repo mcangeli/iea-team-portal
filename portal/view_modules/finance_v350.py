@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm
+from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
@@ -17,6 +17,7 @@ from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_expor
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
 from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
+from portal.services.finance_reports import finance_report_for_user
 ZERO=Decimal("0.00")
 
 def _team_for_finance_user(user):
@@ -34,6 +35,18 @@ def _domain_summary(user,team,domain):
 @login_required
 def finance_workspace(request):
     team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);summaries=[_domain_summary(request.user,team,d) for d in (FinanceDomain.GENERAL,FinanceDomain.IEA) if d in domains];accounts=finance_accounts_for_user(request.user,team).select_related("primary_person").order_by("finance_domain","name");return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"accounts":accounts,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
+
+@login_required
+def finance_reporting(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    default_domain=FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA
+    data=request.GET or {"finance_domain":default_domain,"as_of":date.today().isoformat()}
+    form=FinanceReportFilterForm(data,team=team,allowed_domains=domains);report=None
+    if form.is_valid():
+        report=finance_report_for_user(request.user,team,form.cleaned_data["finance_domain"],start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"),as_of=form.cleaned_data.get("as_of"),season=form.cleaned_data.get("season"))
+        if report is None:raise PermissionDenied
+    return render(request,"portal/finance_reporting_v350.html",{"team":team,"form":form,"report":report})
+
 @login_required
 def finance_receivable_account_add(request):
     team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);form=FinanceAccountForm(request.POST or None,team=team,allowed_domains=domains)
