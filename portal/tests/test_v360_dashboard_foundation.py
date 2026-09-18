@@ -126,7 +126,24 @@ class V360DashboardFoundationTests(TestCase):
         self.assertEqual(root.status_code, 200)
         self.assertEqual(root.resolver_match.func, __import__("portal.views", fromlist=["dashboard"]).dashboard)
         self.assertTemplateUsed(root, "portal/dashboard.html")
-        for key in ("quick_actions", "operational_areas", "domain_snapshots", "workspace_links"):
+        for key in ("quick_actions", "operational_areas", "domain_snapshots"):
             self.assertEqual(root.context[key], overview.context[key])
+        self.assertEqual(root.context["workspace_links"], [])
         self.assertEqual(root.context["can_manage_horses"], overview.context["can_manage_horses"])
         self.assertEqual(root.context["active_horse_count"], overview.context["active_horse_count"])
+
+
+    def test_general_barn_dashboard_does_not_render_iea_workspace_switcher(self):
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.context["workspace_links"], [])
+        self.assertNotContains(response, 'aria-label="Role workspaces"')
+
+    def test_iea_team_hub_exposes_admin_team_workspaces(self):
+        response = self.client.get(reverse("my_team"))
+        self.assertEqual(response.status_code, 200)
+        urls = {link["url"] for link in response.context["team_workspace_links"]}
+        self.assertIn(reverse("dashboard_coach"), urls)
+        self.assertIn(reverse("dashboard_team_parent"), urls)
+        self.assertIn(reverse("dashboard_secretary"), urls)
+        self.assertIn(reverse("dashboard_show_lead"), urls)
+        self.assertIn(reverse("dashboard_show_manager"), urls)
