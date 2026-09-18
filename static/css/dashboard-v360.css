@@ -247,3 +247,20 @@ body.section-dashboard_general .dashboard-cockpit-panel h2{
   body.section-dashboard_general .dashboard-cockpit-panel,
   body.section-dashboard_general .dashboard-domain-section{padding:1rem!important}
 }
+
+
+/* Preview 2 shell states: keep the dashboard architecture visible even with sparse data. */
+body.section-dashboard_general .dashboard-command-actions:empty::before{
+  content:"No quick actions are available for this role.";
+  grid-column:1/-1;padding:.9rem;color:var(--muted);
+}
+body.section-dashboard_general .dashboard-domain-grid:empty::before{
+  content:"Operational snapshots will appear here as ArenaLine activity is recorded.";
+  grid-column:1/-1;display:flex;min-height:110px;align-items:center;padding:1.1rem 1.2rem;
+  border:1px dashed var(--line);border-radius:16px;background:var(--surface);color:var(--muted);
+}
+body.section-dashboard_general .attention-grid:empty::before{
+  content:"Your available ArenaLine workspaces will appear here.";
+  grid-column:1/-1;display:flex;min-height:110px;align-items:center;padding:1.1rem 1.2rem;
+  border:1px dashed var(--line);border-radius:16px;background:var(--surface);color:var(--muted);
+}
