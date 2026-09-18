@@ -142,11 +142,31 @@ The unified Calendar is a projection, not an ownership model. Lesson occurrences
 
 Existing `LessonGroup`, `Lesson`, and legacy `LessonAttendance` structures remain available. Legacy IEA conversion is deterministic/idempotent and stores explicit provenance while leaving original records unchanged. Compatibility removal requires a future explicit migration/cutover decision and regression coverage.
 
-## Finance boundary after v3.4
+## v3.5 finance boundary
 
-Lessons expose operational facts needed for billing, but v3.4 does not create a parallel lesson ledger. v3.5 Barn Finance & Business Operations owns the generic financial architecture and should consume lesson/boarding/horse-care/show/program activity through explicit service boundaries.
+v3.5 establishes ArenaLine Finance as the generic operational-finance boundary. Lessons, boarding, horse care, shows, programs, and IEA workflows may supply operational facts through explicit services; they do not own parallel ledgers.
 
-The intended generic direction is Account → Charge/Credit → Payment → Allocation → Balance/Statement, while external accounting/general-ledger systems remain outside ArenaLine unless deliberately integrated later.
+The receivables architecture is:
+
+```text
+ReceivableAccount
+  ├── ReceivableCharge
+  ├── ReceivableCredit
+  ├── ReceivablePayment
+  └── ReceivableAllocation
+          ↓
+     Balance / aging / reporting
+```
+
+General Barn and IEA finance are separate `FinanceDomain` values. Authorization is resolved through finance capabilities and domain-scoped services rather than template visibility or broad organizational roles. IEA-only finance authority must never expose General Barn finance.
+
+Posted `FinancialTransaction` records drive realized income/expense and cash-activity reporting. Receivable records drive open-balance and aging reporting. These are related operational views but are not silently collapsed into one accounting concept.
+
+Bank imports are staged external observations. Import profiles map CSV/XLSX columns into `ImportedBankTransaction` records; candidate matching does not reconcile automatically, confirmation is explicit, and completing a reviewed bank batch is an explicit user action. Reconciliation does not rewrite matched ledger transactions.
+
+Accounting exports are read-only projections of authorized posted ledger activity. Configurable CSV/XLSX profiles support QuickBooks-friendly workflows, but external accounting/general-ledger systems remain outside ArenaLine's ownership boundary. ArenaLine does not treat an export as synchronization state.
+
+Reporting remains domain-, organization-, date-, season-, and permission-scoped. An `as_of` receivable report excludes charges created after that date; historical balances still reflect the persisted allocation state rather than pretending ArenaLine has a separate historical general ledger.
 
 ## Presentation boundary
 
