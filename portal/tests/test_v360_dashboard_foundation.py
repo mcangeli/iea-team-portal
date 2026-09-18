@@ -106,6 +106,25 @@ class V360DashboardFoundationTests(TestCase):
         self.assertContains(response, "TEAM NOTES")
         self.assertContains(response, "Announcements")
 
+    def test_general_barn_dashboard_does_not_render_iea_announcements(self):
+        from portal.models import Announcement
+
+        Announcement.objects.create(
+            team=self.team,
+            title="IEA team-only announcement",
+            body="This belongs on My Team, not the barn dashboard.",
+            audience=Announcement.Audience.ALL,
+            published=True,
+        )
+        response = self.client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "IEA team-only announcement")
+        self.assertNotContains(response, "PROGRAM NOTES")
+
+        team_response = self.client.get(reverse("my_team"))
+        self.assertEqual(team_response.status_code, 200)
+        self.assertContains(team_response, "IEA team-only announcement")
+
     def test_parent_my_team_stays_primary_while_committee_roles_are_switchable(self):
         parent = User.objects.create_user(username="dashboard-parent-roles", password="pass12345")
         parent.profile.team = self.team
