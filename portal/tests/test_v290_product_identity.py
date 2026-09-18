@@ -55,7 +55,7 @@ class ArenaLineProductIdentityTests(TestCase):
         show_manager = (templates / "dashboard_show_manager.html").read_text()
 
         self.assertIn("Dashboard · ArenaLine", dashboard)
-        self.assertIn("ARENALINE · SEASON HOME", dashboard)
+        self.assertIn("ARENALINE · BARN DASHBOARD", dashboard)
         self.assertNotIn("Equestrian Team Portal", dashboard)
         self.assertIn("My Team · ArenaLine", my_team)
         self.assertIn("ARENALINE · TEAM HUB", my_team)
