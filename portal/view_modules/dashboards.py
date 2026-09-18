@@ -356,7 +356,8 @@ def _general_context(request, team, season):
         "attention_count": pending_availability + pending_event_rsvps + len(my_action_items),
         "schedule_items": schedule_items,
         "attention_items": attention_items,
-        "workspace_links": _workspace_links(request.user, team, season),
+        # IEA role workspaces belong to My Team, not the general barn dashboard.
+        "workspace_links": [],
         "arena_person": person,
         "active_barn_roles": tuple(active_roles),
         "upcoming_lesson_occurrences": lesson_occurrences[:5],
