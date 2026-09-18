@@ -235,7 +235,7 @@ def _general_context(request, team, season):
 
     operational_areas = [
         {"key": "calendar", "label": "Calendar", "url": reverse("calendar"), "summary": "Events, lessons, shows, and barn schedule."},
-        {"key": "people", "label": "People", "url": reverse("people_list"), "summary": "People, relationships, roles, and access."},
+        {"key": "people", "label": "People", "url": reverse("people_directory"), "summary": "People, relationships, roles, and access."},
     ]
     if lesson_occurrences.exists() or _can_manage(request.user) or any(role in active_roles for role in ("trainer", "assistant_trainer")):
         operational_areas.append({"key": "lessons", "label": "Lessons", "url": reverse("lesson_program_list"), "summary": "Barn programs, series, occurrences, and attendance."})
