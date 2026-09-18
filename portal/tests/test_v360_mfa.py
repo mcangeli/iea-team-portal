@@ -69,14 +69,15 @@ class MFAEnrollmentViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         secret = self.client.session["mfa_enrollment_secret"]
         response = self.client.post(reverse("mfa_setup"), {"code": pyotp.TOTP(secret).now()})
-        self.assertRedirects(response, reverse("mfa_recovery_codes"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse("mfa_recovery_codes"))
         self.assertIn("mfa_recovery_codes_once", self.client.session)
         self.assertEqual(len(self.client.session["mfa_recovery_codes_once"]), 8)
         self.user.profile.refresh_from_db()
         self.assertTrue(self.user.profile.mfa_enabled)
 
-        # Follow the enrollment redirect directly. The recovery-code view intentionally
-        # consumes the one-time session payload on first display.
+        # Request the one-time screen exactly once. assertRedirects() follows the
+        # redirect by default, which would consume the recovery-code payload.
         response = self.client.get(reverse("mfa_recovery_codes"))
         self.assertEqual(
             response.status_code,
