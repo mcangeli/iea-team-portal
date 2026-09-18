@@ -10,7 +10,7 @@ from django.utils import timezone
 from ..host_show_models import ShowManagerAssignment
 from ..model_modules.lessons import LessonOccurrence
 from ..model_modules.people import Person, OrganizationRoleAssignment
-from ..model_modules.horses import Horse
+from ..model_modules.horses import Horse, HorseCogginsRecord
 from ..services.finance_access import allowed_finance_domains
 from ..models import (
     ActionItem,
@@ -257,6 +257,35 @@ def _general_context(request, team, season):
     if season:
         operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
 
+    domain_snapshots = []
+    if can_manage_horses:
+        active_horses = Horse.objects.filter(team=team, active=True)
+        coggins_attention = sum(
+            1 for horse in active_horses.prefetch_related("coggins_records")
+            if not horse.current_coggins or horse.current_coggins.status == "expiring"
+        )
+        domain_snapshots.append({
+            "key": "horses", "label": "Horse operations", "value": active_horses.count(),
+            "detail": f"{coggins_attention} need Coggins attention" if coggins_attention else "Coggins records look current",
+            "url": reverse("horse_list"),
+        })
+    if lesson_occurrences.exists() or _can_manage(request.user):
+        domain_snapshots.append({
+            "key": "lessons", "label": "Lesson program", "value": lesson_occurrences[:5].count(),
+            "detail": "upcoming scheduled occurrences", "url": reverse("lesson_program_list"),
+        })
+    if finance_domains:
+        domain_snapshots.append({
+            "key": "finance", "label": "Finance access", "value": len(finance_domains),
+            "detail": "finance domain" + ("" if len(finance_domains) == 1 else "s") + " available",
+            "url": finance_url,
+        })
+    if season:
+        domain_snapshots.append({
+            "key": "competition", "label": "IEA season", "value": shows.count(),
+            "detail": "upcoming shows in view", "url": reverse("show_list"),
+        })
+
     schedule_items = []
     for event in events:
         schedule_items.append({
@@ -328,6 +357,7 @@ def _general_context(request, team, season):
         "active_horse_count": Horse.objects.filter(team=team, active=True).count() if can_manage_horses else None,
         "operational_areas": operational_areas,
         "quick_actions": quick_actions[:6],
+        "domain_snapshots": domain_snapshots,
     }
 
 
