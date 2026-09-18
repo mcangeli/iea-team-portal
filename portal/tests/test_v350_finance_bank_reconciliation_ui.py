@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
 from django.urls import reverse
 from portal.model_modules.finance import BankImportBatch, FinanceDomain, ImportedBankTransaction, ReconciliationMatch
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team\nfrom datetime import date\nfrom decimal import Decimal
@@ -24,3 +24,9 @@ class BankReconciliationWorkspaceTests(TestCase):
         match=ReconciliationMatch.objects.create(imported_transaction=row,financial_transaction=tx,score=80)
         self.assertIn("/candidates/",reverse("finance_bank_generate_candidates",args=[row.batch_id,row.pk]))
         self.assertIn("/confirm/",reverse("finance_bank_confirm_match",args=[row.batch_id,row.pk,match.pk]))
+
+    def test_unmatched_review_routes_resolve(self):
+        batch=BankImportBatch.objects.create(team=self.team,financial_account=self.account,finance_domain=FinanceDomain.GENERAL,source_name="review.csv",source_fingerprint="v"*64)
+        row=ImportedBankTransaction.objects.create(batch=batch,transaction_date=date(2026,9,17),amount=Decimal("25.00"),direction=ImportedBankTransaction.Direction.DEBIT,description="Fee",row_fingerprint="i"*64)
+        self.assertIn("/ignore/",reverse("finance_bank_ignore_row",args=[batch.pk,row.pk]))
+        self.assertIn("/complete/",reverse("finance_bank_complete_review",args=[batch.pk]))
