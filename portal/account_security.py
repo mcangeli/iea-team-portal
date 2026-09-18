@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from django.conf import settings
 from django.core import signing
 from django.core.mail import send_mail
@@ -53,11 +51,17 @@ def complete_email_verification(user, token_email):
     expected = (profile.pending_email or user.email or "").strip().lower()
     if not expected or expected != token_email.strip().lower():
         return False
-    changed = bool(profile.pending_email)
+    # Pending-email tokens are valid only while that exact change request is active.
+    token_email = token_email.strip().lower()
+    if profile.pending_email:
+        if profile.pending_email.strip().lower() != token_email:
+            return False
+    elif profile.email_verified_at:
+        return False
     user.email = expected
     user.save(update_fields=["email"])
     profile.email_verified_at = timezone.now()
     profile.pending_email = ""
     profile.pending_email_requested_at = None
     profile.save(update_fields=["email_verified_at", "pending_email", "pending_email_requested_at"])
-    return changed
+    return True
