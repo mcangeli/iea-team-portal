@@ -131,3 +131,20 @@
 .section-dashboard_general .dashboard-empty a{margin-top:.7rem;color:var(--heading);font-weight:700;text-decoration:none}
 @media(max-width:900px){.section-dashboard_general .dashboard-cockpit{grid-template-columns:1fr}}
 @media(max-width:640px){.section-dashboard_general .dashboard-agenda-row{grid-template-columns:48px minmax(0,1fr) auto;gap:.7rem;padding:.75rem}.section-dashboard_general .dashboard-agenda-row time{min-height:48px}}
+
+.section-dashboard_general .dashboard-domain-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.8rem}
+.section-dashboard_general .dashboard-domain-card{
+  position:relative;display:flex;min-height:170px;flex-direction:column;padding:1.15rem 1.2rem;
+  border:1px solid var(--line);border-radius:18px;background:var(--surface);text-decoration:none;overflow:hidden;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.section-dashboard_general .dashboard-domain-card:after{
+  content:"";position:absolute;right:-32px;bottom:-52px;width:120px;height:120px;border:1px solid color-mix(in srgb,var(--arena-gold) 22%,transparent);border-radius:50%;
+}
+.section-dashboard_general .dashboard-domain-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--arena-gold) 45%,var(--line));box-shadow:0 14px 30px rgba(12,28,24,.07)}
+.section-dashboard_general .dashboard-domain-card small{color:var(--muted);font-size:.7rem;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.section-dashboard_general .dashboard-domain-card strong{margin:.45rem 0 .2rem;color:var(--heading);font-family:var(--arena-serif);font-size:2.8rem;line-height:1}
+.section-dashboard_general .dashboard-domain-card span{max-width:190px;color:var(--muted);font-size:.78rem;line-height:1.4}
+.section-dashboard_general .dashboard-domain-card b{margin-top:auto;padding-top:.9rem;color:var(--heading);font-size:.76rem}
+@media(max-width:1000px){.section-dashboard_general .dashboard-domain-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){.section-dashboard_general .dashboard-domain-grid{grid-template-columns:1fr}.section-dashboard_general .dashboard-domain-card{min-height:145px}}
