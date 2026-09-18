@@ -10,7 +10,7 @@ class BankReconciliationWorkspaceTests(TestCase):
     def setUp(self):
         self.team=Team.objects.create(name="UI Barn")
         self.user=get_user_model().objects.create_user(username="financeadmin",password="testpass")
-        self.user.is_superuser=True;self.user.is_staff=True;self.user.save(update_fields=["is_superuser","is_staff"])
+        self.user.is_superuser=True;self.user.is_staff=True;self.user.save(update_fields=["is_superuser","is_staff"])\n        profile=self.user.profile;profile.team=self.team;profile.save(update_fields=["team"])
         self.account=FinancialAccount.objects.create(team=self.team,name="Operating",finance_domain=FinanceDomain.GENERAL)
     def test_reconciliation_routes_resolve(self):
         self.assertEqual(reverse("finance_bank_reconciliation"),"/finance/workspace/reconciliation/")
