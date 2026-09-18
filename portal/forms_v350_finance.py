@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, ReceivableAccountPerson
 from portal.model_modules.people import Person
-from portal.models import FinancialAccount, FinancialCategory
+from portal.models import FinancialAccount, FinancialCategory, Season
 
 class FinanceAccountForm(forms.Form):
     name=forms.CharField(max_length=160); finance_domain=forms.ChoiceField(choices=FinanceDomain.choices); primary_person=forms.ModelChoiceField(queryset=Person.objects.none(),required=False,empty_label="No primary person"); notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
@@ -91,6 +91,24 @@ class AccountingExportProfileForm(forms.ModelForm):
 class AccountingExportRunForm(forms.Form):
     start_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
     end_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    def clean(self):
+        cleaned=super().clean()
+        if cleaned.get("start_date") and cleaned.get("end_date") and cleaned["start_date"]>cleaned["end_date"]:
+            raise forms.ValidationError("Start date must be on or before end date.")
+        return cleaned
+
+
+class FinanceReportFilterForm(forms.Form):
+    finance_domain=forms.ChoiceField(choices=FinanceDomain.choices,label="Finance area")
+    season=forms.ModelChoiceField(queryset=Season.objects.none(),required=False,empty_label="All seasons")
+    start_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    end_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    as_of=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}),label="Receivables as of")
+    def __init__(self,*args,team=None,allowed_domains=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        allowed=set(allowed_domains or [])
+        self.fields["finance_domain"].choices=[(v,l) for v,l in FinanceDomain.choices if v in allowed]
+        self.fields["season"].queryset=Season.objects.filter(team=team).order_by("-start_date") if team else Season.objects.none()
     def clean(self):
         cleaned=super().clean()
         if cleaned.get("start_date") and cleaned.get("end_date") and cleaned["start_date"]>cleaned["end_date"]:
