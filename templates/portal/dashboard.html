@@ -11,7 +11,7 @@
   {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
 </section>
 
-{% if workspace_links|length > 1 %}
+{% if workspace_links %}
 <nav class="dashboard-workspaces" aria-label="Role workspaces">
   {% for workspace in workspace_links %}
     <a class="dashboard-workspace-link{% if request.path == workspace.url %} active{% endif %}" href="{{ workspace.url }}">{{ workspace.label }}</a>
@@ -29,7 +29,6 @@
   </div>
 </section>
 
-{% if quick_actions %}
 <section class="dashboard-command-bar content-section" aria-label="Quick actions">
   <div class="dashboard-command-copy"><div class="eyebrow">QUICK ACTIONS</div><h2>Move the day forward</h2></div>
   <div class="dashboard-command-actions">
@@ -38,7 +37,6 @@
     {% endfor %}
   </div>
 </section>
-{% endif %}
 
 <div class="dashboard-cockpit content-section">
   <section class="dashboard-cockpit-panel">
@@ -75,7 +73,6 @@
   </section>
 </div>
 
-{% if domain_snapshots %}
 <section class="content-section dashboard-domain-section">
   <div class="section-head"><div><div class="eyebrow">OPERATIONS PULSE</div><h2>Across the barn</h2></div></div>
   <div class="dashboard-domain-grid">
@@ -86,7 +83,6 @@
     {% endfor %}
   </div>
 </section>
-{% endif %}
 
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">EXPLORE ARENALINE</div><h2>Run the whole program</h2></div></div>
