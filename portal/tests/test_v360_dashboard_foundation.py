@@ -124,6 +124,7 @@ class V360DashboardFoundationTests(TestCase):
         root = self.client.get(reverse("dashboard"))
         overview = self.client.get(reverse("dashboard_general"))
         self.assertEqual(root.status_code, 200)
+        self.assertEqual(root.resolver_match.func, __import__("portal.views", fromlist=["dashboard"]).dashboard)
         self.assertTemplateUsed(root, "portal/dashboard.html")
         for key in ("quick_actions", "operational_areas", "domain_snapshots", "workspace_links"):
             self.assertEqual(root.context[key], overview.context[key])
