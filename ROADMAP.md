@@ -14,8 +14,8 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.2.x — People, Relationships & Barn Operations:** released with v3.2.3.
 - **3.3.0 — Equine Care & Horse Management:** released.
 - **3.4.0 — Lesson Program:** released.
-- **3.5.0 — Barn Finance & Business Operations:** release candidate / final validation.
-- **3.6.x — Dashboard Rework:** committed future release family.
+- **3.5.0 — Barn Finance & Business Operations:** released.
+- **3.6.x — Dashboard Rework:** active development.
 - **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
 
 ---
@@ -196,7 +196,7 @@ Detailed release notes: `docs/releases/v3.4.0.md`.
 
 # 3.5.x — Barn Finance & Business Operations
 
-**Status: release candidate / final validation.**
+**Status: released with v3.5.0.**
 
 ArenaLine Finance should handle operational accounting/account management for an equestrian organization without trying to become a complete external accounting/general-ledger package.
 
@@ -229,7 +229,7 @@ Implemented v3.5 outcomes include domain-separated finance authorization, generi
 
 # 3.6.x — Dashboard Rework
 
-**Status: committed future release family.**
+**Status: active development.**
 
 v3.6 is reserved for a dedicated dashboard and information-architecture rework after People, Horses, Lessons, Calendar and Finance have mature operational data.
 
