@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-shell narrow-shell">
+  <div class="page-heading"><small>ACCOUNT SECURITY</small><h1>Save your recovery codes</h1><p>Store these somewhere safe. Each code can be used once if you cannot access your authenticator.</p></div>
+  <article class="card"><div class="recovery-code-grid">{% for code in recovery_codes %}<code>{{ code }}</code>{% endfor %}</div><p><strong>These codes will not be shown again.</strong></p><a class="btn primary" href="{% url 'my_account' %}">I have saved my codes</a></article>
+</section>
+{% endblock %}
