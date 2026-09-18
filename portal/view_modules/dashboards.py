@@ -43,40 +43,32 @@ from .roster_helpers import _visible_announcements
 
 
 def _workspace_links(user, team, season):
-    """Return only dashboards the current user is explicitly authorized to open.
+    """Return IEA workspaces the current user is explicitly authorized to open.
 
-    Administrators may review every operational workspace. Coaches receive the
-    Coach workspace by role, and additional workspaces only when they hold the
-    corresponding committee/show assignment.
+    My Team remains the stable parent/family landing experience. Users who also
+    hold operational roles can switch from that parent-first view into each
+    authorized role workspace without changing their primary account role.
     """
-    links = []
+    role_links = []
     profile_role = getattr(getattr(user, "profile", None), "role", None)
     roles = _active_committee_roles(user, season)
     admin = _is_admin(user)
 
-    if admin:
-        links.extend([
-            {"label": "My Team", "url": reverse("my_team")},
-            {"label": "Coach", "url": reverse("dashboard_coach")},
-            {"label": "Team Parent", "url": reverse("dashboard_team_parent")},
-            {"label": "Points Secretary", "url": reverse("dashboard_secretary")},
-            {"label": "Show Lead", "url": reverse("dashboard_show_lead")},
-            {"label": "Show Manager", "url": reverse("dashboard_show_manager")},
-        ])
-        return links
-
     if admin or profile_role == UserProfile.Role.COACH:
-        links.append({"label": "Coach", "url": reverse("dashboard_coach")})
+        role_links.append({"label": "Coach", "url": reverse("dashboard_coach")})
 
     parent_roles = {
         CommitteeAssignment.Role.FUTURES_PARENT,
         CommitteeAssignment.Role.UPPER_PARENT,
     }
     if admin or roles.intersection(parent_roles):
-        links.append({"label": "Team Parent", "url": reverse("dashboard_team_parent")})
+        role_links.append({"label": "Team Parent", "url": reverse("dashboard_team_parent")})
 
     if admin or CommitteeAssignment.Role.POINTS_SECRETARY in roles:
-        links.append({"label": "Points Secretary", "url": reverse("dashboard_secretary")})
+        role_links.append({"label": "Points Secretary", "url": reverse("dashboard_secretary")})
+
+    if admin or CommitteeAssignment.Role.TREASURER in roles:
+        role_links.append({"label": "Treasurer", "url": reverse("finance_dashboard")})
 
     has_lead_assignment = False
     if season:
@@ -85,7 +77,7 @@ def _workspace_links(user, team, season):
             lead_assignments__active=True,
         ).exists()
     if admin or has_lead_assignment:
-        links.append({"label": "Show Lead", "url": reverse("dashboard_show_lead")})
+        role_links.append({"label": "Show Lead", "url": reverse("dashboard_show_lead")})
 
     has_manager_assignment = bool(
         team
@@ -96,13 +88,14 @@ def _workspace_links(user, team, season):
         ).exists()
     )
     if admin or has_manager_assignment:
-        if has_manager_assignment and not links:
-            links.append({"label": "My Team", "url": reverse("my_team")})
         show_manager_url = reverse("dashboard_show_manager")
-        if not any(link.get("url") == show_manager_url for link in links):
-            links.append({"label": "Show Manager", "url": show_manager_url})
+        if not any(link.get("url") == show_manager_url for link in role_links):
+            role_links.append({"label": "Show Manager", "url": show_manager_url})
 
-    return links
+    if not role_links:
+        return []
+
+    return [{"label": "My Team", "url": reverse("my_team")}, *role_links]
 
 
 def _dashboard_shell(user, team, season, role_key, role_label, role_subtitle):
