@@ -4,6 +4,9 @@
   <div class="page-heading"><small>ACCOUNT SECURITY</small><h1>Set up multi-factor authentication</h1><p>Add ArenaLine to your authenticator app, then enter the current six-digit code to confirm setup.</p></div>
   <article class="card">
     <h2>Authenticator setup</h2>
+    <p>Scan this QR code with your authenticator app.</p>
+    <div style="background:#fff;display:inline-block;padding:12px;border-radius:12px;margin:0 0 1rem;"><img src="data:image/png;base64,{{ qr_code_data }}" alt="QR code for ArenaLine multi-factor authentication" width="220" height="220"></div>
+    <p class="muted">Can't scan it? Enter the setup key manually.</p>
     <p><strong>Setup key</strong></p>
     <p><code>{{ secret }}</code></p>
     <details><summary>Authenticator URI</summary><p class="break-word"><code>{{ provisioning_uri }}</code></p></details>
