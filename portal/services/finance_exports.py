@@ -2,7 +2,7 @@
 import csv
 from io import BytesIO, StringIO
 from openpyxl import Workbook
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from portal.services.finance_access import allowed_finance_domains, financial_transactions_for_user
 
 EXPORT_FIELDS={
@@ -17,7 +17,7 @@ EXPORT_FIELDS={
     "reference": lambda tx: tx.reference or "",
     "status": lambda tx: tx.status,
 }
-QUICKBOOKS_MAPPING={"Date":"transaction_date","Transaction Type":"kind","Account":"account","Category":"category","Amount":"signed_amount","Name":"payee","Memo":"description","Reference":"reference"}
+QUICKBOOKS_MAPPING={"Date":"transaction_date","Transaction Type":"kind","Account":"account","Category":"category","Amount":"signed_amount","Name":"payee","Memo":"description","Reference":"reference"}\n\ndef validate_export_mapping(mapping):\n    if not isinstance(mapping,dict) or not mapping:\n        raise ValidationError("Choose at least one export column.")\n    if any(not str(column).strip() for column in mapping):\n        raise ValidationError("Export column names cannot be blank.")\n    unknown=set(mapping.values())-set(EXPORT_FIELDS)\n    if unknown:\n        raise ValidationError("Unknown export field(s): "+", ".join(sorted(unknown)))\n    return mapping
 
 def export_transactions_for_profile(user,profile,*,start_date=None,end_date=None):
     if profile.finance_domain not in allowed_finance_domains(user,profile.team):
@@ -28,9 +28,7 @@ def export_transactions_for_profile(user,profile,*,start_date=None,end_date=None
     return qs
 
 def normalized_export_rows(user,profile,*,start_date=None,end_date=None):
-    mapping=profile.column_mapping or {}
-    unknown=set(mapping.values())-set(EXPORT_FIELDS)
-    if unknown:raise ValueError("Unknown export field(s): "+", ".join(sorted(unknown)))
+    mapping=validate_export_mapping(profile.column_mapping or {})
     rows=[]
     for tx in export_transactions_for_profile(user,profile,start_date=start_date,end_date=end_date):
         rows.append({column:EXPORT_FIELDS[field](tx) for column,field in mapping.items()})
