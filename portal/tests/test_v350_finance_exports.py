@@ -52,3 +52,27 @@ class AccountingExportServiceTests(TestCase):
         OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
         from django.core.exceptions import PermissionDenied
         with self.assertRaises(PermissionDenied):normalized_export_rows(user,self.export)
+
+
+class AccountingExportUITests(AccountingExportServiceTests):
+    def test_export_routes_resolve(self):
+        from django.urls import reverse
+        self.assertEqual(reverse("finance_accounting_exports"),"/finance/workspace/exports/")
+        self.assertEqual(reverse("finance_accounting_export_detail",args=[self.export.pk]),f"/finance/workspace/exports/{self.export.pk}/")
+        self.assertEqual(reverse("finance_accounting_export_download",args=[self.export.pk]),f"/finance/workspace/exports/{self.export.pk}/download/")
+    def test_admin_can_preview_and_download_export(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        preview=self.client.get(reverse("finance_accounting_export_detail",args=[self.export.pk]))
+        self.assertEqual(preview.status_code,200);self.assertContains(preview,"Board");self.assertNotContains(preview,"Show fee")
+        download=self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk]))
+        self.assertEqual(download.status_code,200);self.assertIn("attachment;",download["Content-Disposition"])
+    def test_iea_only_user_cannot_open_general_export_url(self):
+        from django.urls import reverse
+        user=get_user_model().objects.create_user(username="ieaexportui",password="pass")
+        p=user.profile;p.team=self.team;p.save(update_fields=["team"])
+        person=Person.objects.create(team=self.team,user=user,first_name="IEA UI",last_name="Treasurer")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse("finance_accounting_export_detail",args=[self.export.pk])).status_code,403)
+        self.assertEqual(self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk])).status_code,403)
