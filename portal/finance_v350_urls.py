@@ -3,6 +3,7 @@ from portal.view_modules import finance_v350
 urlpatterns=[
  path("finance/workspace/exports/",finance_v350.finance_accounting_exports,name="finance_accounting_exports"),
  path("finance/workspace/exports/<int:profile_id>/",finance_v350.finance_accounting_export_detail,name="finance_accounting_export_detail"),
+ path("finance/workspace/exports/<int:profile_id>/edit/",finance_v350.finance_accounting_export_edit,name="finance_accounting_export_edit"),
  path("finance/workspace/exports/<int:profile_id>/download/",finance_v350.finance_accounting_export_download,name="finance_accounting_export_download"),
  path("finance/workspace/reconciliation/",finance_v350.finance_bank_reconciliation,name="finance_bank_reconciliation"),
  path("finance/workspace/reconciliation/mapping/",finance_v350.finance_bank_import_mapping,name="finance_bank_import_mapping"),
