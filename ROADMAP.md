@@ -15,14 +15,14 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.3.0 — Equine Care & Horse Management:** released.
 - **3.4.0 — Lesson Program:** released.
 - **3.5.0 — Barn Finance & Business Operations:** released.
-- **3.6.0 — Dashboard Refresh & Account Security:** release candidate; staging validation in progress.
+- **3.6.0 — Dashboard Refresh & Account Security:** released.
 - **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
 
 ---
 
 # 3.6.0 — Dashboard Refresh & Account Security
 
-**Status: release candidate; staging validation in progress.**
+**Status: released.**
 
 v3.6.0 separates ArenaLine's general barn/program home from its IEA team experience and adds account-level email verification and optional MFA.
 
@@ -249,7 +249,7 @@ Implemented v3.5 outcomes include domain-separated finance authorization, generi
 
 # 3.6.x — Dashboard Rework
 
-**Status: active development.**
+**Status: released with v3.6.0.**
 
 v3.6 is reserved for a dedicated dashboard and information-architecture rework after People, Horses, Lessons, Calendar and Finance have mature operational data.
 
