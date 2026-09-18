@@ -9,7 +9,7 @@ class Migration(migrations.Migration):
             fields=[
                 ("id",models.BigAutoField(auto_created=True,primary_key=True,serialize=False,verbose_name="ID")),
                 ("name",models.CharField(max_length=120)),
-                ("finance_domain",models.CharField(choices=[("general","General Barn"),("iea","IEA")],max_length=20)),
+                ("finance_domain",models.CharField(choices=[("general","General barn"),("iea","IEA")],max_length=20)),
                 ("file_type",models.CharField(choices=[("csv","CSV"),("xlsx","Excel (.xlsx)")],default="csv",max_length=10)),
                 ("column_mapping",models.JSONField(blank=True,default=dict)),
                 ("active",models.BooleanField(default=True)),
