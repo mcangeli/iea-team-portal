@@ -244,8 +244,9 @@ def my_team(request):
 
     # IEA-specific operational workspaces are surfaced from My Team. Import
     # locally to avoid coupling the roster module back into dashboard imports.
-    from .dashboards import _workspace_links
+    from .dashboards import _visible_announcements, _workspace_links
     team_workspace_links = _workspace_links(request.user, team, season)
+    team_announcements = _visible_announcements(request.user, team)[:5]
 
     return render(request, "portal/my_team.html", {
         "team": team,
@@ -255,6 +256,7 @@ def my_team(request):
         "action_items": action_items,
         "can_manage": _can_manage(request.user),
         "team_workspace_links": team_workspace_links,
+        "team_announcements": team_announcements,
     })
 
 @login_required
