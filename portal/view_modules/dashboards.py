@@ -233,7 +233,8 @@ def _general_context(request, team, season):
         if person:
             lesson_occurrences = lesson_occurrences.filter(
                 Q(series__enrollments__person=person, series__enrollments__status="active")
-                | Q(participants__person=person)
+                | Q(assignments__person=person, assignments__role="participant")
+                | Q(attendance_records__person=person)
             ).distinct()
         else:
             lesson_occurrences = lesson_occurrences.none()
