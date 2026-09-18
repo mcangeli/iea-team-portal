@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.5.0**
+**Current version: v3.6.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.5.0 adds Barn Finance & Business Operations: domain-separated receivables, charges/credits/payments and allocations, bank import and reconciliation, QuickBooks-friendly accounting exports, and operational business reporting while preserving the existing IEA finance workflows.
+v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now the general barn/program operational home, My Team is the dedicated IEA team experience, Barn and Team hero branding are independently configurable, and My Account adds verified email changes plus optional TOTP multi-factor authentication.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,31 +15,29 @@ v3.5.0 adds Barn Finance & Business Operations: domain-separated receivables, ch
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.5.0.md`.
+- `docs/releases/` — detailed release-specific notes; current release candidate: `docs/releases/v3.6.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.5.0 highlights
+## v3.6.0 highlights
 
-### Barn finance and receivables
+### Barn Dashboard and My Team
 
-ArenaLine now provides a generic Barn Finance workspace with finance-domain authorization, customer/family receivable accounts, charges, credits, payments, allocations, balances, correction/unallocation workflows, and relationship-aware billing contacts. General Barn and IEA finance remain explicitly separated.
+The root **Dashboard** is the general ArenaLine barn/program cockpit for everyone. It surfaces permission-aware schedules, action items, operational snapshots, quick actions, and authorized horse, lesson, and finance context. IEA competition details and team announcements remain in **My Team**, which is the dedicated team hub and entry point for authorized Coach, Team Parent, Points Secretary, Treasurer, Show Lead, and Show Manager workspaces.
 
-### Bank reconciliation and accounting exports
+### Independent hero branding
 
-Financial accounts can use configurable CSV/XLSX bank-import profiles. Imported rows are staged for review, candidate matches are generated against posted ledger activity, and reconciliation requires explicit confirmation. Review completion is also explicit. Accounting export profiles provide configurable CSV/XLSX output suitable for QuickBooks-friendly workflows without mutating ArenaLine's authoritative ledger.
+**Manage → Branding** provides separate Barn Dashboard and IEA Team hero images, while retaining Futures and Upper squad imagery. The general dashboard no longer inherits the IEA Team photograph when a distinct Barn image is configured.
 
-### Business reporting
+### Account security
 
-Finance reporting provides posted income/expense/net activity, monthly cash-flow trends, financial-account and category summaries, receivable balances and aging drill-down, season/date/domain filtering, and CSV export. Point-in-time receivable reports exclude charges that did not yet exist on the selected as-of date.
+**My Account** supports verified email changes: the current password is required and the active email remains unchanged until the new address is verified. Users may optionally enable authenticator-app TOTP MFA, receive one-time recovery codes, and disable MFA only after confirming their current password.
 
-### Authorization and compatibility
+ArenaLine defaults email delivery to the server's local Postfix service. Containerized deployments must make the host Postfix service reachable from the web container before verification mail can be delivered.
 
-Finance authorization is capability/domain based. Administrators and all-finance managers can work across General and IEA domains; IEA-only finance managers remain restricted to IEA data. Existing IEA finance workflows remain available as compatibility surfaces while the generic Barn Finance architecture becomes the broader operational boundary.
-
-Focused v3.5 regression validation completed with **154/154 v3.5 tests passing** on staging. Final system/migration checks and the complete ArenaLine portal suite remain release-promotion gates.
+Focused v3.6 dashboard/security regressions and manual presentation/MFA checks have passed on staging. Clean system/migration checks and the complete portal suite remain the release-promotion gates.
 
 ## Roles and dashboards
 
@@ -63,7 +61,7 @@ Administrators can open all role workspaces. Lesson management follows its own d
 
 1. Install ArenaLine and configure the persistent `.env`.
 2. Sign in as Administrator.
-3. Open **Manage → Branding** and configure Program/Futures/Upper imagery.
+3. Open **Manage → Branding** and configure Barn Dashboard, IEA Team, Futures, and Upper imagery.
 4. Open **Manage → Season Setup** and create/activate the current season.
 5. Configure the season's official IEA rulebook/catalog and participating disciplines.
 6. Review/create the official season classes needed by the organization.
