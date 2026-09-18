@@ -1,4 +1,5 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, ReceivableAccountPerson
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory
