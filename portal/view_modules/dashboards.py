@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from ..host_show_models import ShowManagerAssignment
+from ..branding_models import TeamBranding
 from ..model_modules.lessons import LessonOccurrence
 from ..model_modules.people import Person, OrganizationRoleAssignment
 from ..model_modules.horses import Horse, HorseCogginsRecord
@@ -275,8 +276,24 @@ def _general_context(request, team, season):
         attention_items.append({"key": "overdue", "count": overdue_actions, "label": "Overdue action items", "url": reverse("action_item_list")})
     if unclaimed_actions and _can_manage(request.user):
         attention_items.append({"key": "unclaimed", "count": unclaimed_actions, "label": "Unclaimed team tasks", "url": reverse("action_item_list")})
+    # Resolve branding from the database for this request instead of relying on
+    # a reverse OneToOne object that may already have been cached on the tenant
+    # instance by another context/helper.
+    branding = TeamBranding.objects.filter(team=team).first()
+    barn_hero_image = None
+    barn_hero_position = "50%"
+    if branding:
+        barn_hero_image = branding.barn_hero_image or branding.hero_image
+        barn_hero_position = (
+            branding.barn_hero_image_position
+            if branding.barn_hero_image
+            else branding.hero_image_position
+        )
+
     return {
         "season": season,
+        "barn_hero_image": barn_hero_image,
+        "barn_hero_position": barn_hero_position,
         "announcements": announcements,
         "events": events,
         "riders": riders,
