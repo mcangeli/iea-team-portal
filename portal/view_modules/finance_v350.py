@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
 from django.http import HttpResponse
+from django.utils.text import slugify
 from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
@@ -282,5 +283,9 @@ def finance_accounting_export_download(request,profile_id):
     data,mime=render_accounting_export(request.user,profile,start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"))
     extension="xlsx" if profile.file_type==AccountingExportProfile.FileType.XLSX else "csv"
     response=HttpResponse(data,content_type=mime)
-    response["Content-Disposition"]=f'attachment; filename="arenaline-{profile.finance_domain}-export.{extension}"'
+    parts=["arenaline",profile.finance_domain,slugify(profile.name) or "export"]
+    if form.cleaned_data.get("start_date"):parts.append(form.cleaned_data["start_date"].isoformat())
+    if form.cleaned_data.get("end_date"):parts.append(form.cleaned_data["end_date"].isoformat())
+    filename="-".join(parts)
+    response["Content-Disposition"]=f'attachment; filename="{filename}.{extension}"'
     return response
