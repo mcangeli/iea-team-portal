@@ -4,6 +4,29 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.5.0 — Barn Finance & Business Operations
+
+Released September 2026.
+
+v3.5.0 establishes ArenaLine's generic operational-finance architecture while preserving existing IEA finance workflows and strict domain authorization.
+
+Highlights:
+
+- domain-separated General Barn and IEA finance authorization;
+- customer/family receivable accounts with charges, credits, payments, allocations, balances, billing relationships, and correction/unallocation workflows;
+- configurable CSV/XLSX bank imports with staged rows, candidate matching, explicit reconciliation confirmation, ignore decisions, and explicit review completion;
+- QuickBooks-friendly configurable CSV/XLSX accounting exports that do not mutate the ArenaLine ledger;
+- business reporting for posted income, expenses, net activity, monthly cash-flow trends, account/category summaries, receivable balances, aging detail, season/date/as-of filtering, and CSV export;
+- point-in-time receivable semantics that exclude future charges from as-of reporting;
+- primary navigation integration with General/IEA capability boundaries and compatibility access to legacy IEA finance surfaces;
+- release hardening around cross-account/domain authorization, receivable corrections, allocation lifecycle, and finance presentation.
+
+Migrations: v3.5 finance migrations begin at `0090` and include the finance foundation, reconciliation/import, and accounting-export persistence through `0099_v350_accounting_export_profiles.py`.
+
+Validation to date: **154/154 focused v3.5 regression tests passing** on staging. Final system/migration checks and the complete portal regression suite are release-promotion gates.
+
+Detailed notes: `docs/releases/v3.5.0.md`.
+
 ## v3.4.0 — Lesson Program
 
 Released September 2026.
