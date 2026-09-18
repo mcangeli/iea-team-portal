@@ -118,3 +118,14 @@ class V360DashboardFoundationTests(TestCase):
         self.assertNotIn("finance", area_keys)
         self.assertNotIn("horses", snapshot_keys)
         self.assertNotIn("finance", snapshot_keys)
+
+
+    def test_admin_root_dashboard_matches_team_overview_context(self):
+        root = self.client.get(reverse("dashboard"))
+        overview = self.client.get(reverse("dashboard_general"))
+        self.assertEqual(root.status_code, 200)
+        self.assertTemplateUsed(root, "portal/dashboard.html")
+        for key in ("quick_actions", "operational_areas", "domain_snapshots", "workspace_links"):
+            self.assertEqual(root.context[key], overview.context[key])
+        self.assertEqual(root.context["can_manage_horses"], overview.context["can_manage_horses"])
+        self.assertEqual(root.context["active_horse_count"], overview.context["active_horse_count"])
