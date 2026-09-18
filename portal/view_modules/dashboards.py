@@ -242,7 +242,7 @@ def _general_context(request, team, season):
     if can_manage_horses:
         operational_areas.append({"key": "horses", "label": "Horses", "url": reverse("horse_list"), "summary": "Registry, care, compliance, and horse operations."})
     if finance_domains:
-        operational_areas.append({"key": "finance", "label": "Finance", "url": reverse("finance_workspace_v350"), "summary": "Receivables, reconciliation, exports, and reporting."})
+        operational_areas.append({"key": "finance", "label": "Finance", "url": reverse("finance_dashboard"), "summary": "Receivables, reconciliation, exports, and reporting."})
     if season:
         operational_areas.append({"key": "competition", "label": "IEA Competition", "url": reverse("show_list"), "summary": "Shows, entries, standings, and team competition."})
 
