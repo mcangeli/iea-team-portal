@@ -81,12 +81,18 @@ X_FRAME_OPTIONS = "DENY"
 
 DEFAULT_TEMP_PASSWORD = os.getenv("DEFAULT_TEMP_PASSWORD", "")
 
-# Optional SMTP delivery. If EMAIL_HOST is blank, communications remain in-app only.
-EMAIL_HOST = os.getenv("EMAIL_HOST", "")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+# Mail delivery defaults to the server's local Postfix/sendmail transport.
+# Set EMAIL_BACKEND explicitly when a deployment needs a different backend.
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "arenaline@localhost")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend",
+)
+EMAIL_HOST = os.getenv("EMAIL_HOST", "127.0.0.1")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", "25"))
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "1") == "1"
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "0") == "1"
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "0") == "1"
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "team-portal@localhost")
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend" if EMAIL_HOST else "django.core.mail.backends.console.EmailBackend"
+EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "10"))
