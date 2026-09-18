@@ -2,8 +2,12 @@ from django.contrib.auth.models import User
 from django.test import Client
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 from portal.models import ShowAvailability, Team, UserProfile
+from portal.model_modules.lessons import LessonProgram, LessonSeries, LessonOccurrence, LessonAssignment
+from portal.model_modules.people import Person
 
 
 class V360DashboardFoundationTests(TestCase):
@@ -163,3 +167,28 @@ class V360DashboardFoundationTests(TestCase):
         self.assertTemplateUsed(response, "portal/dashboard.html")
         self.assertNotIn("competition", {area["key"] for area in response.context["operational_areas"]})
         self.assertNotIn("competition", {snapshot["key"] for snapshot in response.context["domain_snapshots"]})
+
+
+    def test_real_person_rider_dashboard_filters_lesson_occurrences_without_500(self):
+        rider_user = User.objects.create_user(username="dashboard-real-person-rider", password="pass12345")
+        rider_user.profile.team = self.team
+        rider_user.profile.role = UserProfile.Role.RIDER
+        rider_user.profile.save(update_fields=["team", "role"])
+        person = Person.objects.create(team=self.team, user=rider_user, first_name="Real", last_name="Rider")
+        program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
+        series = LessonSeries.objects.create(program=program, name="Thursday Lessons")
+        occurrence = LessonOccurrence.objects.create(
+            series=series,
+            title="Thursday Lesson",
+            starts_at=timezone.now() + timedelta(days=1),
+        )
+        LessonAssignment.objects.create(
+            occurrence=occurrence,
+            person=person,
+            role=LessonAssignment.Role.PARTICIPANT,
+        )
+        rider_client = Client()
+        rider_client.force_login(rider_user)
+        response = rider_client.get(reverse("dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Thursday Lesson")
