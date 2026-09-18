@@ -129,37 +129,8 @@ def _general_context(request, team, season):
     announcements = _visible_announcements(request.user, team)[:5]
     events = team.events.filter(starts_at__gte=now)[:6]
     riders = _visible_riders(request.user, team).filter(active=True)
-    shows = team.shows.filter(show_date__gte=today).order_by("show_date")[:4]
-    memberships = season.memberships.select_related("rider") if season else SeasonMembership.objects.none()
-    upcoming_lessons = Lesson.objects.none()
-    volunteer_due = 0
-    pending_volunteer = 0
-    pending_availability = 0
-
-    if season:
-        upcoming_lessons = season.lessons.filter(
-            starts_at__gte=now, cancelled=False
-        ).order_by("starts_at")
-        if not _can_manage(request.user):
-            upcoming_lessons = upcoming_lessons.filter(
-                attendance__rider__in=riders
-            ).distinct()
-
-        progress = _volunteer_progress_rows(season, riders)
-        volunteer_due = sum(1 for row in progress if not row["complete"])
-        pending_volunteer = VolunteerLog.objects.filter(
-            season=season,
-            rider__in=riders,
-            status=VolunteerLog.Status.PENDING,
-        ).count()
-
-        upcoming_shows_qs = season.shows.filter(show_date__gte=today)
-
-        pending_availability = ShowAvailability.objects.filter(
-            show__in=upcoming_shows_qs,
-            rider__in=riders,
-            status=ShowAvailability.Status.PENDING,
-        ).count()
+    # The general ArenaLine home is barn-wide. IEA season/show/volunteer
+    # calculations belong to My Team and its role workspaces.
 
     action_items = _visible_action_items(request.user, team).filter(completed=False)
     my_action_items = action_items.filter(
@@ -202,20 +173,7 @@ def _general_context(request, team, season):
             completed=False,
         ).count()
 
-    next_show = shows.first() if shows else None
-    qualifier_count = 0
-    if season and _can_manage(request.user):
-        # Qualification is IEA-team operational data. The general barn
-        # dashboard only needs it for managers; family/rider team details live
-        # under My Team.
-        visible_rider_ids = set(riders.values_list("pk", flat=True))
-        qualifier_count = sum(
-            1
-            for row in _qualification_rows(season)
-            if row["qualified"] and row["rider"].pk in visible_rider_ids
-        )
-
-    person = Person.objects.filter(team=team, user=request.user, active=True).first()
+     person = Person.objects.filter(team=team, user=request.user, active=True).first()
     active_roles = []
     if person:
         active_roles = list(
@@ -322,37 +280,17 @@ def _general_context(request, team, season):
         attention_items.append({"key": "overdue", "count": overdue_actions, "label": "Overdue action items", "url": reverse("action_item_list")})
     if unclaimed_actions and _can_manage(request.user):
         attention_items.append({"key": "unclaimed", "count": unclaimed_actions, "label": "Unclaimed team tasks", "url": reverse("action_item_list")})
-    if pending_volunteer and _can_manage(request.user):
-        attention_items.append({"key": "volunteer", "count": pending_volunteer, "label": "Volunteer entries awaiting approval", "url": reverse("volunteer_dashboard")})
-    if pending_availability and _can_manage(request.user):
-        attention_items.append({"key": "availability", "count": pending_availability, "label": "Show availability responses outstanding", "url": reverse("show_list")})
-
-    return {
+     return {
         "season": season,
         "announcements": announcements,
         "events": events,
         "riders": riders,
-        "shows": shows,
         "can_manage": _can_manage(request.user),
-        "futures_count": memberships.filter(
-            team_level=SeasonMembership.TeamLevel.FUTURES
-        ).count(),
-        "upper_count": memberships.filter(
-            team_level=SeasonMembership.TeamLevel.UPPER
-        ).count(),
-        "upcoming_lessons": upcoming_lessons[:4],
-        "lesson_count": upcoming_lessons.count(),
-        "volunteer_due": volunteer_due,
-        "pending_volunteer": pending_volunteer,
-        "pending_availability": pending_availability,
         "my_action_items": my_action_items,
         "pending_event_rsvps": pending_event_rsvps,
         "unclaimed_actions": unclaimed_actions,
         "overdue_actions": overdue_actions,
-        "next_show": next_show,
-        "roster_count": memberships.count() if season else riders.count(),
-        "qualifier_count": qualifier_count,
-        "attention_count": pending_availability + pending_event_rsvps + len(my_action_items),
+        "attention_count": pending_event_rsvps + len(my_action_items),
         "schedule_items": schedule_items,
         "attention_items": attention_items,
         # IEA role workspaces belong to My Team, not the general barn dashboard.
