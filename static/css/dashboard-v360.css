@@ -98,3 +98,36 @@
 @media(max-width:640px){
   .section-dashboard_general .dashboard-command-actions{grid-template-columns:1fr}
 }
+
+.section-dashboard_general .dashboard-cockpit{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.85fr);gap:1.25rem;align-items:start}
+.section-dashboard_general .dashboard-cockpit-panel{min-width:0}
+.section-dashboard_general .dashboard-agenda,.section-dashboard_general .dashboard-attention-list{display:grid;gap:.6rem}
+.section-dashboard_general .dashboard-agenda-row{
+  display:grid;grid-template-columns:58px minmax(0,1fr) auto;gap:1rem;align-items:center;
+  padding:.85rem 1rem;border:1px solid var(--line);border-radius:16px;background:var(--surface);text-decoration:none;
+}
+.section-dashboard_general .dashboard-agenda-row time{display:grid;place-items:center;align-content:center;min-height:54px;border-right:1px solid var(--line)}
+.section-dashboard_general .dashboard-agenda-row time strong{color:var(--arena-gold);font-size:.72rem;letter-spacing:.08em;text-transform:uppercase}
+.section-dashboard_general .dashboard-agenda-row time span{color:var(--heading);font-family:var(--arena-serif);font-size:1.7rem;line-height:1}
+.section-dashboard_general .dashboard-agenda-row h3{margin:.08rem 0;color:var(--heading);font-size:1rem}
+.section-dashboard_general .dashboard-agenda-row p,.section-dashboard_general .dashboard-agenda-row small{margin:0;color:var(--muted);font-size:.76rem}
+.section-dashboard_general .dashboard-agenda-row b,.section-dashboard_general .dashboard-attention-row b{color:var(--arena-gold)}
+.section-dashboard_general .dashboard-attention-row{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:.8rem;align-items:center;
+  min-height:62px;padding:.8rem 1rem;border:1px solid var(--line);border-radius:16px;background:var(--surface);text-decoration:none;
+}
+.section-dashboard_general .dashboard-attention-row strong{min-width:32px;color:var(--heading);font-family:var(--arena-serif);font-size:1.65rem;text-align:center}
+.section-dashboard_general .dashboard-attention-row span{color:var(--heading);font-weight:650;line-height:1.3}
+.section-dashboard_general .dashboard-attention-task{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"meta arrow" "title arrow"}
+.section-dashboard_general .dashboard-attention-task small{grid-area:meta;color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
+.section-dashboard_general .dashboard-attention-task span{grid-area:title}.section-dashboard_general .dashboard-attention-task b{grid-area:arrow}
+.section-dashboard_general .dashboard-empty{
+  display:flex;min-height:155px;flex-direction:column;justify-content:center;align-items:flex-start;
+  padding:1.25rem 1.35rem;border:1px dashed color-mix(in srgb,var(--arena-gold) 30%,var(--line));border-radius:18px;
+  background:color-mix(in srgb,var(--arena-gold) 4%,var(--surface));
+}
+.section-dashboard_general .dashboard-empty strong{color:var(--heading);font-family:var(--arena-serif);font-size:1.3rem}
+.section-dashboard_general .dashboard-empty span{max-width:480px;margin-top:.3rem;color:var(--muted);line-height:1.5}
+.section-dashboard_general .dashboard-empty a{margin-top:.7rem;color:var(--heading);font-weight:700;text-decoration:none}
+@media(max-width:900px){.section-dashboard_general .dashboard-cockpit{grid-template-columns:1fr}}
+@media(max-width:640px){.section-dashboard_general .dashboard-agenda-row{grid-template-columns:48px minmax(0,1fr) auto;gap:.7rem;padding:.75rem}.section-dashboard_general .dashboard-agenda-row time{min-height:48px}}
