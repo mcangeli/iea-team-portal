@@ -44,10 +44,10 @@ class FinanceReportingTests(TestCase):
 
     def test_report_builds_receivable_aging_buckets(self):
         account=ReceivableAccount.objects.create(team=self.team,name="Aging Family",finance_domain=FinanceDomain.GENERAL)
-        for description,amount,due in [
-            ("Current","10.00",date(2026,9,30)),("15 days","20.00",date(2026,9,2)),
-            ("45 days","30.00",date(2026,8,3)),("75 days","40.00",date(2026,7,4)),("Old","50.00",date(2026,5,1)),
-        ]:ReceivableCharge.objects.create(account=account,description=description,amount=Decimal(amount),charge_date=due,due_date=due)
+        for description,amount,charge_date,due_date in [
+            ("Current","10.00",date(2026,9,10),date(2026,9,30)),("15 days","20.00",date(2026,9,2),date(2026,9,2)),
+            ("45 days","30.00",date(2026,8,3),date(2026,8,3)),("75 days","40.00",date(2026,7,4),date(2026,7,4)),("Old","50.00",date(2026,5,1),date(2026,5,1)),
+        ]:ReceivableCharge.objects.create(account=account,description=description,amount=Decimal(amount),charge_date=charge_date,due_date=due_date)
         report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
         self.assertEqual(report.aging_buckets,{"current":Decimal("10.00"),"days_1_30":Decimal("20.00"),"days_31_60":Decimal("30.00"),"days_61_90":Decimal("40.00"),"days_90_plus":Decimal("50.00")})
     def test_report_builds_financial_account_summary(self):
