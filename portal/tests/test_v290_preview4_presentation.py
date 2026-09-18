@@ -20,8 +20,8 @@ class ArenaLinePreview4PresentationTests(SimpleTestCase):
         dashboard = (Path(settings.BASE_DIR) / "templates/portal/dashboard.html").read_text()
 
         self.assertNotIn("<style>", dashboard)
-        self.assertIn('class="dashboard-workspaces"', dashboard)
-        self.assertIn('class="dashboard-workspace-link', dashboard)
+        self.assertNotIn('class="dashboard-workspaces"', dashboard)
+        self.assertNotIn('class="dashboard-workspace-link', dashboard)
 
     def test_representative_modules_use_shared_page_and_section_patterns(self):
         rider_list = (Path(settings.BASE_DIR) / "templates/portal/rider_list.html").read_text()
