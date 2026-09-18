@@ -7,8 +7,8 @@
 .squad-team-hero{position:relative;overflow:hidden;isolation:isolate;min-height:15rem;padding:2rem;border-radius:1.25rem;background-image:linear-gradient(90deg,rgba(9,29,30,.94) 0%,rgba(9,29,30,.78) 46%,rgba(9,29,30,.2) 100%),var(--squad-hero-image);background-size:cover;background-position:center var(--squad-hero-position);color:#fff}.squad-team-hero>div{position:relative;z-index:1}.squad-team-hero .eyebrow{color:rgba(255,255,255,.78)}.squad-team-hero p{color:rgba(255,255,255,.84)}@media(max-width:700px){.squad-team-hero{min-height:12rem;padding:1.35rem}}
 </style>
 <section class="page-intro team-hub-intro{% if my_team_hero %} squad-team-hero{% endif %}"{% if my_team_hero %} style="--squad-hero-image:url('{{ my_team_hero.image.url }}');--squad-hero-position:{{ my_team_hero.position }};"{% endif %}>
-  <div><div class="eyebrow">{% if my_team_hero %}{{ my_team_hero.label|upper }}{% else %}ARENALINE · TEAM HUB{% endif %}</div><h1>My Team</h1>
-  <p>Your family, upcoming team events, responses, and the next things that need your attention.</p></div>
+  <div><div class="eyebrow">{% if my_team_hero %}ARENALINE · {{ my_team_hero.label|upper }}{% else %}ARENALINE · IEA TEAM{% endif %}</div><h1>{% if portal_team %}{{ portal_team.name }}{% else %}My Team{% endif %}</h1>
+  <p><strong>Your team. Your season.</strong> Shows, riders, responses, announcements, and the work that gets everyone to the ring.</p></div>
   <div class="actions"><a class="btn" href="{% url 'action_item_list' %}">Action items</a><a class="btn secondary" href="{% url 'calendar' %}">Calendar</a><a class="btn secondary" href="{% url 'my_account' %}">My Account</a></div>
 </section>
 
