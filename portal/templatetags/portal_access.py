@@ -169,6 +169,19 @@ def active_spectator_updates(show):
 
 
 @register.simple_tag
+def barn_hero(team):
+    """Return general barn/program hero metadata, with a legacy image fallback."""
+    branding = getattr(team, "branding", None) if team else None
+    if not branding:
+        return None
+    image = branding.barn_hero_image or branding.hero_image
+    if not image:
+        return None
+    position = branding.barn_hero_image_position if branding.barn_hero_image else branding.hero_image_position
+    return {"image": image, "position": position, "label": "Barn"}
+
+
+@register.simple_tag
 def squad_hero(team, level):
     """Return squad-specific hero metadata, falling back to the program hero."""
     branding = getattr(team, "branding", None) if team else None
