@@ -159,3 +159,34 @@ body.section-dashboard_general .dashboard-empty a{margin-top:.7rem!important}
 body.section-dashboard_general .dashboard-domain-grid{display:grid!important}
 body.section-dashboard_general .attention-grid{display:grid!important}
 @media(max-width:900px){body.section-dashboard_general .dashboard-cockpit{grid-template-columns:1fr!important}}
+
+/* Preview 2 final hierarchy — explicit spacing after legacy v2.9 dashboard rules. */
+body.section-dashboard_general .dashboard-hero{margin-bottom:1rem}
+body.section-dashboard_general .dashboard-workspaces{margin:.15rem 0 1.75rem!important}
+body.section-dashboard_general .content-section{margin-top:2.75rem!important}
+body.section-dashboard_general .dashboard-workspaces + .content-section{margin-top:0!important}
+body.section-dashboard_general .dashboard-command-bar{margin-top:1.25rem!important}
+body.section-dashboard_general .dashboard-cockpit{margin-top:2.75rem!important}
+body.section-dashboard_general .dashboard-domain-section{margin-top:3rem!important}
+body.section-dashboard_general .section-head{
+  display:flex!important;justify-content:space-between!important;gap:1rem!important;align-items:flex-end!important;
+  margin:0 0 1rem!important;padding:0!important;
+}
+body.section-dashboard_general .section-head .eyebrow{margin-bottom:.25rem}
+body.section-dashboard_general .section-head h2{line-height:1.05}
+body.section-dashboard_general .dashboard-cockpit-panel .section-head{min-height:58px}
+body.section-dashboard_general .dashboard-empty{
+  box-sizing:border-box!important;min-height:155px!important;gap:.15rem!important;
+  line-height:1.4!important;
+}
+body.section-dashboard_general .dashboard-empty strong{margin:0!important;line-height:1.2!important}
+body.section-dashboard_general .dashboard-empty span{margin:.35rem 0 0!important;line-height:1.5!important}
+body.section-dashboard_general .dashboard-empty a{margin:.75rem 0 0!important}
+body.section-dashboard_general .dashboard-domain-grid,
+body.section-dashboard_general .attention-grid{margin-top:.25rem!important}
+body.section-dashboard_general .grid2.content-section{margin-top:3rem!important;padding-top:.25rem}
+@media(max-width:640px){
+  body.section-dashboard_general .content-section{margin-top:2rem!important}
+  body.section-dashboard_general .section-head{align-items:flex-start!important;flex-direction:column!important;gap:.4rem!important}
+  body.section-dashboard_general .dashboard-cockpit-panel .section-head{min-height:0}
+}
