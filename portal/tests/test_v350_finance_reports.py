@@ -79,3 +79,27 @@ class FinanceReportingTests(TestCase):
         self.assertEqual(response.status_code,200)
         self.assertNotContains(response,'value="general"')
         self.assertContains(response,'value="iea"')
+
+    def test_report_exposes_receivable_aging_detail(self):
+        account=ReceivableAccount.objects.create(team=self.team,name="Detail Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableCharge.objects.create(account=account,description="September board",amount=Decimal("180.00"),charge_date=date(2026,8,1),due_date=date(2026,8,15))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
+        row=next(row for row in report.aging_rows if row["account"]=="Detail Family")
+        self.assertEqual(row["balance"],Decimal("180.00"));self.assertEqual(row["bucket"],"days_31_60")
+    def test_finance_report_csv_export_contains_summary_and_detail(self):
+        from django.urls import reverse
+        account=ReceivableAccount.objects.create(team=self.team,name="Export Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableCharge.objects.create(account=account,description="Past due board",amount=Decimal("90.00"),charge_date=date(2026,8,1),due_date=date(2026,8,15))
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("finance_reporting_export"),{"finance_domain":FinanceDomain.GENERAL,"as_of":"2026-09-17"})
+        self.assertEqual(response.status_code,200);self.assertEqual(response["Content-Type"],"text/csv")
+        body=response.content.decode()
+        self.assertIn("ArenaLine Finance Report,general",body);self.assertIn("Export Family,Past due board",body)
+    def test_iea_reporter_cannot_export_general_report(self):
+        from django.urls import reverse
+        user=get_user_model().objects.create_user(username="iea-export",password="pass");p=user.profile;p.team=self.team;p.save(update_fields=["team"])
+        person=Person.objects.create(team=self.team,user=user,first_name="IEA",last_name="Export")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        response=self.client.get(reverse("finance_reporting_export"),{"finance_domain":FinanceDomain.GENERAL})
+        self.assertEqual(response.status_code,403)
