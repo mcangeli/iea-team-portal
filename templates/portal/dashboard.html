@@ -75,6 +75,19 @@
   </section>
 </div>
 
+{% if domain_snapshots %}
+<section class="content-section dashboard-domain-section">
+  <div class="section-head"><div><div class="eyebrow">OPERATIONS PULSE</div><h2>Across the barn</h2></div></div>
+  <div class="dashboard-domain-grid">
+    {% for snapshot in domain_snapshots %}
+    <a class="dashboard-domain-card dashboard-domain-{{ snapshot.key }}" href="{{ snapshot.url }}">
+      <small>{{ snapshot.label }}</small><strong>{{ snapshot.value }}</strong><span>{{ snapshot.detail }}</span><b aria-hidden="true">Open →</b>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <section class="content-section">
   <div class="section-head"><div><div class="eyebrow">EXPLORE ARENALINE</div><h2>Run the whole program</h2></div></div>
   <div class="attention-grid">
