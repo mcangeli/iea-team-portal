@@ -343,3 +343,24 @@ body.section-dashboard .dashboard-glance .club-summary{
     margin:0!important;
   }
 }
+
+
+/* v3.6 IEA workspace presentation — shared, explicitly scoped role surfaces. */
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .dashboard-workspaces{
+  margin:1.15rem 0 0;
+}
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .dashboard-role-announcements{
+  margin-top:1.4rem;
+}
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .dashboard-role-announcements + .club-summary{
+  margin-top:1.4rem;
+}
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .dashboard-role-summary{
+  margin-top:1.4rem;
+}
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .content-section{
+  scroll-margin-top:6rem;
+}
+body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .content-section + .content-section{
+  margin-top:2rem;
+}
