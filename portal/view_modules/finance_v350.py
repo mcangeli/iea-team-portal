@@ -267,7 +267,7 @@ def finance_accounting_export_detail(request,profile_id):
 
 @login_required
 def finance_accounting_export_download(request,profile_id):
-    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET or None)
+    profile=_export_profile_for_user(request.user,profile_id);form=AccountingExportRunForm(request.GET)
     if not form.is_valid():raise PermissionDenied
     data,mime=render_accounting_export(request.user,profile,start_date=form.cleaned_data.get("start_date"),end_date=form.cleaned_data.get("end_date"))
     extension="xlsx" if profile.file_type==AccountingExportProfile.FileType.XLSX else "csv"
