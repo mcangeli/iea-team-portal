@@ -126,3 +126,34 @@ class ReconciliationMatch(models.Model):
         super().clean()
         imported_account=self.imported_transaction.batch.financial_account if self.imported_transaction_id else None
         if imported_account and self.financial_transaction_id and (self.financial_transaction.team_id!=self.imported_transaction.batch.team_id or self.financial_transaction.account_id!=imported_account.id):raise ValidationError("Reconciliation matches must stay within the imported financial account.")
+
+
+class AccountingExportProfile(models.Model):
+    """Reusable outbound accounting mapping. ArenaLine remains the source ledger."""
+    class FileType(models.TextChoices):
+        CSV = "csv", "CSV"
+        XLSX = "xlsx", "Excel (.xlsx)"
+    team = models.ForeignKey("portal.Team", on_delete=models.CASCADE, related_name="accounting_export_profiles")
+    name = models.CharField(max_length=120)
+    finance_domain = models.CharField(max_length=20, choices=FinanceDomain.choices)
+    file_type = models.CharField(max_length=10, choices=FileType.choices, default=FileType.CSV)
+    column_mapping = models.JSONField(default=dict, blank=True)
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("finance_domain", "name")
+        constraints = [
+            models.UniqueConstraint(fields=("team", "finance_domain", "name"), name="uniq_accounting_export_profile_domain_name")
+        ]
+
+    def clean(self):
+        super().clean()
+        if not isinstance(self.column_mapping, dict):
+            raise ValidationError({"column_mapping": "Column mapping must be an object."})
+        if not self.column_mapping:
+            raise ValidationError({"column_mapping": "Choose at least one export column."})
+
+    def __str__(self):
+        return f"{self.name} ({self.get_finance_domain_display()})"
