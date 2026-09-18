@@ -29,13 +29,15 @@ class V360DashboardFoundationTests(TestCase):
         self.assertIn("horses", keys)
         self.assertIn("finance", keys)
 
-    def test_dashboard_keeps_iea_competition_as_an_area_when_season_exists(self):
+    def test_general_barn_dashboard_keeps_iea_competition_out_when_season_exists(self):
         from datetime import date
         from portal.models import Season
         Season.objects.create(team=self.team, name="2026-2027", start_date=date(2026, 8, 1), end_date=date(2027, 7, 31), is_active=True)
-        response = self.client.get(reverse("dashboard_general"))
+        response = self.client.get(reverse("dashboard"))
         keys = {area["key"] for area in response.context["operational_areas"]}
-        self.assertIn("competition", keys)
+        snapshot_keys = {snapshot["key"] for snapshot in response.context["domain_snapshots"]}
+        self.assertNotIn("competition", keys)
+        self.assertNotIn("competition", snapshot_keys)
 
     def test_admin_quick_actions_cover_daily_operations(self):
         response = self.client.get(reverse("dashboard_general"))
