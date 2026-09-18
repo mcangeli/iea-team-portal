@@ -41,6 +41,7 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     accounts=finance_accounts_for_user(user,team).filter(finance_domain=finance_domain)
     charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED).select_related("account")
     if season is not None:charges=charges.filter(season=season)
+    if as_of:charges=charges.filter(charge_date__lte=as_of)
     receivables=sum((charge.balance for charge in charges),ZERO)
     overdue=ZERO
     aging_rows=[]
@@ -52,7 +53,7 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
             if not charge.due_date or charge.due_date>=as_of:
                 bucket="current"
                 aging[bucket]+=balance
-                aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket})
+                aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket,"bucket_label":"Current"})
                 continue
             days=(as_of-charge.due_date).days
             overdue+=balance
@@ -61,7 +62,8 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
             elif days<=90:bucket="days_61_90"
             else:bucket="days_90_plus"
             aging[bucket]+=balance
-            aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket})
+            bucket_label={"days_1_30":"1–30 days","days_31_60":"31–60 days","days_61_90":"61–90 days","days_90_plus":"90+ days"}[bucket]
+            aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket,"bucket_label":bucket_label})
     period_rows=[]
     grouped_periods=qs.values("transaction_date__year","transaction_date__month").annotate(
         income=Sum("amount",filter=Q(kind="income")),
