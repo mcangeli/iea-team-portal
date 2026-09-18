@@ -35,3 +35,19 @@ class V360DashboardFoundationTests(TestCase):
         response = self.client.get(reverse("dashboard_general"))
         keys = {area["key"] for area in response.context["operational_areas"]}
         self.assertIn("competition", keys)
+
+    def test_admin_quick_actions_cover_daily_operations(self):
+        response = self.client.get(reverse("dashboard_general"))
+        keys = {action["key"] for action in response.context["quick_actions"]}
+        self.assertIn("calendar", keys)
+        self.assertIn("actions", keys)
+        self.assertIn("people", keys)
+        self.assertIn("lessons", keys)
+        self.assertIn("horses", keys)
+        self.assertIn("finance", keys)
+
+    def test_dashboard_renders_quick_action_command_bar(self):
+        response = self.client.get(reverse("dashboard_general"))
+        self.assertContains(response, "Move the day forward")
+        self.assertContains(response, "Open calendar")
+        self.assertContains(response, "Action items")
