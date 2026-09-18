@@ -15,8 +15,28 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.3.0 — Equine Care & Horse Management:** released.
 - **3.4.0 — Lesson Program:** released.
 - **3.5.0 — Barn Finance & Business Operations:** released.
-- **3.6.x — Dashboard Rework:** active development.
+- **3.6.0 — Dashboard Refresh & Account Security:** release candidate; staging validation in progress.
 - **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
+
+---
+
+# 3.6.0 — Dashboard Refresh & Account Security
+
+**Status: release candidate; staging validation in progress.**
+
+v3.6.0 separates ArenaLine's general barn/program home from its IEA team experience and adds account-level email verification and optional MFA.
+
+Major outcomes:
+
+- permission-aware general Barn Dashboard for everyday operational awareness;
+- My Team as the dedicated IEA team hub, with authorized role workspaces beneath it;
+- parent-first team navigation and strict separation of IEA announcements/competition context from the general dashboard;
+- independently configurable Barn, Team, Futures, and Upper hero presentation;
+- verified self-service email changes with current-password confirmation and signed verification links;
+- optional TOTP MFA with authenticator QR/manual enrollment and single-use recovery codes;
+- local Postfix as ArenaLine's default mail-delivery target.
+
+The previously planned non-dashboard v3.6 scope remains deferred intact to v3.7.x.
 
 ---
 
