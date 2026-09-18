@@ -76,3 +76,30 @@ class AccountingExportUITests(AccountingExportServiceTests):
         self.client.force_login(user)
         self.assertEqual(self.client.get(reverse("finance_accounting_export_detail",args=[self.export.pk])).status_code,403)
         self.assertEqual(self.client.get(reverse("finance_accounting_export_download",args=[self.export.pk])).status_code,403)
+
+    def test_admin_can_edit_export_profile_with_custom_mapping(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        response=self.client.post(reverse("finance_accounting_export_edit",args=[self.export.pk]),{
+            "name":"Bookkeeper Export","finance_domain":FinanceDomain.GENERAL,"file_type":"csv","active":"on",
+            "preset":"custom","column_mapping":'{"Txn Date":"transaction_date","Memo":"description","Total":"signed_amount"}',
+        })
+        self.assertEqual(response.status_code,302)
+        self.export.refresh_from_db();self.assertEqual(self.export.name,"Bookkeeper Export");self.assertEqual(self.export.column_mapping["Txn Date"],"transaction_date")
+    def test_custom_mapping_rejects_unknown_fields(self):
+        from django.urls import reverse
+        self.client.force_login(self.user)
+        response=self.client.post(reverse("finance_accounting_export_edit",args=[self.export.pk]),{
+            "name":"Bad","finance_domain":FinanceDomain.GENERAL,"file_type":"csv","active":"on",
+            "preset":"custom","column_mapping":'{"Mystery":"not_a_field"}',
+        })
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Unknown export field")
+        self.export.refresh_from_db();self.assertEqual(self.export.name,"QuickBooks")
+    def test_iea_only_user_cannot_edit_general_export_url(self):
+        from django.urls import reverse
+        user=get_user_model().objects.create_user(username="ieaexportedit",password="pass")
+        p=user.profile;p.team=self.team;p.save(update_fields=["team"])
+        person=Person.objects.create(team=self.team,user=user,first_name="IEA Edit",last_name="Treasurer")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        self.assertEqual(self.client.get(reverse("finance_accounting_export_edit",args=[self.export.pk])).status_code,403)
