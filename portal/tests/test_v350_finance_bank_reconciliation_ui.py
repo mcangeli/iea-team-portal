@@ -64,7 +64,7 @@ class BankReconciliationWorkspaceTests(TestCase):
         response=self.client.post(reverse("finance_bank_ignore_row",args=[batch.pk,row.pk]))
         self.assertEqual(response.status_code,302)
         row.refresh_from_db();match.refresh_from_db();tx.refresh_from_db();batch.refresh_from_db()
-        self.assertEqual(row.status,ImportedBankTransaction.Status.IGNORED);self.assertEqual(match.status,ReconciliationMatch.Status.REJECTED);self.assertEqual((tx.amount,tx.description,tx.status),before);self.assertEqual(batch.status,BankImportBatch.Status.COMPLETED)
+        self.assertEqual(row.status,ImportedBankTransaction.Status.IGNORED);self.assertEqual(match.status,ReconciliationMatch.Status.REJECTED);self.assertEqual((tx.amount,tx.description,tx.status),before);self.assertEqual(batch.status,BankImportBatch.Status.REVIEWED)
 
     def test_complete_review_refuses_unresolved_rows(self):
         batch,row,tx,match=self._row_with_match("q")
@@ -86,3 +86,12 @@ class BankReconciliationWorkspaceTests(TestCase):
         self.assertEqual(self.client.post(reverse("finance_bank_ignore_row",args=[batch.pk,row.pk])).status_code,403)
         self.assertEqual(self.client.post(reverse("finance_bank_confirm_match",args=[batch.pk,row.pk,match.pk])).status_code,403)
         row.refresh_from_db();match.refresh_from_db();self.assertEqual(row.status,ImportedBankTransaction.Status.STAGED);self.assertEqual(match.status,ReconciliationMatch.Status.SUGGESTED)
+
+    def test_review_completion_is_explicit_after_last_row_decision(self):
+        batch,row,tx,match=self._row_with_match("e")
+        self.client.force_login(self.user)
+        self.client.post(reverse("finance_bank_ignore_row",args=[batch.pk,row.pk]))
+        batch.refresh_from_db();self.assertEqual(batch.status,BankImportBatch.Status.REVIEWED)
+        response=self.client.post(reverse("finance_bank_complete_review",args=[batch.pk]))
+        self.assertEqual(response.status_code,302)
+        batch.refresh_from_db();self.assertEqual(batch.status,BankImportBatch.Status.COMPLETED)
