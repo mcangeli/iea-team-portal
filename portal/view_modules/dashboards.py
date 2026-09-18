@@ -145,7 +145,9 @@ def _general_context(request, team, season):
             status=VolunteerLog.Status.PENDING,
         ).count()
 
-        upcoming_shows_qs = season.shows.filter(show_date__gte=today)\n\n        pending_availability = ShowAvailability.objects.filter(
+        upcoming_shows_qs = season.shows.filter(show_date__gte=today)
+
+        pending_availability = ShowAvailability.objects.filter(
             show__in=upcoming_shows_qs,
             rider__in=riders,
             status=ShowAvailability.Status.PENDING,
