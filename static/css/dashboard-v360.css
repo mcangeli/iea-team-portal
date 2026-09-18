@@ -364,3 +364,15 @@ body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboa
 body:is(.section-dashboard_coach,.section-dashboard_team_parent,.section-dashboard_secretary,.section-dashboard_show_lead,.section-dashboard_show_manager) .content-section + .content-section{
   margin-top:2rem;
 }
+
+
+/* v3.6 distinct Barn and IEA Team hero treatments. */
+.barn-dashboard-hero{position:relative;overflow:hidden;isolation:isolate;min-height:17rem;padding:2.35rem;border-radius:1.35rem;background:linear-gradient(125deg,#102d29 0%,#173d35 58%,#8a6b32 140%);color:#fff}
+.barn-dashboard-hero.has-image{background-image:linear-gradient(90deg,rgba(8,31,29,.96) 0%,rgba(8,31,29,.78) 48%,rgba(8,31,29,.22) 100%),var(--barn-hero-image);background-size:cover;background-position:center var(--barn-hero-position)}
+.barn-dashboard-hero .eyebrow,.barn-dashboard-hero p{color:rgba(255,255,255,.84)}
+.barn-dashboard-hero .barn-hero-context{display:inline-flex;align-items:center;gap:.5rem;margin-top:1rem;padding:.42rem .72rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(6,25,23,.28);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase}
+.role-team-hero{position:relative;overflow:hidden;isolation:isolate;min-height:15rem;padding:2rem;border-radius:1.25rem;background:linear-gradient(125deg,#0b2025 0%,#173b3b 55%,#876b34 145%);color:#fff}
+.role-team-hero.has-image{background-image:linear-gradient(90deg,rgba(8,27,31,.96) 0%,rgba(8,27,31,.79) 50%,rgba(8,27,31,.2) 100%),var(--role-team-hero-image);background-size:cover;background-position:center var(--role-team-hero-position)}
+.role-team-hero .eyebrow,.role-team-hero p{color:rgba(255,255,255,.84)}
+.role-team-hero .team-workspace-badge{display:inline-flex;margin-top:.9rem;padding:.4rem .7rem;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(5,21,24,.28);font-size:.76rem;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:700px){.barn-dashboard-hero{min-height:13rem;padding:1.45rem}.role-team-hero{min-height:12rem;padding:1.35rem}}
