@@ -209,6 +209,7 @@ def dashboard_show_manager(request):
         "can_manage": can_manage,
         "can_finance": _can_finance(request.user, None),
         "workspace_links": dashboard_views._workspace_links(request.user, team, active_season),
+        "announcements": dashboard_views._visible_announcements(request.user, team)[:4],
         "historical_assignment_count": historical_assignment_count,
     })
 
