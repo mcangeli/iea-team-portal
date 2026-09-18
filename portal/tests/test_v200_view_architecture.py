@@ -24,7 +24,7 @@ class ViewArchitectureTests(SimpleTestCase):
 
     def test_representative_views_are_implemented_in_domain_modules(self):
         expected_modules = {
-            "dashboard": "portal.view_modules.roster",
+            "dashboard": "portal.view_modules.dashboards",
             "show_detail": "portal.view_modules.competitions",
             "my_show_day": "portal.view_modules.show_day",
             "standings": "portal.view_modules.scoring",
