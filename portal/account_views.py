@@ -176,6 +176,10 @@ def mfa_setup(request):
         else:
             request.session.pop("mfa_enrollment_secret", None)
             request.session["mfa_recovery_codes_once"] = recovery_codes
+            # Persist the one-time payload before redirecting. This makes the
+            # enrollment handoff deterministic across session backends.
+            request.session.modified = True
+            request.session.save()
             return redirect("mfa_recovery_codes")
     return render(request, "portal/mfa_setup.html", {
         "form": form, "secret": secret, "provisioning_uri": provisioning_uri(request.user, secret),
