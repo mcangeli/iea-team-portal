@@ -13,6 +13,7 @@ from .platform import (
 from .services.lesson_permissions import is_barn_lesson_manager, is_iea_lesson_manager
 from .model_modules.people import OrganizationRoleAssignment
 from django.conf import settings
+from .services.finance_access import allowed_finance_domains
 
 
 PRODUCT_NAME = "ArenaLine"
@@ -45,6 +46,7 @@ def portal_context(request):
     can_manage = False
     unread_notifications = 0
     can_finance = False
+    finance_domains = set()
     assigned_actions = []
     can_manage_barn_lessons = False
     can_manage_iea_lessons = False
@@ -60,7 +62,10 @@ def portal_context(request):
         can_manage_iea_lessons = is_iea_lesson_manager(request.user)
         is_lesson_rider = _is_lesson_rider(request.user, organization)
 
-        can_finance = False if role == "rider" else (request.user.is_superuser or role == "admin")
+        finance_domains = allowed_finance_domains(request.user, organization) if organization else set()
+        can_finance = bool(finance_domains)
+        # Legacy IEA finance remains available during the v3.5 transition.
+        # Its historical Treasurer role is checked below for compatibility.
         if role != "rider" and not can_finance and period:
             can_finance = CommitteeAssignment.objects.filter(
                 user=request.user,
@@ -100,6 +105,7 @@ def portal_context(request):
         "portal_role": role,
         "portal_can_manage": can_manage,
         "portal_can_finance": can_finance,
+        "portal_finance_domains": finance_domains,
         "portal_can_manage_barn_lessons": can_manage_barn_lessons,
         "portal_can_manage_iea_lessons": can_manage_iea_lessons,
         "portal_is_lesson_rider": is_lesson_rider,
