@@ -29,10 +29,6 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     qs=financial_transactions_for_user(user,team,finance_domain).filter(status="posted")
     if start_date:qs=qs.filter(transaction_date__gte=start_date)
     if end_date:qs=qs.filter(transaction_date__lte=end_date)
-    if start_date or end_date:
-        season_ids=[]
-    else:
-        season_ids=None
     income=qs.filter(kind="income").aggregate(total=Sum("amount"))["total"] or ZERO
     expenses=qs.filter(kind="expense").aggregate(total=Sum("amount"))["total"] or ZERO
     grouped=qs.values("category__name","kind").annotate(total=Sum("amount")).order_by("kind","category__name")
