@@ -56,7 +56,7 @@ def _workspace_links(user, team, season):
 
     if admin:
         links.extend([
-            {"label": "Team overview", "url": reverse("dashboard_general")},
+            {"label": "My Team", "url": reverse("my_team")},
             {"label": "Coach", "url": reverse("dashboard_coach")},
             {"label": "Team Parent", "url": reverse("dashboard_team_parent")},
             {"label": "Points Secretary", "url": reverse("dashboard_secretary")},
@@ -97,7 +97,7 @@ def _workspace_links(user, team, season):
     )
     if admin or has_manager_assignment:
         if has_manager_assignment and not links:
-            links.append({"label": "Team overview", "url": reverse("dashboard_general")})
+            links.append({"label": "My Team", "url": reverse("my_team")})
         show_manager_url = reverse("dashboard_show_manager")
         if not any(link.get("url") == show_manager_url for link in links):
             links.append({"label": "Show Manager", "url": show_manager_url})
