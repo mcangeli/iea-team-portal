@@ -51,3 +51,13 @@ class V360DashboardFoundationTests(TestCase):
         self.assertContains(response, "Move the day forward")
         self.assertContains(response, "Open calendar")
         self.assertContains(response, "Action items")
+
+    def test_dashboard_exposes_cockpit_collections(self):
+        response = self.client.get(reverse("dashboard_general"))
+        self.assertIn("schedule_items", response.context)
+        self.assertIn("attention_items", response.context)
+
+    def test_empty_dashboard_has_useful_cockpit_states(self):
+        response = self.client.get(reverse("dashboard_general"))
+        self.assertContains(response, "The runway is clear.")
+        self.assertContains(response, "Nothing is calling for attention.")
