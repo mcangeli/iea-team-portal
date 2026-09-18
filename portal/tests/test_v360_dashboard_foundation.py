@@ -71,7 +71,7 @@ class V360DashboardFoundationTests(TestCase):
 
     def test_dashboard_renders_operations_pulse(self):
         response = self.client.get(reverse("dashboard_general"))
-        self.assertContains(response, "Operations pulse", html=False)
+        self.assertContains(response, "OPERATIONS PULSE", html=False)
         self.assertContains(response, "Across the barn")
 
     def test_admin_can_open_every_role_dashboard(self):
