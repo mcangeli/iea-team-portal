@@ -21,12 +21,15 @@ class FinanceReport:
     aging_buckets:dict
     account_rows:tuple
 
-def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=None,as_of=None):
+def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=None,as_of=None,season=None):
     if finance_domain not in allowed_finance_domains(user,team):
+        return None
+    if season is not None and season.team_id != team.id:
         return None
     if start_date and end_date and end_date < start_date:
         raise ValueError("Report end date cannot be before start date.")
     qs=financial_transactions_for_user(user,team,finance_domain).filter(status="posted")
+    if season is not None:qs=qs.filter(season=season)
     if start_date:qs=qs.filter(transaction_date__gte=start_date)
     if end_date:qs=qs.filter(transaction_date__lte=end_date)
     income=qs.filter(kind="income").aggregate(total=Sum("amount"))["total"] or ZERO
@@ -35,6 +38,7 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     category_rows=tuple({"category":row["category__name"],"kind":row["kind"],"total":row["total"]} for row in grouped)
     accounts=finance_accounts_for_user(user,team).filter(finance_domain=finance_domain)
     charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED)
+    if season is not None:charges=charges.filter(season=season)
     receivables=sum((charge.balance for charge in charges),ZERO)
     overdue=ZERO
     aging={"current":ZERO,"1_30":ZERO,"31_60":ZERO,"61_90":ZERO,"90_plus":ZERO}
@@ -51,9 +55,9 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
             elif days<=90:aging["61_90"]+=balance
             else:aging["90_plus"]+=balance
     account_rows=[]
-    for account in financial_transactions_for_user(user,team,finance_domain).filter(status="posted").values("account__name").annotate(
+    for account in qs.values("account__name").annotate(
         income=Sum("amount",filter=Q(kind="income")),
-        expenses=Sum("amount",filter=__import__("django").db.models.Q(kind="expense")),
+        expenses=Sum("amount",filter=Q(kind="expense")),
     ).order_by("account__name"):
         inc=account["income"] or ZERO;exp=account["expenses"] or ZERO
         account_rows.append({"account":account["account__name"],"income":inc,"expenses":exp,"net":inc-exp})
