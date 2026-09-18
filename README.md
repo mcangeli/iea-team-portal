@@ -15,7 +15,7 @@ v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now t
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release candidate: `docs/releases/v3.6.0.md`.
+- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.6.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
@@ -37,7 +37,7 @@ The root **Dashboard** is the general ArenaLine barn/program cockpit for everyon
 
 ArenaLine defaults email delivery to the server's local Postfix service. Containerized deployments must make the host Postfix service reachable from the web container before verification mail can be delivered.
 
-Focused v3.6 dashboard/security regressions and manual presentation/MFA checks have passed on staging. Clean system/migration checks and the complete portal suite remain the release-promotion gates.
+v3.6.0 passed its complete staging release gate: dashboard/security regressions, manual presentation and MFA checks, clean Django system and migration-state checks, all v3.6 migrations applied, verified Postfix delivery, and **1152/1152 portal tests passing**.
 
 ## Roles and dashboards
 
