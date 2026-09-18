@@ -22,6 +22,7 @@ class EmailVerificationTests(TestCase):
         self.user.profile.team = self.team
         self.user.profile.role = UserProfile.Role.PARENT
         self.user.profile.email_verified_at = timezone.now()
+        self.user.profile.must_change_password = False
         self.user.profile.save()
         self.client = Client()
         self.client.force_login(self.user)
