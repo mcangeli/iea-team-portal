@@ -173,7 +173,7 @@ def _general_context(request, team, season):
             completed=False,
         ).count()
 
-     person = Person.objects.filter(team=team, user=request.user, active=True).first()
+    person = Person.objects.filter(team=team, user=request.user, active=True).first()
     active_roles = []
     if person:
         active_roles = list(
