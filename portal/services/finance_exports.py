@@ -7,7 +7,7 @@ from portal.services.finance_access import allowed_finance_domains, financial_tr
 
 EXPORT_FIELDS={
     "transaction_date": lambda tx: tx.transaction_date.isoformat(),
-    "kind": lambda tx: tx.kind,
+    "kind": lambda tx: "Deposit" if tx.kind == tx.Kind.INCOME else "Expense",
     "account": lambda tx: tx.account.name,
     "category": lambda tx: tx.category.name,
     "amount": lambda tx: f"{tx.amount:.2f}",
@@ -32,7 +32,7 @@ def validate_export_mapping(mapping):
 def export_transactions_for_profile(user,profile,*,start_date=None,end_date=None):
     if profile.finance_domain not in allowed_finance_domains(user,profile.team):
         raise PermissionDenied
-    qs=financial_transactions_for_user(user,profile.team,profile.finance_domain).select_related("account","category").order_by("transaction_date","id")
+    qs=financial_transactions_for_user(user,profile.team,profile.finance_domain).filter(status="posted").select_related("account","category").order_by("transaction_date","id")
     if start_date:qs=qs.filter(transaction_date__gte=start_date)
     if end_date:qs=qs.filter(transaction_date__lte=end_date)
     return qs
@@ -50,6 +50,8 @@ def render_accounting_export(user,profile,*,start_date=None,end_date=None):
     if profile.file_type==profile.FileType.CSV:
         out=StringIO(newline="");writer=csv.DictWriter(out,fieldnames=headers);writer.writeheader();writer.writerows(rows)
         return out.getvalue().encode("utf-8-sig"),"text/csv"
+    if profile.file_type!=profile.FileType.XLSX:
+        raise ValidationError("Unsupported accounting export file type.")
     wb=Workbook();ws=wb.active;ws.title="ArenaLine Export";ws.append(headers)
     for row in rows:ws.append([row[h] for h in headers])
     out=BytesIO();wb.save(out)
