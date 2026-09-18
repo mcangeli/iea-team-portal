@@ -73,8 +73,14 @@ class MFAEnrollmentViewTests(TestCase):
         self.user.profile.refresh_from_db()
         self.assertTrue(self.user.profile.mfa_enabled)
 
+        # Follow the enrollment redirect directly. The recovery-code view intentionally
+        # consumes the one-time session payload on first display.
         response = self.client.get(reverse("mfa_recovery_codes"))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.status_code,
+            200,
+            f"expected one-time recovery screen, redirected to {response.get('Location')}",
+        )
         self.assertContains(response, "These codes will not be shown again.")
         response = self.client.get(reverse("mfa_recovery_codes"))
         self.assertRedirects(response, reverse("my_account"))
