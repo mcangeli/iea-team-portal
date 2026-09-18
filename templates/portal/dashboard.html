@@ -30,7 +30,10 @@
   </div>
 </section>
 
-<div class="dashboard-cockpit content-section">
+<section class="content-section dashboard-announcements">
+  <div class="section-head"><div><div class="eyebrow">PROGRAM NOTES</div><h2>Announcements</h2></div></div>
+  {% for a in announcements %}<article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>{% empty %}<div class="empty-state">No current announcements.</div>{% endfor %}
+</section>\n\n<div class="dashboard-cockpit content-section">
   <section class="dashboard-cockpit-panel">
     <div class="section-head"><div><div class="eyebrow">COMING UP</div><h2>On the schedule</h2></div><a class="text-link" href="{% url 'calendar' %}">Calendar →</a></div>
     {% if schedule_items %}
@@ -85,8 +88,5 @@
   </div>
 </section>
 
-<div class="grid2 content-section">
-  <section><div class="section-head"><div><div class="eyebrow">PROGRAM NOTES</div><h2>Announcements</h2></div></div>{% for a in announcements %}<article class="card announcement {{ a.priority }}"><small>{{ a.get_priority_display }} · {{ a.get_audience_display }}</small><h3>{{ a.title }}</h3><p>{{ a.body|linebreaksbr }}</p></article>{% empty %}<div class="empty-state">No current announcements.</div>{% endfor %}</section>
-  <section><div class="section-head"><div><div class="eyebrow">COMING UP</div><h2>Calendar</h2></div><a class="text-link" href="{% url 'calendar' %}">Calendar →</a></div>{% for e in events %}<article class="event-row"><div class="datebox"><strong>{{ e.starts_at|date:"M" }}</strong><span>{{ e.starts_at|date:"j" }}</span></div><div><small>{{ e.get_kind_display }}</small><h3>{{ e.title }}</h3><p>{% if e.all_day %}{{ e.starts_at|date:"D, M j" }}{% else %}{{ e.starts_at|date:"D, M j · g:i A" }}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</p></div></article>{% empty %}<div class="empty-state">No upcoming events.</div>{% endfor %}</section>
-</div>
+
 {% endblock %}
