@@ -6,7 +6,7 @@ from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team, UserProfile
-from portal.services.finance_operations import allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
 
 
 class FinanceOperationsTests(TestCase):
@@ -130,3 +130,21 @@ class FinanceOperationsTests(TestCase):
         self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(first.balance,first.amount);self.assertEqual(payment.unapplied_amount,payment.amount)
         replacement=allocate_payment_for_user(user,self.general.pk,payment_id=payment.pk,charge_id=second.pk,team=self.team)
         self.assertEqual(replacement.amount,payment.amount);self.assertEqual(second.balance,0)
+
+    def test_removing_account_person_soft_deactivates_relationship(self):
+        user=self._user("people-admin",role=UserProfile.Role.ADMIN)
+        person=Person.objects.create(team=self.team,first_name="Billing",last_name="Contact")
+        link=add_account_person_for_user(user,self.general.pk,person=person,role="billing_contact",statement_recipient=True,team=self.team)
+        remove_account_person_for_user(user,self.general.pk,link_id=link.pk,team=self.team)
+        link.refresh_from_db();self.assertFalse(link.active);self.assertFalse(link.statement_recipient)
+    def test_credit_allocation_can_be_voided_and_reallocated(self):
+        user=self._user("credit-reallocate-admin",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="Board",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="Lessons",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Adjustment",amount="40.00",credit_date=date(2026,9,8),charge_id=first.pk,team=self.team)
+        allocation=credit.allocations.get()
+        unallocate_credit_for_user(user,self.general.pk,allocation_id=allocation.pk,reason="Wrong charge",team=self.team)
+        allocation.refresh_from_db();first.refresh_from_db();credit.refresh_from_db()
+        self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(first.balance,first.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
+        replacement=allocate_credit_for_user(user,self.general.pk,credit_id=credit.pk,charge_id=second.pk,team=self.team)
+        self.assertEqual(replacement.amount,credit.amount);self.assertEqual(second.balance,0)
