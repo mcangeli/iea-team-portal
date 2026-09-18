@@ -692,18 +692,10 @@ def dashboard(request):
         return render(request, "portal/no_team.html")
     season = active_period_for_organization(team)
 
-    preferred = _preferred_dashboard(request.user, team, season)
-    if preferred == "coach":
-        return _render_coach(request, team, season)
-    if preferred == "show_lead":
-        return _render_show_lead(request, team, season)
-    if preferred == "secretary":
-        return _render_secretary(request, team, season)
-    if preferred == "team_parent":
-        return _render_team_parent(request, team, season)
-
-    context = _general_context(request, team, season)
-    return render(request, "portal/dashboard.html", context)
+    # The product Dashboard is the stable ArenaLine operations home. Role
+    # workspaces remain explicitly available from the dashboard switcher rather
+    # than silently replacing the user's home page.
+    return render(request, "portal/dashboard.html", _general_context(request, team, season))
 
 
 @login_required
@@ -712,20 +704,7 @@ def dashboard_general(request):
     if not team:
         return render(request, "portal/no_team.html")
     season = active_period_for_organization(team)
-    context = _general_context(request, team, season)
-    if _is_admin(request.user):
-        context["dashboard_debug"] = {
-            "user": request.user.username,
-            "profile_role": getattr(getattr(request.user, "profile", None), "role", None),
-            "superuser": request.user.is_superuser,
-            "quick_actions": len(context.get("quick_actions", [])),
-            "operational_areas": len(context.get("operational_areas", [])),
-            "domain_snapshots": len(context.get("domain_snapshots", [])),
-            "workspace_links": len(context.get("workspace_links", [])),
-            "can_manage_horses": bool(context.get("can_manage_horses")),
-            "active_horse_count": context.get("active_horse_count"),
-        }
-    return render(request, "portal/dashboard.html", context)
+    return render(request, "portal/dashboard.html", _general_context(request, team, season))
 
 
 @login_required
