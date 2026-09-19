@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block title %}New Payee · Finance · ArenaLine{% endblock %}{% block content %}
+<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · ACCOUNTS PAYABLE</div><h1>New payee</h1><p>Add a vendor, person, or other party the organization pays.</p></div><div class="actions"><a class="btn secondary" href="{% url 'finance_payables' %}">Cancel</a></div></section>
+<section class="content-section"><form method="post" class="form-stack">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small class="muted">{{ field.help_text }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}<div class="actions"><button class="btn" type="submit">Create payee</button></div></form></section>
+{% endblock %}
