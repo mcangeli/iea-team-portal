@@ -38,10 +38,35 @@ class ReceivableAccountPerson(models.Model):
         if self.person_id and self.account_id and self.person.team_id!=self.account.team_id: raise ValidationError({"person":"Account person must belong to the same organization."})
     def __str__(self): return f"{self.account}: {self.person} ({self.get_role_display()})"
 
+
+class ReceivableBillingRule(models.Model):
+    """Reusable rule that generates charges into the existing receivables ledger."""
+    class Cadence(models.TextChoices):
+        MANUAL="manual","Manual"
+        MONTHLY="monthly","Monthly"
+        SERVICE="service","Service generated"
+    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="billing_rules")
+    description=models.CharField(max_length=220)
+    amount=models.DecimalField(max_digits=12,decimal_places=2)
+    cadence=models.CharField(max_length=16,choices=Cadence.choices,default=Cadence.MANUAL)
+    charge_type=models.CharField(max_length=40,blank=True)
+    due_days=models.PositiveSmallIntegerField(default=0,help_text="Days after the charge date that payment is due.")
+    active=models.BooleanField(default=True)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["account__name","description","id"]
+        constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_billing_rule_amount_gt_zero")]
+    def clean(self):
+        super().clean()
+        if self.due_days>365: raise ValidationError({"due_days":"Due days cannot exceed 365."})
+    def __str__(self): return f"{self.account}: {self.description}"
+
 class ReceivableCharge(models.Model):
     class Status(models.TextChoices): POSTED="posted","Posted"; WAIVED="waived","Waived"; VOID="void","Void"
-    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="charges"); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charges"); legacy_family_charge=models.OneToOneField("portal.FamilyCharge",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charge"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); charge_date=models.DateField(); due_date=models.DateField(null=True,blank=True); charge_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
-    class Meta: ordering=["charge_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_charge_amount_gt_zero")]
+    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="charges"); billing_rule=models.ForeignKey(ReceivableBillingRule,on_delete=models.PROTECT,null=True,blank=True,related_name="generated_charges"); generation_key=models.CharField(max_length=160,blank=True); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charges"); legacy_family_charge=models.OneToOneField("portal.FamilyCharge",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charge"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); charge_date=models.DateField(); due_date=models.DateField(null=True,blank=True); charge_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
+    class Meta: ordering=["charge_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_charge_amount_gt_zero"),models.UniqueConstraint(fields=["billing_rule","generation_key"],condition=models.Q(billing_rule__isnull=False)&~models.Q(generation_key=""),name="unique_receivable_generated_charge")]
     def clean(self):
         super().clean()
         if self.season_id and self.season.team_id!=self.account.team_id: raise ValidationError({"season":"Charge season must belong to the account organization."})
