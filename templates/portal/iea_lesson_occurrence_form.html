@@ -29,7 +29,7 @@
     </div>
     <div class="iea-roster-grid">
     {% for choice in form.participants %}
-      <label class="card iea-roster-choice" data-level="{{ choice.choice_label.team_level|default:'all' }}">
+      <label class="card iea-roster-choice" data-level="{{ choice.data.value.instance.iea_team_level|default:'all' }}">
         {{ choice.tag }} <span>{{ choice.choice_label }}</span>
       </label>
     {% empty %}<div class="empty-state">No eligible riders are linked to this active season.</div>{% endfor %}
