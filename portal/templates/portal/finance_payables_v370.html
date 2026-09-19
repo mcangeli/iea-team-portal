@@ -9,7 +9,7 @@
 </div>
 <section class="card"><div class="finance-section-head"><div><p class="eyebrow">Accounts payable</p><h2>Open obligations</h2></div><span class="muted">As of {{ summary.as_of }}</span></div>
 {% if summary.rows %}<div class="table-wrap"><table><thead><tr><th>Payee</th><th>Description</th><th>Due</th><th>Status</th><th>Balance</th></tr></thead><tbody>
-{% for row in summary.rows %}<tr><td><strong>{{ row.party.name }}</strong><br><a href="{% url 'finance_payable_obligation_add' row.party.pk %}">Add payable</a></td><td>{{ row.obligation.description }}</td><td>{{ row.due_date|default:"—" }}</td><td><span class="ap-status ap-{{ row.state }}">{{ row.state|title }}</span></td><td><strong>${{ row.balance }}</strong></td></tr>{% endfor %}
+{% for row in summary.rows %}<tr><td><strong>{{ row.party.name }}</strong><br><a href="{% url 'finance_payable_obligation_add' row.party.pk %}">Add payable</a></td><td><a href="{% url 'finance_payable_obligation_detail' row.obligation.pk %}">{{ row.obligation.description }}</a></td><td>{{ row.due_date|default:"—" }}</td><td><span class="ap-status ap-{{ row.state }}">{{ row.state|title }}</span></td><td><strong>${{ row.balance }}</strong></td></tr>{% endfor %}
 </tbody></table></div>{% else %}<p class="muted">No open payable obligations in this finance domain.</p>{% endif %}</section>
 </div>
 <style>
