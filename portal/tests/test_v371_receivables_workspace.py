@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCharge
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge
 from portal.model_modules.people import Person
 from portal.models import Team, UserProfile
 from portal.services.finance_receivable_reports import receivable_workspace_summary
@@ -54,3 +54,22 @@ class ReceivablesWorkspaceTests(TestCase):
         self.assertEqual(response.status_code,200)
         self.assertContains(response,"Overdue")
         self.assertEqual(response.context["overdue_total"],Decimal("600.00"))
+
+    def test_create_monthly_billing_rule_from_ui(self):
+        response=self.client.post(reverse("finance_billing_rule_add")+"?domain=general",{"account":self.general.pk,"description":"Monthly board","amount":"750.00","cadence":"monthly","charge_type":"board","due_days":"10","notes":""})
+        self.assertEqual(response.status_code,302)
+        rule=ReceivableBillingRule.objects.get(account=self.general,description="Monthly board")
+        self.assertEqual(rule.amount,Decimal("750.00"));self.assertEqual(rule.due_days,10)
+
+    def test_monthly_billing_ui_generates_once_on_retry(self):
+        ReceivableBillingRule.objects.create(account=self.general,description="Monthly board",amount=Decimal("750.00"),cadence="monthly",due_days=10)
+        url=reverse("finance_monthly_billing_run")+"?domain=general"
+        first=self.client.post(url,{"finance_domain":"general","billing_month":"2026-09"})
+        second=self.client.post(url,{"finance_domain":"general","billing_month":"2026-09"})
+        self.assertEqual(first.status_code,302);self.assertEqual(second.status_code,302)
+        self.assertEqual(self.general.charges.filter(billing_rule__isnull=False).count(),1)
+
+    def test_receivables_workspace_lists_billing_rules(self):
+        ReceivableBillingRule.objects.create(account=self.general,description="Training package",amount=Decimal("300.00"),cadence="monthly")
+        response=self.client.get(reverse("finance_receivables"))
+        self.assertContains(response,"Training package");self.assertContains(response,"Run monthly billing")
