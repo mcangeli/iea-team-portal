@@ -1,7 +1,9 @@
 from datetime import date, datetime, time
 from decimal import Decimal
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCharge
 from portal.model_modules.lessons import LessonAttendanceRecord, LessonOccurrence, LessonProgram, LessonSeries
@@ -68,3 +70,35 @@ class LessonReceivablesBillingTests(TestCase):
         ReceivableAccountPerson.objects.create(account=iea,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
         result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
         self.assertEqual(len(result.generated),0);self.assertEqual(len(result.skipped),1)
+
+class LessonBillingUITests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Lesson Billing UI Barn")
+        self.admin=User.objects.create_user(username="billing-admin",password="test-pass")
+        self.admin.profile.team=self.team;self.admin.profile.role="admin";self.admin.profile.save()
+        self.client.login(username="billing-admin",password="test-pass")
+        self.rider=Person.objects.create(team=self.team,first_name="Alex",last_name="Rider")
+        self.program=LessonProgram.objects.create(team=self.team,name="Academy")
+        self.series=LessonSeries.objects.create(program=self.program,name="Private")
+        self.occurrence=LessonOccurrence.objects.create(series=self.series,title="Friday lesson",starts_at=timezone.make_aware(datetime(2026,9,18,16,0)),status=LessonOccurrence.Status.COMPLETED)
+        LessonAttendanceRecord.objects.create(occurrence=self.occurrence,person=self.rider,status=LessonAttendanceRecord.Status.PRESENT)
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Alex Account",finance_domain=FinanceDomain.GENERAL,primary_person=self.rider)
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        self.rule=ReceivableBillingRule.objects.create(account=self.account,description="Private lesson",amount=Decimal("70.00"),cadence=ReceivableBillingRule.Cadence.SERVICE,charge_type="lesson")
+
+    def test_completed_occurrence_offers_billing_rule(self):
+        response=self.client.get(reverse("lesson_occurrence_detail",args=[self.occurrence.pk]))
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Lesson billing");self.assertContains(response,"Private lesson")
+
+    def test_billing_preview_shows_ready_participant(self):
+        response=self.client.get(reverse("lesson_occurrence_detail",args=[self.occurrence.pk]),{"billing_rule":self.rule.pk})
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Ready to bill");self.assertContains(response,"Alex Rider")
+
+    def test_post_lesson_billing_creates_charge(self):
+        response=self.client.post(reverse("lesson_occurrence_bill",args=[self.occurrence.pk]),{"billing_rule":self.rule.pk})
+        self.assertEqual(response.status_code,302);self.assertEqual(ReceivableCharge.objects.filter(account=self.account,billing_rule=self.rule).count(),1)
+
+    def test_post_lesson_billing_is_safe_to_retry(self):
+        url=reverse("lesson_occurrence_bill",args=[self.occurrence.pk])
+        self.client.post(url,{"billing_rule":self.rule.pk});self.client.post(url,{"billing_rule":self.rule.pk})
+        self.assertEqual(ReceivableCharge.objects.filter(account=self.account,billing_rule=self.rule).count(),1)
