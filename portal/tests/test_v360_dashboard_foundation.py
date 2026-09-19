@@ -5,9 +5,9 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import date, timedelta
 
-from portal.models import CommitteeAssignment, Season, Show, ShowAvailability, ShowLeadAssignment, Team, UserProfile
-from portal.model_modules.lessons import LessonProgram, LessonSeries, LessonOccurrence, LessonAssignment
-from portal.model_modules.people import Person
+from portal.models import CommitteeAssignment, GuardianContact, Rider, RiderGuardian, Season, Show, ShowAvailability, ShowLeadAssignment, Team, UserProfile
+from portal.model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonEnrollment, LessonProgram, LessonSeries, LessonOccurrence, LessonAssignment
+from portal.model_modules.people import LegacyPersonLink, Person
 
 
 class V360DashboardFoundationTests(TestCase):
@@ -274,3 +274,103 @@ class V360DashboardFoundationTests(TestCase):
         response = rider_client.get(reverse("dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Thursday Lesson")
+
+
+    def _parent_family(self, username="lesson-parent"):
+        parent = User.objects.create_user(username=username, password="pass12345")
+        parent.profile.team = self.team
+        parent.profile.role = UserProfile.Role.PARENT
+        parent.profile.save(update_fields=["team", "role"])
+        guardian = GuardianContact.objects.create(
+            team=self.team, user=parent, first_name="Pat", last_name="Parent"
+        )
+        rider = Rider.objects.create(team=self.team, first_name="Riley", last_name="Child")
+        RiderGuardian.objects.create(rider=rider, guardian=guardian)
+        person = Person.objects.create(team=self.team, first_name="Riley", last_name="Child")
+        LegacyPersonLink.objects.create(person=person, rider=rider)
+        return parent, rider, person
+
+    def test_parent_dashboard_shows_linked_rider_iea_occurrence(self):
+        parent, rider, person = self._parent_family("parent-iea-lesson")
+        season = Season.objects.create(
+            team=self.team, name="2026-2027", start_date=date(2026, 8, 1),
+            end_date=date(2027, 7, 31), is_active=True,
+        )
+        program = LessonProgram.objects.create(team=self.team, name="IEA Team Lessons")
+        series = LessonSeries.objects.create(program=program, name="IEA Team Lessons")
+        IEALessonSeriesContext.objects.create(series=series, season=season, team_level="mixed")
+        occurrence = LessonOccurrence.objects.create(
+            series=series, title="Mixed Team Practice",
+            starts_at=timezone.now() + timedelta(days=1), iea_roster_configured=True,
+        )
+        IEALessonOccurrenceParticipant.objects.create(occurrence=occurrence, person=person)
+        client = Client(); client.force_login(parent)
+        response = client.get(reverse("dashboard"))
+        self.assertContains(response, "Mixed Team Practice")
+
+    def test_parent_dashboard_shows_linked_rider_barn_occurrence(self):
+        parent, rider, person = self._parent_family("parent-barn-lesson")
+        program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
+        series = LessonSeries.objects.create(program=program, name="Wednesday Group")
+        LessonEnrollment.objects.create(series=series, person=person)
+        LessonOccurrence.objects.create(
+            series=series, title="Wednesday Group Lesson",
+            starts_at=timezone.now() + timedelta(days=1),
+        )
+        client = Client(); client.force_login(parent)
+        response = client.get(reverse("dashboard"))
+        self.assertContains(response, "Wednesday Group Lesson")
+
+    def test_parent_dashboard_combines_lessons_for_two_linked_riders(self):
+        parent, rider_one, person_one = self._parent_family("parent-two-riders")
+        rider_two = Rider.objects.create(team=self.team, first_name="Second", last_name="Child")
+        guardian = parent.guardian_contact
+        RiderGuardian.objects.create(rider=rider_two, guardian=guardian)
+        person_two = Person.objects.create(team=self.team, first_name="Second", last_name="Child")
+        LegacyPersonLink.objects.create(person=person_two, rider=rider_two)
+        program = LessonProgram.objects.create(team=self.team, name="Family Lessons")
+        series = LessonSeries.objects.create(program=program, name="Family Series")
+        LessonEnrollment.objects.create(series=series, person=person_one)
+        LessonEnrollment.objects.create(series=series, person=person_two)
+        LessonOccurrence.objects.create(
+            series=series, title="Family Lesson",
+            starts_at=timezone.now() + timedelta(days=1),
+        )
+        client = Client(); client.force_login(parent)
+        response = client.get(reverse("dashboard"))
+        visible = list(response.context["upcoming_lesson_occurrences"])
+        self.assertEqual(len(visible), 1)
+        self.assertEqual(visible[0].title, "Family Lesson")
+
+    def test_parent_dashboard_does_not_show_unrelated_rider_lesson(self):
+        parent, rider, person = self._parent_family("parent-private-lessons")
+        unrelated = Person.objects.create(team=self.team, first_name="Other", last_name="Rider")
+        program = LessonProgram.objects.create(team=self.team, name="Private Lessons")
+        series = LessonSeries.objects.create(program=program, name="Private")
+        LessonEnrollment.objects.create(series=series, person=unrelated)
+        LessonOccurrence.objects.create(
+            series=series, title="Not My Family Lesson",
+            starts_at=timezone.now() + timedelta(days=1),
+        )
+        client = Client(); client.force_login(parent)
+        response = client.get(reverse("dashboard"))
+        self.assertNotContains(response, "Not My Family Lesson")
+
+    def test_parent_dashboard_omits_past_and_cancelled_lessons(self):
+        parent, rider, person = self._parent_family("parent-upcoming-only")
+        program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
+        series = LessonSeries.objects.create(program=program, name="Schedule")
+        LessonEnrollment.objects.create(series=series, person=person)
+        LessonOccurrence.objects.create(
+            series=series, title="Past Family Lesson",
+            starts_at=timezone.now() - timedelta(days=1),
+        )
+        LessonOccurrence.objects.create(
+            series=series, title="Cancelled Family Lesson",
+            starts_at=timezone.now() + timedelta(days=1),
+            status=LessonOccurrence.Status.CANCELLED,
+        )
+        client = Client(); client.force_login(parent)
+        response = client.get(reverse("dashboard"))
+        self.assertNotContains(response, "Past Family Lesson")
+        self.assertNotContains(response, "Cancelled Family Lesson")
