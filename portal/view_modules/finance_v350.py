@@ -10,7 +10,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
+from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
@@ -22,7 +22,7 @@ from portal.services.finance_operations import add_account_person_for_user, allo
 from portal.services.finance_statements import account_activity, statement_for_user
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
-from portal.services.finance_payable_operations import create_payable_obligation_for_user, create_payable_party_for_user
+from portal.services.finance_payable_operations import create_payable_obligation_for_user, create_payable_party_for_user, post_payable_payment_for_user, void_payable_payment_for_user
 ZERO=Decimal("0.00")
 
 def _team_for_finance_user(user):
@@ -72,6 +72,43 @@ def finance_payable_obligation_add(request,party_id):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Payable obligation created.");return redirect(f"{reverse('finance_payables')}?domain={party.finance_domain}")
     return render(request,"portal/finance_payable_obligation_form_v370.html",{"team":team,"party":party,"form":form})
+
+@login_required
+def finance_payable_obligation_detail(request,pk):
+    team=_team_for_finance_user(request.user)
+    from portal.services.finance_access import payable_obligation_for_user
+    obligation=payable_obligation_for_user(request.user,pk,team)
+    if obligation is None:raise PermissionDenied
+    payments=obligation.payments.select_related("payment_account","financial_transaction").order_by("-paid_date","-id")
+    return render(request,"portal/finance_payable_obligation_detail_v370.html",{"team":team,"obligation":obligation,"payments":payments})
+
+@login_required
+def finance_payable_payment_add(request,pk):
+    team=_team_for_finance_user(request.user)
+    from portal.services.finance_access import payable_obligation_for_user
+    obligation=payable_obligation_for_user(request.user,pk,team)
+    if obligation is None:raise PermissionDenied
+    form=PayablePaymentForm(request.POST or None,initial={"paid_date":date.today(),"amount":obligation.balance},team=team,finance_domain=obligation.party.finance_domain,max_amount=obligation.balance)
+    if request.method=="POST" and form.is_valid():
+        try:post_payable_payment_for_user(request.user,obligation.pk,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Payable payment recorded.");return redirect("finance_payable_obligation_detail",pk=obligation.pk)
+    return render(request,"portal/finance_payable_payment_form_v370.html",{"team":team,"obligation":obligation,"form":form})
+
+@login_required
+def finance_payable_payment_void(request,pk,payment_id):
+    team=_team_for_finance_user(request.user)
+    from portal.services.finance_access import payable_obligation_for_user
+    obligation=payable_obligation_for_user(request.user,pk,team)
+    if obligation is None:raise PermissionDenied
+    payment=obligation.payments.filter(pk=payment_id).first()
+    if payment is None:raise PermissionDenied
+    form=PayableVoidPaymentForm(request.POST or None)
+    if request.method=="POST" and form.is_valid():
+        try:void_payable_payment_for_user(request.user,obligation.pk,payment_id=payment.pk,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Payable payment voided.");return redirect("finance_payable_obligation_detail",pk=obligation.pk)
+    return render(request,"portal/finance_payable_payment_void_v370.html",{"team":team,"obligation":obligation,"payment":payment,"form":form})
 
 @login_required
 def finance_reporting(request):
