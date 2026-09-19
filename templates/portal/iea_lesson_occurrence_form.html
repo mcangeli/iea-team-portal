@@ -4,7 +4,7 @@
 <nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'iea_lesson_list' %}">← Team Lessons</a></nav>
 <div class="page-intro">
   <div><div class="eyebrow">IEA TEAM LESSONS · {{ season.name|upper }}</div><h1>Schedule a team lesson</h1>
-  <p>Set the lesson logistics, then choose the riders who are actually scheduled. Futures and Upper riders may ride together.</p></div>
+  <p>Set the lesson logistics, then choose the riders who are actually scheduled. Futures and Upper riders may ride together.</p>{% if duplicate_source %}<p class="muted">Scheduling another lesson from {{ duplicate_source.title }}. Logistics are prefilled; the roster is not copied unless you choose it explicitly.</p><div class="actions"><a class="btn secondary small" href="{% url 'iea_lesson_occurrence_duplicate' duplicate_source.pk %}?copy_roster=1">Copy previous roster</a></div>{% endif %}</div>
 </div>
 <form method="post" class="content-section">{% csrf_token %}
   {% if form.non_field_errors %}<div class="card">{{ form.non_field_errors }}</div>{% endif %}
