@@ -1,4 +1,5 @@
-from datetime import timedelta
+from calendar import monthrange
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -63,10 +64,19 @@ def lesson_series_create(request,program_pk):
 
 @login_required
 def iea_lesson_list(request):
-    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]
+    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]; month_occurrences=[]; month_cursor=timezone.localdate().replace(day=1)
+    requested_month=request.GET.get("month","")
+    if requested_month:
+        try: month_cursor=date.fromisoformat(f"{requested_month}-01")
+        except ValueError: pass
     if season:
-        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name"); legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
-    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"can_manage":is_iea_lesson_manager(request.user)})
+        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name")
+        legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
+        month_end=month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])
+        month_occurrences=LessonOccurrence.objects.filter(series__iea_context__season=season,starts_at__date__range=(month_cursor,month_end)).select_related("series__program","instructor").prefetch_related("iea_participants").order_by("starts_at")
+    previous_month=(month_cursor-timedelta(days=1)).replace(day=1)
+    next_month=(month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])+timedelta(days=1)).replace(day=1)
+    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"month_occurrences":month_occurrences,"month_cursor":month_cursor,"previous_month":previous_month,"next_month":next_month,"can_manage":is_iea_lesson_manager(request.user)})
 
 
 @login_required
