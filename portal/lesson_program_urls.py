@@ -26,6 +26,6 @@ urlpatterns = [
     path("lesson-occurrences/<int:pk>/complete/", views.lesson_occurrence_complete, name="lesson_occurrence_complete"),
     path("lesson-occurrences/<int:pk>/cancel/", views.lesson_occurrence_cancel, name="lesson_occurrence_cancel"),
     path("lesson-occurrences/<int:pk>/reschedule/", views.lesson_occurrence_reschedule, name="lesson_occurrence_reschedule"),
-    path("lesson-attendance/<int:pk>/edit/", views.lesson_attendance_edit, name="lesson_attendance_edit"),
+    path("lesson-attendance/<int:pk>/edit/", views.lesson_attendance_edit, name="lesson_occurrence_attendance_edit"),
     path("lesson-assignments/<int:pk>/edit/", views.lesson_assignment_edit, name="lesson_assignment_edit"),
 ]
