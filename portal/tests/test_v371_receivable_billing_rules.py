@@ -3,9 +3,11 @@ from decimal import Decimal
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCharge
+from portal.model_modules.people import Person
 from portal.models import Season, Team
 from portal.services.finance_billing import generate_charge, generate_monthly_charge, generate_monthly_charges, generate_service_charge
+from portal.services.finance_service_billing import bill_person_service
 
 class ReceivableBillingRuleTests(TestCase):
     def setUp(self):
@@ -62,3 +64,31 @@ class ReceivableBillingRuleTests(TestCase):
 
     def test_service_generation_rejects_monthly_rule(self):
         with self.assertRaises(ValidationError):generate_service_charge(rule=self.rule,source_type="lesson",source_id=1,service_date=date(2026,9,19))
+
+class OperationalServiceBillingTests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Service Billing Barn")
+        self.person=Person.objects.create(team=self.team,first_name="Casey",last_name="Client")
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Casey Account",finance_domain=FinanceDomain.GENERAL)
+        self.rule=ReceivableBillingRule.objects.create(account=self.account,description="Training ride",amount=Decimal("45.00"),cadence=ReceivableBillingRule.Cadence.SERVICE,charge_type="training")
+
+    def test_explicit_participant_account_generates_service_charge(self):
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        result=bill_person_service(person=self.person,rule=self.rule,source_type="training_ride",source_id=91,service_date=date(2026,9,19))
+        self.assertEqual(result.status,"generated");self.assertEqual(result.charge.amount,Decimal("45.00"))
+
+    def test_service_retry_is_idempotent(self):
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        first=bill_person_service(person=self.person,rule=self.rule,source_type="training_ride",source_id=91,service_date=date(2026,9,19))
+        second=bill_person_service(person=self.person,rule=self.rule,source_type="training_ride",source_id=91,service_date=date(2026,9,19))
+        self.assertTrue(first.created);self.assertFalse(second.created);self.assertEqual(second.status,"existing");self.assertEqual(first.charge.pk,second.charge.pk)
+
+    def test_missing_participant_account_skips_without_guessing(self):
+        result=bill_person_service(person=self.person,rule=self.rule,source_type="training_ride",source_id=91,service_date=date(2026,9,19))
+        self.assertEqual(result.status,"no_account");self.assertIsNone(result.charge)
+
+    def test_different_linked_account_does_not_bill_rule_account(self):
+        other=ReceivableAccount.objects.create(team=self.team,name="Other Account",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=other,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        result=bill_person_service(person=self.person,rule=self.rule,source_type="training_ride",source_id=91,service_date=date(2026,9,19))
+        self.assertEqual(result.status,"different_account");self.assertEqual(ReceivableCharge.objects.count(),0)
