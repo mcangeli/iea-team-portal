@@ -11,6 +11,7 @@ urlpatterns = [
     path("lesson-programs/<int:pk>/edit/", views.lesson_program_edit, name="lesson_program_edit"),
     path("lesson-programs/<int:program_pk>/series/add/", views.lesson_series_create, name="lesson_series_create"),
     path("iea/lessons/", views.iea_lesson_list, name="iea_lesson_list"),
+    path("iea/lessons/schedule/", views.iea_lesson_occurrence_create, name="iea_lesson_occurrence_create"),
     path("iea/lessons/add/", views.iea_lesson_series_create, name="iea_lesson_series_create"),
     path("my-lessons/", my_lessons_v340.my_lessons, name="my_lessons"),
     path("my-lessons/<int:pk>/reschedule/", my_lessons_v340.my_lesson_reschedule, name="my_lesson_reschedule"),
