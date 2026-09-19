@@ -58,12 +58,27 @@ class IEALessonPreparationTests(TestCase):
         _, omitted_person = self._member("Olivia", "Omitted", "upper")
         IEALessonOccurrenceParticipant.objects.create(occurrence=self.occurrence, person=upper_person)
         IEALessonOccurrenceParticipant.objects.create(occurrence=self.occurrence, person=futures_person)
+        self.occurrence.iea_roster_configured = True
+        self.occurrence.save(update_fields=["iea_roster_configured"])
 
         prepare_lesson_occurrence(self.occurrence)
 
         scheduled = set(self.occurrence.attendance_records.values_list("person_id", flat=True))
         self.assertEqual(scheduled, {upper_person.pk, futures_person.pk})
         self.assertNotIn(omitted_person.pk, scheduled)
+
+    def test_intentionally_empty_explicit_roster_does_not_fall_back_to_team(self):
+        self._member("Uma", "Upper", "upper")
+        self.occurrence.iea_roster_configured = True
+        self.occurrence.save(update_fields=["iea_roster_configured"])
+
+        result = prepare_lesson_occurrence(self.occurrence)
+
+        self.assertEqual(result.attendance_created, ())
+        self.assertEqual(self.occurrence.attendance_records.count(), 0)
+        self.assertEqual(
+            self.occurrence.assignments.filter(role="participant").count(), 0
+        )
 
     def test_explicit_roster_requires_active_season_eligibility(self):
         outsider = Person.objects.create(team=self.team, first_name="Not", last_name="Member")
