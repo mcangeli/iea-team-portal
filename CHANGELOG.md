@@ -4,6 +4,30 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.6.2 — Flexible IEA Lesson Scheduling
+
+Release candidate — September 2026.
+
+v3.6.2 makes IEA Team Lessons occurrence-first so coaches can schedule the actual lesson groups they need rather than forcing variable IEA instruction into a recurring Futures/Upper series.
+
+Highlights:
+
+- schedules individual IEA lesson occurrences with date/time, coach, location, capacity, notes, and an explicit occurrence roster;
+- permits mixed Futures and Upper riders in the same lesson while retaining team membership as eligibility metadata;
+- distinguishes an intentionally empty roster from legacy season/team fallback behavior;
+- adds optional horse planning, Schedule Another, explicit Copy Previous Roster behavior, and a monthly IEA lesson schedule;
+- projects upcoming Barn and IEA lessons for linked riders onto the Parent/Guardian Dashboard without exposing unrelated riders;
+- preserves existing v3.4 Barn Lesson Program recurrence/enrollment behavior and legacy converted IEA lesson compatibility;
+- isolates each ArenaLine installation's Docker Compose project through the required `COMPOSE_PROJECT_NAME` used by `portalctl`, and adds `portalctl status`.
+
+Core rule: **team membership determines IEA lesson eligibility; the individual lesson occurrence determines who is actually scheduled.**
+
+Migrations: `0100_v362_iea_occurrence_roster.py` adds explicit IEA occurrence participants and joins the historical branding migration branch; `0101_v362_iea_roster_configured.py` records whether an occurrence has an explicit roster, including intentionally empty rosters.
+
+Validation to date: focused v3.6.2 scheduling/dashboard regression gate **55/55 passing**, plus successful manual scheduling, mixed-roster, filtering, duplication, and monthly-schedule checks on staging. Full portal regression remains the release-promotion gate.
+
+Detailed notes: `docs/releases/v3.6.2.md`.
+
 ## v3.6.1 — IEA Lesson Occurrence Hotfix
 
 Released September 2026.
