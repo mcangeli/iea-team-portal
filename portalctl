@@ -377,6 +377,10 @@ git_rollback() {
 }
 
 case "${1:-}" in
+  status)
+    validate_host_environment
+    compose ps
+    ;;
   git-status)
     git_status_report
     ;;
