@@ -105,15 +105,7 @@ def iea_lesson_occurrence_create(request):
         occurrence = form.save()
         messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
         return redirect("lesson_occurrence_detail", pk=occurrence.pk)
-    return render(
-        request,
-        "portal/form.html",
-        {
-            "form": form,
-            "title": "Schedule IEA team lesson",
-            "eyebrow": season.name,
-        },
-    )
+    return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
 @login_required
 def iea_lesson_series_create(request):
