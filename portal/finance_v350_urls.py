@@ -17,6 +17,7 @@ urlpatterns=[
  path("finance/workspace/",finance_v350.finance_workspace,name="finance_workspace"),
  path("finance/workspace/payables/",finance_v350.finance_payables,name="finance_payables"),
  path("finance/workspace/payables/payees/add/",finance_v350.finance_payable_party_add,name="finance_payable_party_add"),
+ path("finance/workspace/payables/payees/<int:pk>/",finance_v350.finance_payable_party_detail,name="finance_payable_party_detail"),
  path("finance/workspace/payables/payees/<int:party_id>/obligations/add/",finance_v350.finance_payable_obligation_add,name="finance_payable_obligation_add"),
  path("finance/workspace/payables/<int:pk>/",finance_v350.finance_payable_obligation_detail,name="finance_payable_obligation_detail"),
  path("finance/workspace/payables/<int:pk>/payments/add/",finance_v350.finance_payable_payment_add,name="finance_payable_payment_add"),
