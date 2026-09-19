@@ -11,6 +11,10 @@ from django.utils import timezone
 from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
 from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
+from ..model_modules.finance import FinanceDomain, ReceivableBillingRule, ReceivableCharge
+from ..services.finance_access import allowed_finance_domains
+from ..services.finance_account_resolution import resolve_participant_account
+from ..services.lesson_billing import BILLABLE_ATTENDANCE, bill_lesson_occurrence
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..services.lesson_completion import complete_lesson_occurrence
 from ..services.lesson_operations import materialize_lesson_series
@@ -161,9 +165,48 @@ def lesson_series_generate(request,pk):
     start_date=max(timezone.localdate(),series.start_date) if series.start_date else timezone.localdate(); end_date=series.end_date or (start_date+timedelta(weeks=12)); result=materialize_lesson_series(series,start_date,end_date); messages.success(request,f"Schedule ready: {len(result.generation.created)} occurrence(s) created and {len(result.prepared)} prepared."); return redirect("lesson_series_detail",pk=series.pk)
 
 @login_required
+def _lesson_billing_preview(occurrence, rule):
+    rows=[]
+    for attendance in occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"):
+        state="not_billable"; account=None
+        if attendance.status in BILLABLE_ATTENDANCE:
+            try: account=resolve_participant_account(attendance.person,finance_domain=rule.account.finance_domain)
+            except ValidationError: state="ambiguous"
+            else:
+                if account is None: state="no_account"
+                elif account.pk != rule.account_id: state="different_account"
+                elif ReceivableCharge.objects.filter(billing_rule=rule,generation_key=f"service:lesson_attendance:{occurrence.pk}:{attendance.person_id}").exists(): state="already_billed"
+                else: state="ready"
+        rows.append({"attendance":attendance,"account":account,"state":state})
+    return rows
+
+@login_required
 def lesson_occurrence_detail(request,pk):
     team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk); context=occurrence.series.iea_context if occurrence.series.is_iea_series else None
-    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence)})
+    domains=allowed_finance_domains(request.user,team)
+    domain=FinanceDomain.IEA if occurrence.series.is_iea_series else FinanceDomain.GENERAL
+    rules=ReceivableBillingRule.objects.none()
+    if domain in domains and occurrence.status==LessonOccurrence.Status.COMPLETED:
+        rules=ReceivableBillingRule.objects.filter(account__team=team,account__finance_domain=domain,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True).select_related("account").order_by("description","account__name")
+    selected_rule=None; billing_rows=[]
+    requested_rule=request.GET.get("billing_rule")
+    if requested_rule and rules.filter(pk=requested_rule).exists():
+        selected_rule=rules.get(pk=requested_rule); billing_rows=_lesson_billing_preview(occurrence,selected_rule)
+    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
+
+@login_required
+def lesson_occurrence_bill(request,pk):
+    team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk)
+    if request.method!="POST": return redirect("lesson_occurrence_detail",pk=pk)
+    domain=FinanceDomain.IEA if occurrence.series.is_iea_series else FinanceDomain.GENERAL
+    if domain not in allowed_finance_domains(request.user,team): raise PermissionDenied
+    rule=get_object_or_404(ReceivableBillingRule.objects.select_related("account"),pk=request.POST.get("billing_rule"),account__team=team,account__finance_domain=domain,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True)
+    try:
+        result=bill_lesson_occurrence(occurrence=occurrence,rule=rule)
+        messages.success(request,f"Lesson billing complete: {len(result.generated)} charge(s) created, {len(result.existing)} already billed, {len(result.skipped)} skipped.")
+    except ValidationError as exc: messages.error(request," ".join(exc.messages))
+    return redirect(f"{request.path.rsplit('/bill/',1)[0]}/?billing_rule={rule.pk}")
+
 
 @login_required
 def iea_lesson_occurrence_duplicate(request, pk):
