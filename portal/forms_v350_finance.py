@@ -1,8 +1,37 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, ReceivableAccountPerson
+from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccountPerson
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, Season
+
+
+class PayablePartyForm(forms.Form):
+    name=forms.CharField(max_length=160,label="Payee / vendor name")
+    finance_domain=forms.ChoiceField(choices=FinanceDomain.choices,label="Finance area")
+    party_type=forms.ChoiceField(choices=PayableParty.PartyType.choices,label="Type")
+    contact_person=forms.ModelChoiceField(queryset=Person.objects.none(),required=False,empty_label="No linked person")
+    email=forms.EmailField(required=False)
+    phone=forms.CharField(max_length=40,required=False)
+    notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
+    def __init__(self,*args,team=None,allowed_domains=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        allowed=set(allowed_domains or [])
+        self.fields["finance_domain"].choices=[(v,l) for v,l in FinanceDomain.choices if v in allowed]
+        self.fields["contact_person"].queryset=Person.objects.filter(team=team,active=True).order_by("last_name","first_name") if team else Person.objects.none()
+
+class PayableObligationForm(forms.Form):
+    expense_category=forms.ModelChoiceField(queryset=FinancialCategory.objects.none(),label="Expense category")
+    description=forms.CharField(max_length=220)
+    amount=forms.DecimalField(max_digits=12,decimal_places=2,min_value=0.01)
+    obligation_date=forms.DateField(widget=forms.DateInput(attrs={"type":"date"}),label="Bill date")
+    due_date=forms.DateField(required=False,widget=forms.DateInput(attrs={"type":"date"}))
+    season=forms.ModelChoiceField(queryset=Season.objects.none(),required=False,empty_label="No season")
+    reference=forms.CharField(max_length=120,required=False,label="Invoice / reference")
+    notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
+    def __init__(self,*args,team=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields["expense_category"].queryset=FinancialCategory.objects.filter(team=team,active=True,kind__in=[FinancialCategory.Kind.EXPENSE,FinancialCategory.Kind.BOTH]).order_by("sort_order","name") if team else FinancialCategory.objects.none()
+        self.fields["season"].queryset=Season.objects.filter(team=team).order_by("-start_date") if team else Season.objects.none()
 
 class FinanceAccountForm(forms.Form):
     name=forms.CharField(max_length=160); finance_domain=forms.ChoiceField(choices=FinanceDomain.choices); primary_person=forms.ModelChoiceField(queryset=Person.objects.none(),required=False,empty_label="No primary person"); notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
