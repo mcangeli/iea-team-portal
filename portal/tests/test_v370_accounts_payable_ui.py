@@ -100,3 +100,17 @@ class PayableWriteUITests(TestCase):
         response = self.client.get(reverse("finance_payable_obligation_detail", args=[obligation.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Record payment")
+
+    def test_payee_without_obligations_appears_in_workspace(self):
+        party = PayableParty.objects.create(team=self.team, name="Empty Vendor", finance_domain=FinanceDomain.GENERAL)
+        response = self.client.get(reverse("finance_payables"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Empty Vendor")
+        self.assertContains(response, reverse("finance_payable_party_detail", args=[party.pk]))
+
+    def test_payee_detail_renders_empty_history_and_new_payable_action(self):
+        party = PayableParty.objects.create(team=self.team, name="New Vendor", finance_domain=FinanceDomain.GENERAL)
+        response = self.client.get(reverse("finance_payable_party_detail", args=[party.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "No payable obligations for this payee yet.")
+        self.assertContains(response, reverse("finance_payable_obligation_add", args=[party.pk]))
