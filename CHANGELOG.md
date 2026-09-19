@@ -4,6 +4,25 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.6.1 — IEA Lesson Occurrence Hotfix
+
+Released September 2026.
+
+v3.6.1 fixes converted and newly created IEA lesson operations so occurrence-based attendance editing remains in the v3.4 Lesson Program workflow instead of resolving to the legacy lesson attendance editor.
+
+Highlights:
+
+- gives the v3.4 occurrence attendance editor a distinct URL name, eliminating its collision with the legacy IEA lesson attendance route;
+- updates occurrence detail actions to use the occurrence-specific attendance editor while preserving the legacy route for compatibility;
+- adds regression coverage proving the legacy and occurrence attendance routes remain distinct;
+- validates the production legacy IEA lesson conversion workflow: 3 legacy lessons converted into 5 occurrence partitions with 28 attendance records and 28 participant/horse assignments, with zero conversion issues;
+- confirms conversion idempotency: a repeat applied conversion created no duplicate programs, series, occurrences, attendance records, or assignments;
+- legacy lesson records remain unchanged for compatibility, and new IEA lessons are created directly through the current Lesson Program architecture.
+
+Migrations: no new Django schema migration is introduced by v3.6.1. Existing production legacy IEA lesson data must be converted once, where applicable, with `python manage.py convert_legacy_iea_lessons --apply` after reviewing the command's dry-run report.
+
+Validation: production legacy conversion and idempotency checks completed successfully; occurrence attendance/horse editing and creation of a new IEA lesson were manually verified on the production workflow.
+
 ## v3.6.0 — Dashboard Refresh & Account Security
 
 Released September 2026.
