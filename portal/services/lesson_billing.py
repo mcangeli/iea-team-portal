@@ -43,13 +43,5 @@ def bill_lesson_occurrence(*,occurrence:LessonOccurrence,rule:ReceivableBillingR
             skipped.append(attendance);continue
         if account.team_id != occurrence.series.program.team_id or account.finance_domain != rule.account.finance_domain:
             raise ValidationError("Lesson billing account must belong to the same organization and finance domain.")
-        # Clone the configured service rule onto the participant's account boundary
-        # without creating a second ledger or persistent per-person rule.
-        effective=rule
-        if account.pk != rule.account_id:
-            effective=ReceivableBillingRule(account=account,description=rule.description,amount=rule.amount,cadence=rule.cadence,charge_type=rule.charge_type,due_days=rule.due_days,active=rule.active)
-            effective.pk=rule.pk
-            # generate_charge keys uniqueness to rule, so include person in source id.
-        charge,created=generate_service_charge(rule=effective,source_type="lesson_attendance",source_id=f"{occurrence.pk}:{attendance.person_id}",service_date=_local_date(occurrence),description=f"{rule.description} — {occurrence.title}")
-        (generated if created else existing).append(charge)
+        if account.pk != rule.account_id:\n            raise ValidationError("Lesson billing rule must target the participant receivable account.")\n        charge,created=generate_service_charge(rule=rule,source_type="lesson_attendance",source_id=f"{occurrence.pk}:{attendance.person_id}",service_date=_local_date(occurrence),description=f"{rule.description} — {occurrence.title}")\n        (generated if created else existing).append(charge)
     return LessonBillingResult(tuple(generated),tuple(existing),tuple(skipped))
