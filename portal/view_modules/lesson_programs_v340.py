@@ -164,7 +164,6 @@ def lesson_series_generate(request,pk):
     if request.method!="POST": return redirect("lesson_series_detail",pk=series.pk)
     start_date=max(timezone.localdate(),series.start_date) if series.start_date else timezone.localdate(); end_date=series.end_date or (start_date+timedelta(weeks=12)); result=materialize_lesson_series(series,start_date,end_date); messages.success(request,f"Schedule ready: {len(result.generation.created)} occurrence(s) created and {len(result.prepared)} prepared."); return redirect("lesson_series_detail",pk=series.pk)
 
-@login_required
 def _lesson_billing_preview(occurrence, rule):
     rows=[]
     for attendance in occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"):
