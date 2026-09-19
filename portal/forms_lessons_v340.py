@@ -3,9 +3,9 @@ from django.db import transaction
 from django.db.models import Q
 
 from .model_modules.horses import Horse
-from .model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonProgram, LessonSeries
-from .model_modules.people import OrganizationGroup, OrganizationRoleAssignment, Person
-from .models import UserProfile
+from .model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
+from .model_modules.people import LegacyPersonLink, OrganizationGroup, OrganizationRoleAssignment, Person
+from .models import SeasonMembership, UserProfile
 
 
 WEEKDAY_CHOICES = [(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), (3, "Thursday"), (4, "Friday"), (5, "Saturday"), (6, "Sunday")]
@@ -142,3 +142,66 @@ class LessonRescheduleForm(forms.Form):
 
 class LessonCancelForm(forms.Form):
     notes = forms.CharField(required=False, widget=forms.Textarea(attrs={"rows": 3}), label="Cancellation note")
+
+
+
+class IEALessonOccurrenceForm(forms.ModelForm):
+    participants = forms.ModelMultipleChoiceField(
+        queryset=Person.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Scheduled riders",
+        help_text="Team membership determines eligibility; select the riders actually scheduled for this lesson.",
+    )
+
+    class Meta:
+        model = LessonOccurrence
+        fields = ["title", "starts_at", "ends_at", "instructor", "location", "capacity", "notes"]
+        widgets = {
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, team, season, series, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.team = team
+        self.season = season
+        self.series = series
+        self.instance.series = series
+        self.instance.origin = LessonOccurrence.Origin.MANUAL
+        self.instance.iea_roster_configured = True
+        self.fields["instructor"].queryset = lesson_instructor_queryset(team, iea=True)
+        rider_ids = SeasonMembership.objects.filter(season=season).values_list("rider_id", flat=True)
+        person_ids = LegacyPersonLink.objects.filter(rider_id__in=rider_ids).values_list("person_id", flat=True)
+        self.fields["participants"].queryset = Person.objects.filter(
+            team=team, active=True, pk__in=person_ids
+        ).order_by("last_name", "first_name")
+        if self.instance.pk:
+            self.fields["participants"].initial = self.instance.iea_participants.values_list("person_id", flat=True)
+
+    def clean(self):
+        cleaned = super().clean()
+        starts_at = cleaned.get("starts_at")
+        if starts_at:
+            local_date = timezone.localtime(starts_at).date() if timezone.is_aware(starts_at) else starts_at.date()
+            if local_date < self.season.start_date or local_date > self.season.end_date:
+                self.add_error("starts_at", "IEA lesson must fall within the active season.")
+        return cleaned
+
+    def save(self, commit=True):
+        occurrence = super().save(commit=False)
+        occurrence.series = self.series
+        occurrence.origin = LessonOccurrence.Origin.MANUAL
+        occurrence.iea_roster_configured = True
+        if not commit:
+            return occurrence
+        with transaction.atomic():
+            occurrence.full_clean()
+            occurrence.save()
+            occurrence.iea_participants.all().delete()
+            for person in self.cleaned_data["participants"]:
+                row = IEALessonOccurrenceParticipant(occurrence=occurrence, person=person)
+                row.full_clean()
+                row.save()
+        return occurrence
