@@ -10,11 +10,11 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
+from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, ReceivableBillingRuleForm, MonthlyBillingRunForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
-from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user
+from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user, receivable_billing_rules_for_user
 from portal.services.finance_imports import stage_bank_import
 from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_export_rows, render_accounting_export
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
@@ -23,6 +23,7 @@ from portal.services.finance_statements import account_activity, statement_for_u
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
 from portal.services.finance_receivable_reports import receivable_workspace_summary
+from portal.services.finance_billing_operations import create_billing_rule_for_user, generate_monthly_domain_for_user
 from portal.services.finance_payable_operations import create_payable_obligation_for_user, create_payable_party_for_user, post_payable_payment_for_user, void_payable_payment_for_user
 ZERO=Decimal("0.00")
 
@@ -48,7 +49,34 @@ def finance_receivables(request):
     requested=request.GET.get("domain")
     domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
     summary=receivable_workspace_summary(request.user,team,finance_domain=domain)
-    return render(request,"portal/finance_receivables_v371.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary})
+    rules=receivable_billing_rules_for_user(request.user,team).filter(account__finance_domain=domain).select_related("account").order_by("account__name","description")
+    return render(request,"portal/finance_receivables_v371.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"billing_rules":rules})
+
+
+@login_required
+def finance_billing_rule_add(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain");domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    accounts=finance_accounts_for_user(request.user,team).filter(finance_domain=domain,status="active").order_by("name")
+    form=ReceivableBillingRuleForm(request.POST or None,accounts=accounts)
+    if request.method=="POST" and form.is_valid():
+        account=form.cleaned_data.pop("account")
+        try:create_billing_rule_for_user(request.user,account.pk,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Billing rule created.");return redirect(f"{reverse('finance_receivables')}?domain={account.finance_domain}")
+    return render(request,"portal/finance_billing_rule_form_v371.html",{"team":team,"form":form,"selected_domain":domain})
+
+@login_required
+def finance_monthly_billing_run(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain") or request.POST.get("finance_domain");domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    form=MonthlyBillingRunForm(request.POST or None)
+    if request.method=="POST" and form.is_valid():
+        result=generate_monthly_domain_for_user(request.user,billing_month=form.cleaned_data["billing_month"],finance_domain=domain,team=team)
+        messages.success(request,f'Monthly billing complete: {len(result["generated"])} charge(s) created, {len(result["existing"])} already existed.')
+        return redirect(f"{reverse('finance_receivables')}?domain={domain}")
+    return render(request,"portal/finance_monthly_billing_run_v371.html",{"team":team,"form":form,"selected_domain":domain})
+
 
 @login_required
 def finance_payables(request):
