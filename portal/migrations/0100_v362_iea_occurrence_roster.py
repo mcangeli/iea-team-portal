@@ -3,7 +3,10 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    dependencies = [("portal", "0099_v350_accounting_export_profiles")]
+    dependencies = [
+        ("portal", "0099_v350_accounting_export_profiles"),
+        ("portal", "0069_teambranding_barn_hero"),
+    ]
 
     operations = [
         migrations.AlterField(
