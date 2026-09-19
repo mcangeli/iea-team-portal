@@ -149,6 +149,10 @@ class LessonOccurrence(models.Model):
     scheduled_for = models.DateTimeField(null=True, blank=True, editable=False)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.SCHEDULED)
     notes = models.TextField(blank=True)
+    iea_roster_configured = models.BooleanField(
+        default=False,
+        help_text="True when this IEA occurrence uses an explicit occurrence-level roster, including an intentionally empty roster.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     class Meta:
