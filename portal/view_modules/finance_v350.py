@@ -173,8 +173,10 @@ def finance_receivable_account_add(request):
     return render(request,"portal/finance_account_form_v350.html",{"team":team,"form":form})
 @login_required
 def finance_receivable_account_detail(request,pk):
-    team,account=_account_for_request(request,pk);open_charges=[c for c in account.charges.filter(status=ReceivableCharge.Status.POSTED) if c.balance>ZERO]
-    return render(request,"portal/finance_receivable_account_v350.html",{"team":team,"account":account,"activity":account_activity(account),"people_links":account.people_links.filter(active=True).select_related("person"),"open_charges":open_charges,"posted_payments":account.payments.filter(status="posted").select_related("financial_transaction").prefetch_related("allocations__charge"),"unapplied_payments":[p for p in account.payments.filter(status="posted") if p.unapplied_amount>ZERO],"unapplied_credits":[c for c in account.credits.filter(status="posted") if c.unapplied_amount>ZERO]})
+    team,account=_account_for_request(request,pk);today=date.today();open_charges=[c for c in account.charges.filter(status=ReceivableCharge.Status.POSTED) if c.balance>ZERO]
+    charge_rows=[{"charge":c,"state":c.lifecycle_status(today)} for c in open_charges]
+    overdue_total=sum((c.balance for c in open_charges if c.lifecycle_status(today)=="overdue"),ZERO)
+    return render(request,"portal/finance_receivable_account_v350.html",{"team":team,"account":account,"activity":account_activity(account),"people_links":account.people_links.filter(active=True).select_related("person"),"open_charges":open_charges,"charge_rows":charge_rows,"overdue_total":overdue_total,"posted_payments":account.payments.filter(status="posted").select_related("financial_transaction").prefetch_related("allocations__charge"),"unapplied_payments":[p for p in account.payments.filter(status="posted") if p.unapplied_amount>ZERO],"unapplied_credits":[c for c in account.credits.filter(status="posted") if c.unapplied_amount>ZERO]})
 @login_required
 def finance_account_person_add(request,pk):
     team,account=_account_for_request(request,pk);form=FinanceAccountPersonForm(request.POST or None,team=team)
