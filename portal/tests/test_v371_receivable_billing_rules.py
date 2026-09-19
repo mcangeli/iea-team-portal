@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge
 from portal.models import Season, Team
-from portal.services.finance_billing import generate_charge
+from portal.services.finance_billing import generate_charge, generate_monthly_charge, generate_monthly_charges, generate_service_charge
 
 class ReceivableBillingRuleTests(TestCase):
     def setUp(self):
@@ -41,3 +41,24 @@ class ReceivableBillingRuleTests(TestCase):
         charge,_=generate_charge(rule=self.rule,generation_key="domain",charge_date=date(2026,9,1))
         self.assertEqual(charge.account.finance_domain,FinanceDomain.GENERAL)
         self.assertEqual(charge.billing_rule,self.rule)
+
+    def test_monthly_generation_uses_first_day_and_is_idempotent(self):
+        charge,created=generate_monthly_charge(rule=self.rule,billing_month=date(2026,9,19))
+        again,created_again=generate_monthly_charge(rule=self.rule,billing_month=date(2026,9,30))
+        self.assertTrue(created);self.assertFalse(created_again);self.assertEqual(charge.pk,again.pk)
+        self.assertEqual(charge.charge_date,date(2026,9,1));self.assertEqual(charge.due_date,date(2026,9,11))
+
+    def test_monthly_batch_skips_nonmonthly_and_inactive_rules(self):
+        inactive=ReceivableBillingRule.objects.create(account=self.account,description="Inactive",amount=Decimal("10.00"),cadence=ReceivableBillingRule.Cadence.MONTHLY,active=False)
+        service=ReceivableBillingRule.objects.create(account=self.account,description="Lesson",amount=Decimal("50.00"),cadence=ReceivableBillingRule.Cadence.SERVICE)
+        result=generate_monthly_charges(rules=[self.rule,inactive,service],billing_month=date(2026,9,1))
+        self.assertEqual(len(result["generated"]),1);self.assertEqual(ReceivableCharge.objects.count(),1)
+
+    def test_service_generation_is_idempotent_by_source(self):
+        rule=ReceivableBillingRule.objects.create(account=self.account,description="Private lesson",amount=Decimal("65.00"),cadence=ReceivableBillingRule.Cadence.SERVICE,charge_type="lesson")
+        charge,created=generate_service_charge(rule=rule,source_type="lesson_occurrence",source_id=42,service_date=date(2026,9,19))
+        again,created_again=generate_service_charge(rule=rule,source_type="lesson_occurrence",source_id=42,service_date=date(2026,9,19))
+        self.assertTrue(created);self.assertFalse(created_again);self.assertEqual(charge.pk,again.pk);self.assertEqual(charge.generation_key,"service:lesson_occurrence:42")
+
+    def test_service_generation_rejects_monthly_rule(self):
+        with self.assertRaises(ValidationError):generate_service_charge(rule=self.rule,source_type="lesson",source_id=1,service_date=date(2026,9,19))
