@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.6.0**
+**Current version: v3.6.2**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now the general barn/program operational home, My Team is the dedicated IEA team experience, Barn and Team hero branding are independently configurable, and My Account adds verified email changes plus optional TOTP multi-factor authentication.
+v3.6.2 adds flexible occurrence-first IEA Team Lesson scheduling on top of the v3.6 dashboard/account-security release. Coaches can schedule changing mixed Futures/Upper groups per lesson, plan horses, duplicate lesson logistics without silently copying riders, and work from a monthly schedule. Linked parents/guardians now see their riders' upcoming Barn and IEA lessons on the general Dashboard.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,13 +15,27 @@ v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now t
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current stable release: `docs/releases/v3.6.0.md`.
+- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.6.2.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.6.0 highlights
+## v3.6.2 highlights
+
+### Flexible IEA Team Lessons
+
+IEA scheduling is occurrence-first. **Team membership determines IEA lesson eligibility; the individual lesson occurrence determines who is actually scheduled.** A lesson may contain Futures riders, Upper riders, or both. The scheduling workspace supports occurrence-level rider selection, optional horse planning, Schedule Another with explicit roster copying, and month navigation. Barn Lesson Programs retain their recurring series/enrollment model.
+
+### Family lesson visibility
+
+Parent/Guardian Dashboard schedules include upcoming Barn and IEA lesson occurrences for linked riders while preserving relationship-based privacy and excluding unrelated riders, past lessons, and cancelled lessons.
+
+### Multi-instance deployment isolation
+
+Every installation must define a unique `COMPOSE_PROJECT_NAME` in its shared `.env`. `portalctl` passes that identity explicitly to Docker Compose so staging and production cannot silently share the default Compose project. Persistent database/media volume names must also remain installation-specific. `./portalctl status` reports the scoped installation services.
+
+## v3.6.1 / v3.6.0 highlights
 
 ### Barn Dashboard and My Team
 
@@ -37,7 +51,7 @@ The root **Dashboard** is the general ArenaLine barn/program cockpit for everyon
 
 ArenaLine defaults email delivery to the server's local Postfix service. Containerized deployments must make the host Postfix service reachable from the web container before verification mail can be delivered.
 
-v3.6.0 passed its complete staging release gate: dashboard/security regressions, manual presentation and MFA checks, clean Django system and migration-state checks, all v3.6 migrations applied, verified Postfix delivery, and **1152/1152 portal tests passing**.
+Focused v3.6 dashboard/security regressions and manual presentation/MFA checks have passed on staging. Clean system/migration checks and the complete portal suite remain the release-promotion gates.
 
 ## Roles and dashboards
 
@@ -116,7 +130,7 @@ Organization-wide horse management may be delegated with **Manage Horses**. A cu
 
 ### Lessons
 
-Barn Lesson Programs are managed separately from IEA Team Lessons. A Barn program contains recurring series with enrollment, capacity, eligible Trainer/Assistant Trainer instruction, and generated or manual occurrences. IEA series add season/team context and use the existing season roster with Coach instruction.
+Barn Lesson Programs are managed separately from IEA Team Lessons. A Barn program contains recurring series with enrollment, capacity, eligible Trainer/Assistant Trainer instruction, and generated or manual occurrences. IEA Team Lessons use season membership for rider eligibility and Coach instruction, while each new lesson occurrence stores its own explicit scheduled roster. Futures and Upper riders may be scheduled together. Legacy pre-v3.6.2 occurrences retain their season/team roster fallback.
 
 The lesson-day workspace records attendance and Person/Horse assignments against the actual occurrence. Occurrences preserve historical snapshots even when a recurring series later changes.
 
@@ -221,10 +235,10 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.6.0 explicitly:
+Or install v3.6.2 explicitly:
 
 ```bash
-./portalctl update v3.6.0
+./portalctl update v3.6.2
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
@@ -251,7 +265,7 @@ The public/external layer is a separate publication boundary. Anonymous routes c
 
 Person remains the canonical human identity and Horse the canonical equine identity. v3.4 layers the generic lesson hierarchy onto those foundations. Barn enrollment and IEA season/team roster membership remain distinct, and IEA-specific lesson context is layered onto generic series rather than encoded into the generic lesson core.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.6.0.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.6.2.md`.
 
 ## Release process
 

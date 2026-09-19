@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone as dt_timezone
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from portal.model_modules.lessons import IEALessonSeriesContext, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
+from portal.model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from portal.model_modules.people import LegacyPersonLink, Person
 from portal.models import Rider, Season, SeasonMembership, Team
 from portal.services.lesson_preparation import prepare_lesson_occurrence
@@ -50,6 +50,41 @@ class IEALessonPreparationTests(TestCase):
         prepare_lesson_occurrence(occurrence)
         self.assertTrue(occurrence.attendance_records.filter(person=futures_person).exists())
         self.assertFalse(occurrence.attendance_records.filter(person=upper_person).exists())
+
+
+    def test_explicit_occurrence_roster_can_mix_futures_and_upper(self):
+        _, upper_person = self._member("Uma", "Upper", "upper")
+        _, futures_person = self._member("Finn", "Futures", "futures")
+        _, omitted_person = self._member("Olivia", "Omitted", "upper")
+        IEALessonOccurrenceParticipant.objects.create(occurrence=self.occurrence, person=upper_person)
+        IEALessonOccurrenceParticipant.objects.create(occurrence=self.occurrence, person=futures_person)
+        self.occurrence.iea_roster_configured = True
+        self.occurrence.save(update_fields=["iea_roster_configured"])
+
+        prepare_lesson_occurrence(self.occurrence)
+
+        scheduled = set(self.occurrence.attendance_records.values_list("person_id", flat=True))
+        self.assertEqual(scheduled, {upper_person.pk, futures_person.pk})
+        self.assertNotIn(omitted_person.pk, scheduled)
+
+    def test_intentionally_empty_explicit_roster_does_not_fall_back_to_team(self):
+        self._member("Uma", "Upper", "upper")
+        self.occurrence.iea_roster_configured = True
+        self.occurrence.save(update_fields=["iea_roster_configured"])
+
+        result = prepare_lesson_occurrence(self.occurrence)
+
+        self.assertEqual(result.attendance_created, ())
+        self.assertEqual(self.occurrence.attendance_records.count(), 0)
+        self.assertEqual(
+            self.occurrence.assignments.filter(role="participant").count(), 0
+        )
+
+    def test_explicit_roster_requires_active_season_eligibility(self):
+        outsider = Person.objects.create(team=self.team, first_name="Not", last_name="Member")
+        row = IEALessonOccurrenceParticipant(occurrence=self.occurrence, person=outsider)
+        with self.assertRaisesMessage(ValidationError, "eligible rider"):
+            row.full_clean()
 
     def test_iea_preparation_creates_participant_assignment(self):
         _, person = self._member("Riley", "Team", "upper")

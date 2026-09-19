@@ -9,6 +9,7 @@ from portal.model_modules.lessons import (
     LessonAttendanceRecord,
     LessonEnrollment,
     LessonOccurrence,
+    IEALessonOccurrenceParticipant,
 )
 from portal.model_modules.people import LegacyPersonLink
 from portal.models import SeasonMembership
@@ -54,10 +55,21 @@ def _iea_participants(occurrence: LessonOccurrence):
     if occurrence_date < context.season.start_date or occurrence_date > context.season.end_date:
         raise ValidationError("IEA lesson occurrence must fall within its configured season.")
 
-    memberships = (
-        SeasonMembership.objects.filter(season=context.season, team_level=context.team_level)
-        .select_related("rider")
-        .order_by("rider__last_name", "rider__first_name", "id")
+    explicit = list(
+        IEALessonOccurrenceParticipant.objects.filter(occurrence=occurrence)
+        .select_related("person")
+        .order_by("person__last_name", "person__first_name", "id")
+    )
+    if occurrence.iea_roster_configured:
+        return [row.person for row in explicit]
+
+    # Compatibility fallback for pre-v3.6.2 IEA series/converted history. New
+    # occurrence-first scheduling writes an explicit roster instead.
+    memberships = SeasonMembership.objects.filter(season=context.season)
+    if context.team_level != "mixed":
+        memberships = memberships.filter(team_level=context.team_level)
+    memberships = memberships.select_related("rider").order_by(
+        "rider__last_name", "rider__first_name", "id"
     )
     rider_ids = [membership.rider_id for membership in memberships]
     links = {
@@ -80,9 +92,10 @@ def _participants_for_occurrence(occurrence: LessonOccurrence):
 def prepare_lesson_occurrence(occurrence: LessonOccurrence) -> LessonOccurrencePreparationResult:
     """Materialize the operational lesson roster and instructor assignment.
 
-    Barn series derive participants from LessonEnrollment. IEA series derive them
-    from SeasonMembership for the configured season and Futures/Upper team level,
-    bridged to canonical Person through LegacyPersonLink. The occurrence instructor
+    Barn series derive participants from LessonEnrollment. IEA occurrences prefer an
+    explicit occurrence-level roster, allowing Futures and Upper riders to ride
+    together. Pre-v3.6.2 IEA data falls back to season/team-level membership for
+    compatibility. The occurrence instructor
     is materialized as an INSTRUCTOR assignment so the operational roster reflects
     both participants and staff. Preparation remains additive and idempotent;
     existing occurrence operations stay authoritative.

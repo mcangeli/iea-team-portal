@@ -1,4 +1,5 @@
-from datetime import timedelta
+from calendar import monthrange
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,8 +8,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from ..forms_lessons_v340 import IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
-from ..model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
+from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
+from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..services.lesson_completion import complete_lesson_occurrence
@@ -63,10 +64,58 @@ def lesson_series_create(request,program_pk):
 
 @login_required
 def iea_lesson_list(request):
-    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]
+    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]; month_occurrences=[]; month_cursor=timezone.localdate().replace(day=1)
+    requested_month=request.GET.get("month","")
+    if requested_month:
+        try: month_cursor=date.fromisoformat(f"{requested_month}-01")
+        except ValueError: pass
     if season:
-        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name"); legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
-    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"can_manage":is_iea_lesson_manager(request.user)})
+        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name")
+        legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
+        month_end=month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])
+        month_occurrences=LessonOccurrence.objects.filter(series__iea_context__season=season,starts_at__date__range=(month_cursor,month_end)).select_related("series__program","instructor").prefetch_related("iea_participants").order_by("starts_at")
+    previous_month=(month_cursor-timedelta(days=1)).replace(day=1)
+    next_month=(month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])+timedelta(days=1)).replace(day=1)
+    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"month_occurrences":month_occurrences,"month_cursor":month_cursor,"previous_month":previous_month,"next_month":next_month,"can_manage":is_iea_lesson_manager(request.user)})
+
+
+@login_required
+def iea_lesson_occurrence_create(request):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
+    if not season:
+        raise PermissionDenied("An active IEA season is required before scheduling team lessons.")
+    program, _ = LessonProgram.objects.get_or_create(
+        team=team,
+        name="IEA Team Lessons",
+        defaults={"description": "IEA team instruction scheduled by individual occurrence."},
+    )
+    series, _ = LessonSeries.objects.get_or_create(
+        program=program,
+        name="IEA Team Lessons",
+        defaults={"active": True},
+    )
+    context, _ = IEALessonSeriesContext.objects.get_or_create(
+        series=series,
+        defaults={"season": season, "team_level": IEALessonSeriesContext.TeamLevel.MIXED},
+    )
+    if context.season_id != season.id or context.team_level != IEALessonSeriesContext.TeamLevel.MIXED:
+        context.season = season
+        context.team_level = IEALessonSeriesContext.TeamLevel.MIXED
+        context.full_clean()
+        context.save()
+    form = IEALessonOccurrenceForm(
+        request.POST or None,
+        team=team,
+        season=season,
+        series=series,
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
 @login_required
 def iea_lesson_series_create(request):
@@ -115,6 +164,36 @@ def lesson_series_generate(request,pk):
 def lesson_occurrence_detail(request,pk):
     team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk); context=occurrence.series.iea_context if occurrence.series.is_iea_series else None
     return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence)})
+
+@login_required
+def iea_lesson_occurrence_duplicate(request, pk):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    source = _occurrence_for_team(team, pk)
+    if not source.series.is_iea_series:
+        raise PermissionDenied("Only IEA team lessons can use this scheduling workflow.")
+    season = source.series.iea_context.season
+    initial = {
+        "title": source.title,
+        "instructor": source.instructor_id,
+        "location": source.location,
+        "capacity": source.capacity,
+        "notes": source.notes,
+    }
+    if request.GET.get("copy_roster") == "1":
+        initial["participants"] = source.iea_participants.values_list("person_id", flat=True)
+    form = IEALessonOccurrenceForm(
+        request.POST or None, initial=initial, team=team, season=season, series=source.series
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(
+        request,
+        "portal/iea_lesson_occurrence_form.html",
+        {"form": form, "season": season, "duplicate_source": source},
+    )
 
 @login_required
 def lesson_occurrence_prepare(request,pk):
