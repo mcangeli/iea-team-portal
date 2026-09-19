@@ -43,5 +43,14 @@ def bill_lesson_occurrence(*,occurrence:LessonOccurrence,rule:ReceivableBillingR
             skipped.append(attendance);continue
         if account.team_id != occurrence.series.program.team_id or account.finance_domain != rule.account.finance_domain:
             raise ValidationError("Lesson billing account must belong to the same organization and finance domain.")
-        if account.pk != rule.account_id:\n            raise ValidationError("Lesson billing rule must target the participant receivable account.")\n        charge,created=generate_service_charge(rule=rule,source_type="lesson_attendance",source_id=f"{occurrence.pk}:{attendance.person_id}",service_date=_local_date(occurrence),description=f"{rule.description} — {occurrence.title}")\n        (generated if created else existing).append(charge)
+        if account.pk != rule.account_id:
+            raise ValidationError("Lesson billing rule must target the participant receivable account.")
+        charge,created=generate_service_charge(
+            rule=rule,
+            source_type="lesson_attendance",
+            source_id=f"{occurrence.pk}:{attendance.person_id}",
+            service_date=_local_date(occurrence),
+            description=f"{rule.description} — {occurrence.title}",
+        )
+        (generated if created else existing).append(charge)
     return LessonBillingResult(tuple(generated),tuple(existing),tuple(skipped))
