@@ -60,7 +60,7 @@ def _iea_participants(occurrence: LessonOccurrence):
         .select_related("person")
         .order_by("person__last_name", "person__first_name", "id")
     )
-    if explicit:
+    if occurrence.iea_roster_configured:
         return [row.person for row in explicit]
 
     # Compatibility fallback for pre-v3.6.2 IEA series/converted history. New
