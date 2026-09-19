@@ -1,6 +1,6 @@
 from django import forms
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 
 from .model_modules.horses import Horse
@@ -180,9 +180,13 @@ class IEALessonOccurrenceForm(forms.ModelForm):
         self.fields["horses"].queryset = Horse.objects.filter(team=team, active=True).order_by("name")
         rider_ids = SeasonMembership.objects.filter(season=season).values_list("rider_id", flat=True)
         person_ids = LegacyPersonLink.objects.filter(rider_id__in=rider_ids).values_list("person_id", flat=True)
+        level_subquery = SeasonMembership.objects.filter(
+            season=season,
+            rider_id=OuterRef("legacy_identity__rider_id"),
+        ).values("team_level")[:1]
         self.fields["participants"].queryset = Person.objects.filter(
             team=team, active=True, pk__in=person_ids
-        ).order_by("last_name", "first_name")
+        ).annotate(iea_team_level=Subquery(level_subquery)).order_by("last_name", "first_name")
         if self.instance.pk:
             self.fields["participants"].initial = self.instance.iea_participants.values_list("person_id", flat=True)
 
