@@ -85,6 +85,7 @@ class IEALessonSeriesContext(models.Model):
     class TeamLevel(models.TextChoices):
         FUTURES = SeasonMembership.TeamLevel.FUTURES, "Futures Team"
         UPPER = SeasonMembership.TeamLevel.UPPER, "Upper School Team"
+        MIXED = "mixed", "Mixed Futures + Upper"
     series = models.OneToOneField(LessonSeries, on_delete=models.CASCADE, related_name="iea_context")
     season = models.ForeignKey(Season, on_delete=models.PROTECT, related_name="iea_lesson_series")
     team_level = models.CharField(max_length=20, choices=TeamLevel.choices)
@@ -97,7 +98,7 @@ class IEALessonSeriesContext(models.Model):
     def clean(self):
         super().clean()
         if self.series_id and self.season_id and self.series.program.team_id != self.season.team_id: raise ValidationError("IEA lesson series and season must belong to the same organization.")
-        if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER}: raise ValidationError({"team_level": "IEA lesson series must be Futures or Upper School."})
+        if self.team_level not in {self.TeamLevel.FUTURES, self.TeamLevel.UPPER, self.TeamLevel.MIXED}: raise ValidationError({"team_level": "IEA lesson series must be Futures, Upper School, or Mixed."})
         if self.series_id and self.series.instructor_id: _validate_instructor(self.series.instructor, iea=True)
     def __str__(self): return f"{self.season} · {self.get_team_level_display()} · {self.series.name}"
 
@@ -182,6 +183,41 @@ class LegacyIEALessonOccurrenceLink(models.Model):
         super().clean()
         if self.legacy_lesson_id and self.occurrence_id and self.legacy_lesson.season.team_id != self.occurrence.series.program.team_id: raise ValidationError("Legacy lesson and ArenaLine occurrence must belong to the same organization.")
     def __str__(self): return f"Legacy lesson {self.legacy_lesson_id} → occurrence {self.occurrence_id} ({self.team_level})"
+
+
+class IEALessonOccurrenceParticipant(models.Model):
+    """Explicit scheduled roster for an IEA lesson occurrence.
+
+    Season membership controls eligibility; this record controls who is actually
+    scheduled for a particular occurrence. It intentionally permits a mixed
+    Futures/Upper roster.
+    """
+    occurrence = models.ForeignKey(LessonOccurrence, on_delete=models.CASCADE, related_name="iea_participants")
+    person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="iea_lesson_occurrences")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["person__last_name", "person__first_name", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["occurrence", "person"], name="unique_iea_occurrence_person")
+        ]
+
+    def clean(self):
+        super().clean()
+        if not self.occurrence_id or not self.person_id:
+            return
+        if not self.occurrence.series.is_iea_series:
+            raise ValidationError("Explicit IEA participants may only be assigned to IEA lesson occurrences.")
+        if self.person.team_id != self.occurrence.series.program.team_id:
+            raise ValidationError("IEA lesson participant must belong to the same organization.")
+        context = self.occurrence.series.iea_context
+        from portal.model_modules.people import LegacyPersonLink
+        rider_ids = LegacyPersonLink.objects.filter(person=self.person).values_list("rider_id", flat=True)
+        if not SeasonMembership.objects.filter(season=context.season, rider_id__in=rider_ids).exists():
+            raise ValidationError("IEA lesson participant must be an eligible rider in the configured season.")
+
+    def __str__(self):
+        return f"{self.person} — {self.occurrence}"
 
 
 class LessonAttendanceRecord(models.Model):
