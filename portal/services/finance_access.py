@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount
+from portal.model_modules.finance import FinanceDomain, PayableObligation, PayableParty, PayablePayment, ReceivableAccount
 from portal.model_modules.people import Person
 from portal.models import CommitteeAssignment, UserProfile
 from portal.platform import organization_for_view_user
@@ -143,3 +143,29 @@ def financial_transactions_for_user(user, team=None, finance_domain=None):
         team=team,
         account__finance_domain__in=domains,
     )
+
+
+def payable_parties_for_user(user, team=None):
+    if not getattr(user, "is_authenticated", False):
+        return PayableParty.objects.none()
+    team = team or organization_for_view_user(user)
+    if not team:
+        return PayableParty.objects.none()
+    domains = allowed_finance_domains(user, team)
+    return PayableParty.objects.filter(team=team, finance_domain__in=domains)
+
+
+def payable_party_for_user(user, pk, team=None):
+    return payable_parties_for_user(user, team).filter(pk=pk).first()
+
+
+def payable_obligations_for_user(user, team=None):
+    return PayableObligation.objects.filter(party__in=payable_parties_for_user(user, team))
+
+
+def payable_obligation_for_user(user, pk, team=None):
+    return payable_obligations_for_user(user, team).filter(pk=pk).first()
+
+
+def payable_payments_for_user(user, team=None):
+    return PayablePayment.objects.filter(obligation__party__in=payable_parties_for_user(user, team))
