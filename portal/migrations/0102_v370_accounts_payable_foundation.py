@@ -4,7 +4,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    dependencies = [("portal", "0099_v350_accounting_export_profiles")]
+    dependencies = [("portal", "0101_v362_iea_roster_configured")]
 
     operations = [
         migrations.CreateModel(
