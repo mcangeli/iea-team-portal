@@ -33,6 +33,23 @@ class PayableObligationForm(forms.Form):
         self.fields["expense_category"].queryset=FinancialCategory.objects.filter(team=team,active=True,kind__in=[FinancialCategory.Kind.EXPENSE,FinancialCategory.Kind.BOTH]).order_by("sort_order","name") if team else FinancialCategory.objects.none()
         self.fields["season"].queryset=Season.objects.filter(team=team).order_by("-start_date") if team else Season.objects.none()
 
+class PayablePaymentForm(forms.Form):
+    amount=forms.DecimalField(max_digits=12,decimal_places=2,min_value=0.01)
+    paid_date=forms.DateField(widget=forms.DateInput(attrs={"type":"date"}),label="Payment date")
+    payment_account=forms.ModelChoiceField(queryset=FinancialAccount.objects.none(),label="Pay from")
+    method=forms.CharField(max_length=40,required=False)
+    reference=forms.CharField(max_length=120,required=False)
+    notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
+    def __init__(self,*args,team=None,finance_domain=None,max_amount=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields["payment_account"].queryset=FinancialAccount.objects.filter(team=team,finance_domain=finance_domain,active=True).order_by("name") if team else FinancialAccount.objects.none()
+        if max_amount is not None:
+            self.fields["amount"].max_value=max_amount
+            self.fields["amount"].widget.attrs["max"]=max_amount
+
+class PayableVoidPaymentForm(forms.Form):
+    reason=forms.CharField(max_length=255,widget=forms.Textarea(attrs={"rows":3}),help_text="Required audit reason for voiding this payment.")
+
 class FinanceAccountForm(forms.Form):
     name=forms.CharField(max_length=160); finance_domain=forms.ChoiceField(choices=FinanceDomain.choices); primary_person=forms.ModelChoiceField(queryset=Person.objects.none(),required=False,empty_label="No primary person"); notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
     def __init__(self,*args,team=None,allowed_domains=None,**kwargs):
