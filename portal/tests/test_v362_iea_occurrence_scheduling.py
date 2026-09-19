@@ -121,3 +121,22 @@ class IEALessonOccurrenceSchedulingTests(TestCase):
             occurrence=occurrence, person=rider, role=LessonAssignment.Role.PARTICIPANT
         )
         self.assertEqual(assignment.horse, horse)
+
+
+    def test_team_lesson_list_month_view_shows_occurrence_and_navigation(self):
+        rider = self._member("Month", "Rider", "futures")
+        self.client.post(reverse("iea_lesson_occurrence_create"), self._payload([rider]))
+        response = self.client.get(reverse("iea_lesson_list") + "?month=2026-09")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "September 2026")
+        self.assertContains(response, "September Team Lesson")
+        self.assertContains(response, "1")
+        self.assertEqual(response.context["month_cursor"], date(2026, 9, 1))
+
+    def test_team_lesson_list_month_view_excludes_other_months(self):
+        rider = self._member("Month", "Rider", "upper")
+        self.client.post(reverse("iea_lesson_occurrence_create"), self._payload([rider]))
+        response = self.client.get(reverse("iea_lesson_list") + "?month=2026-10")
+        self.assertEqual(response.status_code, 200)
+        titles = [occurrence.title for occurrence in response.context["month_occurrences"]]
+        self.assertNotIn("September Team Lesson", titles)
