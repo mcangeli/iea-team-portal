@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCharge
 from portal.model_modules.lessons import LessonAttendanceRecord, LessonOccurrence, LessonProgram, LessonSeries
 from portal.model_modules.people import Person
 from portal.models import Team
@@ -41,4 +41,30 @@ class LessonReceivablesBillingTests(TestCase):
 
     def test_missing_account_is_skipped_not_guessed(self):
         result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule,person_accounts={})
+        self.assertEqual(len(result.generated),0);self.assertEqual(len(result.skipped),1)
+
+    def test_participant_link_resolves_account_automatically(self):
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
+        self.assertEqual(len(result.generated),1);self.assertEqual(result.generated[0].account,self.account)
+
+    def test_no_participant_link_is_skipped(self):
+        result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
+        self.assertEqual(len(result.generated),0);self.assertEqual(len(result.skipped),1)
+
+    def test_inactive_participant_link_is_skipped(self):
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT,active=False)
+        result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
+        self.assertEqual(len(result.generated),0);self.assertEqual(len(result.skipped),1)
+
+    def test_ambiguous_participant_accounts_are_rejected(self):
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        other=ReceivableAccount.objects.create(team=self.team,name="Second Riley Account",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=other,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        with self.assertRaises(ValidationError):bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
+
+    def test_iea_participant_link_does_not_resolve_for_general_rule(self):
+        iea=ReceivableAccount.objects.create(team=self.team,name="IEA Riley",finance_domain=FinanceDomain.IEA)
+        ReceivableAccountPerson.objects.create(account=iea,person=self.rider,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        result=bill_lesson_occurrence(occurrence=self.occurrence,rule=self.rule)
         self.assertEqual(len(result.generated),0);self.assertEqual(len(result.skipped),1)
