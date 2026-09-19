@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from ..forms_lessons_v340 import IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
-from ..model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
+from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
+from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..services.lesson_completion import complete_lesson_occurrence
@@ -67,6 +67,53 @@ def iea_lesson_list(request):
     if season:
         contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name"); legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
     return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"can_manage":is_iea_lesson_manager(request.user)})
+
+
+@login_required
+def iea_lesson_occurrence_create(request):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
+    if not season:
+        raise PermissionDenied("An active IEA season is required before scheduling team lessons.")
+    program, _ = LessonProgram.objects.get_or_create(
+        team=team,
+        name="IEA Team Lessons",
+        defaults={"description": "IEA team instruction scheduled by individual occurrence."},
+    )
+    series, _ = LessonSeries.objects.get_or_create(
+        program=program,
+        name="IEA Team Lessons",
+        defaults={"active": True},
+    )
+    context, _ = IEALessonSeriesContext.objects.get_or_create(
+        series=series,
+        defaults={"season": season, "team_level": IEALessonSeriesContext.TeamLevel.MIXED},
+    )
+    if context.season_id != season.id or context.team_level != IEALessonSeriesContext.TeamLevel.MIXED:
+        context.season = season
+        context.team_level = IEALessonSeriesContext.TeamLevel.MIXED
+        context.full_clean()
+        context.save()
+    form = IEALessonOccurrenceForm(
+        request.POST or None,
+        team=team,
+        season=season,
+        series=series,
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(
+        request,
+        "portal/form.html",
+        {
+            "form": form,
+            "title": "Schedule IEA team lesson",
+            "eyebrow": season.name,
+        },
+    )
 
 @login_required
 def iea_lesson_series_create(request):
