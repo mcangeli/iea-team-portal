@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.model_modules.lessons import IEALessonOccurrenceParticipant, LessonOccurrence
+from portal.model_modules.horses import Horse
+from portal.model_modules.lessons import IEALessonOccurrenceParticipant, LessonAssignment, LessonOccurrence
 from portal.model_modules.people import LegacyPersonLink, Person
 from portal.models import Rider, Season, SeasonMembership, Team
 
@@ -88,3 +89,35 @@ class IEALessonOccurrenceSchedulingTests(TestCase):
         second_occurrence = LessonOccurrence.objects.get(title="October Team Lesson")
         self.assertSetEqual(set(first_occurrence.iea_participants.values_list("person_id", flat=True)), {first.pk})
         self.assertSetEqual(set(second_occurrence.iea_participants.values_list("person_id", flat=True)), {second.pk})
+
+
+    def test_schedule_another_does_not_copy_roster_by_default(self):
+        rider = self._member("Repeat", "Rider", "upper")
+        self.client.post(reverse("iea_lesson_occurrence_create"), self._payload([rider]))
+        source = LessonOccurrence.objects.get(title="September Team Lesson")
+        response = self.client.get(reverse("iea_lesson_occurrence_duplicate", args=[source.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(rider.pk, list(response.context["form"].fields["participants"].initial or []))
+
+    def test_schedule_another_can_explicitly_copy_roster(self):
+        rider = self._member("Repeat", "Rider", "upper")
+        self.client.post(reverse("iea_lesson_occurrence_create"), self._payload([rider]))
+        source = LessonOccurrence.objects.get(title="September Team Lesson")
+        response = self.client.get(
+            reverse("iea_lesson_occurrence_duplicate", args=[source.pk]) + "?copy_roster=1"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(rider.pk, list(response.context["form"].initial["participants"]))
+
+    def test_scheduling_can_plan_horse_assignments(self):
+        rider = self._member("Horse", "Planner", "futures")
+        horse = Horse.objects.create(team=self.team, name="Scout")
+        payload = self._payload([rider])
+        payload["horses"] = [str(horse.pk)]
+        response = self.client.post(reverse("iea_lesson_occurrence_create"), payload)
+        self.assertEqual(response.status_code, 302)
+        occurrence = LessonOccurrence.objects.get(title="September Team Lesson")
+        assignment = LessonAssignment.objects.get(
+            occurrence=occurrence, person=rider, role=LessonAssignment.Role.PARTICIPANT
+        )
+        self.assertEqual(assignment.horse, horse)
