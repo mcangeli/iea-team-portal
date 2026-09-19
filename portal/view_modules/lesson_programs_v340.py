@@ -156,6 +156,36 @@ def lesson_occurrence_detail(request,pk):
     return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence)})
 
 @login_required
+def iea_lesson_occurrence_duplicate(request, pk):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    source = _occurrence_for_team(team, pk)
+    if not source.series.is_iea_series:
+        raise PermissionDenied("Only IEA team lessons can use this scheduling workflow.")
+    season = source.series.iea_context.season
+    initial = {
+        "title": source.title,
+        "instructor": source.instructor_id,
+        "location": source.location,
+        "capacity": source.capacity,
+        "notes": source.notes,
+    }
+    if request.GET.get("copy_roster") == "1":
+        initial["participants"] = source.iea_participants.values_list("person_id", flat=True)
+    form = IEALessonOccurrenceForm(
+        request.POST or None, initial=initial, team=team, season=season, series=source.series
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(
+        request,
+        "portal/iea_lesson_occurrence_form.html",
+        {"form": form, "season": season, "duplicate_source": source},
+    )
+
+@login_required
 def lesson_occurrence_prepare(request,pk):
     team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk); require_lesson_occurrence_manager(request.user,occurrence)
     if request.method=="POST": result=prepare_lesson_occurrence(occurrence); messages.success(request,f"Roster ready: {len(result.attendance_created)} attendance and {len(result.assignments_created)} assignment record(s) added.")
