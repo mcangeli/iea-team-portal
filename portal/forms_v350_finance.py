@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccountPerson
+from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccountPerson, ReceivableBillingRule
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, Season
 
@@ -49,6 +49,23 @@ class PayablePaymentForm(forms.Form):
 
 class PayableVoidPaymentForm(forms.Form):
     reason=forms.CharField(max_length=255,widget=forms.Textarea(attrs={"rows":3}),help_text="Required audit reason for voiding this payment.")
+
+
+class ReceivableBillingRuleForm(forms.Form):
+    account=forms.ModelChoiceField(queryset=ReceivableBillingRule.objects.none(),label="Receivable account")
+    description=forms.CharField(max_length=220)
+    amount=forms.DecimalField(max_digits=12,decimal_places=2,min_value=0.01)
+    cadence=forms.ChoiceField(choices=ReceivableBillingRule.Cadence.choices)
+    charge_type=forms.CharField(max_length=40,required=False,help_text="Examples: board, training, lesson, lease, care")
+    due_days=forms.IntegerField(min_value=0,max_value=365,initial=0,label="Due days after charge")
+    notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
+    def __init__(self,*args,accounts=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields["account"].queryset=accounts if accounts is not None else ReceivableBillingRule.objects.none()
+
+class MonthlyBillingRunForm(forms.Form):
+    billing_month=forms.DateField(widget=forms.DateInput(attrs={"type":"month"}),input_formats=["%Y-%m","%Y-%m-%d"],label="Billing month")
+
 
 class FinanceAccountForm(forms.Form):
     name=forms.CharField(max_length=160); finance_domain=forms.ChoiceField(choices=FinanceDomain.choices); primary_person=forms.ModelChoiceField(queryset=Person.objects.none(),required=False,empty_label="No primary person"); notes=forms.CharField(required=False,widget=forms.Textarea(attrs={"rows":3}))
