@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 ZERO = Decimal("0.00")
 class FinanceDomain(models.TextChoices):
@@ -237,6 +238,19 @@ class PayableObligation(models.Model):
     @property
     def is_paid(self):
         return self.status != self.Status.VOID and self.balance == ZERO
+
+    def lifecycle_status(self, as_of=None):
+        """Derived lifecycle state without duplicating payment state in the database."""
+        if self.status == self.Status.VOID:
+            return "void"
+        if self.is_paid:
+            return "paid"
+        as_of = as_of or timezone.localdate()
+        if self.due_date and self.due_date < as_of:
+            return "overdue"
+        if self.due_date == as_of:
+            return "due"
+        return "open"
 
     def __str__(self):
         return self.description
