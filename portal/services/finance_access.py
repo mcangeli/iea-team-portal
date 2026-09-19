@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, PayableObligation, PayableParty, PayablePayment, ReceivableAccount
+from portal.model_modules.finance import FinanceDomain, PayableObligation, PayableParty, PayablePayment, ReceivableAccount, ReceivableBillingRule
 from portal.model_modules.people import Person
 from portal.models import CommitteeAssignment, UserProfile
 from portal.platform import organization_for_view_user
@@ -100,6 +100,15 @@ def finance_accounts_for_user(user, team=None):
 
 def finance_account_for_user(user, pk, team=None):
     return finance_accounts_for_user(user, team).filter(pk=pk).first()
+
+
+
+def receivable_billing_rules_for_user(user, team=None):
+    accounts=finance_accounts_for_user(user,team)
+    return ReceivableBillingRule.objects.filter(account__in=accounts)
+
+def receivable_billing_rule_for_user(user, pk, team=None):
+    return receivable_billing_rules_for_user(user,team).filter(pk=pk).first()
 
 
 def finance_charges_for_user(user, team=None):
