@@ -47,7 +47,9 @@ def finance_payables(request):
     requested=request.GET.get("domain")
     domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
     summary=payable_workspace_summary(request.user,team,finance_domain=domain)
-    return render(request,"portal/finance_payables_v370.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"FinanceDomain":FinanceDomain})
+    from portal.services.finance_access import payable_parties_for_user
+    parties=payable_parties_for_user(request.user,team).filter(finance_domain=domain,active=True).order_by("name")
+    return render(request,"portal/finance_payables_v370.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"parties":parties,"FinanceDomain":FinanceDomain})
 
 @login_required
 def finance_payable_party_add(request):
@@ -59,6 +61,15 @@ def finance_payable_party_add(request):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Payee created.");return redirect(f"{reverse('finance_payables')}?domain={party.finance_domain}")
     return render(request,"portal/finance_payable_party_form_v370.html",{"team":team,"form":form})
+
+@login_required
+def finance_payable_party_detail(request,pk):
+    team=_team_for_finance_user(request.user)
+    from portal.services.finance_access import payable_party_for_user
+    party=payable_party_for_user(request.user,pk,team)
+    if party is None:raise PermissionDenied
+    obligations=party.obligations.select_related("expense_category").prefetch_related("payments").order_by("-obligation_date","-id")
+    return render(request,"portal/finance_payable_party_detail_v370.html",{"team":team,"party":party,"obligations":obligations})
 
 @login_required
 def finance_payable_obligation_add(request,party_id):
