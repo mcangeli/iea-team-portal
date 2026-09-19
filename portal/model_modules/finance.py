@@ -50,6 +50,14 @@ class ReceivableCharge(models.Model):
     def allocated_total(self): return self.allocations.filter(status=ReceivableAllocation.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
     @property
     def balance(self): return ZERO if self.status!=self.Status.POSTED else max(self.amount-self.allocated_total,ZERO)
+    def lifecycle_status(self, as_of=None):
+        if self.status == self.Status.VOID: return "void"
+        if self.status == self.Status.WAIVED: return "waived"
+        if self.balance == ZERO: return "paid"
+        as_of = as_of or timezone.localdate()
+        if self.due_date and self.due_date < as_of: return "overdue"
+        if self.due_date == as_of: return "due"
+        return "open"
     def __str__(self): return self.description
 
 class ReceivableCredit(models.Model):
