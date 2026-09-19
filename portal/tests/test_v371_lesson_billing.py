@@ -102,3 +102,10 @@ class LessonBillingUITests(TestCase):
         url=reverse("lesson_occurrence_bill",args=[self.occurrence.pk])
         self.client.post(url,{"billing_rule":self.rule.pk});self.client.post(url,{"billing_rule":self.rule.pk})
         self.assertEqual(ReceivableCharge.objects.filter(account=self.account,billing_rule=self.rule).count(),1)
+
+    def test_occurrence_hides_service_rules_for_unrelated_accounts(self):
+        other_person=Person.objects.create(team=self.team,first_name="Other",last_name="Rider")
+        other_account=ReceivableAccount.objects.create(team=self.team,name="Other Account",finance_domain=FinanceDomain.GENERAL,primary_person=other_person)
+        other_rule=ReceivableBillingRule.objects.create(account=other_account,description="Unrelated service",amount=Decimal("90.00"),cadence=ReceivableBillingRule.Cadence.SERVICE)
+        response=self.client.get(reverse("lesson_occurrence_detail",args=[self.occurrence.pk]))
+        self.assertContains(response,"Private lesson");self.assertNotContains(response,"Unrelated service")
