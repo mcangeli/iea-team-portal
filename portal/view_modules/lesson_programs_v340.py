@@ -186,7 +186,13 @@ def lesson_occurrence_detail(request,pk):
     domain=FinanceDomain.IEA if occurrence.series.is_iea_series else FinanceDomain.GENERAL
     rules=ReceivableBillingRule.objects.none()
     if domain in domains and occurrence.status==LessonOccurrence.Status.COMPLETED:
-        rules=ReceivableBillingRule.objects.filter(account__team=team,account__finance_domain=domain,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True).select_related("account").order_by("description","account__name")
+        participant_account_ids=set()
+        for attendance in occurrence.attendance_records.select_related("person"):
+            if attendance.status not in BILLABLE_ATTENDANCE: continue
+            try: account=resolve_participant_account(attendance.person,finance_domain=domain)
+            except ValidationError: continue
+            if account is not None: participant_account_ids.add(account.pk)
+        rules=ReceivableBillingRule.objects.filter(account__team=team,account__finance_domain=domain,account_id__in=participant_account_ids,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True).select_related("account").order_by("description","account__name")
     selected_rule=None; billing_rows=[]
     requested_rule=request.GET.get("billing_rule")
     if requested_rule and rules.filter(pk=requested_rule).exists():
