@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.6.0**
+**Current version: v3.6.1**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now the general barn/program operational home, My Team is the dedicated IEA team experience, Barn and Team hero branding are independently configurable, and My Account adds verified email changes plus optional TOTP multi-factor authentication.
+v3.6.1 includes the v3.6.0 dashboard/account-security release plus the IEA Lesson occurrence attendance hotfix. v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now the general barn/program operational home, My Team is the dedicated IEA team experience, Barn and Team hero branding are independently configurable, and My Account adds verified email changes plus optional TOTP multi-factor authentication.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,13 +15,13 @@ v3.6.0 refreshes ArenaLine's dashboard architecture: the root Dashboard is now t
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release candidate: `docs/releases/v3.6.0.md`.
+- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.6.0.md` (including the v3.6.1 hotfix addendum).
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
 
-## v3.6.0 highlights
+## v3.6.1 highlights
 
 ### Barn Dashboard and My Team
 
@@ -221,10 +221,10 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.6.0 explicitly:
+Or install v3.6.1 explicitly:
 
 ```bash
-./portalctl update v3.6.0
+./portalctl update v3.6.1
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
