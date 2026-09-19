@@ -7,9 +7,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
+from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
@@ -21,6 +22,7 @@ from portal.services.finance_operations import add_account_person_for_user, allo
 from portal.services.finance_statements import account_activity, statement_for_user
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
+from portal.services.finance_payable_operations import create_payable_obligation_for_user, create_payable_party_for_user
 ZERO=Decimal("0.00")
 
 def _team_for_finance_user(user):
@@ -46,6 +48,30 @@ def finance_payables(request):
     domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
     summary=payable_workspace_summary(request.user,team,finance_domain=domain)
     return render(request,"portal/finance_payables_v370.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"FinanceDomain":FinanceDomain})
+
+@login_required
+def finance_payable_party_add(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    initial={"finance_domain":request.GET.get("domain")} if request.GET.get("domain") in domains else {}
+    form=PayablePartyForm(request.POST or None,initial=initial,team=team,allowed_domains=domains)
+    if request.method=="POST" and form.is_valid():
+        try:party=create_payable_party_for_user(request.user,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Payee created.");return redirect(f"{reverse('finance_payables')}?domain={party.finance_domain}")
+    return render(request,"portal/finance_payable_party_form_v370.html",{"team":team,"form":form})
+
+@login_required
+def finance_payable_obligation_add(request,party_id):
+    team=_team_for_finance_user(request.user)
+    from portal.services.finance_access import payable_party_for_user
+    party=payable_party_for_user(request.user,party_id,team)
+    if party is None:raise PermissionDenied
+    form=PayableObligationForm(request.POST or None,initial={"obligation_date":date.today()},team=team)
+    if request.method=="POST" and form.is_valid():
+        try:create_payable_obligation_for_user(request.user,party.pk,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Payable obligation created.");return redirect(f"{reverse('finance_payables')}?domain={party.finance_domain}")
+    return render(request,"portal/finance_payable_obligation_form_v370.html",{"team":team,"party":party,"form":form})
 
 @login_required
 def finance_reporting(request):
