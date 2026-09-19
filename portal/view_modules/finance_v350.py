@@ -20,6 +20,7 @@ from portal.services.finance_reconciliation import confirm_reconciliation, gener
 from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 from portal.services.finance_reports import finance_report_for_user
+from portal.services.finance_payable_reports import payable_workspace_summary
 ZERO=Decimal("0.00")
 
 def _team_for_finance_user(user):
@@ -37,6 +38,14 @@ def _domain_summary(user,team,domain):
 @login_required
 def finance_workspace(request):
     team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);summaries=[_domain_summary(request.user,team,d) for d in (FinanceDomain.GENERAL,FinanceDomain.IEA) if d in domains];accounts=finance_accounts_for_user(request.user,team).select_related("primary_person").order_by("finance_domain","name");return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"accounts":accounts,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
+
+@login_required
+def finance_payables(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain")
+    domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    summary=payable_workspace_summary(request.user,team,finance_domain=domain)
+    return render(request,"portal/finance_payables_v370.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"FinanceDomain":FinanceDomain})
 
 @login_required
 def finance_reporting(request):
