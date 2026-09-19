@@ -1,6 +1,7 @@
 from django import forms
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
 from .model_modules.horses import Horse
 from .model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
