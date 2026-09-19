@@ -147,6 +147,10 @@ class LessonCancelForm(forms.Form):
 
 
 class IEALessonOccurrenceForm(forms.ModelForm):
+    horses = forms.ModelMultipleChoiceField(
+        queryset=Horse.objects.none(), required=False, widget=forms.CheckboxSelectMultiple,
+        label="Horse planning", help_text="Optional planning pool; horse assignments can be changed on lesson day.",
+    )
     participants = forms.ModelMultipleChoiceField(
         queryset=Person.objects.none(),
         required=False,
@@ -173,6 +177,7 @@ class IEALessonOccurrenceForm(forms.ModelForm):
         self.instance.origin = LessonOccurrence.Origin.MANUAL
         self.instance.iea_roster_configured = True
         self.fields["instructor"].queryset = lesson_instructor_queryset(team, iea=True)
+        self.fields["horses"].queryset = Horse.objects.filter(team=team, active=True).order_by("name")
         rider_ids = SeasonMembership.objects.filter(season=season).values_list("rider_id", flat=True)
         person_ids = LegacyPersonLink.objects.filter(rider_id__in=rider_ids).values_list("person_id", flat=True)
         self.fields["participants"].queryset = Person.objects.filter(
@@ -205,4 +210,14 @@ class IEALessonOccurrenceForm(forms.ModelForm):
                 row = IEALessonOccurrenceParticipant(occurrence=occurrence, person=person)
                 row.full_clean()
                 row.save()
+            # Horse planning is intentionally lightweight: selected horses are assigned
+            # in roster order and can be changed later in the lesson-day workspace.
+            horses = list(self.cleaned_data["horses"])
+            for person, horse in zip(self.cleaned_data["participants"], horses):
+                assignment, _ = LessonAssignment.objects.get_or_create(
+                    occurrence=occurrence, person=person, role=LessonAssignment.Role.PARTICIPANT
+                )
+                assignment.horse = horse
+                assignment.full_clean()
+                assignment.save()
         return occurrence
