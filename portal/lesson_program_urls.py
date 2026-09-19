@@ -26,6 +26,7 @@ urlpatterns = [
     path("lesson-occurrences/<int:pk>/schedule-another/", views.iea_lesson_occurrence_duplicate, name="iea_lesson_occurrence_duplicate"),
     path("lesson-occurrences/<int:pk>/prepare/", views.lesson_occurrence_prepare, name="lesson_occurrence_prepare"),
     path("lesson-occurrences/<int:pk>/complete/", views.lesson_occurrence_complete, name="lesson_occurrence_complete"),
+    path("lesson-occurrences/<int:pk>/bill/", views.lesson_occurrence_bill, name="lesson_occurrence_bill"),
     path("lesson-occurrences/<int:pk>/cancel/", views.lesson_occurrence_cancel, name="lesson_occurrence_cancel"),
     path("lesson-occurrences/<int:pk>/reschedule/", views.lesson_occurrence_reschedule, name="lesson_occurrence_reschedule"),
     path("lesson-attendance/<int:pk>/edit/", views.lesson_attendance_edit, name="lesson_occurrence_attendance_edit"),
