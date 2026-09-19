@@ -24,7 +24,7 @@ Core rule: **team membership determines IEA lesson eligibility; the individual l
 
 Migrations: `0100_v362_iea_occurrence_roster.py` adds explicit IEA occurrence participants and joins the historical branding migration branch; `0101_v362_iea_roster_configured.py` records whether an occurrence has an explicit roster, including intentionally empty rosters.
 
-Validation to date: focused v3.6.2 scheduling/dashboard regression gate **55/55 passing**, plus successful manual scheduling, mixed-roster, filtering, duplication, and monthly-schedule checks on staging. Full portal regression remains the release-promotion gate.
+Validation: focused v3.6.2 scheduling/dashboard regression gate **55/55 passing**, successful manual scheduling, mixed-roster, filtering, duplication, and monthly-schedule checks on staging, and the complete **1170/1170 portal regression suite passing**.
 
 Detailed notes: `docs/releases/v3.6.2.md`.
 
