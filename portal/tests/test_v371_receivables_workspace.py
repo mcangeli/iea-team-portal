@@ -42,3 +42,15 @@ class ReceivablesWorkspaceTests(TestCase):
         self.assertEqual(response.context["selected_domain"],FinanceDomain.IEA)
         self.assertContains(response,"IEA Family")
         self.assertNotContains(response,"Boarding Customer")
+
+    def test_charge_lifecycle_tracks_due_overdue_and_paid(self):
+        charge=self.general.charges.get()
+        self.assertEqual(charge.lifecycle_status(date(2026,9,9)),"open")
+        self.assertEqual(charge.lifecycle_status(date(2026,9,10)),"due")
+        self.assertEqual(charge.lifecycle_status(date(2026,9,19)),"overdue")
+
+    def test_account_detail_shows_overdue_state(self):
+        response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"Overdue")
+        self.assertEqual(response.context["overdue_total"],Decimal("600.00"))
