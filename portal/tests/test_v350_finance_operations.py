@@ -6,7 +6,7 @@ from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team, UserProfile
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
 
 
 class FinanceOperationsTests(TestCase):
@@ -148,3 +148,31 @@ class FinanceOperationsTests(TestCase):
         self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(first.balance,first.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
         replacement=allocate_credit_for_user(user,self.general.pk,credit_id=credit.pk,charge_id=second.pk,team=self.team)
         self.assertEqual(replacement.amount,credit.amount);self.assertEqual(second.balance,0)
+
+
+    def test_payment_can_apply_to_oldest_charges(self):
+        user=self._user("oldest-payment",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August board",amount="600.00",charge_date=date(2026,8,1),due_date=date(2026,8,10),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September board",amount="600.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="1000.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db();payment.refresh_from_db()
+        self.assertEqual(len(allocations),2);self.assertEqual(first.balance,0);self.assertEqual(second.balance,200);self.assertEqual(payment.unapplied_amount,0)
+
+    def test_credit_can_apply_to_oldest_charge(self):
+        user=self._user("oldest-credit",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August board",amount="600.00",charge_date=date(2026,8,1),due_date=date(2026,8,10),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September board",amount="600.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Working Student Credit",amount="150.00",credit_date=date(2026,9,19),team=self.team)
+        allocations=allocate_credit_oldest_for_user(user,self.general.pk,credit_id=credit.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(first.balance,450);self.assertEqual(second.balance,600)
+
+    def test_apply_oldest_ui_action_allocates_payment(self):
+        user=self._user("oldest-ui",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="100.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="100.00",received_date=date(2026,9,19),team=self.team)
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.post(reverse("finance_payment_allocate_oldest",args=[self.general.pk,payment.pk]))
+        self.assertEqual(response.status_code,302);charge.refresh_from_db();self.assertEqual(charge.balance,0)
