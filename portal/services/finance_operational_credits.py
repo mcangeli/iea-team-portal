@@ -2,6 +2,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from portal.services.finance_account_resolution import resolve_participant_account
 from portal.services.finance_earned_credits import generate_rule_credit
@@ -34,6 +35,26 @@ def credit_work_hours(*,person,rule,work_record_id,work_date,hours,description=N
         season=season,notes=notes,
     )
 
+
+
+def credit_approved_work_shift(*,shift,rule,season=None,notes=""):
+    """Translate one approved, closed Station shift into an earned barn-work credit."""
+    if shift.team_id!=rule.team_id:
+        raise ValidationError("Work shift and credit rule must belong to the same organization.")
+    if not shift.clock_out:
+        raise ValidationError("Open work shifts cannot generate earned credits.")
+    if not shift.approved_at:
+        raise ValidationError("Work shifts must be approved before they can generate earned credits.")
+    seconds=max(0,(shift.clock_out-shift.clock_in).total_seconds())
+    hours=(Decimal(str(seconds))/Decimal("3600")).quantize(Decimal("0.0001"))
+    if hours<=0:
+        raise ValidationError("Work shifts must have a positive duration to generate earned credits.")
+    work_date=timezone.localtime(shift.clock_in).date()
+    return credit_work_hours(
+        person=shift.person,rule=rule,work_record_id=shift.pk,work_date=work_date,
+        hours=hours,description=f"{rule.name} — {shift.get_role_display()}",
+        season=season,notes=notes or shift.notes,
+    )
 
 def credit_lesson_horse_use(*,assignment,rule,owner=None,description=None,season=None,notes=""):
     """Credit a horse owner when their horse is used by someone else in a completed lesson."""
