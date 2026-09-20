@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge, ReceivableCreditRule
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.models import Team, UserProfile
 from portal.services.finance_receivable_reports import receivable_workspace_summary
@@ -97,3 +97,15 @@ class ReceivablesWorkspaceTests(TestCase):
         self.client.force_login(user)
         response=self.client.get(reverse("finance_credit_rule_edit",args=[rule.pk]))
         self.assertEqual(response.status_code,403)
+
+
+    def test_account_credit_history_shows_generated_rule_and_source(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Working Student Credit",source_type="barn_work",rate=Decimal("15.00"))
+        ReceivableCredit.objects.create(account=self.general,credit_rule=rule,description="Approved work",amount=Decimal("30.00"),credit_date=date(2026,9,19),credit_type="work",generation_key=f"credit-rule:{rule.pk}:earned:barn_work:work:12",source_type="barn_work",source_id="work:12")
+        response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Credit History");self.assertContains(response,"Working Student Credit");self.assertContains(response,"barn_work");self.assertContains(response,"work:12")
+
+    def test_account_credit_history_identifies_manual_credit(self):
+        ReceivableCredit.objects.create(account=self.general,description="Courtesy adjustment",amount=Decimal("25.00"),credit_date=date(2026,9,19),credit_type="adjustment")
+        response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Courtesy adjustment");self.assertContains(response,"Manual credit")
