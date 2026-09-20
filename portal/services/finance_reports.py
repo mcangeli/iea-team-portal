@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from django.db.models import Q, Sum
-from portal.model_modules.finance import Budget, FinanceDomain, PayableObligation, ReceivableCharge
+from portal.model_modules.finance import Budget, FinanceDomain, PayableObligation, PayablePayment, ReceivableAllocation, ReceivableCharge, ReceivableCredit, ReceivablePayment
 from portal.services.finance_access import allowed_finance_domains, finance_accounts_for_user, financial_transactions_for_user, payable_obligations_for_user
 from portal.services.finance_budgets import budget_actuals
 
@@ -48,13 +48,17 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED).select_related("account")
     if season is not None:charges=charges.filter(season=season)
     if as_of:charges=charges.filter(charge_date__lte=as_of)
-    receivables=sum((charge.balance for charge in charges),ZERO)
+    def receivable_balance_as_of(charge):
+        if not as_of:return charge.balance
+        allocated=ReceivableAllocation.objects.filter(charge=charge,status=ReceivableAllocation.Status.POSTED).filter(Q(payment__status=ReceivablePayment.Status.POSTED,payment__received_date__lte=as_of)|Q(credit__status=ReceivableCredit.Status.POSTED,credit__credit_date__lte=as_of)).aggregate(total=Sum("amount"))["total"] or ZERO
+        return max(charge.amount-allocated,ZERO)
+    receivables=sum((receivable_balance_as_of(charge) for charge in charges),ZERO)
     overdue=ZERO
     aging_rows=[]
     aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
     if as_of:
         for charge in charges:
-            balance=charge.balance
+            balance=receivable_balance_as_of(charge)
             if balance<=ZERO:continue
             if not charge.due_date or charge.due_date>=as_of:
                 bucket="current"
@@ -76,7 +80,11 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     payables=ZERO;overdue_payables=ZERO;payable_aging_rows=[]
     payable_aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
     for obligation in obligations:
-        balance=obligation.balance
+        if as_of:
+            paid=obligation.payments.filter(status=PayablePayment.Status.POSTED,paid_date__lte=as_of).aggregate(total=Sum("amount"))["total"] or ZERO
+            balance=max(obligation.amount-paid,ZERO)
+        else:
+            balance=obligation.balance
         if balance<=ZERO:continue
         payables+=balance
         if not as_of or not obligation.due_date or obligation.due_date>=as_of:
