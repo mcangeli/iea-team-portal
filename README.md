@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.6.2**
+**Current version: v3.7.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.6.2 adds flexible occurrence-first IEA Team Lesson scheduling on top of the v3.6 dashboard/account-security release. Coaches can schedule changing mixed Futures/Upper groups per lesson, plan horses, duplicate lesson logistics without silently copying riders, and work from a monthly schedule. Linked parents/guardians now see their riders' upcoming Barn and IEA lessons on the general Dashboard.
+v3.7.0 completes the Barn Finance architecture with domain-separated Accounts Payable and Receivables, generic budgeting, unified operational reporting, transaction traceability, historical as-of reporting, and compatibility bridges for established IEA finance workflows.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,11 +15,19 @@ v3.6.2 adds flexible occurrence-first IEA Team Lesson scheduling on top of the v
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.6.2.md`.
+- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.7.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
+
+## v3.7.0 highlights
+
+### Barn Finance Completion
+
+ArenaLine Finance now provides a unified operational workspace across General Barn and IEA finance while preserving domain separation. The v3.7.0 architecture completes Accounts Payable, receivables operations, generic budgeting, reporting/export, transaction traceability, historical as-of reporting, and compatibility with established IEA finance records without introducing a second ledger.
+
+Existing finance receipts remain private and are served through authenticated ArenaLine download endpoints rather than public media URLs.
 
 ## v3.6.2 highlights
 
@@ -235,17 +243,17 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.6.2 explicitly:
+Or install v3.7.0 explicitly:
 
 ```bash
-./portalctl update v3.6.2
+./portalctl update v3.7.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
 
 `./portalctl upgrade` does **not** select a newer Git revision. It rebuilds/migrates the revision already checked out and is appropriate for staging/preview workflows after the desired branch commit has already been selected.
 
-The v3.6 migration chain adds account email-verification and MFA state on top of the v3.5 Barn Finance foundation. See `docs/releases/v3.6.0.md` for the release-specific migration and deployment summary.
+The v3.6 migration chain adds account email-verification and MFA state on top of the v3.5 Barn Finance foundation. See `docs/releases/v3.7.0.md` for the current release-specific migration and deployment summary.
 
 ## Backups and rollback
 
@@ -265,7 +273,7 @@ The public/external layer is a separate publication boundary. Anonymous routes c
 
 Person remains the canonical human identity and Horse the canonical equine identity. v3.4 layers the generic lesson hierarchy onto those foundations. Barn enrollment and IEA season/team roster membership remain distinct, and IEA-specific lesson context is layered onto generic series rather than encoded into the generic lesson core.
 
-See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.6.2.md`.
+See `ARCHITECTURE.md`, `docs/PRODUCT_AND_UI_GUIDE.md`, and `docs/releases/v3.7.0.md`.
 
 ## Release process
 
