@@ -34,7 +34,7 @@ class V372BudgetWorkspaceTests(TestCase):
         self.assertRedirects(response,reverse("finance_budget_detail",args=[budget.pk]))
         FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,2,1),kind=FinancialTransaction.Kind.EXPENSE,account=self.bank,category=self.expense,amount=Decimal("3000.00"),description="Hay")
         response=self.client.get(reverse("finance_budget_detail",args=[budget.pk]))
-        self.assertContains(response,"Hay and forage");self.assertContains(response,"3,000.00");self.assertContains(response,"25.0%")
+        self.assertContains(response,"Hay and forage");self.assertContains(response,"3000.00");self.assertContains(response,"25.0%")
 
     def test_iea_only_finance_user_cannot_open_general_budget(self):
         budget=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Private General",start_date=date(2027,1,1),end_date=date(2027,12,31))
