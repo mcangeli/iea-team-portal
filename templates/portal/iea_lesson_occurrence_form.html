@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Schedule IEA Team Lesson · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'iea_lesson_list' %}">← Team Lessons</a></nav>
+<div class="page-intro">
+  <div><div class="eyebrow">IEA TEAM LESSONS · {{ season.name|upper }}</div><h1>Schedule a team lesson</h1>
+  <p>Set the lesson logistics, then choose the riders who are actually scheduled. Futures and Upper riders may ride together.</p>{% if duplicate_source %}<p class="muted">Scheduling another lesson from {{ duplicate_source.title }}. Logistics are prefilled; the roster is not copied unless you choose it explicitly.</p><div class="actions"><a class="btn secondary small" href="{% url 'iea_lesson_occurrence_duplicate' duplicate_source.pk %}?copy_roster=1">Copy previous roster</a></div>{% endif %}</div>
+</div>
+<form method="post" class="content-section">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="card">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="card">
+    <div class="section-head"><div><div class="eyebrow">LESSON DETAILS</div><h2>When & where</h2></div></div>
+    <div class="form-grid">
+      <p>{{ form.title.label_tag }}{{ form.title }}{{ form.title.errors }}</p>
+      <p>{{ form.instructor.label_tag }}{{ form.instructor }}{{ form.instructor.errors }}</p>
+      <p>{{ form.starts_at.label_tag }}{{ form.starts_at }}{{ form.starts_at.errors }}</p>
+      <p>{{ form.ends_at.label_tag }}{{ form.ends_at }}{{ form.ends_at.errors }}</p>
+      <p>{{ form.location.label_tag }}{{ form.location }}{{ form.location.errors }}</p>
+      <p>{{ form.capacity.label_tag }}{{ form.capacity }}{{ form.capacity.errors }}</p>
+    </div>
+    <p>{{ form.notes.label_tag }}{{ form.notes }}{{ form.notes.errors }}</p>
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="section-head"><div><div class="eyebrow">ROSTER</div><h2>Scheduled riders</h2><p class="muted">Team membership controls eligibility. This selection controls this lesson only.</p></div><div><strong id="roster-count">0</strong><small> selected</small></div></div>
+    <div class="actions" data-roster-filters>
+      <button class="btn secondary small" type="button" data-level="all">All</button>
+      <button class="btn secondary small" type="button" data-level="futures">Futures</button>
+      <button class="btn secondary small" type="button" data-level="upper">Upper</button>
+    </div>
+    <div class="iea-roster-grid">
+    {% for choice in form.participants %}
+      <label class="card iea-roster-choice" data-level="{{ choice.data.value.instance.iea_team_level|default:'all' }}">
+        {{ choice.tag }} <span>{{ choice.choice_label }}</span>
+      </label>
+    {% empty %}<div class="empty-state">No eligible riders are linked to this active season.</div>{% endfor %}
+    </div>
+    {{ form.participants.errors }}
+  </div>
+  <div class="card" style="margin-top:1rem">
+    <div class="section-head"><div><div class="eyebrow">HORSE PLAN</div><h2>Optional horses</h2><p class="muted">Select horses you expect to use. Assignments remain editable on lesson day.</p></div></div>
+    {{ form.horses }}{{ form.horses.errors }}
+  </div>
+  <div class="actions" style="margin-top:1rem"><button class="btn" type="submit">Schedule lesson</button><a class="btn secondary" href="{% url 'iea_lesson_list' %}">Cancel</a></div>
+</form>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const boxes=[...document.querySelectorAll('.iea-roster-choice input[type="checkbox"]')];
+  const count=document.getElementById("roster-count");
+  const refresh=()=>count.textContent=boxes.filter(b=>b.checked).length;
+  boxes.forEach(b=>b.addEventListener("change",refresh)); refresh();
+  document.querySelectorAll("[data-roster-filters] [data-level]").forEach(btn=>btn.addEventListener("click",()=>{
+    const level=btn.dataset.level;
+    document.querySelectorAll(".iea-roster-choice").forEach(row=>{
+      row.hidden=level!=="all" && row.dataset.level!==level;
+    });
+  }));
+});
+</script>
+{% endblock %}

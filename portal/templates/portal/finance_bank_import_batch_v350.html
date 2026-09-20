@@ -1,4 +1,4 @@
-{% extends "portal/base.html" %}{% block title %}Review Bank Import · ArenaLine{% endblock %}{% block content %}
+{% extends "base.html" %}{% block title %}Review Bank Import · ArenaLine{% endblock %}{% block content %}
 <div class="finance-shell">
   <div class="page-header">
     <div><p class="eyebrow">Finance · Bank reconciliation</p><h1>{{ batch.source_name }}</h1><p class="muted">{{ batch.financial_account.name }} · {{ batch.get_finance_domain_display }} · {{ batch.get_status_display }}</p></div>

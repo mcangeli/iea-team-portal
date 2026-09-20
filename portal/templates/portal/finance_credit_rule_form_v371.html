@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block title %}{{ title }} · Receivables · ArenaLine{% endblock %}{% block content %}
+<nav class="page-back-nav"><a href="{% url 'finance_receivables' %}?domain={{ selected_domain }}">← Receivables</a></nav>
+<section class="page-intro finance-intro"><div><div class="eyebrow">ARENALINE · FINANCE · EARNED CREDITS</div><h1>{{ title }}</h1><p>Define how verified barn work, horse use, and other operational activity becomes a receivable credit.</p></div></section>
+<section class="card people-form-shell"><form method="post">{% csrf_token %}{{ form.non_field_errors }}<div class="form-grid">{% for field in form %}<div class="form-field {% if field.name == 'notes' %}form-field-wide{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>{% endfor %}</div><div class="form-actions"><button class="btn" type="submit">Save credit rule</button><a class="btn secondary" href="{% url 'finance_receivables' %}?domain={{ selected_domain }}">Cancel</a></div></form></section>
+{% endblock %}

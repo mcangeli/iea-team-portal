@@ -22,6 +22,7 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from ..forms import (
@@ -96,6 +97,8 @@ from .common import (
     friendly_integrity_errors,
 )
 
+
+from portal.services.finance_budget_compat import sync_season_budget_to_generic
 
 from .finance_core_helpers import (
     _finance_account_rows,
@@ -406,6 +409,13 @@ def finance_transaction_edit(request, pk):
     form = FinancialTransactionForm(
         request.POST or None, request.FILES or None, instance=obj, team=team
     )
+    # ClearableFileInput normally links the existing FieldFile through
+    # receipt.url (/media/...). Finance receipts are private, so point the
+    # widget's "Currently" link at the authenticated download endpoint instead.
+    if obj.receipt:
+        form.fields["receipt"].widget.attrs["existing_file_url"] = reverse(
+            "finance_receipt_download", kwargs={"pk": obj.pk}
+        )
     if form.is_valid():
         obj = form.save(commit=False)
         obj.team = team
@@ -427,7 +437,12 @@ def finance_transaction_edit(request, pk):
         messages.success(request, "Financial transaction updated.")
         return redirect("finance_transaction_list")
     return render(request, "portal/form.html", {
-        "form": form, "title": "Edit transaction", "eyebrow": "TEAM FINANCE"
+        "form": form,
+        "title": "Edit transaction",
+        "eyebrow": "TEAM FINANCE",
+        "protected_receipt_url": (
+            reverse("finance_receipt_download", kwargs={"pk": obj.pk}) if obj.receipt else ""
+        ),
     })
 
 @login_required
@@ -675,7 +690,8 @@ def finance_budget(request):
         messages.error(request, "Create or activate a season before setting a budget.")
         return redirect("finance_dashboard")
     rows = SeasonBudget.objects.filter(season=season).select_related("category")
-    return render(request, "portal/finance_budget.html", {"season": season, "budgets": rows})
+    generic_budget = sync_season_budget_to_generic(season=season)
+    return render(request, "portal/finance_budget.html", {"season": season, "budgets": rows, "generic_budget": generic_budget})
 
 @login_required
 @friendly_integrity_errors
@@ -698,6 +714,7 @@ def finance_budget_create(request):
             season=season, summary=f"Created season budget line: {obj.category.name}",
             details={"kind": obj.kind, "amount": obj.amount},
         )
+        sync_season_budget_to_generic(season=season)
         messages.success(request, "Budget line added.")
         return redirect("finance_budget")
     return render(request, "portal/form.html", {
@@ -722,6 +739,7 @@ def finance_budget_edit(request, pk):
             season=obj.season, summary=f"Updated season budget line: {obj.category.name}",
             details={"kind": obj.kind, "amount": obj.amount},
         )
+        sync_season_budget_to_generic(season=obj.season)
         messages.success(request, "Budget line updated.")
         return redirect("finance_budget")
     return render(request, "portal/form.html", {

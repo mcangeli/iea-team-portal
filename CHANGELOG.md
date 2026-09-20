@@ -4,6 +4,71 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.7.0 — Barn Finance Completion
+
+Release candidate — September 2026.
+
+v3.7.0 completes ArenaLine's operational Barn Finance architecture across accounts payable, receivables, budgeting, unified reporting, and compatibility with established IEA finance workflows.
+
+Highlights:
+
+- adds domain-separated accounts payable with payees/vendors, obligations, payments, lifecycle controls, aging, reporting, and FinancialTransaction integration;
+- completes generic receivables with operational workspaces, recurring/service billing, lesson billing, earned-credit rules, oldest-first allocation, statements, correction workflows, and closed-account write protection;
+- introduces generic Barn/IEA budgets and budget lines backed by FinancialCategory, with planned-versus-actual reporting calculated from the existing FinancialTransaction ledger rather than a second accounting system;
+- expands the Finance Workspace into a unified operational dashboard spanning receivables, payables, active budgets, exceptions, recent ledger activity, reports, reconciliation, and accounting exports;
+- adds transaction traceability from ledger entries back to receivable/payable operational sources and confirmed bank-reconciliation matches;
+- adds historical effective-date AR/AP reporting while retaining current-validity semantics for later void/status changes that do not have separate effective-date history;
+- preserves legacy IEA SeasonBudget and ShowBudget workflows through non-destructive compatibility bridges, including aggregation when multiple legacy show lines map to one generic category/kind budget line;
+- keeps General Barn and IEA finance authorization and data strictly separated while preserving established legacy IEA finance surfaces;
+- consolidates shadowed finance templates and hardens finance reporting, lifecycle, permission, and compatibility regressions.
+
+Migrations: v3.7 finance migrations continue from the v3.6.2 graph with `0102_v370_accounts_payable_foundation.py` through the v3.7 receivables/budget compatibility migrations currently ending at `0109`.
+
+Validation: focused v3.7 finance regression gate **307/307 passing**, complete ArenaLine regression suite **1338/1338 passing**, `makemigrations --check --dry-run` reporting **No changes detected**, and Django system check reporting **no issues**.
+
+## v3.6.2 — Flexible IEA Lesson Scheduling
+
+Release candidate — September 2026.
+
+v3.6.2 makes IEA Team Lessons occurrence-first so coaches can schedule the actual lesson groups they need rather than forcing variable IEA instruction into a recurring Futures/Upper series.
+
+Highlights:
+
+- schedules individual IEA lesson occurrences with date/time, coach, location, capacity, notes, and an explicit occurrence roster;
+- permits mixed Futures and Upper riders in the same lesson while retaining team membership as eligibility metadata;
+- distinguishes an intentionally empty roster from legacy season/team fallback behavior;
+- adds optional horse planning, Schedule Another, explicit Copy Previous Roster behavior, and a monthly IEA lesson schedule;
+- projects upcoming Barn and IEA lessons for linked riders onto the Parent/Guardian Dashboard without exposing unrelated riders;
+- preserves existing v3.4 Barn Lesson Program recurrence/enrollment behavior and legacy converted IEA lesson compatibility;
+- isolates each ArenaLine installation's Docker Compose project through the required `COMPOSE_PROJECT_NAME` used by `portalctl`, and adds `portalctl status`.
+
+Core rule: **team membership determines IEA lesson eligibility; the individual lesson occurrence determines who is actually scheduled.**
+
+Migrations: `0100_v362_iea_occurrence_roster.py` adds explicit IEA occurrence participants and joins the historical branding migration branch; `0101_v362_iea_roster_configured.py` records whether an occurrence has an explicit roster, including intentionally empty rosters.
+
+Validation: focused v3.6.2 scheduling/dashboard regression gate **55/55 passing**, successful manual scheduling, mixed-roster, filtering, duplication, and monthly-schedule checks on staging, and the complete **1170/1170 portal regression suite passing**.
+
+Detailed notes: `docs/releases/v3.6.2.md`.
+
+## v3.6.1 — IEA Lesson Occurrence Hotfix
+
+Released September 2026.
+
+v3.6.1 fixes converted and newly created IEA lesson operations so occurrence-based attendance editing remains in the v3.4 Lesson Program workflow instead of resolving to the legacy lesson attendance editor.
+
+Highlights:
+
+- gives the v3.4 occurrence attendance editor a distinct URL name, eliminating its collision with the legacy IEA lesson attendance route;
+- updates occurrence detail actions to use the occurrence-specific attendance editor while preserving the legacy route for compatibility;
+- adds regression coverage proving the legacy and occurrence attendance routes remain distinct;
+- validates the production legacy IEA lesson conversion workflow: 3 legacy lessons converted into 5 occurrence partitions with 28 attendance records and 28 participant/horse assignments, with zero conversion issues;
+- confirms conversion idempotency: a repeat applied conversion created no duplicate programs, series, occurrences, attendance records, or assignments;
+- legacy lesson records remain unchanged for compatibility, and new IEA lessons are created directly through the current Lesson Program architecture.
+
+Migrations: no new Django schema migration is introduced by v3.6.1. Existing production legacy IEA lesson data must be converted once, where applicable, with `python manage.py convert_legacy_iea_lessons --apply` after reviewing the command's dry-run report.
+
+Validation: production legacy conversion and idempotency checks completed successfully; occurrence attendance/horse editing and creation of a new IEA lesson were manually verified on the production workflow.
+
 ## v3.6.0 — Dashboard Refresh & Account Security
 
 Released September 2026.

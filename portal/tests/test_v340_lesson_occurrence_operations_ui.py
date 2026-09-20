@@ -49,7 +49,7 @@ class LessonOccurrenceOperationsUITests(TestCase):
     def test_attendance_can_be_updated(self):
         self.client.post(reverse("lesson_occurrence_prepare", args=[self.occurrence.pk]))
         record = LessonAttendanceRecord.objects.get(occurrence=self.occurrence, person=self.person)
-        self.client.post(reverse("lesson_attendance_edit", args=[record.pk]), {"status": LessonAttendanceRecord.Status.PRESENT, "notes": "Good ride"})
+        self.client.post(reverse("lesson_occurrence_attendance_edit", args=[record.pk]), {"status": LessonAttendanceRecord.Status.PRESENT, "notes": "Good ride"})
         record.refresh_from_db(); self.assertEqual(record.status, LessonAttendanceRecord.Status.PRESENT); self.assertEqual(record.notes, "Good ride")
 
     def test_horse_can_be_assigned(self):
@@ -85,3 +85,12 @@ class LessonOccurrenceOperationsUITests(TestCase):
         response = self.client.post(reverse("lesson_assignment_edit", args=[assignment.pk]), {"horse": other_horse.pk, "notes": ""})
         self.assertEqual(response.status_code, 200)
         assignment.refresh_from_db(); self.assertIsNone(assignment.horse)
+
+
+    def test_occurrence_attendance_route_does_not_collide_with_legacy_lesson_attendance(self):
+        self.client.post(reverse("lesson_occurrence_prepare", args=[self.occurrence.pk]))
+        record = LessonAttendanceRecord.objects.get(occurrence=self.occurrence, person=self.person)
+        occurrence_url = reverse("lesson_occurrence_attendance_edit", args=[record.pk])
+        legacy_url = reverse("lesson_attendance_edit", args=[record.pk])
+        self.assertNotEqual(occurrence_url, legacy_url)
+        self.assertEqual(occurrence_url, f"/lesson-attendance/{record.pk}/edit/")

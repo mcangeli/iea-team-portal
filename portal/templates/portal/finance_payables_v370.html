@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}Payables · Finance · ArenaLine{% endblock %}{% block content %}
+<div class="finance-shell">
+<div class="page-header"><div><p class="eyebrow">ArenaLine · Finance · Payables</p><h1>Payables</h1><p class="muted">Track what the barn owes, what is due now, and what needs attention.</p></div><div><a class="btn btn-secondary" href="{% url 'finance_workspace' %}">Finance workspace</a> <a class="btn btn-primary" href="{% url 'finance_payable_party_add' %}?domain={{ selected_domain }}">New payee</a></div></div>
+<div class="finance-domain-tabs">{% if "general" in domains %}<a class="{% if selected_domain == 'general' %}active{% endif %}" href="?domain=general">General Barn</a>{% endif %}{% if "iea" in domains %}<a class="{% if selected_domain == 'iea' %}active{% endif %}" href="?domain=iea">IEA</a>{% endif %}</div>
+<div class="finance-metric-grid">
+<section class="card"><span class="muted">Open payables</span><strong>${{ summary.open_total }}</strong></section>
+<section class="card"><span class="muted">Due today</span><strong>${{ summary.due_total }}</strong></section>
+<section class="card"><span class="muted">Overdue</span><strong>${{ summary.overdue_total }}</strong></section>
+</div>
+<section class="card"><div class="finance-section-head"><div><p class="eyebrow">Accounts payable</p><h2>Open obligations</h2></div><span class="muted">As of {{ summary.as_of }}</span></div>
+{% if summary.rows %}<div class="table-wrap"><table><thead><tr><th>Payee</th><th>Description</th><th>Due</th><th>Status</th><th>Balance</th></tr></thead><tbody>
+{% for row in summary.rows %}<tr><td><strong>{{ row.party.name }}</strong><br><a href="{% url 'finance_payable_obligation_add' row.party.pk %}">Add payable</a></td><td><a href="{% url 'finance_payable_obligation_detail' row.obligation.pk %}">{{ row.obligation.description }}</a></td><td>{{ row.due_date|default:"—" }}</td><td><span class="ap-status ap-{{ row.state }}">{{ row.state|title }}</span></td><td><strong>${{ row.balance }}</strong></td></tr>{% endfor %}
+</tbody></table></div>{% else %}<p class="muted">No open payable obligations in this finance domain.</p>{% endif %}</section>
+<section class="card"><div class="finance-section-head"><div><p class="eyebrow">PAYEES & VENDORS</p><h2>Directory</h2></div><a href="{% url 'finance_payable_party_add' %}?domain={{ selected_domain }}">Add payee</a></div>
+{% if parties %}<div class="table-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Contact</th><th></th></tr></thead><tbody>{% for party in parties %}<tr><td><strong><a href="{% url 'finance_payable_party_detail' party.pk %}">{{ party.name }}</a></strong></td><td>{{ party.get_party_type_display }}</td><td>{{ party.email|default:party.phone|default:"—" }}</td><td><a href="{% url 'finance_payable_obligation_add' party.pk %}">New payable</a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="muted">No payees in this finance domain yet.</p>{% endif %}</section>
+</div>
+<style>
+.finance-domain-tabs{display:flex;gap:.5rem;margin:1rem 0}.finance-domain-tabs a{padding:.55rem .85rem;border:1px solid var(--border-color,#d8d8d8);border-radius:999px;text-decoration:none}.finance-domain-tabs a.active{font-weight:700}.finance-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1rem 0}.finance-metric-grid .card{display:flex;flex-direction:column;gap:.35rem}.finance-metric-grid strong{font-size:1.5rem}.finance-section-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}.ap-status{font-weight:700}.ap-overdue{font-weight:800}@media(max-width:700px){.finance-metric-grid{grid-template-columns:1fr}.finance-section-head{align-items:flex-start;flex-direction:column}}
+</style>
+{% endblock %}

@@ -1,4 +1,5 @@
-from datetime import timedelta
+from calendar import monthrange
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -7,9 +8,13 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from ..forms_lessons_v340 import IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
-from ..model_modules.lessons import IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
+from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
+from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
+from ..model_modules.finance import FinanceDomain, ReceivableBillingRule, ReceivableCharge
+from ..services.finance_access import allowed_finance_domains
+from ..services.finance_account_resolution import resolve_participant_account
+from ..services.lesson_billing import BILLABLE_ATTENDANCE, bill_lesson_occurrence
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..services.lesson_completion import complete_lesson_occurrence
 from ..services.lesson_operations import materialize_lesson_series
@@ -63,10 +68,58 @@ def lesson_series_create(request,program_pk):
 
 @login_required
 def iea_lesson_list(request):
-    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]
+    team=organization_for_view_user(request.user); season=active_period_for_organization(team); contexts=IEALessonSeriesContext.objects.none(); legacy_upcoming=[]; legacy_recent=[]; month_occurrences=[]; month_cursor=timezone.localdate().replace(day=1)
+    requested_month=request.GET.get("month","")
+    if requested_month:
+        try: month_cursor=date.fromisoformat(f"{requested_month}-01")
+        except ValueError: pass
     if season:
-        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name"); legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
-    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"can_manage":is_iea_lesson_manager(request.user)})
+        contexts=IEALessonSeriesContext.objects.filter(season=season).select_related("series__program").order_by("team_level","series__name")
+        legacy_lessons=season.lessons.select_related("group","coach").prefetch_related("attendance__rider"); legacy_upcoming=legacy_lessons.filter(starts_at__gte=timezone.now()).order_by("starts_at"); legacy_recent=legacy_lessons.filter(starts_at__lt=timezone.now()).order_by("-starts_at")[:12]
+        month_end=month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])
+        month_occurrences=LessonOccurrence.objects.filter(series__iea_context__season=season,starts_at__date__range=(month_cursor,month_end)).select_related("series__program","instructor").prefetch_related("iea_participants").order_by("starts_at")
+    previous_month=(month_cursor-timedelta(days=1)).replace(day=1)
+    next_month=(month_cursor.replace(day=monthrange(month_cursor.year,month_cursor.month)[1])+timedelta(days=1)).replace(day=1)
+    return render(request,"portal/iea_lesson_list.html",{"season":season,"futures_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.FUTURES),"upper_contexts":contexts.filter(team_level=SeasonMembership.TeamLevel.UPPER),"legacy_upcoming":legacy_upcoming,"legacy_recent":legacy_recent,"month_occurrences":month_occurrences,"month_cursor":month_cursor,"previous_month":previous_month,"next_month":next_month,"can_manage":is_iea_lesson_manager(request.user)})
+
+
+@login_required
+def iea_lesson_occurrence_create(request):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    season = active_period_for_organization(team)
+    if not season:
+        raise PermissionDenied("An active IEA season is required before scheduling team lessons.")
+    program, _ = LessonProgram.objects.get_or_create(
+        team=team,
+        name="IEA Team Lessons",
+        defaults={"description": "IEA team instruction scheduled by individual occurrence."},
+    )
+    series, _ = LessonSeries.objects.get_or_create(
+        program=program,
+        name="IEA Team Lessons",
+        defaults={"active": True},
+    )
+    context, _ = IEALessonSeriesContext.objects.get_or_create(
+        series=series,
+        defaults={"season": season, "team_level": IEALessonSeriesContext.TeamLevel.MIXED},
+    )
+    if context.season_id != season.id or context.team_level != IEALessonSeriesContext.TeamLevel.MIXED:
+        context.season = season
+        context.team_level = IEALessonSeriesContext.TeamLevel.MIXED
+        context.full_clean()
+        context.save()
+    form = IEALessonOccurrenceForm(
+        request.POST or None,
+        team=team,
+        season=season,
+        series=series,
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
 @login_required
 def iea_lesson_series_create(request):
@@ -111,10 +164,84 @@ def lesson_series_generate(request,pk):
     if request.method!="POST": return redirect("lesson_series_detail",pk=series.pk)
     start_date=max(timezone.localdate(),series.start_date) if series.start_date else timezone.localdate(); end_date=series.end_date or (start_date+timedelta(weeks=12)); result=materialize_lesson_series(series,start_date,end_date); messages.success(request,f"Schedule ready: {len(result.generation.created)} occurrence(s) created and {len(result.prepared)} prepared."); return redirect("lesson_series_detail",pk=series.pk)
 
+def _lesson_billing_preview(occurrence, rule):
+    rows=[]
+    for attendance in occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"):
+        state="not_billable"; account=None
+        if attendance.status in BILLABLE_ATTENDANCE:
+            try: account=resolve_participant_account(attendance.person,finance_domain=rule.account.finance_domain)
+            except ValidationError: state="ambiguous"
+            else:
+                if account is None: state="no_account"
+                elif account.pk != rule.account_id: state="different_account"
+                elif ReceivableCharge.objects.filter(billing_rule=rule,generation_key=f"service:lesson_attendance:{occurrence.pk}:{attendance.person_id}").exists(): state="already_billed"
+                else: state="ready"
+        rows.append({"attendance":attendance,"account":account,"state":state})
+    return rows
+
 @login_required
 def lesson_occurrence_detail(request,pk):
     team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk); context=occurrence.series.iea_context if occurrence.series.is_iea_series else None
-    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence)})
+    domains=allowed_finance_domains(request.user,team)
+    domain=FinanceDomain.IEA if occurrence.series.is_iea_series else FinanceDomain.GENERAL
+    rules=ReceivableBillingRule.objects.none()
+    if domain in domains and occurrence.status==LessonOccurrence.Status.COMPLETED:
+        participant_account_ids=set()
+        for attendance in occurrence.attendance_records.select_related("person"):
+            if attendance.status not in BILLABLE_ATTENDANCE: continue
+            try: account=resolve_participant_account(attendance.person,finance_domain=domain)
+            except ValidationError: continue
+            if account is not None: participant_account_ids.add(account.pk)
+        rules=ReceivableBillingRule.objects.filter(account__team=team,account__finance_domain=domain,account_id__in=participant_account_ids,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True).select_related("account").order_by("description","account__name")
+    selected_rule=None; billing_rows=[]
+    requested_rule=request.GET.get("billing_rule")
+    if requested_rule and rules.filter(pk=requested_rule).exists():
+        selected_rule=rules.get(pk=requested_rule); billing_rows=_lesson_billing_preview(occurrence,selected_rule)
+    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
+
+@login_required
+def lesson_occurrence_bill(request,pk):
+    team=organization_for_view_user(request.user); occurrence=_occurrence_for_team(team,pk)
+    if request.method!="POST": return redirect("lesson_occurrence_detail",pk=pk)
+    domain=FinanceDomain.IEA if occurrence.series.is_iea_series else FinanceDomain.GENERAL
+    if domain not in allowed_finance_domains(request.user,team): raise PermissionDenied
+    rule=get_object_or_404(ReceivableBillingRule.objects.select_related("account"),pk=request.POST.get("billing_rule"),account__team=team,account__finance_domain=domain,cadence=ReceivableBillingRule.Cadence.SERVICE,active=True)
+    try:
+        result=bill_lesson_occurrence(occurrence=occurrence,rule=rule)
+        messages.success(request,f"Lesson billing complete: {len(result.generated)} charge(s) created, {len(result.existing)} already billed, {len(result.skipped)} skipped.")
+    except ValidationError as exc: messages.error(request," ".join(exc.messages))
+    return redirect(f"{request.path.rsplit('/bill/',1)[0]}/?billing_rule={rule.pk}")
+
+
+@login_required
+def iea_lesson_occurrence_duplicate(request, pk):
+    require_iea_lesson_manager(request.user)
+    team = organization_for_view_user(request.user)
+    source = _occurrence_for_team(team, pk)
+    if not source.series.is_iea_series:
+        raise PermissionDenied("Only IEA team lessons can use this scheduling workflow.")
+    season = source.series.iea_context.season
+    initial = {
+        "title": source.title,
+        "instructor": source.instructor_id,
+        "location": source.location,
+        "capacity": source.capacity,
+        "notes": source.notes,
+    }
+    if request.GET.get("copy_roster") == "1":
+        initial["participants"] = source.iea_participants.values_list("person_id", flat=True)
+    form = IEALessonOccurrenceForm(
+        request.POST or None, initial=initial, team=team, season=season, series=source.series
+    )
+    if form.is_valid():
+        occurrence = form.save()
+        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+    return render(
+        request,
+        "portal/iea_lesson_occurrence_form.html",
+        {"form": form, "season": season, "duplicate_source": source},
+    )
 
 @login_required
 def lesson_occurrence_prepare(request,pk):

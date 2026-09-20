@@ -19,6 +19,16 @@ if [[ ! -f "$SHARED_ENV" ]]; then
 fi
 
 export PORTAL_ENV_FILE="$SHARED_ENV"
+
+# Every ArenaLine installation must have an explicit Compose project identity.
+# This prevents a staging checkout from operating on another ArenaLine stack
+# when multiple installations share the same Docker host.
+COMPOSE_PROJECT_NAME="$(awk -F= '/^[[:space:]]*COMPOSE_PROJECT_NAME[[:space:]]*=/ {sub(/^[^=]*=/, "", $0); gsub(/^[[:space:]]+|[[:space:]]+$/, "", $0); gsub(/^["\047]|["\047]$/, "", $0); print; exit}' "$SHARED_ENV")"
+if [[ -z "$COMPOSE_PROJECT_NAME" ]]; then
+  echo "COMPOSE_PROJECT_NAME must be set in $SHARED_ENV to isolate this ArenaLine installation." >&2
+  exit 1
+fi
+export COMPOSE_PROJECT_NAME
 cd "$SCRIPT_DIR"
 
 
@@ -90,7 +100,7 @@ start_upgrade_log() {
 }
 
 compose() {
-  docker compose --env-file "$SHARED_ENV" "$@"
+  docker compose --project-name "$COMPOSE_PROJECT_NAME" --env-file "$SHARED_ENV" "$@"
 }
 
 verify_database_backup() {
@@ -367,6 +377,10 @@ git_rollback() {
 }
 
 case "${1:-}" in
+  status)
+    validate_host_environment
+    compose ps
+    ;;
   git-status)
     git_status_report
     ;;

@@ -114,7 +114,7 @@ Barn Lesson Programs use `LessonEnrollment` for normal series membership. Barn i
 
 ### IEA Team Lesson specialization
 
-IEA-specific lesson behavior is layered onto a generic `LessonSeries` through `IEALessonSeriesContext`, which supplies Season and Futures/Upper team context. IEA rosters come from existing `SeasonMembership` and bridge Rider to canonical Person. IEA instructor eligibility is Coach-specific.
+IEA-specific lesson behavior is layered onto a generic `LessonSeries` through `IEALessonSeriesContext`, which supplies Season context. For new v3.6.2 scheduling, the series is an organizational container and may use mixed team context: `SeasonMembership` determines Futures/Upper eligibility, while `IEALessonOccurrenceParticipant` records who is actually scheduled for each occurrence. An explicit roster may intentionally be empty. Older occurrences retain the season/team fallback when no explicit roster has been configured. IEA instructor eligibility is Coach-specific.
 
 This avoids a generic `lesson_type=IEA` switch and keeps IEA season/team behavior outside the generic lesson core.
 
@@ -197,7 +197,8 @@ Compatibility layers are deliberate and should be removed only when their caller
 - legacy scoring heuristics used only without catalog metadata;
 - v3.2 Person abstractions coexisting with Rider/Guardian/UserProfile/SeasonMembership/finance/competition structures;
 - v3.3 equine records coexisting with existing Horse/Coggins/show/Hoofprint/history structures;
-- v3.4 generic Lesson Program records coexisting with legacy lesson records, with explicit provenance for converted IEA occurrences.
+- v3.4 generic Lesson Program records coexisting with legacy lesson records, with explicit provenance for converted IEA occurrences;
+- v3.6.2 explicit IEA occurrence rosters coexisting with the older season/team roster fallback for historical occurrences.
 
 A cleanup should reduce duplicate behavior without rewriting historical records or breaking stable URLs.
 

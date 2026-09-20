@@ -13,9 +13,9 @@ class FinanceWorkspaceTests(TestCase):
         user=User.objects.create_user(username=username,password="pass12345");profile=user.profile;profile.team=self.team;profile.role=role;profile.save(update_fields=["team","role"]);person=Person.objects.create(team=self.team,user=user,first_name=username,last_name="Tester");return user,person
     def _grant(self,person,capability):OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=capability)
     def test_admin_workspace_contains_both_domains(self):
-        user,_=self._user("admin",UserProfile.Role.ADMIN);self.client.force_login(user);r=self.client.get(reverse("finance_workspace"));self.assertEqual(r.status_code,200);self.assertContains(r,"General Barn");self.assertContains(r,"IEA");self.assertContains(r,"General Account");self.assertContains(r,"IEA Account")
+        user,_=self._user("admin",UserProfile.Role.ADMIN);self.client.force_login(user);r=self.client.get(reverse("finance_workspace"));self.assertEqual(r.status_code,200);self.assertContains(r,"General Barn");self.assertContains(r,"IEA");self.assertContains(r,"$ 125.00");self.assertContains(r,"$ 75.00")
     def test_iea_treasurer_workspace_does_not_render_general_data(self):
-        user,p=self._user("iea-treasurer");self._grant(p,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE);self.client.force_login(user);r=self.client.get(reverse("finance_workspace"));self.assertEqual(r.status_code,200);self.assertNotContains(r,"General Account");self.assertContains(r,"IEA Account")
+        user,p=self._user("iea-treasurer");self._grant(p,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE);self.client.force_login(user);r=self.client.get(reverse("finance_workspace"));self.assertEqual(r.status_code,200);self.assertNotContains(r,"General Barn finance");self.assertNotContains(r,"$ 125.00");self.assertContains(r,"IEA finance");self.assertContains(r,"$ 75.00")
     def test_iea_treasurer_cannot_guess_general_account_detail_url(self):
         user,p=self._user("iea-detail");self._grant(p,OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE);self.client.force_login(user);self.assertEqual(self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk])).status_code,403)
     def test_iea_treasurer_cannot_guess_general_statement_url(self):

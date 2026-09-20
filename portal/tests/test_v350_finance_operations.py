@@ -6,7 +6,7 @@ from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Team, UserProfile
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
 
 
 class FinanceOperationsTests(TestCase):
@@ -148,3 +148,93 @@ class FinanceOperationsTests(TestCase):
         self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(first.balance,first.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
         replacement=allocate_credit_for_user(user,self.general.pk,credit_id=credit.pk,charge_id=second.pk,team=self.team)
         self.assertEqual(replacement.amount,credit.amount);self.assertEqual(second.balance,0)
+
+
+    def test_payment_can_apply_to_oldest_charges(self):
+        user=self._user("oldest-payment",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August board",amount="600.00",charge_date=date(2026,8,1),due_date=date(2026,8,10),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September board",amount="600.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="1000.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db();payment.refresh_from_db()
+        self.assertEqual(len(allocations),2);self.assertEqual(first.balance,0);self.assertEqual(second.balance,200);self.assertEqual(payment.unapplied_amount,0)
+
+    def test_credit_can_apply_to_oldest_charge(self):
+        user=self._user("oldest-credit",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August board",amount="600.00",charge_date=date(2026,8,1),due_date=date(2026,8,10),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September board",amount="600.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Working Student Credit",amount="150.00",credit_date=date(2026,9,19),team=self.team)
+        allocations=allocate_credit_oldest_for_user(user,self.general.pk,credit_id=credit.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(first.balance,450);self.assertEqual(second.balance,600)
+
+    def test_apply_oldest_ui_action_allocates_payment(self):
+        user=self._user("oldest-ui",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="100.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="100.00",received_date=date(2026,9,19),team=self.team)
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.post(reverse("finance_payment_allocate_oldest",args=[self.general.pk,payment.pk]))
+        self.assertEqual(response.status_code,302);charge.refresh_from_db();self.assertEqual(charge.balance,0)
+
+
+    def test_credit_history_exposes_allocation_correction(self):
+        user=self._user("credit-correction-ui",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Work credit",amount="40.00",credit_date=date(2026,9,8),charge_id=charge.pk,team=self.team)
+        allocation=credit.allocations.get()
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        self.assertContains(response,"Correct Board")
+        self.assertContains(response,reverse("finance_credit_unallocate",args=[self.general.pk,allocation.pk]))
+
+    def test_credit_allocation_can_be_corrected_through_ui(self):
+        user=self._user("credit-correction-post",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Lessons",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Adjustment",amount="40.00",credit_date=date(2026,9,8),charge_id=charge.pk,team=self.team)
+        allocation=credit.allocations.get()
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.post(reverse("finance_credit_unallocate",args=[self.general.pk,allocation.pk]),{"reason":"Wrong charge"})
+        self.assertEqual(response.status_code,302)
+        allocation.refresh_from_db();charge.refresh_from_db();credit.refresh_from_db()
+        self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(charge.balance,charge.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
+
+
+    def test_apply_oldest_leaves_excess_payment_unapplied(self):
+        user=self._user("oldest-excess",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="100.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="150.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        charge.refresh_from_db();payment.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(charge.balance,0);self.assertEqual(payment.unapplied_amount,50)
+
+    def test_apply_oldest_with_no_outstanding_charges_is_noop(self):
+        user=self._user("oldest-none",role=UserProfile.Role.ADMIN)
+        payment=post_payment_for_user(user,self.general.pk,amount="75.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        payment.refresh_from_db()
+        self.assertEqual(allocations,[]);self.assertEqual(payment.unapplied_amount,payment.amount)
+
+    def test_apply_oldest_skips_nonposted_and_paid_charges(self):
+        user=self._user("oldest-skip",role=UserProfile.Role.ADMIN)
+        paid=create_charge_for_user(user,self.general.pk,description="Paid",amount="50.00",charge_date=date(2026,8,1),team=self.team)
+        prior=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,8,2),charge_id=paid.pk,team=self.team)
+        voided=create_charge_for_user(user,self.general.pk,description="Voided",amount="50.00",charge_date=date(2026,8,3),team=self.team)
+        voided.status=voided.Status.VOID;voided.save(update_fields=["status"])
+        open_charge=create_charge_for_user(user,self.general.pk,description="Open",amount="50.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        paid.refresh_from_db();voided.refresh_from_db();open_charge.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(paid.balance,0);self.assertEqual(open_charge.balance,0)
+        self.assertEqual(allocations[0].charge_id,open_charge.pk)
+
+    def test_apply_oldest_uses_charge_date_when_due_date_missing(self):
+        user=self._user("oldest-null-due",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August no due date",amount="50.00",charge_date=date(2026,8,1),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September due",amount="50.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(allocations[0].charge_id,first.pk);self.assertEqual(first.balance,0);self.assertEqual(second.balance,50)

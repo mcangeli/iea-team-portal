@@ -40,6 +40,10 @@ class HorsePersonRelationship(models.Model):
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
     active = models.BooleanField(default=True)
+    credit_recipient = models.BooleanField(
+        default=False,
+        help_text="Use this person for earned credits generated from the horse's use.",
+    )
     notes = models.CharField(max_length=255, blank=True)
 
     class Meta:
@@ -53,6 +57,11 @@ class HorsePersonRelationship(models.Model):
                 fields=["horse", "person", "relationship_type"],
                 condition=models.Q(start_date__isnull=True),
                 name="unique_horse_person_relationship_null_start",
+            ),
+            models.UniqueConstraint(
+                fields=["horse"],
+                condition=models.Q(active=True, credit_recipient=True),
+                name="unique_active_horse_credit_recipient",
             ),
         ]
 
@@ -68,6 +77,8 @@ class HorsePersonRelationship(models.Model):
             raise ValidationError("Relationship end date cannot be before the start date.")
         if self.share_percent is not None and not 1 <= self.share_percent <= 100:
             raise ValidationError({"share_percent": "Share must be between 1 and 100 percent."})
+        if self.credit_recipient and not self.active:
+            raise ValidationError({"credit_recipient": "An inactive horse relationship cannot receive earned credits."})
 
     def __str__(self):
         return f"{self.horse} — {self.person} ({self.get_relationship_type_display()})"

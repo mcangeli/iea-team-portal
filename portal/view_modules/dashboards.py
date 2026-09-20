@@ -10,7 +10,7 @@ from django.utils import timezone
 from ..host_show_models import ShowManagerAssignment
 from ..branding_models import TeamBranding
 from ..model_modules.lessons import LessonOccurrence
-from ..model_modules.people import Person, OrganizationRoleAssignment
+from ..model_modules.people import LegacyPersonLink, Person, OrganizationRoleAssignment
 from ..model_modules.horses import Horse, HorseCogginsRecord
 from ..services.finance_access import allowed_finance_domains
 from ..models import (
@@ -178,17 +178,36 @@ def _general_context(request, team, season):
             ).values_list("role", flat=True)
         )
 
+    family_people = Person.objects.none()
+    if not _can_manage(request.user) and getattr(getattr(request.user, "profile", None), "role", None) == UserProfile.Role.PARENT:
+        rider_ids = set(request.user.guardian_riders.filter(team=team, active=True).values_list("id", flat=True))
+        guardian = getattr(request.user, "guardian_contact", None)
+        if guardian:
+            rider_ids.update(
+                guardian.rider_links.filter(rider__team=team, rider__active=True).values_list("rider_id", flat=True)
+            )
+        family_people = Person.objects.filter(
+            team=team,
+            active=True,
+            legacy_identity__rider_id__in=rider_ids,
+        )
+
     lesson_occurrences = LessonOccurrence.objects.filter(
         series__program__team=team,
         starts_at__gte=now,
         status=LessonOccurrence.Status.SCHEDULED,
     ).select_related("series__program", "instructor").order_by("starts_at")
     if not _can_manage(request.user):
+        visible_people = family_people
         if person:
+            visible_people = visible_people | Person.objects.filter(pk=person.pk)
+        visible_person_ids = visible_people.values_list("pk", flat=True)
+        if visible_people.exists():
             lesson_occurrences = lesson_occurrences.filter(
-                Q(series__enrollments__person=person, series__enrollments__status="active")
-                | Q(assignments__person=person, assignments__role="participant")
-                | Q(attendance_records__person=person)
+                Q(series__enrollments__person_id__in=visible_person_ids, series__enrollments__status="active")
+                | Q(iea_participants__person_id__in=visible_person_ids)
+                | Q(assignments__person_id__in=visible_person_ids, assignments__role="participant")
+                | Q(attendance_records__person_id__in=visible_person_ids)
             ).distinct()
         else:
             lesson_occurrences = lesson_occurrences.none()
@@ -261,7 +280,7 @@ def _general_context(request, team, season):
         schedule_items.append({
             "kind": "lesson",
             "label": occurrence.series.program.name,
-            "title": occurrence.series.name,
+            "title": occurrence.title,
             "starts_at": occurrence.starts_at,
             "location": getattr(occurrence, "location", ""),
             "url": reverse("lesson_occurrence_detail", args=[occurrence.pk]),

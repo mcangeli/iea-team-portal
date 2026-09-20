@@ -2,12 +2,76 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
+from django.utils import timezone
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 ZERO = Decimal("0.00")
 class FinanceDomain(models.TextChoices):
     GENERAL="general","General barn"
     IEA="iea","IEA"
 if not hasattr(FinancialAccount,"finance_domain"): models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL).contribute_to_class(FinancialAccount,"finance_domain")
+class Budget(models.Model):
+    """Domain-scoped operating budget; actuals remain in FinancialTransaction."""
+    class Status(models.TextChoices):
+        DRAFT="draft","Draft"
+        ACTIVE="active","Active"
+        CLOSED="closed","Closed"
+
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="finance_budgets")
+    finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL)
+    name=models.CharField(max_length=180)
+    start_date=models.DateField()
+    end_date=models.DateField()
+    season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="finance_budgets")
+    status=models.CharField(max_length=12,choices=Status.choices,default=Status.DRAFT)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["-start_date","name","id"]
+        constraints=[
+            models.UniqueConstraint(fields=["team","finance_domain","name","start_date","end_date"],name="unique_budget_team_domain_period_name"),
+        ]
+    def clean(self):
+        super().clean()
+        if self.end_date and self.start_date and self.end_date<self.start_date:
+            raise ValidationError({"end_date":"Budget end date cannot be before the start date."})
+        if self.season_id and self.season.team_id!=self.team_id:
+            raise ValidationError({"season":"Budget season must belong to the same organization."})
+    def __str__(self): return self.name
+
+
+class BudgetLine(models.Model):
+    """Planned amount for one category within a Budget."""
+    budget=models.ForeignKey(Budget,on_delete=models.CASCADE,related_name="lines")
+    category=models.ForeignKey(FinancialCategory,on_delete=models.PROTECT,related_name="budget_lines")
+    kind=models.CharField(max_length=20,choices=FinancialTransaction.Kind.choices,default=FinancialTransaction.Kind.EXPENSE)
+    description=models.CharField(max_length=180)
+    amount=models.DecimalField(max_digits=12,decimal_places=2,default=0)
+    sort_order=models.PositiveIntegerField(default=0)
+    notes=models.CharField(max_length=255,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["sort_order","category__sort_order","category__name","description","id"]
+        constraints=[
+            models.CheckConstraint(condition=models.Q(amount__gte=0),name="budget_line_amount_gte_zero"),
+            models.UniqueConstraint(fields=["budget","kind","category"],name="unique_budget_line_category_kind"),
+        ]
+    def clean(self):
+        super().clean()
+        if self.category_id and self.budget_id and self.category.team_id!=self.budget.team_id:
+            raise ValidationError({"category":"Budget category must belong to the same organization."})
+        if self.category_id:
+            allowed={
+                FinancialCategory.Kind.INCOME:{FinancialTransaction.Kind.INCOME},
+                FinancialCategory.Kind.EXPENSE:{FinancialTransaction.Kind.EXPENSE},
+                FinancialCategory.Kind.BOTH:{FinancialTransaction.Kind.INCOME,FinancialTransaction.Kind.EXPENSE},
+            }[self.category.kind]
+            if self.kind not in allowed:
+                raise ValidationError({"kind":"Budget line type does not match the selected category."})
+    def __str__(self): return f"{self.budget}: {self.description}"
+
+
 class ReceivableAccount(models.Model):
     class Status(models.TextChoices): ACTIVE="active","Active"; CLOSED="closed","Closed"
     team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="receivable_accounts"); name=models.CharField(max_length=180); finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL); primary_person=models.ForeignKey("portal.Person",on_delete=models.PROTECT,null=True,blank=True,related_name="primary_receivable_accounts"); legacy_membership=models.ForeignKey("portal.SeasonMembership",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_accounts"); status=models.CharField(max_length=12,choices=Status.choices,default=Status.ACTIVE); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
@@ -37,10 +101,35 @@ class ReceivableAccountPerson(models.Model):
         if self.person_id and self.account_id and self.person.team_id!=self.account.team_id: raise ValidationError({"person":"Account person must belong to the same organization."})
     def __str__(self): return f"{self.account}: {self.person} ({self.get_role_display()})"
 
+
+class ReceivableBillingRule(models.Model):
+    """Reusable rule that generates charges into the existing receivables ledger."""
+    class Cadence(models.TextChoices):
+        MANUAL="manual","Manual"
+        MONTHLY="monthly","Monthly"
+        SERVICE="service","Service generated"
+    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="billing_rules")
+    description=models.CharField(max_length=220)
+    amount=models.DecimalField(max_digits=12,decimal_places=2)
+    cadence=models.CharField(max_length=16,choices=Cadence.choices,default=Cadence.MANUAL)
+    charge_type=models.CharField(max_length=40,blank=True)
+    due_days=models.PositiveSmallIntegerField(default=0,help_text="Days after the charge date that payment is due.")
+    active=models.BooleanField(default=True)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["account__name","description","id"]
+        constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_billing_rule_amount_gt_zero")]
+    def clean(self):
+        super().clean()
+        if self.due_days>365: raise ValidationError({"due_days":"Due days cannot exceed 365."})
+    def __str__(self): return f"{self.account}: {self.description}"
+
 class ReceivableCharge(models.Model):
     class Status(models.TextChoices): POSTED="posted","Posted"; WAIVED="waived","Waived"; VOID="void","Void"
-    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="charges"); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charges"); legacy_family_charge=models.OneToOneField("portal.FamilyCharge",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charge"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); charge_date=models.DateField(); due_date=models.DateField(null=True,blank=True); charge_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
-    class Meta: ordering=["charge_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_charge_amount_gt_zero")]
+    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="charges"); billing_rule=models.ForeignKey(ReceivableBillingRule,on_delete=models.PROTECT,null=True,blank=True,related_name="generated_charges"); generation_key=models.CharField(max_length=160,blank=True); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charges"); legacy_family_charge=models.OneToOneField("portal.FamilyCharge",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_charge"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); charge_date=models.DateField(); due_date=models.DateField(null=True,blank=True); charge_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
+    class Meta: ordering=["charge_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_charge_amount_gt_zero"),models.UniqueConstraint(fields=["billing_rule","generation_key"],condition=models.Q(billing_rule__isnull=False)&~models.Q(generation_key=""),name="unique_receivable_generated_charge")]
     def clean(self):
         super().clean()
         if self.season_id and self.season.team_id!=self.account.team_id: raise ValidationError({"season":"Charge season must belong to the account organization."})
@@ -49,12 +138,45 @@ class ReceivableCharge(models.Model):
     def allocated_total(self): return self.allocations.filter(status=ReceivableAllocation.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
     @property
     def balance(self): return ZERO if self.status!=self.Status.POSTED else max(self.amount-self.allocated_total,ZERO)
+    def lifecycle_status(self, as_of=None):
+        if self.status == self.Status.VOID: return "void"
+        if self.status == self.Status.WAIVED: return "waived"
+        if self.balance == ZERO: return "paid"
+        as_of = as_of or timezone.localdate()
+        if self.due_date and self.due_date < as_of: return "overdue"
+        if self.due_date == as_of: return "due"
+        return "open"
     def __str__(self): return self.description
+
+class ReceivableCreditRule(models.Model):
+    """Configurable earned-credit calculation rule."""
+    class Calculation(models.TextChoices):
+        FIXED="fixed","Fixed amount"
+        QUANTITY="quantity","Amount per unit"
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="receivable_credit_rules")
+    finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL)
+    name=models.CharField(max_length=160)
+    source_type=models.CharField(max_length=60)
+    calculation=models.CharField(max_length=16,choices=Calculation.choices,default=Calculation.FIXED)
+    rate=models.DecimalField(max_digits=12,decimal_places=2)
+    credit_type=models.CharField(max_length=40,blank=True)
+    active=models.BooleanField(default=True)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["name","id"]
+        constraints=[models.CheckConstraint(condition=models.Q(rate__gt=0),name="receivable_credit_rule_rate_gt_zero")]
+    def clean(self):
+        super().clean()
+        self.source_type=(self.source_type or "").strip().lower()
+        if not self.source_type: raise ValidationError({"source_type":"A source type is required."})
+    def __str__(self): return self.name
 
 class ReceivableCredit(models.Model):
     class Status(models.TextChoices): POSTED="posted","Posted"; VOID="void","Void"
-    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="credits"); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credits"); legacy_family_credit=models.OneToOneField("portal.FamilyCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_service_credit=models.OneToOneField("portal.ServiceAgreementCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_assistance_claim=models.OneToOneField("portal.AssistanceClaim",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); credit_date=models.DateField(); credit_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
-    class Meta: ordering=["credit_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_credit_amount_gt_zero")]
+    account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="credits"); credit_rule=models.ForeignKey(ReceivableCreditRule,on_delete=models.PROTECT,null=True,blank=True,related_name="generated_credits"); generation_key=models.CharField(max_length=160,blank=True); source_type=models.CharField(max_length=60,blank=True); source_id=models.CharField(max_length=120,blank=True); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credits"); legacy_family_credit=models.OneToOneField("portal.FamilyCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_service_credit=models.OneToOneField("portal.ServiceAgreementCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_assistance_claim=models.OneToOneField("portal.AssistanceClaim",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); credit_date=models.DateField(); credit_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
+    class Meta: ordering=["credit_date","id"]; constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name="receivable_credit_amount_gt_zero"),models.UniqueConstraint(fields=["account","generation_key"],condition=~models.Q(generation_key=""),name="unique_receivable_generated_credit")]
     def clean(self):
         super().clean()
         if self.season_id and self.season.team_id!=self.account.team_id: raise ValidationError({"season":"Credit season must belong to the account organization."})
@@ -157,3 +279,146 @@ class AccountingExportProfile(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_finance_domain_display()})"
+
+
+class PayableParty(models.Model):
+    """A vendor, individual, or other party ArenaLine may owe money to."""
+    class PartyType(models.TextChoices):
+        VENDOR = "vendor", "Vendor"
+        PERSON = "person", "Person"
+        OTHER = "other", "Other"
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="payable_parties")
+    name = models.CharField(max_length=180)
+    finance_domain = models.CharField(max_length=12, choices=FinanceDomain.choices, default=FinanceDomain.GENERAL)
+    party_type = models.CharField(max_length=12, choices=PartyType.choices, default=PartyType.VENDOR)
+    contact_person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, null=True, blank=True, related_name="payable_party_contacts")
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["team", "finance_domain", "name"], name="unique_payable_party_team_domain_name")
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.contact_person_id and self.contact_person.team_id != self.team_id:
+            raise ValidationError({"contact_person": "Payee contact must belong to the same organization."})
+
+    def __str__(self):
+        return self.name
+
+
+class PayableObligation(models.Model):
+    """An amount ArenaLine owes before cash leaves an account."""
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        VOID = "void", "Void"
+
+    party = models.ForeignKey(PayableParty, on_delete=models.PROTECT, related_name="obligations")
+    season = models.ForeignKey(Season, on_delete=models.PROTECT, null=True, blank=True, related_name="payable_obligations")
+    expense_category = models.ForeignKey(FinancialCategory, on_delete=models.PROTECT, related_name="payable_obligations")
+    description = models.CharField(max_length=220)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    obligation_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    reference = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["due_date", "obligation_date", "id"]
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name="payable_obligation_amount_gt_zero")]
+
+    def clean(self):
+        super().clean()
+        if self.season_id and self.season.team_id != self.party.team_id:
+            raise ValidationError({"season": "Payable season must belong to the same organization."})
+        if self.expense_category_id:
+            if self.expense_category.team_id != self.party.team_id:
+                raise ValidationError({"expense_category": "Expense category must belong to the same organization."})
+            if self.expense_category.kind not in (FinancialCategory.Kind.EXPENSE, FinancialCategory.Kind.BOTH):
+                raise ValidationError({"expense_category": "Payables require an expense-capable category."})
+
+    @property
+    def paid_total(self):
+        return self.payments.filter(status=PayablePayment.Status.POSTED).aggregate(total=Sum("amount"))["total"] or ZERO
+
+    @property
+    def balance(self):
+        return ZERO if self.status == self.Status.VOID else max(self.amount - self.paid_total, ZERO)
+
+    @property
+    def is_paid(self):
+        return self.status != self.Status.VOID and self.balance == ZERO
+
+    def lifecycle_status(self, as_of=None):
+        """Derived lifecycle state without duplicating payment state in the database."""
+        if self.status == self.Status.VOID:
+            return "void"
+        if self.is_paid:
+            return "paid"
+        as_of = as_of or timezone.localdate()
+        if self.due_date and self.due_date < as_of:
+            return "overdue"
+        if self.due_date == as_of:
+            return "due"
+        return "open"
+
+    def __str__(self):
+        return self.description
+
+
+class PayablePayment(models.Model):
+    """Cash disbursement against an obligation, linked to the existing ledger."""
+    class Status(models.TextChoices):
+        POSTED = "posted", "Posted"
+        VOID = "void", "Void"
+
+    obligation = models.ForeignKey(PayableObligation, on_delete=models.PROTECT, related_name="payments")
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    paid_date = models.DateField()
+    payment_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT, related_name="payable_payments")
+    financial_transaction = models.OneToOneField(FinancialTransaction, on_delete=models.PROTECT, null=True, blank=True, related_name="payable_payment")
+    method = models.CharField(max_length=40, blank=True)
+    reference = models.CharField(max_length=120, blank=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.POSTED)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["paid_date", "id"]
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0), name="payable_payment_amount_gt_zero")]
+
+    def clean(self):
+        super().clean()
+        if self.obligation_id and self.payment_account_id:
+            party = self.obligation.party
+            if self.payment_account.team_id != party.team_id or self.payment_account.finance_domain != party.finance_domain:
+                raise ValidationError({"payment_account": "Payment account must belong to the same organization and finance domain."})
+        if self.financial_transaction_id:
+            tx = self.financial_transaction
+            party = self.obligation.party
+            if tx.team_id != party.team_id:
+                raise ValidationError({"financial_transaction": "Financial transaction must belong to the same organization."})
+            if tx.kind != FinancialTransaction.Kind.EXPENSE:
+                raise ValidationError({"financial_transaction": "Payable payments must link to an expense transaction."})
+        if self.status == self.Status.POSTED and self.amount and self.obligation_id:
+            existing = self.obligation.payments.filter(status=self.Status.POSTED)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            already_paid = existing.aggregate(total=Sum("amount"))["total"] or ZERO
+            if already_paid + self.amount > self.obligation.amount:
+                raise ValidationError({"amount": "Payment exceeds the outstanding payable balance."})
+
+    def __str__(self):
+        return f"{self.paid_date}: {self.amount}"

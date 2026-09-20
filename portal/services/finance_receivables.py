@@ -73,6 +73,29 @@ def allocate_source(*, charge: ReceivableCharge, payment: ReceivablePayment | No
 
 
 @transaction.atomic
+def allocate_source_oldest(*, payment: ReceivablePayment | None = None,
+                           credit: ReceivableCredit | None = None, notes: str = "") -> list[ReceivableAllocation]:
+    """Apply an unapplied payment or credit to oldest outstanding posted charges."""
+    if bool(payment) == bool(credit):
+        raise ValidationError("Provide exactly one payment or credit source.")
+    source=payment or credit
+    if source.status!=source.Status.POSTED:
+        raise ValidationError("Only posted sources may be allocated.")
+    allocations=[]
+    charges=list(source.account.charges.filter(status=ReceivableCharge.Status.POSTED))
+    charges.sort(key=lambda charge: (charge.due_date or charge.charge_date, charge.charge_date, charge.id))
+    for charge in charges:
+        if source.unapplied_amount<=ZERO:
+            break
+        if charge.balance<=ZERO:
+            continue
+        allocation=allocate_source(charge=charge,payment=payment,credit=credit,notes=notes)
+        if allocation is not None:
+            allocations.append(allocation)
+    return allocations
+
+
+@transaction.atomic
 def post_payment(*, account: ReceivableAccount, amount: Decimal, received_date,
                  charge: ReceivableCharge | None = None, **kwargs) -> ReceivablePayment:
     payment = ReceivablePayment(account=account, amount=amount, received_date=received_date, **kwargs)

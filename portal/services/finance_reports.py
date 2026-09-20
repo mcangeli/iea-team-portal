@@ -2,8 +2,9 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from django.db.models import Q, Sum
-from portal.model_modules.finance import FinanceDomain, ReceivableCharge
-from portal.services.finance_access import allowed_finance_domains, finance_accounts_for_user, financial_transactions_for_user
+from portal.model_modules.finance import Budget, FinanceDomain, PayableObligation, PayablePayment, ReceivableAllocation, ReceivableCharge, ReceivableCredit, ReceivablePayment
+from portal.services.finance_access import allowed_finance_domains, finance_accounts_for_user, financial_transactions_for_user, payable_obligations_for_user
+from portal.services.finance_budgets import budget_actuals
 
 ZERO=Decimal("0.00")
 
@@ -17,6 +18,11 @@ class FinanceReport:
     net:Decimal
     receivables:Decimal
     overdue_receivables:Decimal
+    payables:Decimal
+    overdue_payables:Decimal
+    payable_aging_buckets:dict
+    payable_aging_rows:tuple
+    budget_rows:tuple
     category_rows:tuple
     aging_buckets:dict
     account_rows:tuple
@@ -42,13 +48,17 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     charges=ReceivableCharge.objects.filter(account__in=accounts,status=ReceivableCharge.Status.POSTED).select_related("account")
     if season is not None:charges=charges.filter(season=season)
     if as_of:charges=charges.filter(charge_date__lte=as_of)
-    receivables=sum((charge.balance for charge in charges),ZERO)
+    def receivable_balance_as_of(charge):
+        if not as_of:return charge.balance
+        allocated=ReceivableAllocation.objects.filter(charge=charge,status=ReceivableAllocation.Status.POSTED).filter(Q(payment__status=ReceivablePayment.Status.POSTED,payment__received_date__lte=as_of)|Q(credit__status=ReceivableCredit.Status.POSTED,credit__credit_date__lte=as_of)).aggregate(total=Sum("amount"))["total"] or ZERO
+        return max(charge.amount-allocated,ZERO)
+    receivables=sum((receivable_balance_as_of(charge) for charge in charges),ZERO)
     overdue=ZERO
     aging_rows=[]
     aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
     if as_of:
         for charge in charges:
-            balance=charge.balance
+            balance=receivable_balance_as_of(charge)
             if balance<=ZERO:continue
             if not charge.due_date or charge.due_date>=as_of:
                 bucket="current"
@@ -64,6 +74,54 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
             aging[bucket]+=balance
             bucket_label={"days_1_30":"1–30 days","days_31_60":"31–60 days","days_61_90":"61–90 days","days_90_plus":"90+ days"}[bucket]
             aging_rows.append({"account_id":charge.account_id,"account":charge.account.name,"description":charge.description,"due_date":charge.due_date,"balance":balance,"bucket":bucket,"bucket_label":bucket_label})
+    obligations=payable_obligations_for_user(user,team).filter(party__finance_domain=finance_domain,status=PayableObligation.Status.OPEN).select_related("party","expense_category").prefetch_related("payments")
+    if season is not None:obligations=obligations.filter(season=season)
+    if as_of:obligations=obligations.filter(obligation_date__lte=as_of)
+    payables=ZERO;overdue_payables=ZERO;payable_aging_rows=[]
+    payable_aging={"current":ZERO,"days_1_30":ZERO,"days_31_60":ZERO,"days_61_90":ZERO,"days_90_plus":ZERO}
+    for obligation in obligations:
+        if as_of:
+            paid=obligation.payments.filter(status=PayablePayment.Status.POSTED,paid_date__lte=as_of).aggregate(total=Sum("amount"))["total"] or ZERO
+            balance=max(obligation.amount-paid,ZERO)
+        else:
+            balance=obligation.balance
+        if balance<=ZERO:continue
+        payables+=balance
+        if not as_of or not obligation.due_date or obligation.due_date>=as_of:
+            bucket="current"
+        else:
+            days=(as_of-obligation.due_date).days
+            overdue_payables+=balance
+            if days<=30:bucket="days_1_30"
+            elif days<=60:bucket="days_31_60"
+            elif days<=90:bucket="days_61_90"
+            else:bucket="days_90_plus"
+        payable_aging[bucket]+=balance
+        bucket_label={"current":"Current","days_1_30":"1–30 days","days_31_60":"31–60 days","days_61_90":"61–90 days","days_90_plus":"90+ days"}[bucket]
+        payable_aging_rows.append({"obligation_id":obligation.pk,"party":obligation.party.name,"description":obligation.description,"due_date":obligation.due_date,"balance":balance,"bucket":bucket,"bucket_label":bucket_label})
+    budgets=Budget.objects.filter(team=team,finance_domain=finance_domain,status__in=[Budget.Status.ACTIVE,Budget.Status.CLOSED])
+    if season is not None:budgets=budgets.filter(season=season)
+    if start_date:budgets=budgets.filter(end_date__gte=start_date)
+    if end_date:budgets=budgets.filter(start_date__lte=end_date)
+    budget_rows=[]
+    for budget in budgets.select_related("season"):
+        budget_report=budget_actuals(budget)
+        budget_rows.append({
+            "budget_id":budget.pk,
+            "name":budget.name,
+            "start_date":budget.start_date,
+            "end_date":budget.end_date,
+            "status":budget.status,
+            "planned_income":budget_report.planned_income,
+            "actual_income":budget_report.actual_income,
+            "income_variance":budget_report.actual_income-budget_report.planned_income,
+            "planned_expenses":budget_report.planned_expenses,
+            "actual_expenses":budget_report.actual_expenses,
+            "expense_variance":budget_report.planned_expenses-budget_report.actual_expenses,
+            "planned_net":budget_report.planned_net,
+            "actual_net":budget_report.actual_net,
+            "net_variance":budget_report.actual_net-budget_report.planned_net,
+        })
     period_rows=[]
     grouped_periods=qs.values("transaction_date__year","transaction_date__month").annotate(
         income=Sum("amount",filter=Q(kind="income")),
@@ -79,4 +137,4 @@ def finance_report_for_user(user,team,finance_domain,*,start_date=None,end_date=
     ).order_by("account__name"):
         inc=account["income"] or ZERO;exp=account["expenses"] or ZERO
         account_rows.append({"account":account["account__name"],"income":inc,"expenses":exp,"net":inc-exp})
-    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,category_rows,aging,tuple(account_rows),tuple(aging_rows),tuple(period_rows))
+    return FinanceReport(finance_domain,start_date,end_date,income,expenses,income-expenses,receivables,overdue,payables,overdue_payables,payable_aging,tuple(payable_aging_rows),tuple(budget_rows),category_rows,aging,tuple(account_rows),tuple(aging_rows),tuple(period_rows))

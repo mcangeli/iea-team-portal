@@ -3,6 +3,8 @@ from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
 from django.test import TestCase
 
 from portal.models import (
@@ -33,6 +35,34 @@ class FinanceHardeningTests(TestCase):
         self.category = FinancialCategory.objects.create(
             team=self.team, name="Show fees", kind=FinancialCategory.Kind.BOTH
         )
+
+    def test_transaction_edit_existing_receipt_uses_protected_download_url(self):
+        tx = FinancialTransaction.objects.create(
+            team=self.team,
+            season=self.season1,
+            transaction_date=date(2026, 9, 20),
+            kind=FinancialTransaction.Kind.EXPENSE,
+            account=self.account,
+            category=self.category,
+            amount=Decimal("144.37"),
+            description="Patches for Returning Rider Bags",
+            receipt=SimpleUploadedFile(
+                "invoice.pdf", b"%PDF-1.7\nprotected receipt test", content_type="application/pdf"
+            ),
+        )
+        admin = User.objects.create_superuser(
+            username="finance-admin", email="finance-admin@example.com", password="testpass"
+        )
+        profile = admin.profile
+        profile.team = self.team
+        profile.role = profile.Role.ADMIN
+        profile.save(update_fields=["team", "role"])
+        self.client.force_login(admin)
+        response = self.client.get(reverse("finance_transaction_edit", kwargs={"pk": tx.pk}))
+        self.assertEqual(response.status_code, 200)
+        protected_url = reverse("finance_receipt_download", kwargs={"pk": tx.pk})
+        self.assertContains(response, f'href="{protected_url}"')
+        self.assertNotContains(response, f'href="{tx.receipt.url}"')
 
     def test_treasurer_permission_is_season_specific(self):
         self.assertTrue(_can_finance(self.user, self.season1))
