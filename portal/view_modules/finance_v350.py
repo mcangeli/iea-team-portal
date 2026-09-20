@@ -10,8 +10,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, ReceivableBillingRuleForm, ReceivableCreditRuleForm, MonthlyBillingRunForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
-from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReceivableCreditRule, ReconciliationMatch
+from portal.forms_v350_finance import BudgetForm, BudgetLineForm, PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, ReceivableBillingRuleForm, ReceivableCreditRuleForm, MonthlyBillingRunForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
+from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, Budget, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReceivableCreditRule, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user, receivable_billing_rules_for_user
@@ -23,6 +23,7 @@ from portal.services.finance_statements import account_activity, statement_for_u
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
 from portal.services.finance_receivable_reports import receivable_workspace_summary
+from portal.services.finance_budgets import budget_actuals
 from portal.services.finance_billing_operations import create_billing_rule_for_user, generate_monthly_domain_for_user
 from portal.services.finance_payable_operations import create_payable_obligation_for_user, create_payable_party_for_user, post_payable_payment_for_user, void_payable_payment_for_user
 ZERO=Decimal("0.00")
@@ -42,6 +43,76 @@ def _domain_summary(user,team,domain):
 @login_required
 def finance_workspace(request):
     team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);summaries=[_domain_summary(request.user,team,d) for d in (FinanceDomain.GENERAL,FinanceDomain.IEA) if d in domains];accounts=finance_accounts_for_user(request.user,team).select_related("primary_person").order_by("finance_domain","name");return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"accounts":accounts,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
+
+@login_required
+def finance_budgets(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain")
+    domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    budgets=Budget.objects.filter(team=team,finance_domain=domain).select_related("season").order_by("-start_date","name")
+    return render(request,"portal/finance_budgets_v372.html",{"team":team,"domains":domains,"selected_domain":domain,"budgets":budgets})
+
+@login_required
+def finance_budget_add(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain") or request.POST.get("finance_domain")
+    domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    form=BudgetForm(request.POST or None,team=team,finance_domain=domain)
+    if request.method=="POST" and form.is_valid():
+        budget=form.save(commit=False);budget.team=team;budget.finance_domain=domain
+        try:budget.full_clean();budget.save()
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Budget created.");return redirect("finance_budget_detail",pk=budget.pk)
+    return render(request,"portal/finance_budget_form_v372.html",{"team":team,"form":form,"selected_domain":domain,"title":"New budget"})
+
+@login_required
+def finance_budget_detail(request,pk):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    budget=Budget.objects.filter(pk=pk,team=team,finance_domain__in=domains).select_related("season").first()
+    if budget is None:raise PermissionDenied
+    report=budget_actuals(budget)
+    return render(request,"portal/finance_budget_detail_v372.html",{"team":team,"budget":budget,"report":report})
+
+@login_required
+def finance_budget_edit(request,pk):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    budget=Budget.objects.filter(pk=pk,team=team,finance_domain__in=domains).first()
+    if budget is None:raise PermissionDenied
+    form=BudgetForm(request.POST or None,instance=budget,team=team,finance_domain=budget.finance_domain)
+    if request.method=="POST" and form.is_valid():
+        budget=form.save(commit=False);budget.team=team
+        try:budget.full_clean();budget.save()
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Budget updated.");return redirect("finance_budget_detail",pk=budget.pk)
+    return render(request,"portal/finance_budget_form_v372.html",{"team":team,"form":form,"selected_domain":budget.finance_domain,"budget":budget,"title":f"Edit {budget.name}"})
+
+@login_required
+def finance_budget_line_add(request,pk):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    budget=Budget.objects.filter(pk=pk,team=team,finance_domain__in=domains).first()
+    if budget is None:raise PermissionDenied
+    form=BudgetLineForm(request.POST or None,team=team)
+    if request.method=="POST" and form.is_valid():
+        line=form.save(commit=False);line.budget=budget
+        try:line.full_clean();line.save()
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Budget line added.");return redirect("finance_budget_detail",pk=budget.pk)
+    return render(request,"portal/finance_budget_line_form_v372.html",{"team":team,"budget":budget,"form":form,"title":"Add budget line"})
+
+@login_required
+def finance_budget_line_edit(request,pk,line_id):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    budget=Budget.objects.filter(pk=pk,team=team,finance_domain__in=domains).first()
+    if budget is None:raise PermissionDenied
+    line=budget.lines.filter(pk=line_id).first()
+    if line is None:raise PermissionDenied
+    form=BudgetLineForm(request.POST or None,instance=line,team=team)
+    if request.method=="POST" and form.is_valid():
+        line=form.save(commit=False);line.budget=budget
+        try:line.full_clean();line.save()
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Budget line updated.");return redirect("finance_budget_detail",pk=budget.pk)
+    return render(request,"portal/finance_budget_line_form_v372.html",{"team":team,"budget":budget,"line":line,"form":form,"title":f"Edit {line.description}"})
 
 @login_required
 def finance_receivables(request):
