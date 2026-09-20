@@ -149,3 +149,22 @@ class V323StationShiftReviewTests(TestCase):
         self.client.force_login(self.admin);url=reverse("station_shift_post_credit",args=[shift.pk])
         self.client.post(url);self.client.post(url)
         self.assertEqual(ReceivableCredit.objects.filter(account=account).count(),1)
+
+
+    def test_employee_shift_is_not_offered_receivable_credit(self):
+        self._work_credit_setup();shift=self._shift()
+        shift.role=WorkShiftEntry.Role.BARN_STAFF;shift.approved_by=self.admin;shift.approved_at=timezone.now()
+        shift.save(update_fields=["role","approved_by","approved_at","updated_at"])
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("station_shift_review"))
+        self.assertContains(response,"Employee hours · no receivable credit")
+        self.assertNotContains(response,reverse("station_shift_post_credit",args=[shift.pk]))
+
+    def test_employee_shift_cannot_post_receivable_credit(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        shift.role=WorkShiftEntry.Role.BARN_STAFF;shift.approved_by=self.admin;shift.approved_at=timezone.now()
+        shift.save(update_fields=["role","approved_by","approved_at","updated_at"])
+        self.client.force_login(self.admin)
+        response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
+        self.assertRedirects(response,reverse("station_shift_review"))
+        self.assertFalse(ReceivableCredit.objects.filter(account=account).exists())
