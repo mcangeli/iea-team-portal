@@ -272,7 +272,7 @@ def finance_reporting_export(request):
     if report is None:raise PermissionDenied
     out=StringIO(newline="");writer=csv.writer(out)
     writer.writerow(["ArenaLine Finance Report",report.finance_domain])
-    writer.writerow(["Income",f"{report.income:.2f}"]);writer.writerow(["Expenses",f"{report.expenses:.2f}"]);writer.writerow(["Net",f"{report.net:.2f}"]);writer.writerow(["Receivables",f"{report.receivables:.2f}"]);writer.writerow(["Overdue receivables",f"{report.overdue_receivables:.2f}"])
+    writer.writerow(["Income",f"{report.income:.2f}"]);writer.writerow(["Expenses",f"{report.expenses:.2f}"]);writer.writerow(["Net",f"{report.net:.2f}"]);writer.writerow(["Receivables",f"{report.receivables:.2f}"]);writer.writerow(["Overdue receivables",f"{report.overdue_receivables:.2f}"]);writer.writerow(["Payables",f"{report.payables:.2f}"]);writer.writerow(["Overdue payables",f"{report.overdue_payables:.2f}"])
     writer.writerow([]);writer.writerow(["Period","Income","Expenses","Net movement"])
     for row in report.period_rows:writer.writerow([f'{row["month"]:02d}/{row["year"]}',f'{row["income"]:.2f}',f'{row["expenses"]:.2f}',f'{row["net"]:.2f}'])
     writer.writerow([]);writer.writerow(["Category","Type","Total"])
@@ -281,6 +281,8 @@ def finance_reporting_export(request):
     for row in report.account_rows:writer.writerow([row["account"],f'{row["income"]:.2f}',f'{row["expenses"]:.2f}',f'{row["net"]:.2f}'])
     writer.writerow([]);writer.writerow(["Receivable account","Description","Due date","Aging bucket","Balance"])
     for row in report.aging_rows:writer.writerow([row["account"],row["description"],row["due_date"].isoformat() if row["due_date"] else "",row["bucket"],f'{row["balance"]:.2f}'])
+    writer.writerow([]);writer.writerow(["Payee","Description","Due date","Aging bucket","Balance"])
+    for row in report.payable_aging_rows:writer.writerow([row["party"],row["description"],row["due_date"].isoformat() if row["due_date"] else "",row["bucket"],f'{row["balance"]:.2f}'])
     response=HttpResponse(out.getvalue(),content_type="text/csv")
     response["Content-Disposition"]=f'attachment; filename="arenaline-finance-report-{report.finance_domain}.csv"'
     return response
