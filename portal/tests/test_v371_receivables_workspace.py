@@ -109,3 +109,21 @@ class ReceivablesWorkspaceTests(TestCase):
         ReceivableCredit.objects.create(account=self.general,description="Courtesy adjustment",amount=Decimal("25.00"),credit_date=date(2026,9,19),credit_type="adjustment")
         response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
         self.assertEqual(response.status_code,200);self.assertContains(response,"Courtesy adjustment");self.assertContains(response,"Manual credit")
+
+
+    def test_statement_shows_current_receivable_position(self):
+        ReceivableCredit.objects.create(account=self.general,description="Work credit",amount=Decimal("50.00"),credit_date=date(2026,9,19))
+        response=self.client.get(reverse("finance_receivable_statement",args=[self.general.pk])+"?start=2026-09-01&end=2026-09-19")
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"Current position");self.assertContains(response,"Amount due");self.assertContains(response,"Overdue");self.assertContains(response,"Unapplied credits")
+        self.assertEqual(response.context["statement"].amount_due,Decimal("600.00"))
+        self.assertEqual(response.context["statement"].overdue_amount,Decimal("600.00"))
+        self.assertEqual(response.context["statement"].unapplied_credits,Decimal("50.00"))
+
+    def test_statement_period_preserves_opening_and_closing_balance(self):
+        ReceivableCredit.objects.create(account=self.general,description="September credit",amount=Decimal("100.00"),credit_date=date(2026,9,19))
+        response=self.client.get(reverse("finance_receivable_statement",args=[self.general.pk])+"?start=2026-09-10&end=2026-09-19")
+        statement=response.context["statement"]
+        self.assertEqual(statement.opening_balance,Decimal("600.00"))
+        self.assertEqual(statement.credits,Decimal("100.00"))
+        self.assertEqual(statement.closing_balance,Decimal("500.00"))
