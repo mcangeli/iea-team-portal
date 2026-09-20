@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.people import Person
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.station import WorkShiftEntry
@@ -167,4 +168,52 @@ class V323StationShiftReviewTests(TestCase):
         self.client.force_login(self.admin)
         response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
         self.assertRedirects(response,reverse("station_shift_review"))
+        self.assertFalse(ReceivableCredit.objects.filter(account=account).exists())
+
+
+    def _coach(self,username,finance=False):
+        user=User.objects.create_user(username=username,password="pass12345")
+        profile=user.profile;profile.team=self.team;profile.role=UserProfile.Role.COACH;profile.save(update_fields=["team","role"])
+        person=Person.objects.create(team=self.team,user=user,first_name=username,last_name="Coach")
+        if finance:
+            OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_ALL_FINANCE)
+        return user
+
+    def test_station_manager_without_finance_can_approve_but_not_post_credit(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        coach=self._coach("station-only")
+        self.client.force_login(coach)
+        response=self.client.post(reverse("station_shift_approve",args=[shift.pk]))
+        self.assertRedirects(response,reverse("station_shift_review"))
+        shift.refresh_from_db();self.assertIsNotNone(shift.approved_at)
+        review=self.client.get(reverse("station_shift_review"))
+        self.assertContains(review,"$ 22.50");self.assertNotContains(review,"Post credit")
+        response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
+        self.assertRedirects(response,reverse("station_shift_review"))
+        self.assertFalse(ReceivableCredit.objects.filter(account=account).exists())
+
+    def test_station_manager_with_finance_can_post_credit(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        coach=self._coach("station-finance",finance=True)
+        shift.approved_by=coach;shift.approved_at=timezone.now();shift.save(update_fields=["approved_by","approved_at","updated_at"])
+        self.client.force_login(coach)
+        review=self.client.get(reverse("station_shift_review"))
+        self.assertContains(review,"Post credit")
+        response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
+        self.assertRedirects(response,reverse("station_shift_review"))
+        credit=ReceivableCredit.objects.get(account=account)
+        self.assertEqual(credit.amount,Decimal("22.50"));self.assertEqual(credit.credit_rule,rule)
+
+    def test_finance_authority_without_station_management_cannot_use_station_credit_action(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        user=User.objects.create_user(username="finance-only",password="pass12345")
+        profile=user.profile;profile.team=self.team;profile.role=UserProfile.Role.PARENT;profile.save(update_fields=["team","role"])
+        person=Person.objects.create(team=self.team,user=user,first_name="Finance",last_name="Only")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_ALL_FINANCE)
+        shift.approved_by=self.admin;shift.approved_at=timezone.now();shift.save(update_fields=["approved_by","approved_at","updated_at"])
+        self.client.force_login(user)
+        review=self.client.get(reverse("station_shift_review"))
+        self.assertEqual(review.status_code,403)
+        response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
+        self.assertEqual(response.status_code,403)
         self.assertFalse(ReceivableCredit.objects.filter(account=account).exists())
