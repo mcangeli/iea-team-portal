@@ -74,16 +74,17 @@ class V372BudgetWorkspaceTests(TestCase):
 
 
     def test_closed_budget_rejects_new_line_post(self):
-        self.budget.status=Budget.Status.CLOSED;self.budget.save(update_fields=["status"])
-        self.client.force_login(self.user)
-        response=self.client.post(reverse("finance_budget_line_add",args=[self.budget.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense_category.pk,"description":"Late change","amount":"25.00","sort_order":"0","notes":""})
+        budget=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Closed",start_date=date(2027,1,1),end_date=date(2027,12,31),status=Budget.Status.CLOSED)
+        self.client.force_login(self.admin)
+        response=self.client.post(reverse("finance_budget_line_add",args=[budget.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense.pk,"description":"Late change","amount":"25.00","sort_order":"0","notes":""})
         self.assertEqual(response.status_code,403)
-        self.assertFalse(self.budget.lines.filter(description="Late change").exists())
+        self.assertFalse(budget.lines.filter(description="Late change").exists())
 
     def test_closed_budget_rejects_line_edit_post(self):
-        line=BudgetLine.objects.create(budget=self.budget,category=self.expense_category,kind=FinancialTransaction.Kind.EXPENSE,description="Original",amount=Decimal("25.00"))
-        self.budget.status=Budget.Status.CLOSED;self.budget.save(update_fields=["status"])
-        self.client.force_login(self.user)
-        response=self.client.post(reverse("finance_budget_line_edit",args=[self.budget.pk,line.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense_category.pk,"description":"Changed","amount":"30.00","sort_order":"0","notes":""})
+        budget=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Closed Edit",start_date=date(2027,1,1),end_date=date(2027,12,31),status=Budget.Status.ACTIVE)
+        line=BudgetLine.objects.create(budget=budget,category=self.expense,kind=FinancialTransaction.Kind.EXPENSE,description="Original",amount=Decimal("25.00"))
+        budget.status=Budget.Status.CLOSED;budget.save(update_fields=["status"])
+        self.client.force_login(self.admin)
+        response=self.client.post(reverse("finance_budget_line_edit",args=[budget.pk,line.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense.pk,"description":"Changed","amount":"30.00","sort_order":"0","notes":""})
         self.assertEqual(response.status_code,403)
         line.refresh_from_db();self.assertEqual(line.description,"Original")
