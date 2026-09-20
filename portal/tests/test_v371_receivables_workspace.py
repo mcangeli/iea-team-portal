@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.models import Team, UserProfile
 from portal.services.finance_receivable_reports import receivable_workspace_summary
@@ -73,3 +73,27 @@ class ReceivablesWorkspaceTests(TestCase):
         ReceivableBillingRule.objects.create(account=self.general,description="Training package",amount=Decimal("300.00"),cadence="monthly")
         response=self.client.get(reverse("finance_receivables"))
         self.assertContains(response,"Training package");self.assertContains(response,"Run monthly billing")
+
+    def test_credit_rule_ui_create_and_list(self):
+        response=self.client.post(reverse("finance_credit_rule_add")+"?domain=general",{"name":"Barn work","source_type":"BARN_WORK","calculation":"quantity","rate":"15.00","credit_type":"work","active":"on","notes":""})
+        self.assertEqual(response.status_code,302)
+        rule=ReceivableCreditRule.objects.get(team=self.team,name="Barn work")
+        self.assertEqual(rule.finance_domain,FinanceDomain.GENERAL);self.assertEqual(rule.source_type,"barn_work")
+        response=self.client.get(reverse("finance_receivables")+"?domain=general")
+        self.assertContains(response,"Barn work");self.assertContains(response,"$ 15.00")
+
+    def test_credit_rule_edit_preserves_domain(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Horse use",source_type="lesson_horse_use",rate=Decimal("25.00"))
+        response=self.client.post(reverse("finance_credit_rule_edit",args=[rule.pk]),{"name":"Lesson horse use","source_type":"lesson_horse_use","calculation":"fixed","rate":"30.00","credit_type":"horse_use","active":"on","notes":""})
+        self.assertEqual(response.status_code,302);rule.refresh_from_db()
+        self.assertEqual(rule.finance_domain,FinanceDomain.GENERAL);self.assertEqual(rule.rate,Decimal("30.00"))
+
+    def test_iea_only_user_cannot_edit_general_credit_rule(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="General credit",source_type="barn_work",rate=Decimal("10.00"))
+        user=User.objects.create_user(username="credit-iea",password="pass12345")
+        p=user.profile;p.team=self.team;p.role=UserProfile.Role.PARENT;p.save(update_fields=["team","role"])
+        person=Person.objects.create(team=self.team,user=user,first_name="Credit",last_name="IEA")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        response=self.client.get(reverse("finance_credit_rule_edit",args=[rule.pk]))
+        self.assertEqual(response.status_code,403)
