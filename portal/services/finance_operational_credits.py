@@ -41,6 +41,8 @@ def credit_approved_work_shift(*,shift,rule,season=None,notes=""):
     """Translate one approved, closed Station shift into an earned barn-work credit."""
     if shift.team_id!=rule.team_id:
         raise ValidationError("Work shift and credit rule must belong to the same organization.")
+    if shift.role!=shift.Role.WORKING_STUDENT:
+        raise ValidationError("Only Working Student shifts can generate receivable work credits.")
     if not shift.clock_out:
         raise ValidationError("Open work shifts cannot generate earned credits.")
     if not shift.approved_at:
