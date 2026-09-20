@@ -437,7 +437,12 @@ def finance_transaction_edit(request, pk):
         messages.success(request, "Financial transaction updated.")
         return redirect("finance_transaction_list")
     return render(request, "portal/form.html", {
-        "form": form, "title": "Edit transaction", "eyebrow": "TEAM FINANCE"
+        "form": form,
+        "title": "Edit transaction",
+        "eyebrow": "TEAM FINANCE",
+        "protected_receipt_url": (
+            reverse("finance_receipt_download", kwargs={"pk": obj.pk}) if obj.receipt else ""
+        ),
     })
 
 @login_required
