@@ -142,6 +142,16 @@ class LessonHorseUseCreditAdapterTests(TestCase):
         relationship=HorsePersonRelationship(team=self.team,horse=self.horse,person=other,relationship_type=HorsePersonRelationship.RelationshipType.OWNER)
         with self.assertRaises(ValidationError):relationship.full_clean()
 
+    def test_only_one_active_credit_recipient_per_horse(self):
+        HorsePersonRelationship.objects.create(team=self.team,horse=self.horse,person=self.owner,relationship_type=HorsePersonRelationship.RelationshipType.OWNER,credit_recipient=True)
+        other=Person.objects.create(team=self.team,first_name="Second",last_name="Owner")
+        relationship=HorsePersonRelationship(team=self.team,horse=self.horse,person=other,relationship_type=HorsePersonRelationship.RelationshipType.CO_OWNER if hasattr(HorsePersonRelationship.RelationshipType,"CO_OWNER") else HorsePersonRelationship.RelationshipType.BOARDER,credit_recipient=True)
+        with self.assertRaises(ValidationError):relationship.validate_constraints()
+
+    def test_inactive_relationship_cannot_be_credit_recipient(self):
+        relationship=HorsePersonRelationship(team=self.team,horse=self.horse,person=self.owner,relationship_type=HorsePersonRelationship.RelationshipType.OWNER,active=False,credit_recipient=True)
+        with self.assertRaises(ValidationError):relationship.full_clean()
+
     def test_scheduled_lesson_cannot_generate_horse_use_credit(self):
         self.occurrence.status=LessonOccurrence.Status.SCHEDULED;self.occurrence.save()
         with self.assertRaises(ValidationError):credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
