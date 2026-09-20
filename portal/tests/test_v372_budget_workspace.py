@@ -50,3 +50,24 @@ class V372BudgetWorkspaceTests(TestCase):
         self.client.force_login(self.admin)
         response=self.client.get(reverse("finance_workspace"))
         self.assertContains(response,reverse("finance_budgets"))
+
+
+    def test_iea_only_finance_user_lists_only_iea_budgets(self):
+        Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="General Only",start_date=date(2027,1,1),end_date=date(2027,12,31))
+        Budget.objects.create(team=self.team,finance_domain=FinanceDomain.IEA,name="IEA Only",start_date=date(2027,1,1),end_date=date(2027,12,31))
+        user=User.objects.create_user(username="iea-budget-list",password="pass12345")
+        profile=user.profile;profile.team=self.team;profile.role=UserProfile.Role.PARENT;profile.save(update_fields=["team","role"])
+        person=Person.objects.create(team=self.team,user=user,first_name="IEA",last_name="Budget List")
+        OrganizationCapabilityAssignment.objects.create(team=self.team,person=person,capability=OrganizationCapabilityAssignment.Capability.MANAGE_IEA_FINANCE)
+        self.client.force_login(user)
+        response=self.client.get(reverse("finance_budgets"))
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"IEA Only")
+        self.assertNotContains(response,"General Only")
+
+    def test_budget_detail_rejects_budget_from_other_organization(self):
+        other=Team.objects.create(name="Other Workspace Barn")
+        budget=Budget.objects.create(team=other,finance_domain=FinanceDomain.GENERAL,name="Other Budget",start_date=date(2027,1,1),end_date=date(2027,12,31))
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("finance_budget_detail",args=[budget.pk]))
+        self.assertEqual(response.status_code,403)
