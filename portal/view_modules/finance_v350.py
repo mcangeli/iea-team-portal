@@ -18,7 +18,7 @@ from portal.services.finance_access import allowed_finance_domains, finance_acco
 from portal.services.finance_imports import stage_bank_import
 from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_export_rows, render_accounting_export
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
@@ -332,6 +332,20 @@ def finance_payment_unallocate(request,pk,allocation_id):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Payment allocation removed. The funds are now available to reallocate.");return redirect("finance_receivable_account_detail",pk=account.pk)
     return render(request,"portal/finance_unallocate_v350.html",{"team":team,"account":account,"form":form})
+
+
+@login_required
+def finance_credit_unallocate(request,pk,allocation_id):
+    team,account=_account_for_request(request,pk)
+    try:allocation=account.credits.model.objects.filter(account=account,allocations__pk=allocation_id).values_list("allocations__pk",flat=True).first()
+    except (ValueError,TypeError):allocation=None
+    if allocation is None:raise PermissionDenied
+    form=FinanceUnallocateForm(request.POST or None)
+    if request.method=="POST" and form.is_valid():
+        try:unallocate_credit_for_user(request.user,account.pk,allocation_id=allocation_id,team=team,**form.cleaned_data)
+        except ValidationError as exc:form.add_error(None,exc)
+        else:messages.success(request,"Credit allocation removed. The credit is now available to reallocate.");return redirect("finance_receivable_account_detail",pk=account.pk)
+    return render(request,"portal/finance_unallocate_v350.html",{"team":team,"account":account,"form":form,"source_kind":"Credit"})
 
 
 @login_required
