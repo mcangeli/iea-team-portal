@@ -25,10 +25,7 @@ def sync_season_budget_to_generic(*,season,name=None):
             budget=budget,
             category=item.category,
             kind=item.kind,
-            description=item.category.name,
-            defaults={"amount":item.amount,"notes":item.notes},
+            defaults={"description":item.category.name,"amount":item.amount,"notes":item.notes},
         )
         seen.add(line.pk)
-    # Compatibility sync owns only category-named lines; preserve any native v3.7.2 lines.
-    budget.lines.filter(description__in=[item.category.name for item in legacy]).exclude(pk__in=seen).delete()
     return budget
