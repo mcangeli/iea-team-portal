@@ -10,8 +10,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.http import HttpResponse
 from django.utils.text import slugify
-from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, ReceivableBillingRuleForm, MonthlyBillingRunForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
-from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReconciliationMatch
+from portal.forms_v350_finance import PayableObligationForm, PayablePartyForm, PayablePaymentForm, PayableVoidPaymentForm, ReceivableBillingRuleForm, ReceivableCreditRuleForm, MonthlyBillingRunForm, FinanceAccountForm, FinanceAccountPersonForm, FinanceAllocationForm, FinanceChargeForm, FinanceCreditForm, FinancePaymentForm, FinanceUnallocateForm, BankImportMappingForm, BankImportUploadForm, FinanceVoidPaymentForm, AccountingExportProfileForm, AccountingExportRunForm, FinanceReportFilterForm
+from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReceivableCreditRule, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
 from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user, receivable_billing_rules_for_user
@@ -50,7 +50,8 @@ def finance_receivables(request):
     domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
     summary=receivable_workspace_summary(request.user,team,finance_domain=domain)
     rules=receivable_billing_rules_for_user(request.user,team).filter(account__finance_domain=domain).select_related("account").order_by("account__name","description")
-    return render(request,"portal/finance_receivables_v371.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"billing_rules":rules})
+    credit_rules=ReceivableCreditRule.objects.filter(team=team,finance_domain=domain).order_by("name","id")
+    return render(request,"portal/finance_receivables_v371.html",{"team":team,"domains":domains,"selected_domain":domain,"summary":summary,"billing_rules":rules,"credit_rules":credit_rules})
 
 
 @login_required
@@ -65,6 +66,28 @@ def finance_billing_rule_add(request):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Billing rule created.");return redirect(f"{reverse('finance_receivables')}?domain={account.finance_domain}")
     return render(request,"portal/finance_billing_rule_form_v371.html",{"team":team,"form":form,"selected_domain":domain})
+
+@login_required
+def finance_credit_rule_add(request):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    requested=request.GET.get("domain") or request.POST.get("finance_domain")
+    domain=requested if requested in domains else (FinanceDomain.GENERAL if FinanceDomain.GENERAL in domains else FinanceDomain.IEA)
+    form=ReceivableCreditRuleForm(request.POST or None,team=team,finance_domain=domain)
+    if request.method=="POST" and form.is_valid():
+        rule=form.save(commit=False);rule.team=team;rule.finance_domain=domain;rule.full_clean();rule.save()
+        messages.success(request,"Credit rule created.");return redirect(f"{reverse('finance_receivables')}?domain={domain}")
+    return render(request,"portal/finance_credit_rule_form_v371.html",{"team":team,"form":form,"selected_domain":domain,"title":"New credit rule"})
+
+@login_required
+def finance_credit_rule_edit(request,pk):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    rule=ReceivableCreditRule.objects.filter(pk=pk,team=team,finance_domain__in=domains).first()
+    if rule is None:raise PermissionDenied
+    form=ReceivableCreditRuleForm(request.POST or None,instance=rule,team=team,finance_domain=rule.finance_domain)
+    if request.method=="POST" and form.is_valid():
+        rule=form.save(commit=False);rule.team=team;rule.finance_domain=rule.finance_domain;rule.full_clean();rule.save()
+        messages.success(request,"Credit rule updated.");return redirect(f"{reverse('finance_receivables')}?domain={rule.finance_domain}")
+    return render(request,"portal/finance_credit_rule_form_v371.html",{"team":team,"form":form,"selected_domain":rule.finance_domain,"title":f"Edit {rule.name}","rule":rule})
 
 @login_required
 def finance_monthly_billing_run(request):
