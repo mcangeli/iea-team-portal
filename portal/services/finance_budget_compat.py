@@ -45,15 +45,27 @@ def sync_show_budget_to_generic(*,show):
         end_date=show.show_date,
         defaults={"status":Budget.Status.ACTIVE,"notes":f"Compatibility budget for show #{show.pk}."},
     )
-    legacy=ShowBudgetLine.objects.filter(show=show).select_related("category")
+    legacy=ShowBudgetLine.objects.filter(show=show).select_related("category").order_by("category_id","kind","id")
+    grouped={}
     for item in legacy:
+        key=(item.category_id,item.kind)
+        group=grouped.setdefault(key,{"category":item.category,"kind":item.kind,"amount":0,"descriptions":[],"notes":[]})
+        group["amount"]+=item.amount
         description=item.description
         if item.scope:
             description=f"{item.get_scope_display()}: {description}"
+        if description:
+            group["descriptions"].append(description)
+        if item.notes:
+            group["notes"].append(item.notes)
+    for group in grouped.values():
+        descriptions=group["descriptions"]
+        description=descriptions[0] if len(descriptions)==1 else f"{group['category'].name} — {len(descriptions)} legacy show budget lines"
+        notes="\n".join(dict.fromkeys(group["notes"]))
         BudgetLine.objects.update_or_create(
             budget=budget,
-            category=item.category,
-            kind=item.kind,
-            defaults={"description":description,"amount":item.amount,"notes":item.notes},
+            category=group["category"],
+            kind=group["kind"],
+            defaults={"description":description,"amount":group["amount"],"notes":notes},
         )
     return budget
