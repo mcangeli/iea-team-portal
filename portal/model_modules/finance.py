@@ -55,7 +55,7 @@ class BudgetLine(models.Model):
         ordering=["sort_order","category__sort_order","category__name","description","id"]
         constraints=[
             models.CheckConstraint(condition=models.Q(amount__gte=0),name="budget_line_amount_gte_zero"),
-            models.UniqueConstraint(fields=["budget","kind","category","description"],name="unique_budget_line_category_description"),
+            models.UniqueConstraint(fields=["budget","kind","category"],name="unique_budget_line_category_kind"),
         ]
     def clean(self):
         super().clean()
