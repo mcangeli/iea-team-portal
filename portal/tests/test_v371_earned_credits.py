@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from django.utils import timezone
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -6,9 +7,11 @@ from django.test import TestCase
 
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.people import Person
+from portal.model_modules.horses import Horse
+from portal.model_modules.lessons import LessonAssignment, LessonOccurrence, LessonProgram, LessonSeries
 from portal.models import Season, Team
 from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
-from portal.services.finance_operational_credits import credit_work_hours
+from portal.services.finance_operational_credits import credit_lesson_horse_use, credit_work_hours
 
 
 class EarnedReceivableCreditTests(TestCase):
@@ -94,3 +97,35 @@ class BarnWorkCreditAdapterTests(TestCase):
     def test_work_adapter_rejects_wrong_rule_source(self):
         rule=ReceivableCreditRule.objects.create(team=self.team,name="Horse use",source_type="lesson_horse_use",rate=25)
         with self.assertRaises(ValidationError):credit_work_hours(person=self.person,rule=rule,work_record_id=46,work_date=date(2026,9,19),hours=1)
+
+class LessonHorseUseCreditAdapterTests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Horse Credit Barn")
+        self.owner=Person.objects.create(team=self.team,first_name="Horse",last_name="Owner")
+        self.rider=Person.objects.create(team=self.team,first_name="Lesson",last_name="Rider")
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Owner Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.owner,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        self.horse=Horse.objects.create(team=self.team,name="Comet")
+        program=LessonProgram.objects.create(team=self.team,name="Barn Lessons")
+        series=LessonSeries.objects.create(program=program,name="Tuesday")
+        self.occurrence=LessonOccurrence.objects.create(series=series,title="Tuesday Lesson",starts_at=timezone.make_aware(datetime(2026,9,19,15,0)),status=LessonOccurrence.Status.COMPLETED)
+        self.assignment=LessonAssignment.objects.create(occurrence=self.occurrence,person=self.rider,horse=self.horse,role=LessonAssignment.Role.PARTICIPANT)
+        self.rule=ReceivableCreditRule.objects.create(team=self.team,name="Lesson horse use",source_type="lesson_horse_use",calculation=ReceivableCreditRule.Calculation.FIXED,rate=Decimal("25.00"),credit_type="horse_use")
+
+    def test_completed_lesson_horse_use_credits_owner_account(self):
+        credit,created,status=credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
+        self.assertTrue(created);self.assertEqual(status,"generated");self.assertEqual(credit.account,self.account);self.assertEqual(credit.amount,Decimal("25.00"));self.assertIn("Comet",credit.description)
+
+    def test_lesson_horse_use_retry_is_idempotent(self):
+        first,_,_=credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
+        second,created,status=credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
+        self.assertFalse(created);self.assertEqual(status,"existing");self.assertEqual(first.pk,second.pk)
+
+    def test_owner_riding_own_horse_does_not_earn_credit(self):
+        self.assignment.person=self.owner;self.assignment.save()
+        credit,created,status=credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
+        self.assertIsNone(credit);self.assertFalse(created);self.assertEqual(status,"owner_use")
+
+    def test_scheduled_lesson_cannot_generate_horse_use_credit(self):
+        self.occurrence.status=LessonOccurrence.Status.SCHEDULED;self.occurrence.save()
+        with self.assertRaises(ValidationError):credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
