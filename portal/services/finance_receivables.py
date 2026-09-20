@@ -82,7 +82,8 @@ def allocate_source_oldest(*, payment: ReceivablePayment | None = None,
     if source.status!=source.Status.POSTED:
         raise ValidationError("Only posted sources may be allocated.")
     allocations=[]
-    charges=source.account.charges.filter(status=ReceivableCharge.Status.POSTED).order_by("due_date","charge_date","id")
+    charges=list(source.account.charges.filter(status=ReceivableCharge.Status.POSTED))
+    charges.sort(key=lambda charge: (charge.due_date or charge.charge_date, charge.charge_date, charge.id))
     for charge in charges:
         if source.unapplied_amount<=ZERO:
             break
