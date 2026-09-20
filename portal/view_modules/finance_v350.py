@@ -281,6 +281,8 @@ def finance_reporting_export(request):
     for row in report.account_rows:writer.writerow([row["account"],f'{row["income"]:.2f}',f'{row["expenses"]:.2f}',f'{row["net"]:.2f}'])
     writer.writerow([]);writer.writerow(["Receivable account","Description","Due date","Aging bucket","Balance"])
     for row in report.aging_rows:writer.writerow([row["account"],row["description"],row["due_date"].isoformat() if row["due_date"] else "",row["bucket"],f'{row["balance"]:.2f}'])
+    writer.writerow([]);writer.writerow(["Budget","Start","End","Planned income","Actual income","Income variance","Planned expenses","Actual expenses","Expense variance","Planned net","Actual net","Net variance"])
+    for row in report.budget_rows:writer.writerow([row["name"],row["start_date"].isoformat(),row["end_date"].isoformat(),f'{row["planned_income"]:.2f}',f'{row["actual_income"]:.2f}',f'{row["income_variance"]:.2f}',f'{row["planned_expenses"]:.2f}',f'{row["actual_expenses"]:.2f}',f'{row["expense_variance"]:.2f}',f'{row["planned_net"]:.2f}',f'{row["actual_net"]:.2f}',f'{row["net_variance"]:.2f}'])
     writer.writerow([]);writer.writerow(["Payee","Description","Due date","Aging bucket","Balance"])
     for row in report.payable_aging_rows:writer.writerow([row["party"],row["description"],row["due_date"].isoformat() if row["due_date"] else "",row["bucket"],f'{row["balance"]:.2f}'])
     response=HttpResponse(out.getvalue(),content_type="text/csv")
