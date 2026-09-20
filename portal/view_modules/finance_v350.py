@@ -18,7 +18,7 @@ from portal.services.finance_access import allowed_finance_domains, finance_acco
 from portal.services.finance_imports import stage_bank_import
 from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_export_rows, render_accounting_export
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
-from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
+from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
@@ -279,6 +279,25 @@ def finance_credit_allocate(request,pk,credit_id):
         except ValidationError as exc:form.add_error(None,exc)
         else:messages.success(request,"Credit allocation saved.");return redirect("finance_receivable_account_detail",pk=account.pk)
     return render(request,"portal/finance_allocation_form_v350.html",{"account":account,"form":form,"source_kind":"Credit","charges":[c for c in account.charges.filter(status="posted") if c.balance>ZERO]})
+
+@login_required
+def finance_payment_allocate_oldest(request,pk,payment_id):
+    team,account=_account_for_request(request,pk)
+    if request.method!="POST":raise PermissionDenied
+    try:allocations=allocate_payment_oldest_for_user(request.user,account.pk,payment_id=payment_id,team=team)
+    except ValidationError as exc:messages.error(request,str(exc))
+    else:messages.success(request,f"Payment applied to {len(allocations)} outstanding charge(s)." if allocations else "No outstanding charges were available for this payment.")
+    return redirect("finance_receivable_account_detail",pk=account.pk)
+
+@login_required
+def finance_credit_allocate_oldest(request,pk,credit_id):
+    team,account=_account_for_request(request,pk)
+    if request.method!="POST":raise PermissionDenied
+    try:allocations=allocate_credit_oldest_for_user(request.user,account.pk,credit_id=credit_id,team=team)
+    except ValidationError as exc:messages.error(request,str(exc))
+    else:messages.success(request,f"Credit applied to {len(allocations)} outstanding charge(s)." if allocations else "No outstanding charges were available for this credit.")
+    return redirect("finance_receivable_account_detail",pk=account.pk)
+
 @login_required
 def finance_receivable_statement(request,pk):
     team,account=_account_for_request(request,pk);today=date.today()
