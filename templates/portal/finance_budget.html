@@ -6,7 +6,7 @@
 </nav>
 <div class="page-title">
   <div><div class="eyebrow">TEAM FINANCE · {{ season.name }}</div><h1>Season budget</h1><p>Set planned income and spending by category for the active season.</p></div>
-  <div class="actions"><a class="btn secondary" href="{% url 'finance_dashboard' %}">Finance dashboard</a><a class="btn" href="{% url 'finance_budget_create' %}">Add budget line</a></div>
+  <div class="actions"><a class="btn secondary" href="{% url 'finance_dashboard' %}">Finance dashboard</a>{% if generic_budget %}<a class="btn secondary" href="{% url 'finance_budget_detail' generic_budget.pk %}">Plan vs actual</a>{% endif %}<a class="btn" href="{% url 'finance_budget_create' %}">Add budget line</a></div>
 </div>
 <div class="entry-table-wrap"><table class="entry-table finance-table"><thead><tr><th>Category</th><th>Type</th><th>Budget</th><th>Notes</th><th>Updated</th><th></th></tr></thead><tbody>
 {% for b in budgets %}
