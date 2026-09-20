@@ -46,7 +46,7 @@ def calculate_earned_credit(rule: ReceivableCreditRule, *, quantity=None):
     qty=Decimal(quantity)
     if qty<=0:
         raise ValidationError("Credit quantity must be greater than zero.")
-    return rule.rate*qty
+    return (rule.rate*qty).quantize(Decimal("0.01"))
 
 
 @transaction.atomic
