@@ -219,4 +219,8 @@ class BudgetLineForm(forms.ModelForm):
         fields=["kind","category","description","amount","sort_order","notes"]
     def __init__(self,*args,team=None,**kwargs):
         super().__init__(*args,**kwargs)
-        self.fields["category"].queryset=FinancialCategory.objects.filter(team=team,active=True).order_by("sort_order","name") if team else FinancialCategory.objects.none()
+        qs=FinancialCategory.objects.filter(team=team,active=True) if team else FinancialCategory.objects.none()
+        kind=(self.data.get("kind") if self.is_bound else (self.instance.kind if self.instance and self.instance.pk else self.initial.get("kind")))
+        if kind==FinancialTransaction.Kind.INCOME:qs=qs.filter(kind__in=[FinancialCategory.Kind.INCOME,FinancialCategory.Kind.BOTH])
+        elif kind==FinancialTransaction.Kind.EXPENSE:qs=qs.filter(kind__in=[FinancialCategory.Kind.EXPENSE,FinancialCategory.Kind.BOTH])
+        self.fields["category"].queryset=qs.order_by("sort_order","name")
