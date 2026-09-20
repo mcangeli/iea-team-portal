@@ -38,10 +38,11 @@
 <section class="content-section" aria-labelledby="station-approved-history-heading">
   <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2 id="station-approved-history-heading">Recent approved work</h2><p class="muted">The newest approved shifts from the 250-record review window. Export CSV includes the complete history.</p></div></div>
   {% if approved_shifts %}
-  <div class="table-wrap"><table><caption class="sr-only">Recently approved Station shifts</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Approved by</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
+  <div class="table-wrap"><table><caption class="sr-only">Recently approved Station shifts</caption><thead><tr><th scope="col">Person</th><th scope="col">Role</th><th scope="col">Clock in</th><th scope="col">Clock out</th><th scope="col">Duration</th><th scope="col">Approved by</th><th scope="col">Work credit</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead><tbody>
   {% for shift in approved_shifts %}<tr>
     <td><a href="{% url 'person_detail' shift.person.pk %}">{{ shift.person.display_name }}</a></td><td>{{ shift.get_role_display }}</td><td>{{ shift.clock_in|date:"M j, Y g:i A" }}</td><td>{{ shift.clock_out|date:"M j, Y g:i A" }}</td><td>{{ shift.duration_display }}</td><td>{% if shift.approved_by %}{{ shift.approved_by.get_full_name|default:shift.approved_by.username }}{% else %}Approved{% endif %}</td>
-    <td><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit<span class="sr-only"> {{ shift.person.display_name }} shift</span></a></td>
+    <td>{% if shift.credit_preview.status == "ready" %}<strong>{{ shift.credit_preview.label }}</strong><small>{{ shift.credit_preview.rule.name }}</small>{% elif shift.credit_preview.status == "posted" %}<strong>{{ shift.credit_preview.label }}</strong><small>{{ shift.credit_preview.account.name }}</small>{% else %}<span class="muted">{{ shift.credit_preview.label }}</span>{% endif %}</td>
+    <td><div class="actions"><a class="btn btn-secondary" href="{% url 'station_shift_edit' shift.pk %}">Edit<span class="sr-only"> {{ shift.person.display_name }} shift</span></a>{% if shift.credit_preview.status == "ready" %}<form method="post" action="{% url 'station_shift_post_credit' shift.pk %}" class="inline-form">{% csrf_token %}<button class="btn" type="submit">Post credit<span class="sr-only"> for {{ shift.person.display_name }}</span></button></form>{% endif %}</div></td>
   </tr>{% endfor %}
   </tbody></table></div>
   {% else %}<p class="muted">No approved work history yet.</p>{% endif %}
