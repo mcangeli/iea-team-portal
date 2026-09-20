@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, PayableObligation, PayableParty, ReceivableAccount, ReceivableCharge
+from portal.model_modules.finance import Budget, BudgetLine, FinanceDomain, PayableObligation, PayableParty, ReceivableAccount, ReceivableCharge
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 from portal.services.finance_reports import finance_report_for_user
@@ -165,3 +165,36 @@ class FinanceReportingTests(TestCase):
         self.assertIn("Payables,70.00",body)
         self.assertIn("Overdue payables,70.00",body)
         self.assertIn("Export Vendor,Export bill",body)
+
+
+    def test_report_integrates_budget_performance(self):
+        budget=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="September Barn Plan",start_date=date(2026,9,1),end_date=date(2026,9,30),status=Budget.Status.ACTIVE)
+        BudgetLine.objects.create(budget=budget,category=self.income,kind=FinancialTransaction.Kind.INCOME,description="Board",amount=Decimal("600.00"))
+        BudgetLine.objects.create(budget=budget,category=self.expense,kind=FinancialTransaction.Kind.EXPENSE,description="Feed",amount=Decimal("200.00"))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,start_date=date(2026,9,1),end_date=date(2026,9,30))
+        row=next(row for row in report.budget_rows if row["budget_id"]==budget.pk)
+        self.assertEqual(row["planned_income"],Decimal("600.00"))
+        self.assertEqual(row["actual_income"],Decimal("500.00"))
+        self.assertEqual(row["planned_expenses"],Decimal("200.00"))
+        self.assertEqual(row["actual_expenses"],Decimal("125.00"))
+        self.assertEqual(row["planned_net"],Decimal("400.00"))
+        self.assertEqual(row["actual_net"],Decimal("375.00"))
+        self.assertEqual(row["net_variance"],Decimal("-25.00"))
+
+    def test_budget_reporting_respects_domain_period_and_status(self):
+        active=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Included",start_date=date(2026,9,1),end_date=date(2026,9,30),status=Budget.Status.ACTIVE)
+        Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Draft",start_date=date(2026,9,1),end_date=date(2026,9,30),status=Budget.Status.DRAFT)
+        Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Old",start_date=date(2026,7,1),end_date=date(2026,7,31),status=Budget.Status.CLOSED)
+        Budget.objects.create(team=self.team,finance_domain=FinanceDomain.IEA,name="IEA",start_date=date(2026,9,1),end_date=date(2026,9,30),status=Budget.Status.ACTIVE)
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,start_date=date(2026,9,1),end_date=date(2026,9,30))
+        self.assertEqual([row["budget_id"] for row in report.budget_rows],[active.pk])
+
+    def test_finance_report_csv_export_contains_budget_performance(self):
+        from django.urls import reverse
+        budget=Budget.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Export Budget",start_date=date(2026,9,1),end_date=date(2026,9,30),status=Budget.Status.ACTIVE)
+        BudgetLine.objects.create(budget=budget,category=self.income,kind=FinancialTransaction.Kind.INCOME,description="Board",amount=Decimal("600.00"))
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("finance_reporting_export"),{"finance_domain":FinanceDomain.GENERAL,"start_date":"2026-09-01","end_date":"2026-09-30"})
+        body=response.content.decode()
+        self.assertIn("Budget,Start,End,Planned income,Actual income",body)
+        self.assertIn("Export Budget,2026-09-01,2026-09-30,600.00,500.00",body)
