@@ -115,7 +115,7 @@ class ReceivablesWorkspaceTests(TestCase):
         ReceivableCredit.objects.create(account=self.general,description="Work credit",amount=Decimal("50.00"),credit_date=date(2026,9,19))
         response=self.client.get(reverse("finance_receivable_statement",args=[self.general.pk])+"?start=2026-09-01&end=2026-09-19")
         self.assertEqual(response.status_code,200)
-        self.assertContains(response,"Current position");self.assertContains(response,"Amount due");self.assertContains(response,"Overdue");self.assertContains(response,"Unapplied credits")
+        self.assertContains(response,"CURRENT POSITION");self.assertContains(response,"Amount due");self.assertContains(response,"Overdue");self.assertContains(response,"Unapplied credits")
         self.assertEqual(response.context["statement"].amount_due,Decimal("600.00"))
         self.assertEqual(response.context["statement"].overdue_amount,Decimal("600.00"))
         self.assertEqual(response.context["statement"].unapplied_credits,Decimal("50.00"))
