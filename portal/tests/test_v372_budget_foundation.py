@@ -43,3 +43,11 @@ class V372BudgetFoundationTests(TestCase):
     def test_budget_line_amount_cannot_be_negative(self):
         line=BudgetLine(budget=self.budget,category=self.expense,kind=FinancialTransaction.Kind.EXPENSE,description="Hay",amount=Decimal("-1.00"))
         with self.assertRaises(ValidationError): line.full_clean()
+
+
+    def test_budget_rejects_duplicate_category_and_kind_even_with_different_description(self):
+        first=BudgetLine(budget=self.budget,category=self.expense,kind=FinancialTransaction.Kind.EXPENSE,description="Hay and forage",amount=Decimal("100.00"))
+        first.full_clean();first.save()
+        duplicate=BudgetLine(budget=self.budget,category=self.expense,kind=FinancialTransaction.Kind.EXPENSE,description="Second hay line",amount=Decimal("200.00"))
+        with self.assertRaises(ValidationError):
+            duplicate.full_clean()
