@@ -97,6 +97,8 @@ from .common import (
 )
 
 
+from portal.services.finance_budget_compat import sync_show_budget_to_generic
+
 from .show_finance_helpers import (
     _require_adult_finance_participant,
     _show_finance_totals,
@@ -124,6 +126,7 @@ def show_budget_add(request, show_pk):
         obj = form.save(commit=False)
         obj.show = show
         obj.save()
+        sync_show_budget_to_generic(show=show)
         _audit_event(
             team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=obj,
             season=show.season,
@@ -143,6 +146,7 @@ def show_budget_edit(request, pk):
         obj = form.save(commit=False)
         obj.show = line.show
         obj.save()
+        sync_show_budget_to_generic(show=line.show)
         _audit_event(
             team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=obj,
             season=line.show.season,
