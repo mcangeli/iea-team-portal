@@ -60,6 +60,26 @@ class ReceivableCreditRuleTests(TestCase):
         credit,_=generate_rule_credit(rule=rule,account=self.account,source_id="shift-12",credit_date=date(2026,9,19),quantity=Decimal("3.5"))
         self.assertEqual(credit.amount,Decimal("52.50"))
 
+    def test_rule_generated_credit_retains_rule(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Horse use trace",source_type="lesson_horse_use",rate=Decimal("25.00"))
+        credit,_=generate_rule_credit(rule=rule,account=self.account,source_id="lesson-99",credit_date=date(2026,9,19))
+        self.assertEqual(credit.credit_rule,rule)
+        self.assertTrue(credit.generation_key.startswith(f"credit-rule:{rule.pk}:"))
+
+    def test_two_rules_can_credit_same_source_on_same_account(self):
+        first_rule=ReceivableCreditRule.objects.create(team=self.team,name="Owner use credit",source_type="lesson_horse_use",rate=Decimal("25.00"))
+        second_rule=ReceivableCreditRule.objects.create(team=self.team,name="Bonus use credit",source_type="lesson_horse_use",rate=Decimal("10.00"))
+        first,first_created=generate_rule_credit(rule=first_rule,account=self.account,source_id="lesson-100",credit_date=date(2026,9,19))
+        second,second_created=generate_rule_credit(rule=second_rule,account=self.account,source_id="lesson-100",credit_date=date(2026,9,19))
+        self.assertTrue(first_created);self.assertTrue(second_created);self.assertNotEqual(first.pk,second.pk)
+        self.assertEqual(ReceivableCredit.objects.filter(account=self.account,source_id="lesson-100").count(),2)
+
+    def test_same_rule_same_source_remains_idempotent(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Retry trace",source_type="lesson_horse_use",rate=Decimal("25.00"))
+        first,_=generate_rule_credit(rule=rule,account=self.account,source_id="lesson-101",credit_date=date(2026,9,19))
+        second,created=generate_rule_credit(rule=rule,account=self.account,source_id="lesson-101",credit_date=date(2026,9,19))
+        self.assertFalse(created);self.assertEqual(first.pk,second.pk);self.assertEqual(second.credit_rule,rule)
+
     def test_quantity_rule_requires_positive_quantity(self):
         rule=ReceivableCreditRule.objects.create(team=self.team,name="Barn work",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"))
         with self.assertRaises(ValidationError):calculate_earned_credit(rule)
