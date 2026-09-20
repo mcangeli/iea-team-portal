@@ -1126,6 +1126,9 @@ class FinancialTransactionForm(forms.ModelForm):
             self.fields["rider"].queryset = Rider.objects.filter(team=team, active=True)
         self.fields["rider"].required = False
         self.fields["receipt"].help_text = "Optional PDF, JPG, JPEG, or PNG receipt. Maximum 10 MB."
+        # Existing finance files are private. Use ArenaLine's protected URL
+        # supplied by the edit view rather than FieldFile.url (/media/...).
+        self.fields["receipt"].widget.template_name = "portal/widgets/protected_clearable_file_input.html"
 
     def clean_receipt(self):
         receipt = self.cleaned_data.get("receipt")
