@@ -50,7 +50,14 @@ class FinanceHardeningTests(TestCase):
                 "invoice.pdf", b"%PDF-1.7\nprotected receipt test", content_type="application/pdf"
             ),
         )
-        self.client.force_login(self.user)
+        admin = User.objects.create_superuser(
+            username="finance-admin", email="finance-admin@example.com", password="testpass"
+        )
+        profile = admin.profile
+        profile.team = self.team
+        profile.role = profile.Role.ADMIN
+        profile.save(update_fields=["team", "role"])
+        self.client.force_login(admin)
         response = self.client.get(reverse("finance_transaction_edit", kwargs={"pk": tx.pk}))
         self.assertEqual(response.status_code, 200)
         protected_url = reverse("finance_receipt_download", kwargs={"pk": tx.pk})
