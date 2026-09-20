@@ -4,9 +4,11 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCredit, ReceivableCreditRule
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
+from portal.model_modules.people import Person
 from portal.models import Season, Team
 from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
+from portal.services.finance_operational_credits import credit_work_hours
 
 
 class EarnedReceivableCreditTests(TestCase):
@@ -66,3 +68,29 @@ class ReceivableCreditRuleTests(TestCase):
     def test_credit_rule_enforces_finance_domain(self):
         rule=ReceivableCreditRule.objects.create(team=self.team,name="IEA work",source_type="iea_work",finance_domain=FinanceDomain.IEA,rate=Decimal("10.00"))
         with self.assertRaises(ValidationError):generate_rule_credit(rule=rule,account=self.account,source_id=1,credit_date=date(2026,9,19))
+
+class BarnWorkCreditAdapterTests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Working Barn")
+        self.person=Person.objects.create(team=self.team,first_name="Alex",last_name="Worker")
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Worker Family",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        self.rule=ReceivableCreditRule.objects.create(team=self.team,name="Barn work",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"),credit_type="work")
+
+    def test_work_hours_resolve_family_account_and_credit_it(self):
+        credit,created,status=credit_work_hours(person=self.person,rule=self.rule,work_record_id=44,work_date=date(2026,9,19),hours=Decimal("4.25"))
+        self.assertTrue(created);self.assertEqual(status,"generated");self.assertEqual(credit.account,self.account);self.assertEqual(credit.amount,Decimal("63.75"))
+
+    def test_work_record_retry_is_idempotent(self):
+        kwargs=dict(person=self.person,rule=self.rule,work_record_id=44,work_date=date(2026,9,19),hours=2)
+        first,_,_=credit_work_hours(**kwargs);second,created,status=credit_work_hours(**kwargs)
+        self.assertFalse(created);self.assertEqual(status,"existing");self.assertEqual(first.pk,second.pk)
+
+    def test_worker_without_receivable_account_is_not_guessed(self):
+        other=Person.objects.create(team=self.team,first_name="No",last_name="Account")
+        credit,created,status=credit_work_hours(person=other,rule=self.rule,work_record_id=45,work_date=date(2026,9,19),hours=2)
+        self.assertIsNone(credit);self.assertFalse(created);self.assertEqual(status,"no_account")
+
+    def test_work_adapter_rejects_wrong_rule_source(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Horse use",source_type="lesson_horse_use",rate=25)
+        with self.assertRaises(ValidationError):credit_work_hours(person=self.person,rule=rule,work_record_id=46,work_date=date(2026,9,19),hours=1)
