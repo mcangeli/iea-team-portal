@@ -85,6 +85,31 @@ class ReceivableCharge(models.Model):
         return "open"
     def __str__(self): return self.description
 
+class ReceivableCreditRule(models.Model):
+    """Configurable earned-credit calculation rule."""
+    class Calculation(models.TextChoices):
+        FIXED="fixed","Fixed amount"
+        QUANTITY="quantity","Amount per unit"
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="receivable_credit_rules")
+    finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL)
+    name=models.CharField(max_length=160)
+    source_type=models.CharField(max_length=60)
+    calculation=models.CharField(max_length=16,choices=Calculation.choices,default=Calculation.FIXED)
+    rate=models.DecimalField(max_digits=12,decimal_places=2)
+    credit_type=models.CharField(max_length=40,blank=True)
+    active=models.BooleanField(default=True)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["name","id"]
+        constraints=[models.CheckConstraint(condition=models.Q(rate__gt=0),name="receivable_credit_rule_rate_gt_zero")]
+    def clean(self):
+        super().clean()
+        self.source_type=(self.source_type or "").strip().lower()
+        if not self.source_type: raise ValidationError({"source_type":"A source type is required."})
+    def __str__(self): return self.name
+
 class ReceivableCredit(models.Model):
     class Status(models.TextChoices): POSTED="posted","Posted"; VOID="void","Void"
     account=models.ForeignKey(ReceivableAccount,on_delete=models.PROTECT,related_name="credits"); generation_key=models.CharField(max_length=160,blank=True); source_type=models.CharField(max_length=60,blank=True); source_id=models.CharField(max_length=120,blank=True); season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credits"); legacy_family_credit=models.OneToOneField("portal.FamilyCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_service_credit=models.OneToOneField("portal.ServiceAgreementCredit",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); legacy_assistance_claim=models.OneToOneField("portal.AssistanceClaim",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_credit"); description=models.CharField(max_length=220); amount=models.DecimalField(max_digits=12,decimal_places=2); credit_date=models.DateField(); credit_type=models.CharField(max_length=40,blank=True); status=models.CharField(max_length=12,choices=Status.choices,default=Status.POSTED); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
