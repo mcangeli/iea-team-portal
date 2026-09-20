@@ -12,7 +12,7 @@ class V374ShowBudgetCompatibilityTests(TestCase):
     def setUp(self):
         self.team=Team.objects.create(name="Show Budget Barn")
         self.season=Season.objects.create(team=self.team,name="2026",start_date=date(2026,8,1),end_date=date(2027,5,31))
-        self.show=Show.objects.create(team=self.team,season=self.season,name="Fall Show",start_date=date(2026,10,10))
+        self.show=Show.objects.create(team=self.team,season=self.season,name="Fall Show",show_date=date(2026,10,10))
         self.category=FinancialCategory.objects.create(team=self.team,name="Entries",kind=FinancialCategory.Kind.EXPENSE)
 
     def test_sync_creates_iea_generic_show_budget(self):
@@ -44,7 +44,7 @@ class V374ShowBudgetCompatibilityTests(TestCase):
         self.assertTrue(budget.lines.filter(category=other).exists())
 
     def test_separate_shows_get_separate_generic_budgets(self):
-        other_show=Show.objects.create(team=self.team,season=self.season,name="Winter Show",start_date=date(2026,12,5))
+        other_show=Show.objects.create(team=self.team,season=self.season,name="Winter Show",show_date=date(2026,12,5))
         first=sync_show_budget_to_generic(show=self.show);second=sync_show_budget_to_generic(show=other_show)
         self.assertNotEqual(first.pk,second.pk)
         self.assertEqual(Budget.objects.filter(team=self.team,finance_domain=FinanceDomain.IEA).count(),2)
