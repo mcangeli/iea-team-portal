@@ -76,6 +76,47 @@ class Horse(models.Model):
         return self.display_name
 
 
+class HorsePersonRelationship(models.Model):
+    """Canonical relationship between a horse and a person in the organization."""
+    class Role(models.TextChoices):
+        OWNER = "owner", "Owner"
+        CO_OWNER = "co_owner", "Co-owner"
+        LESSEE = "lessee", "Lessee"
+        CONTRIBUTOR = "contributor", "Contributor"
+
+    horse = models.ForeignKey(Horse, on_delete=models.CASCADE, related_name="person_relationships")
+    person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="horse_relationships")
+    role = models.CharField(max_length=20, choices=Role.choices)
+    primary = models.BooleanField(default=False)
+    credit_recipient = models.BooleanField(default=False, help_text="Use this person for earned credits generated from the horse's use.")
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+    notes = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["horse__name", "-primary", "role", "person__last_name", "person__first_name"]
+        constraints = [
+            models.UniqueConstraint(fields=["horse", "person", "role", "start_date"], name="unique_horse_person_relationship_period"),
+            models.UniqueConstraint(fields=["horse", "person", "role"], condition=models.Q(start_date__isnull=True), name="unique_horse_person_relationship_null_start"),
+            models.UniqueConstraint(fields=["horse"], condition=models.Q(active=True, credit_recipient=True), name="unique_active_horse_credit_recipient"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.horse_id and self.person_id and self.horse.team_id != self.person.team_id:
+            raise ValidationError("Horse and person must belong to the same organization.")
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError("Horse relationship end date cannot be before its start date.")
+        if self.credit_recipient and not self.active:
+            raise ValidationError({"credit_recipient": "An inactive horse relationship cannot receive earned credits."})
+
+    def __str__(self):
+        return f"{self.horse.display_name} — {self.person} — {self.get_role_display()}"
+
+
 class HorseCogginsRecord(models.Model):
     horse = models.ForeignKey(Horse, on_delete=models.CASCADE, related_name="coggins_records")
     test_date = models.DateField()
