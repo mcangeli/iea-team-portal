@@ -9,6 +9,69 @@ class FinanceDomain(models.TextChoices):
     GENERAL="general","General barn"
     IEA="iea","IEA"
 if not hasattr(FinancialAccount,"finance_domain"): models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL).contribute_to_class(FinancialAccount,"finance_domain")
+class Budget(models.Model):
+    """Domain-scoped operating budget; actuals remain in FinancialTransaction."""
+    class Status(models.TextChoices):
+        DRAFT="draft","Draft"
+        ACTIVE="active","Active"
+        CLOSED="closed","Closed"
+
+    team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="finance_budgets")
+    finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL)
+    name=models.CharField(max_length=180)
+    start_date=models.DateField()
+    end_date=models.DateField()
+    season=models.ForeignKey(Season,on_delete=models.PROTECT,null=True,blank=True,related_name="finance_budgets")
+    status=models.CharField(max_length=12,choices=Status.choices,default=Status.DRAFT)
+    notes=models.TextField(blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["-start_date","name","id"]
+        constraints=[
+            models.UniqueConstraint(fields=["team","finance_domain","name","start_date","end_date"],name="unique_budget_team_domain_period_name"),
+        ]
+    def clean(self):
+        super().clean()
+        if self.end_date and self.start_date and self.end_date<self.start_date:
+            raise ValidationError({"end_date":"Budget end date cannot be before the start date."})
+        if self.season_id and self.season.team_id!=self.team_id:
+            raise ValidationError({"season":"Budget season must belong to the same organization."})
+    def __str__(self): return self.name
+
+
+class BudgetLine(models.Model):
+    """Planned amount for one category within a Budget."""
+    budget=models.ForeignKey(Budget,on_delete=models.CASCADE,related_name="lines")
+    category=models.ForeignKey(FinancialCategory,on_delete=models.PROTECT,related_name="budget_lines")
+    kind=models.CharField(max_length=20,choices=FinancialTransaction.Kind.choices,default=FinancialTransaction.Kind.EXPENSE)
+    description=models.CharField(max_length=180)
+    amount=models.DecimalField(max_digits=12,decimal_places=2,default=0)
+    sort_order=models.PositiveIntegerField(default=0)
+    notes=models.CharField(max_length=255,blank=True)
+    created_at=models.DateTimeField(auto_now_add=True)
+    updated_at=models.DateTimeField(auto_now=True)
+    class Meta:
+        ordering=["sort_order","category__sort_order","category__name","description","id"]
+        constraints=[
+            models.CheckConstraint(condition=models.Q(amount__gte=0),name="budget_line_amount_gte_zero"),
+            models.UniqueConstraint(fields=["budget","kind","category","description"],name="unique_budget_line_category_description"),
+        ]
+    def clean(self):
+        super().clean()
+        if self.category_id and self.budget_id and self.category.team_id!=self.budget.team_id:
+            raise ValidationError({"category":"Budget category must belong to the same organization."})
+        if self.category_id:
+            allowed={
+                FinancialCategory.Kind.INCOME:{FinancialTransaction.Kind.INCOME},
+                FinancialCategory.Kind.EXPENSE:{FinancialTransaction.Kind.EXPENSE},
+                FinancialCategory.Kind.BOTH:{FinancialTransaction.Kind.INCOME,FinancialTransaction.Kind.EXPENSE},
+            }[self.category.kind]
+            if self.kind not in allowed:
+                raise ValidationError({"kind":"Budget line type does not match the selected category."})
+    def __str__(self): return f"{self.budget}: {self.description}"
+
+
 class ReceivableAccount(models.Model):
     class Status(models.TextChoices): ACTIVE="active","Active"; CLOSED="closed","Closed"
     team=models.ForeignKey(Team,on_delete=models.CASCADE,related_name="receivable_accounts"); name=models.CharField(max_length=180); finance_domain=models.CharField(max_length=12,choices=FinanceDomain.choices,default=FinanceDomain.GENERAL); primary_person=models.ForeignKey("portal.Person",on_delete=models.PROTECT,null=True,blank=True,related_name="primary_receivable_accounts"); legacy_membership=models.ForeignKey("portal.SeasonMembership",on_delete=models.PROTECT,null=True,blank=True,related_name="receivable_accounts"); status=models.CharField(max_length=12,choices=Status.choices,default=Status.ACTIVE); notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
