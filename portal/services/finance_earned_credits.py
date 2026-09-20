@@ -18,6 +18,10 @@ def earned_credit_key(source_type, source_id):
 def generate_earned_credit(*,account,source_type,source_id,credit_date,description,amount,
                            credit_type="",season=None,notes="",generation_key=None,credit_rule=None):
     """Post an auditable, retry-safe credit without changing the original charge."""
+    if credit_rule is not None and (credit_rule.team_id!=account.team_id or credit_rule.finance_domain!=account.finance_domain):
+        raise ValidationError("Credit rule and receivable account must share an organization and finance domain.")
+    if credit_rule is not None and (source_type or "").strip().lower()!=credit_rule.source_type:
+        raise ValidationError("Earned credit source type must match the supplied credit rule.")
     if season is not None and season.team_id!=account.team_id:
         raise ValidationError("Credit season must belong to the account organization.")
     value=Decimal(amount)
