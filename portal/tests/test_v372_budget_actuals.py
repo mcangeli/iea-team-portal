@@ -66,3 +66,12 @@ class V372BudgetActualTests(TestCase):
         hay=[row for row in report.category_rows if row["category"]==self.expense.name and row["kind"]==FinancialTransaction.Kind.EXPENSE]
         self.assertEqual(len(hay),1)
         self.assertEqual(hay[0]["actual"],Decimal("325.00"))
+
+
+    def test_category_rows_keep_duplicate_names_separate(self):
+        duplicate=FinancialCategory.objects.create(team=self.team,name=self.expense_category.name,kind=FinancialCategory.Kind.EXPENSE)
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2026,2,10),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_account,category=duplicate,amount=Decimal("12.00"),description="Second category")
+        report=budget_actuals(self.budget)
+        matching=[row for row in report.category_rows if row["category"]==self.expense_category.name]
+        self.assertEqual(len(matching),2)
+        self.assertEqual(len({row["category_id"] for row in matching}),2)
