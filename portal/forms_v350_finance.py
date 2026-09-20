@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule
+from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, Season
 
@@ -62,6 +62,24 @@ class ReceivableBillingRuleForm(forms.Form):
     def __init__(self,*args,accounts=None,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields["account"].queryset=accounts if accounts is not None else ReceivableAccount.objects.none()
+
+class ReceivableCreditRuleForm(forms.ModelForm):
+    class Meta:
+        model=ReceivableCreditRule
+        fields=["name","source_type","calculation","rate","credit_type","active","notes"]
+        labels={"source_type":"Activity source","rate":"Credit amount / rate","credit_type":"Credit category"}
+        help_texts={
+            "source_type":"Examples: barn_work, lesson_horse_use, show_horse_use",
+            "credit_type":"Examples: work, horse_use, board_credit",
+        }
+        widgets={"notes":forms.Textarea(attrs={"rows":3})}
+    def __init__(self,*args,team=None,finance_domain=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.team=team;self.finance_domain=finance_domain
+        if self.instance and not self.instance.pk:
+            self.instance.team=team;self.instance.finance_domain=finance_domain
+    def clean_source_type(self):
+        return (self.cleaned_data["source_type"] or "").strip().lower()
 
 class MonthlyBillingRunForm(forms.Form):
     billing_month=forms.DateField(widget=forms.DateInput(attrs={"type":"month"}),input_formats=["%Y-%m","%Y-%m-%d"],label="Billing month")
