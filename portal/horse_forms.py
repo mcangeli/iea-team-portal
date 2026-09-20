@@ -59,7 +59,7 @@ class HorseIdentifierForm(forms.ModelForm):
 class HorsePersonRelationshipForm(forms.ModelForm):
     class Meta:
         model = HorsePersonRelationship
-        fields = ["person", "relationship_type", "share_percent", "start_date", "end_date", "active", "notes"]
+        fields = ["person", "relationship_type", "share_percent", "start_date", "end_date", "active", "credit_recipient", "notes"]
         widgets = {
             "share_percent": forms.NumberInput(attrs={"min": 1, "max": 100, "step": 1}),
             "start_date": forms.DateInput(attrs={"type": "date"}),
@@ -84,6 +84,25 @@ class HorsePersonRelationshipForm(forms.ModelForm):
         if self.team and person.team_id != self.team.id:
             raise forms.ValidationError("Choose a person from this organization.")
         return person
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get("credit_recipient") or not self.horse:
+            return cleaned
+        if not cleaned.get("active"):
+            self.add_error("credit_recipient", "Only an active horse relationship can receive horse-use credits.")
+            return cleaned
+        conflicts = HorsePersonRelationship.objects.filter(
+            horse=self.horse, active=True, credit_recipient=True,
+        )
+        if self.instance and self.instance.pk:
+            conflicts = conflicts.exclude(pk=self.instance.pk)
+        if conflicts.exists():
+            self.add_error(
+                "credit_recipient",
+                "This horse already has an active horse-use credit recipient. Edit that relationship first.",
+            )
+        return cleaned
 
 
 class HorseCogginsForm(forms.ModelForm):
