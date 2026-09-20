@@ -7,7 +7,8 @@ from django.test import TestCase
 
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.people import Person
-from portal.model_modules.horses import Horse, HorsePersonRelationship
+from portal.model_modules.horses import Horse
+from portal.model_modules.barn_participation import HorsePersonRelationship
 from portal.model_modules.lessons import LessonAssignment, LessonOccurrence, LessonProgram, LessonSeries
 from portal.models import Season, Team
 from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
@@ -127,7 +128,7 @@ class LessonHorseUseCreditAdapterTests(TestCase):
         self.assertIsNone(credit);self.assertFalse(created);self.assertEqual(status,"owner_use")
 
     def test_horse_relationship_automatically_resolves_credit_recipient(self):
-        HorsePersonRelationship.objects.create(horse=self.horse,person=self.owner,role=HorsePersonRelationship.Role.OWNER,primary=True,credit_recipient=True)
+        HorsePersonRelationship.objects.create(team=self.team,horse=self.horse,person=self.owner,relationship_type=HorsePersonRelationship.RelationshipType.OWNER,credit_recipient=True)
         credit,created,status=credit_lesson_horse_use(assignment=self.assignment,rule=self.rule)
         self.assertTrue(created);self.assertEqual(status,"generated");self.assertEqual(credit.account,self.account)
 
@@ -138,7 +139,7 @@ class LessonHorseUseCreditAdapterTests(TestCase):
     def test_horse_relationship_rejects_cross_organization_person(self):
         other_team=Team.objects.create(name="Other Barn")
         other=Person.objects.create(team=other_team,first_name="Other",last_name="Owner")
-        relationship=HorsePersonRelationship(horse=self.horse,person=other,role=HorsePersonRelationship.Role.OWNER)
+        relationship=HorsePersonRelationship(team=self.team,horse=self.horse,person=other,relationship_type=HorsePersonRelationship.RelationshipType.OWNER)
         with self.assertRaises(ValidationError):relationship.full_clean()
 
     def test_scheduled_lesson_cannot_generate_horse_use_credit(self):
