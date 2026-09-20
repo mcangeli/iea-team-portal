@@ -1,6 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, FinanceDomain, PayableParty, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCreditRule
+from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, Budget, BudgetLine, FinanceDomain, PayableParty, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, Season
 
@@ -195,3 +195,28 @@ class FinanceReportFilterForm(forms.Form):
         if cleaned.get("start_date") and cleaned.get("end_date") and cleaned["start_date"]>cleaned["end_date"]:
             raise forms.ValidationError("Start date must be on or before end date.")
         return cleaned
+
+
+class BudgetForm(forms.ModelForm):
+    class Meta:
+        model=Budget
+        fields=["name","start_date","end_date","season","status","notes"]
+        widgets={"start_date":forms.DateInput(attrs={"type":"date"}),"end_date":forms.DateInput(attrs={"type":"date"}),"notes":forms.Textarea(attrs={"rows":3})}
+    def __init__(self,*args,team=None,finance_domain=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.team=team;self.finance_domain=finance_domain
+        self.fields["season"].queryset=Season.objects.filter(team=team).order_by("-start_date") if team else Season.objects.none()
+    def clean(self):
+        cleaned=super().clean()
+        if cleaned.get("start_date") and cleaned.get("end_date") and cleaned["end_date"]<cleaned["start_date"]:
+            raise forms.ValidationError("Budget end date cannot be before the start date.")
+        return cleaned
+
+
+class BudgetLineForm(forms.ModelForm):
+    class Meta:
+        model=BudgetLine
+        fields=["kind","category","description","amount","sort_order","notes"]
+    def __init__(self,*args,team=None,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields["category"].queryset=FinancialCategory.objects.filter(team=team,active=True).order_by("sort_order","name") if team else FinancialCategory.objects.none()
