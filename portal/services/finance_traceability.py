@@ -1,7 +1,7 @@
 """Trace financial ledger entries back to ArenaLine operational sources."""
 from dataclasses import dataclass
 
-from portal.model_modules.finance import ReconciliationMatch
+from portal.model_modules.finance import PayablePayment, ReceivablePayment, ReconciliationMatch
 
 
 @dataclass(frozen=True)
@@ -16,14 +16,14 @@ def transaction_trace(transaction):
     source_kind="ledger";source_label="Direct ledger transaction";source_object=None
     try:
         source_object=transaction.receivable_payment
-    except transaction._meta.apps.get_model("portal","ReceivablePayment").DoesNotExist:
+    except ReceivablePayment.DoesNotExist:
         pass
     if source_object is not None:
         source_kind="receivable_payment";source_label="Receivable payment"
     else:
         try:
             source_object=transaction.payable_payment
-        except transaction._meta.apps.get_model("portal","PayablePayment").DoesNotExist:
+        except PayablePayment.DoesNotExist:
             pass
         if source_object is not None:
             source_kind="payable_payment";source_label="Payable payment"
