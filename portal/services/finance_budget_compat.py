@@ -41,8 +41,8 @@ def sync_show_budget_to_generic(*,show):
         finance_domain=FinanceDomain.IEA,
         season=season,
         name=f"{show.name} Show Budget",
-        start_date=show.start_date if getattr(show,"start_date",None) else season.start_date,
-        end_date=show.end_date if getattr(show,"end_date",None) else (show.start_date if getattr(show,"start_date",None) else season.end_date),
+        start_date=show.show_date,
+        end_date=show.show_date,
         defaults={"status":Budget.Status.ACTIVE,"notes":f"Compatibility budget for show #{show.pk}."},
     )
     legacy=ShowBudgetLine.objects.filter(show=show).select_related("category")
