@@ -6,11 +6,16 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from portal.model_modules.station import StationCredential, StationDevice, WorkShiftEntry
 from portal.model_modules.people import Person
+from portal.model_modules.finance import FinanceDomain, ReceivableCredit, ReceivableCreditRule
+from portal.services.finance_account_resolution import resolve_participant_account
+from portal.services.finance_earned_credits import calculate_earned_credit
+from portal.services.finance_operational_credits import credit_approved_work_shift
 from portal.models import AuditEvent
 from portal.station_forms import (
     StationActivationForm,
@@ -158,6 +163,30 @@ def station_shift_review(request):
     recent_shifts = all_shifts[:250]
     attention_shifts = [shift for shift in recent_shifts if not shift.approved_at]
     approved_shifts = [shift for shift in recent_shifts if shift.approved_at]
+    work_credit_rules=list(ReceivableCreditRule.objects.filter(team=team,finance_domain=FinanceDomain.GENERAL,source_type="barn_work",active=True).order_by("name","id"))
+    for shift in approved_shifts:
+        shift.credit_preview={"status":"no_rule","label":"No active Barn Work credit rule"}
+        if len(work_credit_rules)>1:
+            shift.credit_preview={"status":"multiple_rules","label":"Choose a single active Barn Work credit rule in Finance"}
+            continue
+        if not work_credit_rules:
+            continue
+        rule=work_credit_rules[0]
+        try:account=resolve_participant_account(shift.person,finance_domain=rule.finance_domain)
+        except ValidationError:
+            shift.credit_preview={"status":"ambiguous_account","label":"Multiple receivable accounts"}
+            continue
+        if account is None:
+            shift.credit_preview={"status":"no_account","label":"No participant receivable account"}
+            continue
+        key="credit-rule:%s:earned:%s:work:%s" % (rule.pk,rule.source_type,shift.pk)
+        existing=ReceivableCredit.objects.filter(account=account,generation_key=key).first()
+        if existing:
+            shift.credit_preview={"status":"posted","label":"Credit posted — $ %.2f" % existing.amount,"credit":existing,"rule":rule,"account":account}
+            continue
+        hours=Decimal(str(max(0,(shift.clock_out-shift.clock_in).total_seconds())))/Decimal("3600")
+        amount=calculate_earned_credit(rule,quantity=hours)
+        shift.credit_preview={"status":"ready","label":"$ %.2f → %s" % (amount,account.name),"amount":amount,"rule":rule,"account":account}
     totals = defaultdict(lambda: {"person": None, "minutes": 0, "approved_minutes": 0, "working_student_minutes": 0, "shift_count": 0})
     for shift in all_shifts:
         shift.duration_minutes = _shift_minutes(shift)
@@ -229,6 +258,31 @@ def station_shift_approve(request, shift_pk):
     shift.save(update_fields=["approved_by", "approved_at", "updated_at"])
     _audit_shift(team, request.user, "station_shift_approved", shift, {"approved_at": shift.approved_at.isoformat()})
     messages.success(request, f"Approved shift for {shift.person.display_name}.")
+    return redirect("station_shift_review")
+
+
+@login_required
+def station_shift_post_credit(request, shift_pk):
+    _require_manage(request.user)
+    if request.method != "POST":
+        raise Http404
+    team=_team(request.user)
+    shift=get_object_or_404(WorkShiftEntry.objects.select_related("person"),pk=shift_pk,team=team)
+    rules=list(ReceivableCreditRule.objects.filter(team=team,finance_domain=FinanceDomain.GENERAL,source_type="barn_work",active=True).order_by("id")[:2])
+    if len(rules)!=1:
+        messages.error(request,"Configure exactly one active General Barn Work credit rule before posting shift credits.")
+        return redirect("station_shift_review")
+    try:
+        credit,created,status=credit_approved_work_shift(shift=shift,rule=rules[0])
+    except ValidationError as exc:
+        messages.error(request,str(exc))
+    else:
+        if credit is None:
+            messages.error(request,"This person does not have an eligible participant receivable account.")
+        elif created:
+            messages.success(request,"Posted $%.2f work credit for %s." % (credit.amount,shift.person.display_name))
+        else:
+            messages.info(request,"The $%.2f work credit for %s was already posted." % (credit.amount,shift.person.display_name))
     return redirect("station_shift_review")
 
 
