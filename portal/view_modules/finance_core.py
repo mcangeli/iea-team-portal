@@ -22,6 +22,7 @@ from django.core.paginator import Paginator
 from django.http import HttpResponse, FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from ..forms import (
@@ -408,6 +409,13 @@ def finance_transaction_edit(request, pk):
     form = FinancialTransactionForm(
         request.POST or None, request.FILES or None, instance=obj, team=team
     )
+    # ClearableFileInput normally links the existing FieldFile through
+    # receipt.url (/media/...). Finance receipts are private, so point the
+    # widget's "Currently" link at the authenticated download endpoint instead.
+    if obj.receipt:
+        form.fields["receipt"].widget.attrs["existing_file_url"] = reverse(
+            "finance_receipt_download", kwargs={"pk": obj.pk}
+        )
     if form.is_valid():
         obj = form.save(commit=False)
         obj.team = team
