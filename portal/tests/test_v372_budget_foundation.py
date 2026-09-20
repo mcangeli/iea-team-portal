@@ -27,7 +27,7 @@ class V372BudgetFoundationTests(TestCase):
         with self.assertRaises(ValidationError): budget.full_clean()
 
     def test_budget_season_must_share_organization(self):
-        season=Season.objects.create(team=self.other_team,name="Other Season")
+        season=Season.objects.create(team=self.other_team,name="Other Season",start_date=date(2027,1,1),end_date=date(2027,12,31))
         self.budget.season=season
         with self.assertRaises(ValidationError): self.budget.full_clean()
 
