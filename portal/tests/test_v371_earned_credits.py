@@ -4,9 +4,9 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCredit
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCredit, ReceivableCreditRule
 from portal.models import Season, Team
-from portal.services.finance_earned_credits import earned_credit_key, generate_earned_credit
+from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
 
 
 class EarnedReceivableCreditTests(TestCase):
@@ -38,3 +38,31 @@ class EarnedReceivableCreditTests(TestCase):
 
     def test_source_identity_is_required(self):
         with self.assertRaises(ValidationError):earned_credit_key("",1)
+
+class ReceivableCreditRuleTests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Rule Barn")
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Family Board",finance_domain=FinanceDomain.GENERAL)
+
+    def test_fixed_horse_use_credit(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Lesson horse use",source_type="lesson_horse_use",calculation=ReceivableCreditRule.Calculation.FIXED,rate=Decimal("25.00"),credit_type="horse_use")
+        credit,created=generate_rule_credit(rule=rule,account=self.account,source_id="lesson-42:horse-7",credit_date=date(2026,9,19))
+        self.assertTrue(created);self.assertEqual(credit.amount,Decimal("25.00"));self.assertEqual(credit.credit_type,"horse_use")
+
+    def test_hourly_work_credit_uses_quantity(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Barn work",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"),credit_type="work")
+        credit,_=generate_rule_credit(rule=rule,account=self.account,source_id="shift-12",credit_date=date(2026,9,19),quantity=Decimal("3.5"))
+        self.assertEqual(credit.amount,Decimal("52.50"))
+
+    def test_quantity_rule_requires_positive_quantity(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Barn work",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"))
+        with self.assertRaises(ValidationError):calculate_earned_credit(rule)
+        with self.assertRaises(ValidationError):calculate_earned_credit(rule,quantity=0)
+
+    def test_inactive_credit_rule_cannot_generate(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Old credit",source_type="work",rate=Decimal("10.00"),active=False)
+        with self.assertRaises(ValidationError):generate_rule_credit(rule=rule,account=self.account,source_id=1,credit_date=date(2026,9,19))
+
+    def test_credit_rule_enforces_finance_domain(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="IEA work",source_type="iea_work",finance_domain=FinanceDomain.IEA,rate=Decimal("10.00"))
+        with self.assertRaises(ValidationError):generate_rule_credit(rule=rule,account=self.account,source_id=1,credit_date=date(2026,9,19))
