@@ -20,6 +20,7 @@ from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_expor
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
 from portal.services.finance_operations import add_account_person_for_user, allocate_credit_for_user, allocate_payment_for_user, allocate_credit_oldest_for_user, allocate_payment_oldest_for_user, create_account_for_user, create_charge_for_user, post_credit_for_user, post_payment_for_user, remove_account_person_for_user, unallocate_credit_for_user, unallocate_payment_for_user, void_payment_for_user
 from portal.services.finance_statements import account_activity, statement_for_user
+from portal.services.finance_traceability import transaction_trace
 from portal.services.finance_reports import finance_report_for_user
 from portal.services.finance_payable_reports import payable_workspace_summary
 from portal.services.finance_receivable_reports import receivable_workspace_summary
@@ -61,6 +62,14 @@ def finance_workspace(request):
                 exceptions.append({"kind":"Budget","amount":row["actual_expenses"]-row["planned_expenses"],"label":f'{row["budget"].name} over expense plan',"url":reverse("finance_budget_detail",kwargs={"pk":row["budget"].pk})})
         summaries.append({"domain":domain,"label":"General Barn" if domain==FinanceDomain.GENERAL else "IEA","receivables":receivables,"payables":payables,"budgets":budget_rows,"recent_transactions":recent_transactions,"exceptions":exceptions})
     return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"as_of":today,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
+
+@login_required
+def finance_transaction_detail(request,pk):
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
+    transaction=financial_transactions_for_user(request.user,team).filter(pk=pk,account__finance_domain__in=domains).select_related("account","category","season","show","rider","reversal_of").first()
+    if transaction is None:raise PermissionDenied
+    trace=transaction_trace(transaction)
+    return render(request,"portal/finance_transaction_detail_v373.html",{"team":team,"transaction":transaction,"trace":trace})
 
 @login_required
 def finance_budgets(request):
