@@ -37,6 +37,17 @@ class EarnedReceivableCreditTests(TestCase):
         two,_=generate_earned_credit(account=other,source_type="barn_work",source_id=1,credit_date=date(2026,9,19),description="Work",amount=10)
         self.assertNotEqual(one.pk,two.pk)
 
+    def test_direct_credit_rejects_foreign_credit_rule(self):
+        other=Team.objects.create(name="Other Rule Barn")
+        rule=ReceivableCreditRule.objects.create(team=other,name="Foreign work",source_type="barn_work",rate=Decimal("10.00"))
+        with self.assertRaises(ValidationError):
+            generate_earned_credit(account=self.account,source_type="barn_work",source_id=1,credit_date=date(2026,9,19),description="Work",amount=10,credit_rule=rule)
+
+    def test_direct_credit_rule_requires_matching_source_type(self):
+        rule=ReceivableCreditRule.objects.create(team=self.team,name="Horse use",source_type="lesson_horse_use",rate=Decimal("25.00"))
+        with self.assertRaises(ValidationError):
+            generate_earned_credit(account=self.account,source_type="barn_work",source_id=1,credit_date=date(2026,9,19),description="Work",amount=10,credit_rule=rule)
+
     def test_credit_rejects_nonpositive_amount(self):
         with self.assertRaises(ValidationError):generate_earned_credit(account=self.account,source_type="barn_work",source_id=1,credit_date=date(2026,9,19),description="Work",amount=0)
 
