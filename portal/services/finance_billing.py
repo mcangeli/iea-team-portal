@@ -6,7 +6,7 @@ is caller-owned and makes retries idempotent.
 from datetime import timedelta
 from decimal import Decimal
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from portal.model_modules.finance import ReceivableBillingRule, ReceivableCharge
 
 @transaction.atomic
@@ -23,7 +23,15 @@ def generate_charge(*,rule:ReceivableBillingRule,generation_key:str,charge_date,
         charge_date=charge_date,due_date=charge_date+timedelta(days=rule.due_days),
         charge_type=rule.charge_type,notes=notes.strip(),
     )
-    charge.full_clean();charge.save()
+    charge.full_clean()
+    try:
+        with transaction.atomic():
+            charge.save()
+    except IntegrityError:
+        existing=ReceivableCharge.objects.filter(billing_rule=rule,generation_key=key).first()
+        if existing:
+            return existing,False
+        raise
     return charge,True
 
 
