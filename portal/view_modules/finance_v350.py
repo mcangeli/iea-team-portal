@@ -14,7 +14,7 @@ from portal.forms_v350_finance import BudgetForm, BudgetLineForm, PayableObligat
 from portal.model_modules.finance import AccountingExportProfile, BankImportBatch, BankImportProfile, Budget, FinanceDomain, ImportedBankTransaction, ReceivableCharge, ReceivableCreditRule, ReconciliationMatch
 from portal.models import FinancialAccount
 from portal.platform import organization_for_view_user
-from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user, receivable_billing_rules_for_user
+from portal.services.finance_access import allowed_finance_domains, finance_account_for_user, finance_accounts_for_user, financial_transactions_for_user, receivable_billing_rules_for_user
 from portal.services.finance_imports import stage_bank_import
 from portal.services.finance_exports import QUICKBOOKS_MAPPING, normalized_export_rows, render_accounting_export
 from portal.services.finance_reconciliation import confirm_reconciliation, generate_match_candidates
@@ -42,7 +42,25 @@ def _domain_summary(user,team,domain):
     rows=list(finance_accounts_for_user(user,team).filter(finance_domain=domain).select_related("primary_person"));return {"domain":domain,"label":"General Barn" if domain==FinanceDomain.GENERAL else "IEA","accounts":rows,"account_count":len(rows),"balance":sum((a.balance for a in rows),ZERO),"amount_due":sum((a.amount_due for a in rows),ZERO),"unapplied_payments":sum((a.unapplied_payment_total for a in rows),ZERO),"unapplied_credits":sum((a.unapplied_credit_total for a in rows),ZERO)}
 @login_required
 def finance_workspace(request):
-    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);summaries=[_domain_summary(request.user,team,d) for d in (FinanceDomain.GENERAL,FinanceDomain.IEA) if d in domains];accounts=finance_accounts_for_user(request.user,team).select_related("primary_person").order_by("finance_domain","name");return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"accounts":accounts,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
+    team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team);today=date.today();summaries=[]
+    for domain in (FinanceDomain.GENERAL,FinanceDomain.IEA):
+        if domain not in domains:continue
+        receivables=receivable_workspace_summary(request.user,team,finance_domain=domain,as_of=today)
+        payables=payable_workspace_summary(request.user,team,finance_domain=domain,as_of=today)
+        budgets=Budget.objects.filter(team=team,finance_domain=domain,status=Budget.Status.ACTIVE,start_date__lte=today,end_date__gte=today).select_related("season").order_by("end_date","name")
+        budget_rows=[]
+        for budget in budgets:
+            report=budget_actuals(budget)
+            budget_rows.append({"budget":budget,"planned_net":report.planned_net,"actual_net":report.actual_net,"net_variance":report.actual_net-report.planned_net,"planned_expenses":report.planned_expenses,"actual_expenses":report.actual_expenses})
+        recent_transactions=financial_transactions_for_user(request.user,team,domain).filter(status="posted").select_related("account","category").order_by("-transaction_date","-id")[:8]
+        exceptions=[]
+        if receivables["overdue_total"]>ZERO:exceptions.append({"kind":"Receivables","amount":receivables["overdue_total"],"label":"overdue receivables","url":f'{reverse("finance_receivables")}?domain={domain}'})
+        if payables["overdue_total"]>ZERO:exceptions.append({"kind":"Payables","amount":payables["overdue_total"],"label":"overdue payables","url":f'{reverse("finance_payables")}?domain={domain}'})
+        for row in budget_rows:
+            if row["actual_expenses"]>row["planned_expenses"]:
+                exceptions.append({"kind":"Budget","amount":row["actual_expenses"]-row["planned_expenses"],"label":f'{row["budget"].name} over expense plan',"url":reverse("finance_budget_detail",kwargs={"pk":row["budget"].pk})})
+        summaries.append({"domain":domain,"label":"General Barn" if domain==FinanceDomain.GENERAL else "IEA","receivables":receivables,"payables":payables,"budgets":budget_rows,"recent_transactions":recent_transactions,"exceptions":exceptions})
+    return render(request,"portal/finance_workspace_v350.html",{"team":team,"domain_summaries":summaries,"as_of":today,"can_see_general":FinanceDomain.GENERAL in domains,"can_see_iea":FinanceDomain.IEA in domains})
 
 @login_required
 def finance_budgets(request):
