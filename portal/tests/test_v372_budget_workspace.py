@@ -71,3 +71,19 @@ class V372BudgetWorkspaceTests(TestCase):
         self.client.force_login(self.admin)
         response=self.client.get(reverse("finance_budget_detail",args=[budget.pk]))
         self.assertEqual(response.status_code,403)
+
+
+    def test_closed_budget_rejects_new_line_post(self):
+        self.budget.status=Budget.Status.CLOSED;self.budget.save(update_fields=["status"])
+        self.client.force_login(self.user)
+        response=self.client.post(reverse("finance_budget_line_add",args=[self.budget.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense_category.pk,"description":"Late change","amount":"25.00","sort_order":"0","notes":""})
+        self.assertEqual(response.status_code,403)
+        self.assertFalse(self.budget.lines.filter(description="Late change").exists())
+
+    def test_closed_budget_rejects_line_edit_post(self):
+        line=BudgetLine.objects.create(budget=self.budget,category=self.expense_category,kind=FinancialTransaction.Kind.EXPENSE,description="Original",amount=Decimal("25.00"))
+        self.budget.status=Budget.Status.CLOSED;self.budget.save(update_fields=["status"])
+        self.client.force_login(self.user)
+        response=self.client.post(reverse("finance_budget_line_edit",args=[self.budget.pk,line.pk]),{"kind":FinancialTransaction.Kind.EXPENSE,"category":self.expense_category.pk,"description":"Changed","amount":"30.00","sort_order":"0","notes":""})
+        self.assertEqual(response.status_code,403)
+        line.refresh_from_db();self.assertEqual(line.description,"Original")
