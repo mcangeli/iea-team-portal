@@ -118,6 +118,7 @@ def finance_budget_line_add(request,pk):
     team=_team_for_finance_user(request.user);domains=allowed_finance_domains(request.user,team)
     budget=Budget.objects.filter(pk=pk,team=team,finance_domain__in=domains).first()
     if budget is None:raise PermissionDenied
+    if budget.status==Budget.Status.CLOSED and request.method=="POST":raise PermissionDenied
     form=BudgetLineForm(request.POST or None,team=team)
     if request.method=="POST" and form.is_valid():
         line=form.save(commit=False);line.budget=budget
@@ -133,6 +134,7 @@ def finance_budget_line_edit(request,pk,line_id):
     if budget is None:raise PermissionDenied
     line=budget.lines.filter(pk=line_id).first()
     if line is None:raise PermissionDenied
+    if budget.status==Budget.Status.CLOSED and request.method=="POST":raise PermissionDenied
     form=BudgetLineForm(request.POST or None,instance=line,team=team)
     if request.method=="POST" and form.is_valid():
         line=form.save(commit=False);line.budget=budget
