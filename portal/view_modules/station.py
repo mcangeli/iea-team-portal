@@ -14,6 +14,7 @@ from django.utils import timezone
 from portal.model_modules.station import StationCredential, StationDevice, WorkShiftEntry
 from portal.model_modules.people import Person
 from portal.model_modules.finance import FinanceDomain, ReceivableCredit, ReceivableCreditRule
+from portal.services.finance_access import can_manage_finance_domain
 from portal.services.finance_account_resolution import resolve_participant_account
 from portal.services.finance_earned_credits import calculate_earned_credit
 from portal.services.finance_operational_credits import credit_approved_work_shift
@@ -164,6 +165,7 @@ def station_shift_review(request):
     recent_shifts = all_shifts[:250]
     attention_shifts = [shift for shift in recent_shifts if not shift.approved_at]
     approved_shifts = [shift for shift in recent_shifts if shift.approved_at]
+    can_post_work_credits=can_manage_finance_domain(request.user,FinanceDomain.GENERAL,team)
     work_credit_rules=list(ReceivableCreditRule.objects.filter(team=team,finance_domain=FinanceDomain.GENERAL,source_type="barn_work",active=True).order_by("name","id"))
     for shift in approved_shifts:
         if shift.role!=WorkShiftEntry.Role.WORKING_STUDENT:
@@ -209,7 +211,7 @@ def station_shift_review(request):
         row["hours_display"] = _format_minutes(row["minutes"])
         row["approved_hours_display"] = _format_minutes(row["approved_minutes"])
         row["working_student_hours_display"] = _format_minutes(row["working_student_minutes"])
-    return render(request, "portal/station/shift_review.html", {"shifts": recent_shifts, "attention_shifts": attention_shifts, "approved_shifts": approved_shifts, "summary": summary})
+    return render(request, "portal/station/shift_review.html", {"shifts": recent_shifts, "attention_shifts": attention_shifts, "approved_shifts": approved_shifts, "summary": summary, "can_post_work_credits": can_post_work_credits})
 
 
 @login_required
@@ -271,6 +273,9 @@ def station_shift_post_credit(request, shift_pk):
     if request.method != "POST":
         raise Http404
     team=_team(request.user)
+    if not can_manage_finance_domain(request.user,FinanceDomain.GENERAL,team):
+        messages.error(request,"General Finance permission is required to post receivable credits.")
+        return redirect("station_shift_review")
     shift=get_object_or_404(WorkShiftEntry.objects.select_related("person"),pk=shift_pk,team=team)
     if shift.role!=WorkShiftEntry.Role.WORKING_STUDENT:
         messages.error(request,"Employee work hours are not receivable credits.")
