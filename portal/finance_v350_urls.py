@@ -38,5 +38,7 @@ urlpatterns=[
  path("finance/workspace/accounts/<int:pk>/allocations/<int:allocation_id>/unallocate/",finance_v350.finance_payment_unallocate,name="finance_payment_unallocate"),
  path("finance/workspace/accounts/<int:pk>/payments/<int:payment_id>/void/",finance_v350.finance_payment_void,name="finance_payment_void"),
  path("finance/workspace/accounts/<int:pk>/payments/<int:payment_id>/allocate/",finance_v350.finance_payment_allocate,name="finance_payment_allocate"),
+ path("finance/workspace/accounts/<int:pk>/payments/<int:payment_id>/allocate-oldest/",finance_v350.finance_payment_allocate_oldest,name="finance_payment_allocate_oldest"),
  path("finance/workspace/accounts/<int:pk>/credits/<int:credit_id>/allocate/",finance_v350.finance_credit_allocate,name="finance_credit_allocate"),
+ path("finance/workspace/accounts/<int:pk>/credits/<int:credit_id>/allocate-oldest/",finance_v350.finance_credit_allocate_oldest,name="finance_credit_allocate_oldest"),
 ]
