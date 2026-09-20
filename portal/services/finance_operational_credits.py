@@ -35,9 +35,14 @@ def credit_work_hours(*,person,rule,work_record_id,work_date,hours,description=N
     )
 
 
-def credit_lesson_horse_use(*,assignment,owner,rule,description=None,season=None,notes=""):
+def credit_lesson_horse_use(*,assignment,rule,owner=None,description=None,season=None,notes=""):
     """Credit a horse owner when their horse is used by someone else in a completed lesson."""
     occurrence=assignment.occurrence
+    if owner is None and assignment.horse_id:
+        relationship=assignment.horse.person_relationships.filter(active=True,credit_recipient=True).select_related("person").first()
+        owner=relationship.person if relationship else None
+    if owner is None:
+        return None,False,"no_credit_recipient"
     if rule.source_type!="lesson_horse_use":
         raise ValidationError("Lesson horse-use credits require a lesson_horse_use credit rule.")
     if assignment.role!=assignment.Role.PARTICIPANT or not assignment.horse_id:
