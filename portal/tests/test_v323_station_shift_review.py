@@ -1,4 +1,5 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from django.test import TestCase
@@ -6,6 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from portal.model_modules.people import Person
+from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.station import WorkShiftEntry
 from portal.models import AuditEvent, Team, UserProfile
 
@@ -117,3 +119,33 @@ class V323StationShiftReviewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No approved work history yet.")
         self.assertNotContains(response, "data-station-filtered-table")
+
+
+    def _work_credit_setup(self):
+        account=ReceivableAccount.objects.create(team=self.team,name="Jamie Board",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=account,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Working Student Credit",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"),credit_type="work")
+        return account,rule
+
+    def test_approved_shift_review_previews_work_credit(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        shift.approved_by=self.admin;shift.approved_at=timezone.now();shift.save(update_fields=["approved_by","approved_at","updated_at"])
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("station_shift_review"))
+        self.assertEqual(response.status_code,200);self.assertContains(response,"$ 22.50");self.assertContains(response,"Post credit");self.assertContains(response,account.name)
+
+    def test_manager_can_post_approved_shift_credit(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        shift.approved_by=self.admin;shift.approved_at=timezone.now();shift.save(update_fields=["approved_by","approved_at","updated_at"])
+        self.client.force_login(self.admin)
+        response=self.client.post(reverse("station_shift_post_credit",args=[shift.pk]))
+        self.assertRedirects(response,reverse("station_shift_review"))
+        credit=ReceivableCredit.objects.get(account=account)
+        self.assertEqual(credit.amount,Decimal("22.50"));self.assertEqual(credit.credit_rule,rule)
+
+    def test_shift_credit_post_retry_does_not_duplicate(self):
+        account,rule=self._work_credit_setup();shift=self._shift()
+        shift.approved_by=self.admin;shift.approved_at=timezone.now();shift.save(update_fields=["approved_by","approved_at","updated_at"])
+        self.client.force_login(self.admin);url=reverse("station_shift_post_credit",args=[shift.pk])
+        self.client.post(url);self.client.post(url)
+        self.assertEqual(ReceivableCredit.objects.filter(account=account).count(),1)
