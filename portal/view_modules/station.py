@@ -166,6 +166,9 @@ def station_shift_review(request):
     approved_shifts = [shift for shift in recent_shifts if shift.approved_at]
     work_credit_rules=list(ReceivableCreditRule.objects.filter(team=team,finance_domain=FinanceDomain.GENERAL,source_type="barn_work",active=True).order_by("name","id"))
     for shift in approved_shifts:
+        if shift.role!=WorkShiftEntry.Role.WORKING_STUDENT:
+            shift.credit_preview={"status":"employee_hours","label":"Employee hours · no receivable credit"}
+            continue
         shift.credit_preview={"status":"no_rule","label":"No active Barn Work credit rule"}
         if len(work_credit_rules)>1:
             shift.credit_preview={"status":"multiple_rules","label":"Choose a single active Barn Work credit rule in Finance"}
@@ -269,6 +272,9 @@ def station_shift_post_credit(request, shift_pk):
         raise Http404
     team=_team(request.user)
     shift=get_object_or_404(WorkShiftEntry.objects.select_related("person"),pk=shift_pk,team=team)
+    if shift.role!=WorkShiftEntry.Role.WORKING_STUDENT:
+        messages.error(request,"Employee work hours are not receivable credits.")
+        return redirect("station_shift_review")
     rules=list(ReceivableCreditRule.objects.filter(team=team,finance_domain=FinanceDomain.GENERAL,source_type="barn_work",active=True).order_by("id")[:2])
     if len(rules)!=1:
         messages.error(request,"Configure exactly one active General Barn Work credit rule before posting shift credits.")
