@@ -46,7 +46,7 @@ def budget_actuals(budget):
     }
 
     period_rows=tuple({"month":row["month"],"kind":row["kind"],"actual":row["total"] or ZERO} for row in qs.annotate(month=TruncMonth("transaction_date")).values("month","kind").annotate(total=Sum("amount")).order_by("month","kind"))
-    category_rows=tuple({"category":row["category__name"],"kind":row["kind"],"actual":row["total"] or ZERO} for row in qs.values("category__name","kind").annotate(total=Sum("amount")).order_by("category__name","kind"))
+    category_rows=tuple({"category_id":row["category_id"],"category":row["category__name"],"kind":row["kind"],"actual":row["total"] or ZERO} for row in qs.values("category_id","category__name","kind").annotate(total=Sum("amount")).order_by("category__name","category_id","kind"))
 
     rows=[]
     planned_income=ZERO
