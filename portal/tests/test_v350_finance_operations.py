@@ -176,3 +176,27 @@ class FinanceOperationsTests(TestCase):
         reverse=__import__("django.urls",fromlist=["reverse"]).reverse
         response=self.client.post(reverse("finance_payment_allocate_oldest",args=[self.general.pk,payment.pk]))
         self.assertEqual(response.status_code,302);charge.refresh_from_db();self.assertEqual(charge.balance,0)
+
+
+    def test_credit_history_exposes_allocation_correction(self):
+        user=self._user("credit-correction-ui",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Work credit",amount="40.00",credit_date=date(2026,9,8),charge_id=charge.pk,team=self.team)
+        allocation=credit.allocations.get()
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
+        self.assertContains(response,"Correct Board")
+        self.assertContains(response,reverse("finance_credit_unallocate",args=[self.general.pk,allocation.pk]))
+
+    def test_credit_allocation_can_be_corrected_through_ui(self):
+        user=self._user("credit-correction-post",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Lessons",amount="40.00",charge_date=date(2026,9,1),team=self.team)
+        credit=post_credit_for_user(user,self.general.pk,description="Adjustment",amount="40.00",credit_date=date(2026,9,8),charge_id=charge.pk,team=self.team)
+        allocation=credit.allocations.get()
+        self.client.force_login(user)
+        reverse=__import__("django.urls",fromlist=["reverse"]).reverse
+        response=self.client.post(reverse("finance_credit_unallocate",args=[self.general.pk,allocation.pk]),{"reason":"Wrong charge"})
+        self.assertEqual(response.status_code,302)
+        allocation.refresh_from_db();charge.refresh_from_db();credit.refresh_from_db()
+        self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(charge.balance,charge.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
