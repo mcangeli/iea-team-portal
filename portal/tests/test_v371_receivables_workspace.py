@@ -103,7 +103,7 @@ class ReceivablesWorkspaceTests(TestCase):
         rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Working Student Credit",source_type="barn_work",rate=Decimal("15.00"))
         ReceivableCredit.objects.create(account=self.general,credit_rule=rule,description="Approved work",amount=Decimal("30.00"),credit_date=date(2026,9,19),credit_type="work",generation_key=f"credit-rule:{rule.pk}:earned:barn_work:work:12",source_type="barn_work",source_id="work:12")
         response=self.client.get(reverse("finance_receivable_account_detail",args=[self.general.pk]))
-        self.assertEqual(response.status_code,200);self.assertContains(response,"Credit History");self.assertContains(response,"Working Student Credit");self.assertContains(response,"barn_work");self.assertContains(response,"work:12")
+        self.assertEqual(response.status_code,200);self.assertContains(response,"Credit history");self.assertContains(response,"Working Student Credit");self.assertContains(response,"barn_work");self.assertContains(response,"work:12")
 
     def test_account_credit_history_identifies_manual_credit(self):
         ReceivableCredit.objects.create(account=self.general,description="Courtesy adjustment",amount=Decimal("25.00"),credit_date=date(2026,9,19),credit_type="adjustment")
