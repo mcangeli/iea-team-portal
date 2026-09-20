@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from portal.model_modules.finance import FinanceDomain
+from portal.model_modules.finance import BudgetLine, FinanceDomain
 from portal.models import FinancialCategory, FinancialTransaction, Season, SeasonBudget, Team
 from portal.services.finance_budget_compat import sync_season_budget_to_generic
 
@@ -39,3 +39,14 @@ class V372SeasonBudgetCompatibilityTests(TestCase):
         self.assertEqual(first.pk,second.pk)
         self.assertEqual(second.lines.get(category=self.expense).amount,Decimal("9500.00"))
         self.assertEqual(second.lines.count(),2)
+
+
+    def test_sync_updates_existing_generic_category_line_without_duplication(self):
+        budget=sync_season_budget_to_generic(season=self.season)
+        line=budget.lines.get(category=self.expense,kind=FinancialTransaction.Kind.EXPENSE)
+        line.description="Custom show budget label";line.amount=Decimal("1.00");line.save()
+        synced=sync_season_budget_to_generic(season=self.season)
+        line=synced.lines.get(category=self.expense,kind=FinancialTransaction.Kind.EXPENSE)
+        self.assertEqual(line.description,self.expense.name)
+        self.assertEqual(line.amount,Decimal("9000.00"))
+        self.assertEqual(synced.lines.filter(category=self.expense,kind=FinancialTransaction.Kind.EXPENSE).count(),1)
