@@ -2,7 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from portal.model_modules.finance import AccountingExportProfile, BankImportProfile, Budget, BudgetLine, FinanceDomain, PayableParty, ReceivableAccount, ReceivableAccountPerson, ReceivableBillingRule, ReceivableCreditRule
 from portal.model_modules.people import Person
-from portal.models import FinancialAccount, FinancialCategory, Season
+from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season
 
 
 class PayablePartyForm(forms.Form):
