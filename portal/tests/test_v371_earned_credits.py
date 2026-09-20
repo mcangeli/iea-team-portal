@@ -1,7 +1,8 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from django.utils import timezone
 from decimal import Decimal
 
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
@@ -11,7 +12,7 @@ from portal.model_modules.people import Person
 from portal.model_modules.horses import Horse
 from portal.model_modules.barn_participation import HorsePersonRelationship
 from portal.model_modules.lessons import LessonAssignment, LessonOccurrence, LessonProgram, LessonSeries
-from portal.models import Season, Team
+from portal.models import Season, Team, UserProfile
 from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
 from portal.services.finance_operational_credits import credit_lesson_horse_use, credit_work_hours, credit_approved_work_shift
 
