@@ -1,5 +1,6 @@
 import csv
 import secrets
+from decimal import Decimal
 from collections import defaultdict
 
 from django.contrib import messages
