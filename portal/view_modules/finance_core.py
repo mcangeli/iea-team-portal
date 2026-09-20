@@ -97,6 +97,8 @@ from .common import (
 )
 
 
+from portal.services.finance_budget_compat import sync_season_budget_to_generic
+
 from .finance_core_helpers import (
     _finance_account_rows,
 )
@@ -675,7 +677,8 @@ def finance_budget(request):
         messages.error(request, "Create or activate a season before setting a budget.")
         return redirect("finance_dashboard")
     rows = SeasonBudget.objects.filter(season=season).select_related("category")
-    return render(request, "portal/finance_budget.html", {"season": season, "budgets": rows})
+    generic_budget = sync_season_budget_to_generic(season=season)
+    return render(request, "portal/finance_budget.html", {"season": season, "budgets": rows, "generic_budget": generic_budget})
 
 @login_required
 @friendly_integrity_errors
@@ -698,6 +701,7 @@ def finance_budget_create(request):
             season=season, summary=f"Created season budget line: {obj.category.name}",
             details={"kind": obj.kind, "amount": obj.amount},
         )
+        sync_season_budget_to_generic(season=season)
         messages.success(request, "Budget line added.")
         return redirect("finance_budget")
     return render(request, "portal/form.html", {
@@ -722,6 +726,7 @@ def finance_budget_edit(request, pk):
             season=obj.season, summary=f"Updated season budget line: {obj.category.name}",
             details={"kind": obj.kind, "amount": obj.amount},
         )
+        sync_season_budget_to_generic(season=obj.season)
         messages.success(request, "Budget line updated.")
         return redirect("finance_budget")
     return render(request, "portal/form.html", {
