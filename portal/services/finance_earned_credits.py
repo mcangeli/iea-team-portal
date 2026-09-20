@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from portal.model_modules.finance import ReceivableCredit
+from portal.model_modules.finance import ReceivableCredit, ReceivableCreditRule
 
 
 def earned_credit_key(source_type, source_id):
@@ -34,3 +34,29 @@ def generate_earned_credit(*,account,source_type,source_id,credit_date,descripti
     )
     credit.full_clean();credit.save()
     return credit,True
+
+
+def calculate_earned_credit(rule: ReceivableCreditRule, *, quantity=None):
+    if not rule.active:
+        raise ValidationError("Inactive credit rules cannot generate credits.")
+    if rule.calculation==ReceivableCreditRule.Calculation.FIXED:
+        return rule.rate
+    if quantity is None:
+        raise ValidationError("Quantity-based credit rules require a quantity.")
+    qty=Decimal(quantity)
+    if qty<=0:
+        raise ValidationError("Credit quantity must be greater than zero.")
+    return rule.rate*qty
+
+
+@transaction.atomic
+def generate_rule_credit(*,rule:ReceivableCreditRule,account,source_id,credit_date,quantity=None,
+                         description=None,season=None,notes=""):
+    if account.team_id!=rule.team_id or account.finance_domain!=rule.finance_domain:
+        raise ValidationError("Credit rule and receivable account must share an organization and finance domain.")
+    amount=calculate_earned_credit(rule,quantity=quantity)
+    return generate_earned_credit(
+        account=account,source_type=rule.source_type,source_id=source_id,
+        credit_date=credit_date,description=(description or rule.name),amount=amount,
+        credit_type=rule.credit_type,season=season,notes=notes,
+    )
