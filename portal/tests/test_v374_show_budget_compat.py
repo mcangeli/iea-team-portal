@@ -48,3 +48,16 @@ class V374ShowBudgetCompatibilityTests(TestCase):
         first=sync_show_budget_to_generic(show=self.show);second=sync_show_budget_to_generic(show=other_show)
         self.assertNotEqual(first.pk,second.pk)
         self.assertEqual(Budget.objects.filter(team=self.team,finance_domain=FinanceDomain.IEA).count(),2)
+
+
+    def test_sync_aggregates_multiple_legacy_rows_for_same_category_and_kind(self):
+        ShowBudgetLine.objects.create(show=self.show,scope=ShowBudgetLine.Scope.PARTICIPATION,category=self.category,kind=FinancialTransaction.Kind.EXPENSE,description="Rider entries",amount=Decimal("250.00"),notes="Participation estimate")
+        ShowBudgetLine.objects.create(show=self.show,scope=ShowBudgetLine.Scope.HOSTING,category=self.category,kind=FinancialTransaction.Kind.EXPENSE,description="Host entries",amount=Decimal("125.00"),notes="Hosting estimate")
+        budget=sync_show_budget_to_generic(show=self.show)
+        lines=budget.lines.filter(category=self.category,kind=FinancialTransaction.Kind.EXPENSE)
+        self.assertEqual(lines.count(),1)
+        line=lines.get()
+        self.assertEqual(line.amount,Decimal("375.00"))
+        self.assertIn("2 legacy show budget lines",line.description)
+        self.assertIn("Participation estimate",line.notes)
+        self.assertIn("Hosting estimate",line.notes)
