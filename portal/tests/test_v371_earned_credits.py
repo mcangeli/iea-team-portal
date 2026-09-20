@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
+from portal.model_modules.station import WorkShiftEntry
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableAccountPerson, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.model_modules.horses import Horse
@@ -12,7 +13,7 @@ from portal.model_modules.barn_participation import HorsePersonRelationship
 from portal.model_modules.lessons import LessonAssignment, LessonOccurrence, LessonProgram, LessonSeries
 from portal.models import Season, Team
 from portal.services.finance_earned_credits import calculate_earned_credit, earned_credit_key, generate_earned_credit, generate_rule_credit
-from portal.services.finance_operational_credits import credit_lesson_horse_use, credit_work_hours
+from portal.services.finance_operational_credits import credit_lesson_horse_use, credit_work_hours, credit_approved_work_shift
 
 
 class EarnedReceivableCreditTests(TestCase):
@@ -175,3 +176,38 @@ class LessonHorseUseCreditAdapterTests(TestCase):
     def test_scheduled_lesson_cannot_generate_horse_use_credit(self):
         self.occurrence.status=LessonOccurrence.Status.SCHEDULED;self.occurrence.save()
         with self.assertRaises(ValidationError):credit_lesson_horse_use(assignment=self.assignment,owner=self.owner,rule=self.rule)
+
+
+class ApprovedWorkShiftCreditTests(TestCase):
+    def setUp(self):
+        self.team=Team.objects.create(name="Shift Credit Barn")
+        self.user=User.objects.create_user(username="shift-credit-admin",password="pass12345")
+        p=self.user.profile;p.team=self.team;p.role=UserProfile.Role.ADMIN;p.save(update_fields=["team","role"])
+        self.person=Person.objects.create(team=self.team,first_name="Jamie",last_name="Worker")
+        self.account=ReceivableAccount.objects.create(team=self.team,name="Jamie Account",finance_domain=FinanceDomain.GENERAL)
+        ReceivableAccountPerson.objects.create(account=self.account,person=self.person,role=ReceivableAccountPerson.Role.PARTICIPANT)
+        self.rule=ReceivableCreditRule.objects.create(team=self.team,finance_domain=FinanceDomain.GENERAL,name="Barn Work Credit",source_type="barn_work",calculation=ReceivableCreditRule.Calculation.QUANTITY,rate=Decimal("15.00"),credit_type="work")
+
+    def _shift(self,approved=True,closed=True):
+        start=timezone.now()-timedelta(hours=2)
+        return WorkShiftEntry.objects.create(team=self.team,person=self.person,role=WorkShiftEntry.Role.WORKING_STUDENT,clock_in=start,clock_out=start+timedelta(minutes=90) if closed else None,approved_by=self.user if approved else None,approved_at=timezone.now() if approved else None)
+
+    def test_approved_shift_generates_credit_from_exact_duration(self):
+        shift=self._shift()
+        credit,created,status=credit_approved_work_shift(shift=shift,rule=self.rule)
+        self.assertTrue(created);self.assertEqual(status,"generated");self.assertEqual(credit.amount,Decimal("22.50"))
+        self.assertEqual(credit.source_id,f"work:{shift.pk}");self.assertEqual(credit.credit_rule,self.rule)
+
+    def test_approved_shift_credit_retry_is_idempotent(self):
+        shift=self._shift()
+        first,_,_=credit_approved_work_shift(shift=shift,rule=self.rule)
+        second,created,status=credit_approved_work_shift(shift=shift,rule=self.rule)
+        self.assertFalse(created);self.assertEqual(status,"existing");self.assertEqual(first.pk,second.pk)
+
+    def test_unapproved_shift_cannot_generate_credit(self):
+        shift=self._shift(approved=False)
+        with self.assertRaises(ValidationError):credit_approved_work_shift(shift=shift,rule=self.rule)
+
+    def test_open_shift_cannot_generate_credit(self):
+        shift=self._shift(approved=False,closed=False)
+        with self.assertRaises(ValidationError):credit_approved_work_shift(shift=shift,rule=self.rule)
