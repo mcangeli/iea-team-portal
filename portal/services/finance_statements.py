@@ -33,6 +33,10 @@ class AccountStatement:
     credits: Decimal
     payments: Decimal
     activity: tuple
+    amount_due: Decimal
+    overdue_amount: Decimal
+    unapplied_payments: Decimal
+    unapplied_credits: Decimal
 
 
 def _raw_activity(account):
@@ -71,7 +75,7 @@ def account_activity(account, *, start_date=None, end_date=None):
     return tuple(result)
 
 
-def statement_for_account(account, *, start_date, end_date):
+def statement_for_account(account, *, start_date, end_date, as_of=None):
     if end_date < start_date:
         raise ValueError("Statement end date cannot be before start date.")
 
@@ -106,6 +110,10 @@ def statement_for_account(account, *, start_date, end_date):
         ))
 
     closing = rows[-1].balance if rows else opening
+    as_of = as_of or end_date
+    posted_charges = account.charges.filter(status=account.charges.model.Status.POSTED)
+    amount_due = sum((charge.balance for charge in posted_charges if charge.balance > ZERO), ZERO)
+    overdue_amount = sum((charge.balance for charge in posted_charges if charge.balance > ZERO and charge.due_date and charge.due_date < as_of), ZERO)
     return AccountStatement(
         account=account,
         start_date=start_date,
@@ -116,6 +124,10 @@ def statement_for_account(account, *, start_date, end_date):
         credits=credits,
         payments=payments,
         activity=tuple(rows),
+        amount_due=amount_due,
+        overdue_amount=overdue_amount,
+        unapplied_payments=account.unapplied_payment_total,
+        unapplied_credits=account.unapplied_credit_total,
     )
 
 
