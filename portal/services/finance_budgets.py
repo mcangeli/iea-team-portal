@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from django.db.models import Sum
+from django.db.models.functions import TruncMonth
 
 from portal.model_modules.finance import Budget
 from portal.models import FinancialTransaction
@@ -20,6 +21,8 @@ class BudgetActualReport:
     planned_net:Decimal
     actual_net:Decimal
     line_rows:tuple
+    period_rows:tuple
+    category_rows:tuple
 
 
 def budget_actuals(budget):
@@ -41,6 +44,9 @@ def budget_actuals(budget):
         (row["category_id"],row["kind"]):(row["total"] or ZERO)
         for row in qs.values("category_id","kind").annotate(total=Sum("amount"))
     }
+
+    period_rows=tuple({"month":row["month"],"kind":row["kind"],"actual":row["total"] or ZERO} for row in qs.annotate(month=TruncMonth("transaction_date")).values("month","kind").annotate(total=Sum("amount")).order_by("month","kind"))
+    category_rows=tuple({"category":row["category__name"],"kind":row["kind"],"actual":row["total"] or ZERO} for row in qs.values("category__name","kind").annotate(total=Sum("amount")).order_by("category__name","kind"))
 
     rows=[]
     planned_income=ZERO
@@ -74,4 +80,6 @@ def budget_actuals(budget):
         planned_net=planned_income-planned_expenses,
         actual_net=actual_income-actual_expenses,
         line_rows=tuple(rows),
+        period_rows=period_rows,
+        category_rows=category_rows,
     )
