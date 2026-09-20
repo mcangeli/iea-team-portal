@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableCharge
+from portal.model_modules.finance import FinanceDomain, PayableObligation, PayableParty, ReceivableAccount, ReceivableCharge
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 from portal.services.finance_reports import finance_report_for_user
@@ -129,3 +129,39 @@ class FinanceReportingTests(TestCase):
         report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
         row=next(row for row in report.aging_rows if row["account"]=="Labels Family")
         self.assertEqual(row["bucket_label"],"31–60 days")
+
+
+    def test_report_includes_payables_and_aging(self):
+        vendor=PayableParty.objects.create(team=self.team,name="Hay Supplier",finance_domain=FinanceDomain.GENERAL)
+        PayableObligation.objects.create(party=vendor,expense_category=self.expense,description="Current hay",amount=Decimal("100.00"),obligation_date=date(2026,9,1),due_date=date(2026,9,30))
+        old=PayableObligation.objects.create(party=vendor,expense_category=self.expense,description="August hay",amount=Decimal("250.00"),obligation_date=date(2026,8,1),due_date=date(2026,8,15))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,17))
+        self.assertEqual(report.payables,Decimal("350.00"))
+        self.assertEqual(report.overdue_payables,Decimal("250.00"))
+        self.assertEqual(report.payable_aging_buckets["current"],Decimal("100.00"))
+        self.assertEqual(report.payable_aging_buckets["days_31_60"],Decimal("250.00"))
+        row=next(row for row in report.payable_aging_rows if row["obligation_id"]==old.pk)
+        self.assertEqual(row["party"],"Hay Supplier")
+        self.assertEqual(row["bucket_label"],"31–60 days")
+
+    def test_payables_respect_domain_season_and_as_of(self):
+        season=Season.objects.create(team=self.team,name="2026-27 AP",start_date=date(2026,7,1),end_date=date(2027,6,30))
+        general_vendor=PayableParty.objects.create(team=self.team,name="General Vendor",finance_domain=FinanceDomain.GENERAL)
+        iea_vendor=PayableParty.objects.create(team=self.team,name="IEA Vendor",finance_domain=FinanceDomain.IEA)
+        PayableObligation.objects.create(party=general_vendor,season=season,expense_category=self.expense,description="Included",amount=Decimal("80.00"),obligation_date=date(2026,9,1))
+        PayableObligation.objects.create(party=general_vendor,expense_category=self.expense,description="No season",amount=Decimal("90.00"),obligation_date=date(2026,9,1))
+        PayableObligation.objects.create(party=general_vendor,season=season,expense_category=self.expense,description="Future",amount=Decimal("100.00"),obligation_date=date(2026,10,1))
+        PayableObligation.objects.create(party=iea_vendor,season=season,expense_category=self.expense,description="Wrong domain",amount=Decimal("110.00"),obligation_date=date(2026,9,1))
+        report=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,season=season,as_of=date(2026,9,17))
+        self.assertEqual(report.payables,Decimal("80.00"))
+
+    def test_finance_report_csv_export_contains_payables(self):
+        from django.urls import reverse
+        vendor=PayableParty.objects.create(team=self.team,name="Export Vendor",finance_domain=FinanceDomain.GENERAL)
+        PayableObligation.objects.create(party=vendor,expense_category=self.expense,description="Export bill",amount=Decimal("70.00"),obligation_date=date(2026,8,1),due_date=date(2026,8,15))
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse("finance_reporting_export"),{"finance_domain":FinanceDomain.GENERAL,"as_of":"2026-09-17"})
+        body=response.content.decode()
+        self.assertIn("Payables,70.00",body)
+        self.assertIn("Overdue payables,70.00",body)
+        self.assertIn("Export Vendor,Export bill",body)
