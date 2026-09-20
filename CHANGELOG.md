@@ -4,6 +4,28 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.7.0 — Barn Finance Completion
+
+Release candidate — September 2026.
+
+v3.7.0 completes ArenaLine's operational Barn Finance architecture across accounts payable, receivables, budgeting, unified reporting, and compatibility with established IEA finance workflows.
+
+Highlights:
+
+- adds domain-separated accounts payable with payees/vendors, obligations, payments, lifecycle controls, aging, reporting, and FinancialTransaction integration;
+- completes generic receivables with operational workspaces, recurring/service billing, lesson billing, earned-credit rules, oldest-first allocation, statements, correction workflows, and closed-account write protection;
+- introduces generic Barn/IEA budgets and budget lines backed by FinancialCategory, with planned-versus-actual reporting calculated from the existing FinancialTransaction ledger rather than a second accounting system;
+- expands the Finance Workspace into a unified operational dashboard spanning receivables, payables, active budgets, exceptions, recent ledger activity, reports, reconciliation, and accounting exports;
+- adds transaction traceability from ledger entries back to receivable/payable operational sources and confirmed bank-reconciliation matches;
+- adds historical effective-date AR/AP reporting while retaining current-validity semantics for later void/status changes that do not have separate effective-date history;
+- preserves legacy IEA SeasonBudget and ShowBudget workflows through non-destructive compatibility bridges, including aggregation when multiple legacy show lines map to one generic category/kind budget line;
+- keeps General Barn and IEA finance authorization and data strictly separated while preserving established legacy IEA finance surfaces;
+- consolidates shadowed finance templates and hardens finance reporting, lifecycle, permission, and compatibility regressions.
+
+Migrations: v3.7 finance migrations continue from the v3.6.2 graph with `0102_v370_accounts_payable_foundation.py` through the v3.7 receivables/budget compatibility migrations currently ending at `0109`.
+
+Validation: focused v3.7 finance regression gate **307/307 passing**, complete ArenaLine regression suite **1338/1338 passing**, `makemigrations --check --dry-run` reporting **No changes detected**, and Django system check reporting **no issues**.
+
 ## v3.6.2 — Flexible IEA Lesson Scheduling
 
 Release candidate — September 2026.
