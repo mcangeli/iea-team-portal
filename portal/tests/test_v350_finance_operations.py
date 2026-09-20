@@ -200,3 +200,41 @@ class FinanceOperationsTests(TestCase):
         self.assertEqual(response.status_code,302)
         allocation.refresh_from_db();charge.refresh_from_db();credit.refresh_from_db()
         self.assertEqual(allocation.status,allocation.Status.VOID);self.assertEqual(charge.balance,charge.amount);self.assertEqual(credit.unapplied_amount,credit.amount)
+
+
+    def test_apply_oldest_leaves_excess_payment_unapplied(self):
+        user=self._user("oldest-excess",role=UserProfile.Role.ADMIN)
+        charge=create_charge_for_user(user,self.general.pk,description="Board",amount="100.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="150.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        charge.refresh_from_db();payment.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(charge.balance,0);self.assertEqual(payment.unapplied_amount,50)
+
+    def test_apply_oldest_with_no_outstanding_charges_is_noop(self):
+        user=self._user("oldest-none",role=UserProfile.Role.ADMIN)
+        payment=post_payment_for_user(user,self.general.pk,amount="75.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        payment.refresh_from_db()
+        self.assertEqual(allocations,[]);self.assertEqual(payment.unapplied_amount,payment.amount)
+
+    def test_apply_oldest_skips_nonposted_and_paid_charges(self):
+        user=self._user("oldest-skip",role=UserProfile.Role.ADMIN)
+        paid=create_charge_for_user(user,self.general.pk,description="Paid",amount="50.00",charge_date=date(2026,8,1),team=self.team)
+        prior=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,8,2),charge_id=paid.pk,team=self.team)
+        voided=create_charge_for_user(user,self.general.pk,description="Voided",amount="50.00",charge_date=date(2026,8,3),team=self.team)
+        voided.status=voided.Status.VOID;voided.save(update_fields=["status"])
+        open_charge=create_charge_for_user(user,self.general.pk,description="Open",amount="50.00",charge_date=date(2026,9,1),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        paid.refresh_from_db();voided.refresh_from_db();open_charge.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(paid.balance,0);self.assertEqual(open_charge.balance,0)
+        self.assertEqual(allocations[0].charge_id,open_charge.pk)
+
+    def test_apply_oldest_uses_charge_date_when_due_date_missing(self):
+        user=self._user("oldest-null-due",role=UserProfile.Role.ADMIN)
+        first=create_charge_for_user(user,self.general.pk,description="August no due date",amount="50.00",charge_date=date(2026,8,1),team=self.team)
+        second=create_charge_for_user(user,self.general.pk,description="September due",amount="50.00",charge_date=date(2026,9,1),due_date=date(2026,9,10),team=self.team)
+        payment=post_payment_for_user(user,self.general.pk,amount="50.00",received_date=date(2026,9,19),team=self.team)
+        allocations=allocate_payment_oldest_for_user(user,self.general.pk,payment_id=payment.pk,team=self.team)
+        first.refresh_from_db();second.refresh_from_db()
+        self.assertEqual(len(allocations),1);self.assertEqual(allocations[0].charge_id,first.pk);self.assertEqual(first.balance,0);self.assertEqual(second.balance,50)
