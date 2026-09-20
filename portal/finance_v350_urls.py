@@ -15,6 +15,7 @@ urlpatterns=[
  path("finance/workspace/reconciliation/batches/<int:batch_id>/rows/<int:row_id>/candidates/",finance_v350.finance_bank_generate_candidates,name="finance_bank_generate_candidates"),
  path("finance/workspace/reconciliation/batches/<int:batch_id>/rows/<int:row_id>/matches/<int:match_id>/confirm/",finance_v350.finance_bank_confirm_match,name="finance_bank_confirm_match"),
  path("finance/workspace/",finance_v350.finance_workspace,name="finance_workspace"),
+ path("finance/workspace/transactions/<int:pk>/",finance_v350.finance_transaction_detail,name="finance_transaction_detail"),
  path("finance/workspace/budgets/",finance_v350.finance_budgets,name="finance_budgets"),
  path("finance/workspace/budgets/add/",finance_v350.finance_budget_add,name="finance_budget_add"),
  path("finance/workspace/budgets/<int:pk>/",finance_v350.finance_budget_detail,name="finance_budget_detail"),
