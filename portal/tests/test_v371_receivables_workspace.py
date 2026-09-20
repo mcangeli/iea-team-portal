@@ -2,12 +2,14 @@ from datetime import date
 from decimal import Decimal
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.core.exceptions import ValidationError
 from django.urls import reverse
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
 from portal.model_modules.finance import FinanceDomain, ReceivableAccount, ReceivableBillingRule, ReceivableCharge, ReceivableCredit, ReceivableCreditRule
 from portal.model_modules.people import Person
 from portal.models import Team, UserProfile
 from portal.services.finance_receivable_reports import receivable_workspace_summary
+from portal.services.finance_operations import create_charge_for_user, post_credit_for_user, post_payment_for_user
 
 class ReceivablesWorkspaceTests(TestCase):
     def setUp(self):
@@ -127,3 +129,14 @@ class ReceivablesWorkspaceTests(TestCase):
         self.assertEqual(statement.opening_balance,Decimal("600.00"))
         self.assertEqual(statement.credits,Decimal("100.00"))
         self.assertEqual(statement.closing_balance,Decimal("500.00"))
+
+
+    def test_closed_receivable_account_rejects_normal_writes(self):
+        self.general.status=ReceivableAccount.Status.CLOSED
+        self.general.save(update_fields=["status"])
+        with self.assertRaisesMessage(ValidationError,"Closed receivable accounts are read-only."):
+            create_charge_for_user(self.user,self.general.pk,description="Late charge",amount="25.00",charge_date=date(2026,9,20),team=self.team)
+        with self.assertRaisesMessage(ValidationError,"Closed receivable accounts are read-only."):
+            post_credit_for_user(self.user,self.general.pk,description="Late credit",amount="10.00",credit_date=date(2026,9,20),team=self.team)
+        with self.assertRaisesMessage(ValidationError,"Closed receivable accounts are read-only."):
+            post_payment_for_user(self.user,self.general.pk,amount="10.00",received_date=date(2026,9,20),team=self.team)
