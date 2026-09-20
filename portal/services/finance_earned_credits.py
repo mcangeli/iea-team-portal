@@ -2,7 +2,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
 from portal.model_modules.finance import ReceivableCredit, ReceivableCreditRule
 
@@ -32,7 +32,15 @@ def generate_earned_credit(*,account,source_type,source_id,credit_date,descripti
         source_id=str(source_id).strip(),season=season,description=description.strip(),
         amount=value,credit_date=credit_date,credit_type=credit_type.strip(),notes=notes.strip(),
     )
-    credit.full_clean();credit.save()
+    credit.full_clean()
+    try:
+        with transaction.atomic():
+            credit.save()
+    except IntegrityError:
+        existing=ReceivableCredit.objects.filter(account=account,generation_key=key).first()
+        if existing:
+            return existing,False
+        raise
     return credit,True
 
 
