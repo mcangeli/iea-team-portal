@@ -36,13 +36,13 @@ class V372BudgetActualTests(TestCase):
     def test_report_excludes_other_finance_domain(self):
         self._tx(kind=FinancialTransaction.Kind.EXPENSE,category=self.expense,amount="500.00",account=self.iea_bank)
         report=budget_actuals(self.budget)
-        self.assertEqual(report.actual_expenses,ZERO)
+        self.assertEqual(report.actual_expenses,Decimal("0.00"))
 
     def test_report_excludes_void_and_outside_period(self):
         self._tx(kind=FinancialTransaction.Kind.EXPENSE,category=self.expense,amount="100.00",status=FinancialTransaction.Status.VOID)
         self._tx(kind=FinancialTransaction.Kind.EXPENSE,category=self.expense,amount="200.00",when=date(2028,1,1))
         report=budget_actuals(self.budget)
-        self.assertEqual(report.actual_expenses,ZERO)
+        self.assertEqual(report.actual_expenses,Decimal("0.00"))
 
     def test_line_remaining_and_percent_used(self):
         self._tx(kind=FinancialTransaction.Kind.EXPENSE,category=self.expense,amount="3000.00")
