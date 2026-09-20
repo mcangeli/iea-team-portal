@@ -51,20 +51,18 @@ class V372BudgetActualTests(TestCase):
         self.assertEqual(row["remaining"],Decimal("9000.00"))
         self.assertEqual(row["percent_used"],Decimal("25"))
 
-ZERO=Decimal("0.00")
-
 
     def test_period_rows_group_posted_actuals_by_month_and_kind(self):
-        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,3,4),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_account,category=self.expense_category,amount=Decimal("250.00"),description="March hay")
-        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,3,10),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_account,category=self.expense_category,amount=Decimal("150.00"),description="More hay")
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,3,4),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_bank,category=self.expense,amount=Decimal("250.00"),description="March hay")
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,3,10),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_bank,category=self.expense,amount=Decimal("150.00"),description="More hay")
         report=budget_actuals(self.budget)
         march=[row for row in report.period_rows if row["month"].month==3 and row["kind"]==FinancialTransaction.Kind.EXPENSE]
         self.assertEqual(len(march),1)
         self.assertEqual(march[0]["actual"],Decimal("400.00"))
 
     def test_category_rows_group_posted_actuals(self):
-        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,4,1),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_account,category=self.expense_category,amount=Decimal("325.00"),description="Hay")
+        FinancialTransaction.objects.create(team=self.team,transaction_date=date(2027,4,1),kind=FinancialTransaction.Kind.EXPENSE,account=self.general_bank,category=self.expense,amount=Decimal("325.00"),description="Hay")
         report=budget_actuals(self.budget)
-        hay=[row for row in report.category_rows if row["category"]==self.expense_category.name and row["kind"]==FinancialTransaction.Kind.EXPENSE]
+        hay=[row for row in report.category_rows if row["category"]==self.expense.name and row["kind"]==FinancialTransaction.Kind.EXPENSE]
         self.assertEqual(len(hay),1)
         self.assertEqual(hay[0]["actual"],Decimal("325.00"))
