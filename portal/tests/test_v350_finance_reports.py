@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from portal.model_modules.capabilities import OrganizationCapabilityAssignment
-from portal.model_modules.finance import Budget, BudgetLine, FinanceDomain, PayableObligation, PayableParty, ReceivableAccount, ReceivableCharge
+from portal.model_modules.finance import Budget, BudgetLine, FinanceDomain, PayableObligation, PayableParty, ReceivableAccount, ReceivableCharge, ReceivablePayment, ReceivableAllocation, PayablePayment
 from portal.model_modules.people import Person
 from portal.models import FinancialAccount, FinancialCategory, FinancialTransaction, Season, Team
 from portal.services.finance_reports import finance_report_for_user
@@ -198,3 +198,25 @@ class FinanceReportingTests(TestCase):
         body=response.content.decode()
         self.assertIn("Budget,Start,End,Planned income,Actual income",body)
         self.assertIn("Export Budget,2026-09-01,2026-09-30,600.00,500.00",body)
+
+
+    def test_receivable_as_of_ignores_later_payment_allocation(self):
+        account=ReceivableAccount.objects.create(team=self.team,name="Historical AR",finance_domain=FinanceDomain.GENERAL)
+        charge=ReceivableCharge.objects.create(account=account,description="September board",amount=Decimal("200.00"),charge_date=date(2026,9,1),due_date=date(2026,9,10))
+        payment=ReceivablePayment.objects.create(account=account,amount=Decimal("200.00"),received_date=date(2026,10,5))
+        ReceivableAllocation.objects.create(charge=charge,payment=payment,amount=Decimal("200.00"))
+        historical=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,30))
+        current=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL)
+        self.assertEqual(historical.receivables,Decimal("200.00"))
+        self.assertEqual(historical.overdue_receivables,Decimal("200.00"))
+        self.assertEqual(current.receivables,Decimal("0.00"))
+
+    def test_payable_as_of_ignores_later_payment(self):
+        vendor=PayableParty.objects.create(team=self.team,name="Historical AP",finance_domain=FinanceDomain.GENERAL)
+        obligation=PayableObligation.objects.create(party=vendor,expense_category=self.expense,description="September feed",amount=Decimal("300.00"),obligation_date=date(2026,9,1),due_date=date(2026,9,15))
+        PayablePayment.objects.create(obligation=obligation,amount=Decimal("300.00"),paid_date=date(2026,10,5),payment_account=self.general)
+        historical=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL,as_of=date(2026,9,30))
+        current=finance_report_for_user(self.admin,self.team,FinanceDomain.GENERAL)
+        self.assertEqual(historical.payables,Decimal("300.00"))
+        self.assertEqual(historical.overdue_payables,Decimal("300.00"))
+        self.assertEqual(current.payables,Decimal("0.00"))
