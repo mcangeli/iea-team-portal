@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Facilities · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div><div class="eyebrow">ARENALINE · OPERATIONS</div><h1>Facilities</h1><p>Maintain the physical places and spaces your organization operates.</p></div>
+  {% if can_manage %}<div class="actions"><a class="btn" href="{% url 'facility_create' %}">Add facility</a></div>{% endif %}
+</section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">FACILITY DIRECTORY</div><h2>{{ facilities|length }} facilit{{ facilities|length|pluralize:"y,ies" }}</h2></div></div>
+  <div class="card-grid">
+  {% for facility in facilities %}
+    <article class="card">
+      <div class="eyebrow">{% if facility.active %}ACTIVE FACILITY{% else %}INACTIVE FACILITY{% endif %}</div>
+      <h3><a href="{% url 'facility_detail' facility.pk %}">{{ facility.name }}</a></h3>
+      {% if facility.address %}<p>{{ facility.address }}</p>{% endif %}
+      <p class="muted">{{ facility.spaces.all|length }} space{{ facility.spaces.all|length|pluralize }}</p>
+      <a href="{% url 'facility_detail' facility.pk %}">View facility →</a>
+    </article>
+  {% empty %}
+    <div class="empty-state"><h2>No facilities yet</h2><p>Add the first farm, barn, or operating site to begin building the facility directory.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_create' %}">Add first facility</a>{% endif %}</div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
