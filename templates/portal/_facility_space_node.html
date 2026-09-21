@@ -4,6 +4,14 @@
       <div>
         <div class="eyebrow">{{ node.space.get_space_type_display }}{% if not node.space.active %} · INACTIVE{% endif %}</div>
         <h3>{{ node.space.name }}</h3>
+        {% if node.space.housing_capable %}
+          {% if node.stall_assignment %}
+            <p><strong>{{ node.stall_assignment.horse.display_name }}</strong> <span class="status-pill">Occupied</span></p>
+            <p class="muted">Since {{ node.stall_assignment.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'stall_assignment_edit' node.stall_assignment.pk %}">Manage housing</a>{% endif %}</p>
+          {% else %}
+            <p class="muted"><span class="status-pill">Available</span> No current horse assignment</p>
+          {% endif %}
+        {% endif %}
         <div class="facility-space-capabilities">
           {% if node.space.reservable %}<span class="status-pill">Reservable</span>{% endif %}
           {% if node.space.housing_capable %}<span class="status-pill">Housing</span>{% endif %}
