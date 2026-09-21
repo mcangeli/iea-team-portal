@@ -16,7 +16,11 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.4.0 — Lesson Program:** released.
 - **3.5.0 — Barn Finance & Business Operations:** released.
 - **3.6.0 — Dashboard Refresh & Account Security:** released.
-- **3.7.x — previously planned v3.6 scope:** deferred intact to v3.7.x; detailed scope will be carried forward when that release is formally planned.
+- **3.7.0 — Barn Finance Completion:** released.
+- **3.8.x — Barn, Facility & Resource Operations:** tentatively committed next release family.
+- **3.9.x — Operations, Communications & Boarding Completion:** tentative.
+- **3.10.x — Analytics & History:** tentative.
+- **3.11.x — 3.x Platform Stabilization & Completion:** tentative.
 
 ---
 
@@ -257,11 +261,66 @@ The release should rethink dashboards around role-aware actionable information r
 
 ---
 
-# 3.7.x — Deferred former v3.6 scope
+# 3.7.0 — Barn Finance Completion
 
-**Status: committed sequence; detailed scope to be carried forward.**
+**Status: released.**
 
-The work previously assigned to v3.6 is moved intact to v3.7 so the dashboard rework can have a dedicated release. Its detailed roadmap should be restored/locked when v3.7 planning begins rather than compressed into v3.6.
+v3.7.0 completed ArenaLine's generic Barn Finance architecture with Accounts Payable, completed Receivables, generic budgeting, unified operational reporting, transaction traceability, historical as-of reporting, and compatibility bridges for established IEA finance workflows while preserving General Barn / IEA domain separation.
+
+Detailed release notes: `docs/releases/v3.7.0.md`.
+
+---
+
+# Tentative remainder of the 3.x series
+
+The following sequence is intentionally tentative. It records the agreed product direction while allowing the detailed architecture of each release to be locked only after an inventory of the released baseline.
+
+## 3.8.x — Barn, Facility & Resource Operations
+
+**Status: tentatively committed; architecture inventory next.**
+
+Purpose: establish ArenaLine's missing physical barn-operations layer without duplicating the ownership of Lessons, Horses, Shows, People, Calendar, Station, or Finance.
+
+Tentative sequence:
+
+- **3.8.0 — Facility & Resource Foundation:** generic facilities/locations and typed operational resources, including barns/buildings, arenas/rings, stalls, pastures/paddocks, storage/feed/tack areas, and reusable assignment/reservation boundaries.
+- **3.8.1 — Stall & Horse Housing:** effective-date-aware horse/stall assignments, occupancy, availability, status, and housing history.
+- **3.8.2 — Pasture & Turnout Management:** pasture/paddock assignments, horse groups, capacity, rotation/rest periods, inspections, fencing/water/maintenance notes, and turnout history.
+- **3.8.3 — Arena & Resource Scheduling:** arena/ring reservations and cross-domain conflict detection for people, horses, facilities, lessons, shows, schooling, maintenance, and other operational activity.
+- **3.8.4 — Inventory & Supplies:** inventory catalog, categories, units of measure, storage locations, stock movements, consumption, transfers, waste/adjustments, reorder thresholds, and low-stock attention states for supplies such as feed, hay, bedding, fly spray, supplements, and barn consumables.
+- **3.8.5 — Purchasing & Deliveries:** suppliers, orders/deliveries, receiving and delivery history, inventory receipts, and an explicit integration boundary to v3.7 Accounts Payable rather than a parallel accounting ledger.
+- **3.8.6 — Barn Operations Integration & Polish:** Dashboard/Calendar/Station integration, mobile barn workflows, attention queues, reporting, authorization/privacy review, compatibility, and regression hardening.
+
+Architectural principles:
+
+- physical resources are canonical records rather than free-text fields where durable identity/history matters;
+- assignments and reservations preserve history rather than storing only current state;
+- operational domains continue to own their facts, while scheduling consumes them through explicit boundaries;
+- inventory uses durable transactions/movements rather than mutable quantity-only records;
+- Inventory/Purchasing may create or link Finance activity, but Finance remains authoritative for AP/financial transactions;
+- selected fast barn actions may be exposed through ArenaLine Station without making Station the domain owner.
+
+Before migrations are written, inventory existing Calendar, Lessons, Horses, Shows, People/Station, Finance, location/facility, and storage concepts and lock the canonical v3.8 model/regression boundaries.
+
+## 3.9.x — Operations, Communications & Boarding Completion
+
+**Status: tentative.**
+
+Bring ArenaLine's cross-domain operational layer up to the maturity of People, Horses, Lessons, Finance, and Facilities. Candidate scope includes richer task/work assignment, recurring operational work, staff/team coordination, notification preferences/delivery, resource-aware calendars and attention queues, and a cohesive boarding/program-management lifecycle connecting Horse, Person, services, recurring operations, facilities, and Finance.
+
+Detailed scope will be locked only after the v3.8 physical-operations architecture is released.
+
+## 3.10.x — Analytics & History
+
+**Status: tentative.**
+
+Build generic cross-season/cross-year operational reporting on ArenaLine's durable records: participation, lessons, horse utilization, facility/resource utilization, work/service, inventory, finance, and organization trends. Strengthen historical exports and controlled historical publication where appropriate. IEA competition analytics remain a specialization of the generic analytics/reporting foundation.
+
+## 3.11.x — 3.x Platform Stabilization & Completion
+
+**Status: tentative final 3.x release family.**
+
+Close the 3.x architecture deliberately: compatibility-path review and safe retirement, permission/privacy audit, mobile/accessibility and presentation sweep, query/performance review, documentation normalization, backup/restore/rollback validation, deployment hardening, and a full platform-boundary audit. The goal is a mature generic ArenaLine platform baseline before expansion into major new competition modules or organization types.
 
 ---
 
