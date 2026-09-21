@@ -194,3 +194,18 @@ class PastureTurnoutWorkflowTests(TestCase):
         self.assertContains(response, "No current turnout assignments.")
         self.assertContains(response, "Recent assignments")
         self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+
+
+    def test_adjacent_primary_turnout_can_share_transition_date(self):
+        HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary",
+            start_date=date(2026, 9, 1), end_date=date(2026, 9, 21),
+        )
+        north = FacilitySpace.objects.create(
+            facility=self.facility, name="North Paddock",
+            space_type=FacilitySpace.SpaceType.PASTURE, turnout_capable=True,
+        )
+        next_assignment = HorsePastureAssignment(
+            horse=self.horse, space=north, turnout_type="primary", start_date=date(2026, 9, 21)
+        )
+        next_assignment.full_clean()
