@@ -8,6 +8,8 @@ from django.utils import timezone
 from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm, HorsePastureAssignmentForm
 from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment, HorsePastureAssignment
 from .platform import can_manage_organization, organization_for_view_user
+from .models import AuditEvent
+from .view_modules.common import _audit_event
 
 
 def _facility_context(user):
@@ -102,11 +104,12 @@ def facility_detail(request, pk):
 def facility_create(request):
     _require_facility_manager(request.user)
     team = _facility_context(request.user)
-    form = FacilityForm(request.POST or None)
+    form = FacilityForm(request.POST or None, team=team)
     if request.method == "POST" and form.is_valid():
         facility = form.save(commit=False)
         facility.team = team
         facility.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=facility, summary=f"Created facility {facility.name}")
         messages.success(request, f"{facility.name} added to Facilities.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/facility_form.html", {"form": form, "title": "Add facility"})
@@ -117,9 +120,10 @@ def facility_edit(request, pk):
     _require_facility_manager(request.user)
     team = _facility_context(request.user)
     facility = get_object_or_404(Facility, pk=pk, team=team)
-    form = FacilityForm(request.POST or None, instance=facility)
+    form = FacilityForm(request.POST or None, instance=facility, team=team)
     if request.method == "POST" and form.is_valid():
         facility = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=facility, summary=f"Updated facility {facility.name}")
         messages.success(request, f"{facility.name} updated.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/facility_form.html", {
@@ -135,6 +139,7 @@ def facility_space_create(request, facility_pk):
     form = FacilitySpaceForm(request.POST or None, facility=facility)
     if request.method == "POST" and form.is_valid():
         space = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=space, summary=f"Created facility space {space.name}")
         messages.success(request, f"{space.name} added to {facility.name}.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/facility_space_form.html", {
@@ -152,6 +157,7 @@ def facility_space_edit(request, pk):
     form = FacilitySpaceForm(request.POST or None, instance=space, facility=space.facility)
     if request.method == "POST" and form.is_valid():
         space = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=space, summary=f"Updated facility space {space.name}")
         messages.success(request, f"{space.name} updated.")
         return redirect("facility_detail", pk=space.facility_id)
     return render(request, "portal/facility_space_form.html", {
