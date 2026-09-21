@@ -112,3 +112,15 @@ class StallHousingWorkflowTests(TestCase):
         current = HorseStallAssignment.objects.get(horse=self.horse, end_date__isnull=True)
         self.assertEqual(current.space, new_stall)
         self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+
+
+    def test_vacated_today_is_hidden_from_current_housing_and_visible_in_history(self):
+        assignment = HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date.today()
+        )
+        assignment.end_date = date.today()
+        assignment.save()
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "Available")
+        self.assertContains(response, "Recent assignments")
