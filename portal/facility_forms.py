@@ -4,6 +4,18 @@ from .model_modules.facilities import Facility, FacilitySpace
 
 
 class FacilityForm(forms.ModelForm):
+    def __init__(self, *args, team, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.team = team
+        self.instance.team = team
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.team = self.team
+        if commit:
+            obj.save()
+        return obj
+
     class Meta:
         model = Facility
         fields = ("name", "address", "active", "notes")
