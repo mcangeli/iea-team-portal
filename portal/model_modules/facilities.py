@@ -117,6 +117,9 @@ class _HorseSpaceAssignment(models.Model):
             overlapping = overlapping.filter(start_date__lte=self.end_date)
         if self.pk:
             overlapping = overlapping.exclude(pk=self.pk)
+        exclude_assignment_id = getattr(self, "_exclude_overlap_assignment_id", None)
+        if exclude_assignment_id:
+            overlapping = overlapping.exclude(pk=exclude_assignment_id)
         if overlapping.exists():
             raise ValidationError({"start_date": message})
 
@@ -145,6 +148,9 @@ class HorseStallAssignment(_HorseSpaceAssignment):
                 overlapping_space = overlapping_space.filter(start_date__lte=self.end_date)
             if self.pk:
                 overlapping_space = overlapping_space.exclude(pk=self.pk)
+            exclude_assignment_id = getattr(self, "_exclude_overlap_assignment_id", None)
+            if exclude_assignment_id:
+                overlapping_space = overlapping_space.exclude(pk=exclude_assignment_id)
             if overlapping_space.exists():
                 raise ValidationError({"space": "Selected stall already has an overlapping horse assignment."})
 
