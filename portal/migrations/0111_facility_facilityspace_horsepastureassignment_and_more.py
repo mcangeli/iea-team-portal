@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('portal', '0109_v372_budget_line_category_unique'),
+        ('portal', '0110_repair_legacy_iea_receivable_account_names'),
     ]
 
     operations = [
