@@ -14,5 +14,16 @@
     <div class="empty-state"><h2>No spaces yet</h2><p>Add the barns, arenas, stalls, pastures and other spaces that make up this facility.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add first space</a>{% endif %}</div>
   {% endfor %}
 </section>
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Recent assignments</h2></div></div>
+  <h3>Turnout</h3>
+  {% for assignment in recent_turnout_history %}
+    <p><strong>{{ assignment.horse.display_name }}</strong> · {{ assignment.space.name }} · {{ assignment.get_turnout_type_display }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' assignment.pk %}">Edit</a>{% endif %}</p>
+  {% empty %}<p class="muted">No completed turnout assignments yet.</p>{% endfor %}
+  <h3>Housing</h3>
+  {% for assignment in recent_housing_history %}
+    <p><strong>{{ assignment.horse.display_name }}</strong> · {{ assignment.space.name }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'stall_assignment_edit' assignment.pk %}">Edit</a>{% endif %}</p>
+  {% empty %}<p class="muted">No completed housing assignments yet.</p>{% endfor %}
+</section>
 <p><a href="{% url 'facility_list' %}">← All facilities</a></p>
 {% endblock %}
