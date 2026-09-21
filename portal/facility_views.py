@@ -5,8 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm
-from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment
+from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm, HorsePastureAssignmentForm
+from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment, HorsePastureAssignment
 from .platform import can_manage_organization, organization_for_view_user
 
 
@@ -215,4 +215,40 @@ def stall_assignment_move(request, pk):
     return render(request, "portal/stall_assignment_form.html", {
         "form": form, "facility": facility, "assignment": assignment,
         "title": f"Move {assignment.horse.display_name}",
+    })
+
+
+@login_required
+def pasture_assignment_create(request, facility_pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    facility = get_object_or_404(Facility, pk=facility_pk, team=team)
+    form = HorsePastureAssignmentForm(request.POST or None, team=team, facility=facility)
+    if request.method == "POST" and form.is_valid():
+        assignment = form.save()
+        messages.success(request, f"{assignment.horse.display_name} assigned to {assignment.space.name} for turnout.")
+        return redirect("facility_detail", pk=facility.pk)
+    return render(request, "portal/pasture_assignment_form.html", {
+        "form": form, "facility": facility, "title": f"Assign turnout — {facility.name}",
+    })
+
+
+@login_required
+def pasture_assignment_edit(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    assignment = get_object_or_404(
+        HorsePastureAssignment.objects.select_related("horse", "space__facility"),
+        pk=pk, horse__team=team, space__facility__team=team,
+    )
+    form = HorsePastureAssignmentForm(
+        request.POST or None, instance=assignment, team=team, facility=assignment.space.facility
+    )
+    if request.method == "POST" and form.is_valid():
+        assignment = form.save()
+        messages.success(request, f"Turnout assignment for {assignment.horse.display_name} updated.")
+        return redirect("facility_detail", pk=assignment.space.facility_id)
+    return render(request, "portal/pasture_assignment_form.html", {
+        "form": form, "facility": assignment.space.facility, "assignment": assignment,
+        "title": f"Edit turnout — {assignment.horse.display_name}",
     })
