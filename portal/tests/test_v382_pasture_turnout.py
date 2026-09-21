@@ -86,3 +86,28 @@ class PastureTurnoutWorkflowTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertFalse(HorsePastureAssignment.objects.filter(horse=other_horse).exists())
+
+
+    def test_facility_detail_shows_current_turnout_and_edit_link(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary", start_date=date.today()
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "Atlas")
+        self.assertContains(response, "Primary")
+        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+
+    def test_manager_can_edit_turnout_assignment(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary", start_date=date.today()
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("pasture_assignment_edit", args=[assignment.pk]), {
+            "horse": self.horse.pk, "space": self.pasture.pk, "turnout_type": "temporary",
+            "start_date": date.today(), "end_date": "", "notes": "Short turnout",
+        })
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.turnout_type, HorsePastureAssignment.TurnoutType.TEMPORARY)
+        self.assertEqual(assignment.notes, "Short turnout")
+        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
