@@ -111,10 +111,10 @@ class _HorseSpaceAssignment(models.Model):
         if not self.horse_id or not self.start_date:
             return
         overlapping = queryset.filter(horse_id=self.horse_id).filter(
-            Q(end_date__isnull=True) | Q(end_date__gte=self.start_date)
+            Q(end_date__isnull=True) | Q(end_date__gt=self.start_date)
         )
         if self.end_date:
-            overlapping = overlapping.filter(start_date__lte=self.end_date)
+            overlapping = overlapping.filter(start_date__lt=self.end_date)
         if self.pk:
             overlapping = overlapping.exclude(pk=self.pk)
         exclude_assignment_id = getattr(self, "_exclude_overlap_assignment_id", None)
@@ -142,10 +142,10 @@ class HorseStallAssignment(_HorseSpaceAssignment):
         )
         if self.space_id and self.start_date:
             overlapping_space = HorseStallAssignment.objects.filter(space_id=self.space_id).filter(
-                Q(end_date__isnull=True) | Q(end_date__gte=self.start_date)
+                Q(end_date__isnull=True) | Q(end_date__gt=self.start_date)
             )
             if self.end_date:
-                overlapping_space = overlapping_space.filter(start_date__lte=self.end_date)
+                overlapping_space = overlapping_space.filter(start_date__lt=self.end_date)
             if self.pk:
                 overlapping_space = overlapping_space.exclude(pk=self.pk)
             exclude_assignment_id = getattr(self, "_exclude_overlap_assignment_id", None)
