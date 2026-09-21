@@ -76,12 +76,24 @@ def facility_detail(request, pk):
             node["turnout_assignments"] = turnout_by_space.get(node["space"].pk, [])
             attach_occupancy(node["children"])
     attach_occupancy(space_tree)
+    recent_turnout_history = (
+        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__lt=today)
+        .select_related("horse", "space")
+        .order_by("-end_date", "-start_date", "horse__name")[:20]
+    )
+    recent_housing_history = (
+        HorseStallAssignment.objects.filter(space__facility=facility, end_date__lt=today)
+        .select_related("horse", "space")
+        .order_by("-end_date", "-start_date", "horse__name")[:20]
+    )
     return render(request, "portal/facility_detail.html", {
         "facility": facility,
         "spaces": spaces,
         "space_tree": space_tree,
         "current_stall_assignments": current_stall_assignments,
         "current_turnout_assignments": current_turnout_assignments,
+        "recent_turnout_history": recent_turnout_history,
+        "recent_housing_history": recent_housing_history,
         "can_manage": can_manage_organization(request.user),
     })
 
@@ -282,3 +294,41 @@ def pasture_assignment_end(request, pk):
         messages.success(request, f"Turnout ended for {assignment.horse.display_name} in {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
     return render(request, "portal/pasture_assignment_end.html", {"assignment": assignment})
+
+
+@login_required
+def pasture_assignment_move(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    today = timezone.localdate()
+    assignment = get_object_or_404(
+        HorsePastureAssignment.objects.select_related("horse", "space__facility"),
+        pk=pk, horse__team=team, space__facility__team=team,
+        start_date__lte=today,
+    )
+    if assignment.end_date is not None and assignment.end_date < today:
+        raise PermissionDenied
+    facility = assignment.space.facility
+    initial = {
+        "horse": assignment.horse,
+        "turnout_type": assignment.turnout_type,
+        "start_date": today,
+    }
+    form = HorsePastureAssignmentForm(
+        request.POST or None, team=team, facility=facility, initial=initial, moving_from=assignment
+    )
+    form.fields["horse"].disabled = True
+    if request.method == "POST" and form.is_valid():
+        move_date = form.cleaned_data["start_date"]
+        with transaction.atomic():
+            assignment.end_date = move_date
+            assignment.save()
+            new_assignment = form.save(commit=False)
+            new_assignment.horse = assignment.horse
+            new_assignment.save()
+        messages.success(request, f"{assignment.horse.display_name} turnout moved to {new_assignment.space.name}.")
+        return redirect("facility_detail", pk=facility.pk)
+    return render(request, "portal/pasture_assignment_form.html", {
+        "form": form, "facility": facility, "assignment": assignment,
+        "title": f"Move turnout — {assignment.horse.display_name}",
+    })
