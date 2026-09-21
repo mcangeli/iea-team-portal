@@ -19,3 +19,45 @@
 .section-lesson_day_workspace .data-table td:last-child,.section-lesson_participant_move .actions,.section-my_lesson_reschedule .actions{white-space:nowrap}
 .section-lesson_participant_move .content-section,.section-my_lesson_reschedule .content-section{border-color:color-mix(in srgb,var(--arena-gold) 14%,var(--line));box-shadow:var(--arena-shadow)}
 @media(max-width:760px){.lesson-context-bar{align-items:flex-start;flex-direction:column}.lesson-schedule-card{grid-template-columns:64px minmax(0,1fr)}.lesson-schedule-card .lesson-card-action{grid-column:2}.lesson-schedule-card .lesson-card-action .btn{width:100%;justify-content:center;text-align:center}.section-lesson_day_workspace .data-table{min-width:900px}}
+
+
+/* v3.7.1 hotfix — keep IEA occurrence roster choices inside their card. */
+.section-iea_lesson_occurrence_form .iea-roster-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:.65rem;
+  margin-top:.85rem;
+  width:100%;
+}
+.section-iea_lesson_occurrence_form .iea-roster-choice{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  min-width:0;
+  margin:0;
+  padding:.75rem .85rem;
+  cursor:pointer;
+}
+.section-iea_lesson_occurrence_form .iea-roster-choice input[type="checkbox"]{
+  flex:0 0 auto;
+  margin:0;
+}
+.section-iea_lesson_occurrence_form .iea-roster-choice span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.section-iea_lesson_occurrence_form .iea-roster-choice:has(input:checked){
+  border-color:color-mix(in srgb,var(--arena-gold) 48%,var(--line));
+  background:color-mix(in srgb,var(--arena-gold) 8%,var(--surface));
+}
+.section-iea_lesson_occurrence_form .form-grid > p{
+  min-width:0;
+}
+.section-iea_lesson_occurrence_form .form-grid input,
+.section-iea_lesson_occurrence_form .form-grid select,
+.section-iea_lesson_occurrence_form .form-grid textarea{
+  max-width:100%;
+}
+@media(max-width:760px){
+  .section-iea_lesson_occurrence_form .iea-roster-grid{grid-template-columns:1fr}
+}
