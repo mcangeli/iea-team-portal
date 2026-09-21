@@ -90,6 +90,7 @@ class StallHousingWorkflowTests(TestCase):
         response = self.client.post(reverse("stall_assignment_vacate", args=[assignment.pk]))
         assignment.refresh_from_db()
         self.assertEqual(assignment.end_date, date.today())
+        self.assertIsNotNone(assignment.updated_at)
         self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
 
     def test_manager_can_move_horse_and_preserve_history(self):
