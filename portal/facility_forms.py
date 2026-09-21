@@ -106,11 +106,14 @@ class HorsePastureAssignmentForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
-    def __init__(self, *args, team, facility=None, **kwargs):
+    def __init__(self, *args, team, facility=None, moving_from=None, **kwargs):
         super().__init__(*args, **kwargs)
         from .model_modules.horses import Horse
         from .model_modules.facilities import FacilitySpace
         self.team = team
+        self.moving_from = moving_from
+        if moving_from is not None:
+            self.instance._exclude_overlap_assignment_id = moving_from.pk
         self.fields["horse"].queryset = Horse.objects.filter(team=team, active=True).order_by("name", "id")
         spaces = FacilitySpace.objects.filter(
             facility__team=team, turnout_capable=True, active=True
