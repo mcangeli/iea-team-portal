@@ -68,3 +68,45 @@ class StallHousingWorkflowTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
         self.assertContains(response, "Available")
+
+
+    def test_stall_rejects_overlapping_horse_occupancy(self):
+        HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date(2026, 9, 1)
+        )
+        other_horse = Horse.objects.create(team=self.team, name="Bella")
+        assignment = HorseStallAssignment(
+            horse=other_horse, space=self.stall, start_date=date(2026, 9, 10)
+        )
+        from django.core.exceptions import ValidationError
+        with self.assertRaises(ValidationError):
+            assignment.full_clean()
+
+    def test_manager_can_vacate_current_stall(self):
+        assignment = HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date.today()
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("stall_assignment_vacate", args=[assignment.pk]))
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.end_date, date.today())
+        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+
+    def test_manager_can_move_horse_and_preserve_history(self):
+        assignment = HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date(2026, 9, 1)
+        )
+        new_stall = FacilitySpace.objects.create(
+            facility=self.facility, name="Stall 2", space_type=FacilitySpace.SpaceType.STALL,
+            housing_capable=True,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("stall_assignment_move", args=[assignment.pk]), {
+            "horse": self.horse.pk, "space": new_stall.pk, "start_date": date.today(),
+            "end_date": "", "notes": "",
+        })
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.end_date, date.today())
+        current = HorseStallAssignment.objects.get(horse=self.horse, end_date__isnull=True)
+        self.assertEqual(current.space, new_stall)
+        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
