@@ -180,7 +180,6 @@ def stall_assignment_vacate(request, pk):
     )
     if request.method == "POST":
         assignment.end_date = timezone.localdate()
-        assignment.full_clean()
         assignment.save()
         messages.success(request, f"{assignment.horse.display_name} vacated {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
