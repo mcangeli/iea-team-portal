@@ -78,3 +78,19 @@ class FacilityManagementUITests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("facility_space_edit", args=[other_space.pk]))
         self.assertEqual(response.status_code, 404)
+
+
+    def test_facility_detail_builds_parent_child_hierarchy(self):
+        barn = FacilitySpace.objects.create(
+            facility=self.facility, name="Main Barn", space_type=FacilitySpace.SpaceType.BARN
+        )
+        stall = FacilitySpace.objects.create(
+            facility=self.facility, parent=barn, name="Stall 1",
+            space_type=FacilitySpace.SpaceType.STALL, housing_capable=True
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        tree = response.context["space_tree"]
+        self.assertEqual(len(tree), 1)
+        self.assertEqual(tree[0]["space"], barn)
+        self.assertEqual(tree[0]["children"][0]["space"], stall)
