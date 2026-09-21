@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.db import transaction
+from django.db import models, transaction
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
@@ -52,14 +52,17 @@ def facility_detail(request, pk):
         }
 
     space_tree = [build_node(space) for space in children_by_parent.get(None, [])]
+    today = timezone.localdate()
     current_stall_assignments = (
-        HorseStallAssignment.objects.filter(space__facility=facility, end_date__isnull=True)
+        HorseStallAssignment.objects.filter(space__facility=facility, start_date__lte=today)
+        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=today))
         .select_related("horse", "space")
         .order_by("space__name", "horse__name")
     )
     current_by_space = {assignment.space_id: assignment for assignment in current_stall_assignments}
     current_turnout_assignments = (
-        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__isnull=True)
+        HorsePastureAssignment.objects.filter(space__facility=facility, start_date__lte=today)
+        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=today))
         .select_related("horse", "space")
         .order_by("space__name", "turnout_type", "horse__name")
     )
