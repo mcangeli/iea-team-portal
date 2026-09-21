@@ -93,3 +93,42 @@ class HorseStallAssignmentForm(forms.ModelForm):
                 for error in errors:
                     self.add_error(field if field in self.fields else None, error)
         return cleaned
+
+
+class HorsePastureAssignmentForm(forms.ModelForm):
+    class Meta:
+        from .model_modules.facilities import HorsePastureAssignment
+        model = HorsePastureAssignment
+        fields = ("horse", "space", "turnout_type", "start_date", "end_date", "notes")
+        widgets = {
+            "start_date": forms.DateInput(attrs={"type": "date"}),
+            "end_date": forms.DateInput(attrs={"type": "date"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, team, facility=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .model_modules.horses import Horse
+        from .model_modules.facilities import FacilitySpace
+        self.team = team
+        self.fields["horse"].queryset = Horse.objects.filter(team=team, active=True).order_by("name", "id")
+        spaces = FacilitySpace.objects.filter(
+            facility__team=team, turnout_capable=True, active=True
+        ).select_related("facility", "parent")
+        if facility is not None:
+            spaces = spaces.filter(facility=facility)
+        self.fields["space"].queryset = spaces.order_by("facility__name", "name", "id")
+
+    def clean_horse(self):
+        horse = self.cleaned_data["horse"]
+        if horse.team_id != self.team.id:
+            raise forms.ValidationError("Choose a horse from this organization.")
+        return horse
+
+    def clean_space(self):
+        space = self.cleaned_data["space"]
+        if space.facility.team_id != self.team.id:
+            raise forms.ValidationError("Choose a turnout space from this organization.")
+        if not space.turnout_capable:
+            raise forms.ValidationError("Choose a space that supports turnout.")
+        return space
