@@ -34,10 +34,26 @@ def facility_list(request):
 def facility_detail(request, pk):
     team = _facility_context(request.user)
     facility = get_object_or_404(Facility, pk=pk, team=team)
-    spaces = facility.spaces.select_related("parent").order_by("parent_id", "name", "id")
+    spaces = list(facility.spaces.select_related("parent").order_by("name", "id"))
+    children_by_parent = {}
+    for space in spaces:
+        children_by_parent.setdefault(space.parent_id, []).append(space)
+
+    def build_node(space, seen=None):
+        seen = set(seen or ())
+        if space.pk in seen:
+            return {"space": space, "children": []}
+        seen.add(space.pk)
+        return {
+            "space": space,
+            "children": [build_node(child, seen) for child in children_by_parent.get(space.pk, [])],
+        }
+
+    space_tree = [build_node(space) for space in children_by_parent.get(None, [])]
     return render(request, "portal/facility_detail.html", {
         "facility": facility,
         "spaces": spaces,
+        "space_tree": space_tree,
         "can_manage": can_manage_organization(request.user),
     })
 
