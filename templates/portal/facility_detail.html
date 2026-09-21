@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-intro">
   <div><div class="eyebrow">ARENALINE · FACILITY</div><h1>{{ facility.name }}</h1>{% if facility.address %}<p>{{ facility.address }}</p>{% endif %}</div>
-  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add space</a></div>{% endif %}
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn secondary" href="{% url 'facility_space_create' facility.pk %}">Add space</a><a class="btn" href="{% url 'stall_assignment_create' facility.pk %}">Assign horse</a></div>{% endif %}
 </section>
 {% if facility.notes %}<section class="content-section"><p>{{ facility.notes|linebreaksbr }}</p></section>{% endif %}
 <section class="content-section facility-hierarchy">
