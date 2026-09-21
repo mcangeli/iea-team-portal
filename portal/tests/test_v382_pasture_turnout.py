@@ -111,3 +111,15 @@ class PastureTurnoutWorkflowTests(TestCase):
         self.assertEqual(assignment.turnout_type, HorsePastureAssignment.TurnoutType.TEMPORARY)
         self.assertEqual(assignment.notes, "Short turnout")
         self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+
+
+    def test_manager_can_end_current_turnout(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary", start_date=date.today()
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("pasture_assignment_end", args=[assignment.pk]))
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.end_date, date.today())
+        self.assertFalse(HorsePastureAssignment.objects.filter(pk=assignment.pk, end_date__isnull=True).exists())
+        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
