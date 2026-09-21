@@ -124,3 +124,17 @@ class StallHousingWorkflowTests(TestCase):
         response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
         self.assertContains(response, "Available")
         self.assertContains(response, "Recent assignments")
+
+
+    def test_adjacent_stall_assignments_can_share_transition_date(self):
+        HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date(2026, 9, 1), end_date=date(2026, 9, 21)
+        )
+        other_stall = FacilitySpace.objects.create(
+            facility=self.facility, name="Stall 2", space_type=FacilitySpace.SpaceType.STALL,
+            housing_capable=True,
+        )
+        next_assignment = HorseStallAssignment(
+            horse=self.horse, space=other_stall, start_date=date(2026, 9, 21)
+        )
+        next_assignment.full_clean()
