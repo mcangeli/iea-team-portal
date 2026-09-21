@@ -1,6 +1,6 @@
 # ArenaLine
 
-**Current version: v3.7.0**
+**Current version: v3.7.2**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
@@ -15,11 +15,17 @@ v3.7.0 completes the Barn Finance architecture with domain-separated Accounts Pa
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.7.0.md`.
+- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.7.0.md` (v3.7.1/v3.7.2 are maintenance releases).
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
+
+## v3.7.2 maintenance release
+
+### IEA receivable identity repair
+
+v3.7.2 repairs legacy IEA receivable accounts created during the Barn Finance migration so account names use the rider's actual name rather than Django's historical-model representation. Where a canonical Person relationship can be safely resolved through the legacy identity bridge, the receivable account's primary customer is also restored. Existing manually named accounts and existing primary-customer assignments are preserved.
 
 ## v3.7.0 highlights
 
@@ -243,10 +249,10 @@ cd /opt/iea-team-portal/app
 ./portalctl update
 ```
 
-Or install v3.7.0 explicitly:
+Or install v3.7.2 explicitly:
 
 ```bash
-./portalctl update v3.7.0
+./portalctl update v3.7.2
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
