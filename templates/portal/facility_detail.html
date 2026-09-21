@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ facility.name }} · Facilities · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div><div class="eyebrow">ARENALINE · FACILITY</div><h1>{{ facility.name }}</h1>{% if facility.address %}<p>{{ facility.address }}</p>{% endif %}</div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add space</a></div>{% endif %}
+</section>
+{% if facility.notes %}<section class="content-section"><p>{{ facility.notes|linebreaksbr }}</p></section>{% endif %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">PHYSICAL SPACES</div><h2>Facility spaces</h2><p class="muted">Barns, arenas, stalls, pastures, storage and other physical spaces belong to this facility.</p></div></div>
+  <div class="card-grid">
+  {% for space in spaces %}
+    <article class="card">
+      <div class="eyebrow">{{ space.get_space_type_display }}{% if not space.active %} · INACTIVE{% endif %}</div>
+      <h3>{{ space.name }}</h3>
+      {% if space.parent %}<p class="muted">Inside {{ space.parent.name }}</p>{% endif %}
+      <p>{% if space.reservable %}<span class="status-pill">Reservable</span> {% endif %}{% if space.housing_capable %}<span class="status-pill">Housing</span> {% endif %}{% if space.turnout_capable %}<span class="status-pill">Turnout</span> {% endif %}{% if space.inventory_storage_capable %}<span class="status-pill">Inventory storage</span>{% endif %}</p>
+      {% if can_manage %}<a href="{% url 'facility_space_edit' space.pk %}">Edit space →</a>{% endif %}
+    </article>
+  {% empty %}<div class="empty-state"><h2>No spaces yet</h2><p>Add the barns, arenas, stalls, pastures and other spaces that make up this facility.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add first space</a>{% endif %}</div>{% endfor %}
+  </div>
+</section>
+<p><a href="{% url 'facility_list' %}">← All facilities</a></p>
+{% endblock %}
