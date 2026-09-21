@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · PASTURE & TURNOUT</div><h1>{{ title }}</h1><p>Manage turnout independently from stall housing. Primary turnout represents the horse's main turnout assignment; temporary and other assignments may coexist.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save turnout</button><a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a></div></form></section>
+{% endblock %}
