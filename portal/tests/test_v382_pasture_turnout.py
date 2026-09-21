@@ -181,3 +181,16 @@ class PastureTurnoutWorkflowTests(TestCase):
         if date.today() >= date(2026, 8, 1) and date.today() <= date(2026, 9, 30):
             self.assertEqual(response.status_code, 302)
             self.assertEqual(assignment.end_date, date.today())
+
+
+    def test_ended_today_is_hidden_from_current_turnout_and_visible_in_history(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary", start_date=date.today()
+        )
+        assignment.end_date = date.today()
+        assignment.save()
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "No current turnout assignments.")
+        self.assertContains(response, "Recent assignments")
+        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
