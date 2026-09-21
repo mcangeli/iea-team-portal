@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
@@ -196,16 +197,20 @@ def stall_assignment_move(request, pk):
     )
     facility = assignment.space.facility
     initial = {"horse": assignment.horse, "start_date": timezone.localdate()}
-    form = HorseStallAssignmentForm(request.POST or None, team=team, facility=facility, initial=initial)
+    form = HorseStallAssignmentForm(
+        request.POST or None, team=team, facility=facility, initial=initial, moving_from=assignment
+    )
     form.fields["horse"].disabled = True
     if request.method == "POST" and form.is_valid():
         move_date = form.cleaned_data["start_date"]
-        assignment.end_date = move_date
-        assignment.full_clean()
-        assignment.save(update_fields=["end_date", "updated_at"])
-        new_assignment = form.save(commit=False)
-        new_assignment.horse = assignment.horse
-        new_assignment.save()
+        with transaction.atomic():
+            assignment.end_date = move_date
+            assignment.full_clean()
+            assignment.save(update_fields=["end_date", "updated_at"])
+            new_assignment = form.save(commit=False)
+            new_assignment.horse = assignment.horse
+            new_assignment.full_clean()
+            new_assignment.save()
         messages.success(request, f"{assignment.horse.display_name} moved to {new_assignment.space.name}.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/stall_assignment_form.html", {
