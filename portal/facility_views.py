@@ -286,10 +286,13 @@ def pasture_assignment_end(request, pk):
     team = _facility_context(request.user)
     assignment = get_object_or_404(
         HorsePastureAssignment.objects.select_related("horse", "space__facility"),
-        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+        pk=pk, horse__team=team, space__facility__team=team,
     )
+    today = timezone.localdate()
+    if assignment.start_date > today or (assignment.end_date is not None and assignment.end_date < today):
+        raise PermissionDenied
     if request.method == "POST":
-        assignment.end_date = timezone.localdate()
+        assignment.end_date = today
         assignment.save()
         messages.success(request, f"Turnout ended for {assignment.horse.display_name} in {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
