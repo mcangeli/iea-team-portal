@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · HORSE HOUSING</div><h1>{{ title }}</h1><p>Assign a horse to a housing-capable facility space while preserving the dates of each move.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save housing assignment</button><a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a></div></form></section>
+{% endblock %}
