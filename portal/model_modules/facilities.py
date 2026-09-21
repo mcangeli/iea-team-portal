@@ -137,6 +137,16 @@ class HorseStallAssignment(_HorseSpaceAssignment):
             HorseStallAssignment.objects.all(),
             "Horse already has an overlapping stall assignment.",
         )
+        if self.space_id and self.start_date:
+            overlapping_space = HorseStallAssignment.objects.filter(space_id=self.space_id).filter(
+                Q(end_date__isnull=True) | Q(end_date__gte=self.start_date)
+            )
+            if self.end_date:
+                overlapping_space = overlapping_space.filter(start_date__lte=self.end_date)
+            if self.pk:
+                overlapping_space = overlapping_space.exclude(pk=self.pk)
+            if overlapping_space.exists():
+                raise ValidationError({"space": "Selected stall already has an overlapping horse assignment."})
 
     def __str__(self):
         return f"{self.horse} — {self.space}"
