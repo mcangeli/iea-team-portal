@@ -15,7 +15,7 @@
         {% if node.space.turnout_capable %}
           <div style="margin-top:.55rem;">
             {% for turnout in node.turnout_assignments %}
-              <p class="muted" style="margin:.2rem 0;"><strong>{{ turnout.horse.display_name }}</strong> · {{ turnout.get_turnout_type_display }} · Since {{ turnout.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' turnout.pk %}">Edit turnout</a> · <a href="{% url 'pasture_assignment_end' turnout.pk %}">End turnout</a>{% endif %}</p>
+              <p class="muted" style="margin:.2rem 0;"><strong>{{ turnout.horse.display_name }}</strong> · {{ turnout.get_turnout_type_display }} · Since {{ turnout.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' turnout.pk %}">Edit turnout</a> · <a href="{% url 'pasture_assignment_move' turnout.pk %}">Move</a> · <a href="{% url 'pasture_assignment_end' turnout.pk %}">End turnout</a>{% endif %}</p>
             {% empty %}
               <p class="muted" style="margin:.2rem 0;">No current turnout assignments.</p>
             {% endfor %}
