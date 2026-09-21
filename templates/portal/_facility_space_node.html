@@ -1,0 +1,21 @@
+<div class="facility-space-node facility-space-depth-{{ depth }}" style="margin-left:{% widthratio depth 1 28 %}px">
+  <article class="card" style="margin-bottom:12px">
+    <div class="section-head">
+      <div>
+        <div class="eyebrow">{{ node.space.get_space_type_display }}{% if not node.space.active %} · INACTIVE{% endif %}</div>
+        <h3>{{ node.space.name }}</h3>
+        <div class="facility-space-capabilities">
+          {% if node.space.reservable %}<span class="status-pill">Reservable</span>{% endif %}
+          {% if node.space.housing_capable %}<span class="status-pill">Housing</span>{% endif %}
+          {% if node.space.turnout_capable %}<span class="status-pill">Turnout</span>{% endif %}
+          {% if node.space.inventory_storage_capable %}<span class="status-pill">Inventory storage</span>{% endif %}
+        </div>
+      </div>
+      {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_space_edit' node.space.pk %}">Edit</a></div>{% endif %}
+    </div>
+    {% if node.space.notes %}<p class="muted">{{ node.space.notes }}</p>{% endif %}
+  </article>
+  {% for child in node.children %}
+    {% include "portal/_facility_space_node.html" with node=child depth=depth|add:"1" %}
+  {% endfor %}
+</div>
