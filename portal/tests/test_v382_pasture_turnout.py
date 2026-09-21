@@ -136,3 +136,35 @@ class PastureTurnoutWorkflowTests(TestCase):
         if date.today() >= date(2026, 8, 1) and date.today() <= date(2026, 9, 30):
             self.assertContains(response, "Atlas")
             self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+
+
+    def test_manager_can_move_primary_turnout_and_preserve_history(self):
+        old = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary",
+            start_date=date.today(),
+        )
+        north = FacilitySpace.objects.create(
+            facility=self.facility, name="North Paddock",
+            space_type=FacilitySpace.SpaceType.PASTURE, turnout_capable=True,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("pasture_assignment_move", args=[old.pk]), {
+            "horse": self.horse.pk, "space": north.pk, "turnout_type": "primary",
+            "start_date": date.today(), "end_date": "", "notes": "",
+        })
+        old.refresh_from_db()
+        self.assertEqual(old.end_date, date.today())
+        self.assertTrue(HorsePastureAssignment.objects.filter(
+            horse=self.horse, space=north, turnout_type="primary", end_date__isnull=True
+        ).exists())
+        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+
+    def test_completed_turnout_appears_in_facility_history(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary",
+            start_date=date(2026, 8, 1), end_date=date(2026, 8, 31),
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "Recent assignments")
+        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
