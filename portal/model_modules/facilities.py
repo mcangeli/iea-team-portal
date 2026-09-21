@@ -54,7 +54,8 @@ class FacilitySpace(models.Model):
     class Meta:
         ordering = ["facility__name", "name", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["facility", "parent", "name"], name="unique_facility_space_parent_name"),
+            models.UniqueConstraint(fields=["facility", "parent", "name"], condition=Q(parent__isnull=False), name="unique_facility_space_parent_name"),
+            models.UniqueConstraint(fields=["facility", "name"], condition=Q(parent__isnull=True), name="unique_facility_root_space_name"),
         ]
 
     @property
