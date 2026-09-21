@@ -25,6 +25,7 @@ class PortalConfig(AppConfig):
         from .model_modules import station  # noqa: F401
         from .model_modules import lessons  # noqa: F401
         from .model_modules import finance  # noqa: F401
+        from .model_modules import facilities  # noqa: F401
         from . import course_models  # noqa: F401
         from .model_modules import post_show_horses  # noqa: F401
         from . import host_show_models  # noqa: F401
