@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · FACILITIES</div><h1>{{ title }}</h1><p>Define the physical site. Individual barns, arenas, stalls and pastures are added as spaces inside it.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save facility</button>{% if facility %}<a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'facility_list' %}">Cancel</a>{% endif %}</div></form></section>
+{% endblock %}
