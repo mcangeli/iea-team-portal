@@ -58,9 +58,19 @@ def facility_detail(request, pk):
         .order_by("space__name", "horse__name")
     )
     current_by_space = {assignment.space_id: assignment for assignment in current_stall_assignments}
+    current_turnout_assignments = (
+        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__isnull=True)
+        .select_related("horse", "space")
+        .order_by("space__name", "turnout_type", "horse__name")
+    )
+    turnout_by_space = {}
+    for assignment in current_turnout_assignments:
+        turnout_by_space.setdefault(assignment.space_id, []).append(assignment)
+
     def attach_occupancy(nodes):
         for node in nodes:
             node["stall_assignment"] = current_by_space.get(node["space"].pk)
+            node["turnout_assignments"] = turnout_by_space.get(node["space"].pk, [])
             attach_occupancy(node["children"])
     attach_occupancy(space_tree)
     return render(request, "portal/facility_detail.html", {
@@ -68,6 +78,7 @@ def facility_detail(request, pk):
         "spaces": spaces,
         "space_tree": space_tree,
         "current_stall_assignments": current_stall_assignments,
+        "current_turnout_assignments": current_turnout_assignments,
         "can_manage": can_manage_organization(request.user),
     })
 
