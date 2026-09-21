@@ -12,6 +12,15 @@
             <p class="muted"><span class="status-pill">Available</span> No current horse assignment</p>
           {% endif %}
         {% endif %}
+        {% if node.space.turnout_capable %}
+          <div style="margin-top:.55rem;">
+            {% for turnout in node.turnout_assignments %}
+              <p class="muted" style="margin:.2rem 0;"><strong>{{ turnout.horse.display_name }}</strong> · {{ turnout.get_turnout_type_display }} · Since {{ turnout.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' turnout.pk %}">Edit turnout</a>{% endif %}</p>
+            {% empty %}
+              <p class="muted" style="margin:.2rem 0;">No current turnout assignments.</p>
+            {% endfor %}
+          </div>
+        {% endif %}
         <div class="facility-space-capabilities">
           {% if node.space.reservable %}<span class="status-pill">Reservable</span>{% endif %}
           {% if node.space.housing_capable %}<span class="status-pill">Housing</span>{% endif %}
