@@ -55,14 +55,14 @@ def facility_detail(request, pk):
     today = timezone.localdate()
     current_stall_assignments = (
         HorseStallAssignment.objects.filter(space__facility=facility, start_date__lte=today)
-        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=today))
+        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
         .select_related("horse", "space")
         .order_by("space__name", "horse__name")
     )
     current_by_space = {assignment.space_id: assignment for assignment in current_stall_assignments}
     current_turnout_assignments = (
         HorsePastureAssignment.objects.filter(space__facility=facility, start_date__lte=today)
-        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=today))
+        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
         .select_related("horse", "space")
         .order_by("space__name", "turnout_type", "horse__name")
     )
@@ -77,12 +77,12 @@ def facility_detail(request, pk):
             attach_occupancy(node["children"])
     attach_occupancy(space_tree)
     recent_turnout_history = (
-        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__lt=today)
+        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__lte=today)
         .select_related("horse", "space")
         .order_by("-end_date", "-start_date", "horse__name")[:20]
     )
     recent_housing_history = (
-        HorseStallAssignment.objects.filter(space__facility=facility, end_date__lt=today)
+        HorseStallAssignment.objects.filter(space__facility=facility, end_date__lte=today)
         .select_related("horse", "space")
         .order_by("-end_date", "-start_date", "horse__name")[:20]
     )
