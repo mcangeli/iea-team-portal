@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db import models
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from ..equine_access import can_manage_horse, can_manage_horses, require_horse_management
@@ -12,6 +14,7 @@ from ..equine_compliance import compliance_summary_for_horse
 from ..horse_forms import HorseCogginsForm, HorseForm, HorseIdentifierForm, HorsePersonRelationshipForm, HorseSeasonProfileForm, HorseShowAssignmentForm, HorseShowAwardForm
 from ..horse_models import Horse, HorseCogginsRecord, HorseIdentifier, HorseSeasonProfile, HorseShowAssignment, HorseShowAward
 from ..model_modules.barn_participation import HorsePersonRelationship
+from ..model_modules.facilities import HorseStallAssignment, HorsePastureAssignment
 from ..models import AuditEvent, Season, Show
 from ..platform import active_period_for_organization, organization_for_view_user
 from ..show_readiness_views import _can_manage_show_horses, _require_show_horse_manage
@@ -54,7 +57,8 @@ def horse_list(request):
 def horse_detail(request, pk):
     horse = _horse_for_user(request.user, pk); can_manage = can_manage_horse(request.user, horse); can_manage_structure = _can_manage(request.user)
     if not horse.active and not can_manage: raise PermissionDenied
-    return render(request, "portal/horse_detail.html", {"horse": horse, "can_manage": can_manage, "can_manage_structure": can_manage_structure, "identifiers": horse.identifiers.all(), "coggins_records": horse.coggins_records.all(), "season_profiles": horse.season_profiles.select_related("season").prefetch_related("eligible_classes"), "latest_coggins": horse.latest_coggins, "compliance": compliance_summary_for_horse(horse) if can_manage else None, "person_relationships": horse.person_relationships.select_related("person").order_by("relationship_type", "person__last_name", "person__first_name"), "show_awards": HorseShowAward.objects.filter(assignment__horse=horse).select_related("show", "assignment").order_by("-show__show_date", "session")})
+    today = timezone.localdate(); current_filter = models.Q(end_date__isnull=True) | models.Q(end_date__gt=today); current_housing = horse.stall_assignments.filter(start_date__lte=today).filter(current_filter).select_related("space__facility").first(); current_turnout = horse.pasture_assignments.filter(start_date__lte=today).filter(current_filter).select_related("space__facility").order_by("turnout_type", "space__name"); housing_history = horse.stall_assignments.filter(end_date__lte=today).select_related("space__facility").order_by("-end_date", "-start_date")[:10]; turnout_history = horse.pasture_assignments.filter(end_date__lte=today).select_related("space__facility").order_by("-end_date", "-start_date")[:10]
+    return render(request, "portal/horse_detail.html", {"horse": horse, "current_housing": current_housing, "current_turnout": current_turnout, "housing_history": housing_history, "turnout_history": turnout_history, "can_manage": can_manage, "can_manage_structure": can_manage_structure, "identifiers": horse.identifiers.all(), "coggins_records": horse.coggins_records.all(), "season_profiles": horse.season_profiles.select_related("season").prefetch_related("eligible_classes"), "latest_coggins": horse.latest_coggins, "compliance": compliance_summary_for_horse(horse) if can_manage else None, "person_relationships": horse.person_relationships.select_related("person").order_by("relationship_type", "person__last_name", "person__first_name"), "show_awards": HorseShowAward.objects.filter(assignment__horse=horse).select_related("show", "assignment").order_by("-show__show_date", "session")})
 
 
 @login_required
