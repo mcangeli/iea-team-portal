@@ -263,3 +263,19 @@ def pasture_assignment_edit(request, pk):
         "form": form, "facility": assignment.space.facility, "assignment": assignment,
         "title": f"Edit turnout — {assignment.horse.display_name}",
     })
+
+
+@login_required
+def pasture_assignment_end(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    assignment = get_object_or_404(
+        HorsePastureAssignment.objects.select_related("horse", "space__facility"),
+        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+    )
+    if request.method == "POST":
+        assignment.end_date = timezone.localdate()
+        assignment.save()
+        messages.success(request, f"Turnout ended for {assignment.horse.display_name} in {assignment.space.name}.")
+        return redirect("facility_detail", pk=assignment.space.facility_id)
+    return render(request, "portal/pasture_assignment_end.html", {"assignment": assignment})
