@@ -22,14 +22,14 @@
 
 
 /* v3.7.1 hotfix — keep IEA occurrence roster choices inside their card. */
-.section-iea_lesson_occurrence_form .iea-roster-grid{
+.iea-roster-grid{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
   gap:.65rem;
   margin-top:.85rem;
   width:100%;
 }
-.section-iea_lesson_occurrence_form .iea-roster-choice{
+.iea-roster-choice{
   display:flex;
   align-items:center;
   gap:.55rem;
@@ -38,26 +38,26 @@
   padding:.75rem .85rem;
   cursor:pointer;
 }
-.section-iea_lesson_occurrence_form .iea-roster-choice input[type="checkbox"]{
+.iea-roster-choice input[type="checkbox"]{
   flex:0 0 auto;
   margin:0;
 }
-.section-iea_lesson_occurrence_form .iea-roster-choice span{
+.iea-roster-choice span{
   min-width:0;
   overflow-wrap:anywhere;
 }
-.section-iea_lesson_occurrence_form .iea-roster-choice:has(input:checked){
+.iea-roster-choice:has(input:checked){
   border-color:color-mix(in srgb,var(--arena-gold) 48%,var(--line));
   background:color-mix(in srgb,var(--arena-gold) 8%,var(--surface));
 }
-.section-iea_lesson_occurrence_form .form-grid > p{
+.section-iea_lesson_occurrence_create .form-grid > p{
   min-width:0;
 }
-.section-iea_lesson_occurrence_form .form-grid input,
-.section-iea_lesson_occurrence_form .form-grid select,
-.section-iea_lesson_occurrence_form .form-grid textarea{
+.section-iea_lesson_occurrence_create .form-grid input,
+.section-iea_lesson_occurrence_create .form-grid select,
+.section-iea_lesson_occurrence_create .form-grid textarea{
   max-width:100%;
 }
 @media(max-width:760px){
-  .section-iea_lesson_occurrence_form .iea-roster-grid{grid-template-columns:1fr}
+  .iea-roster-grid{grid-template-columns:1fr}
 }
