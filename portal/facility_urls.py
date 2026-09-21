@@ -11,4 +11,6 @@ urlpatterns = [
     path("facility-spaces/<int:pk>/edit/", facility_views.facility_space_edit, name="facility_space_edit"),
     path("facilities/<int:facility_pk>/housing/assign/", facility_views.stall_assignment_create, name="stall_assignment_create"),
     path("stall-assignments/<int:pk>/edit/", facility_views.stall_assignment_edit, name="stall_assignment_edit"),
+    path("stall-assignments/<int:pk>/move/", facility_views.stall_assignment_move, name="stall_assignment_move"),
+    path("stall-assignments/<int:pk>/vacate/", facility_views.stall_assignment_vacate, name="stall_assignment_vacate"),
 ]
