@@ -123,3 +123,16 @@ class PastureTurnoutWorkflowTests(TestCase):
         self.assertEqual(assignment.end_date, date.today())
         self.assertFalse(HorsePastureAssignment.objects.filter(pk=assignment.pk, end_date__isnull=True).exists())
         self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+
+
+    def test_dated_current_turnout_is_visible_and_editable(self):
+        assignment = HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary",
+            start_date=date(2026, 8, 1), end_date=date(2026, 9, 30),
+        )
+        self.client.force_login(self.admin)
+        with self.settings():
+            response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        if date.today() >= date(2026, 8, 1) and date.today() <= date(2026, 9, 30):
+            self.assertContains(response, "Atlas")
+            self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
