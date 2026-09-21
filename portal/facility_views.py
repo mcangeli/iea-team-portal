@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm
 from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment
@@ -165,4 +166,49 @@ def stall_assignment_edit(request, pk):
     return render(request, "portal/stall_assignment_form.html", {
         "form": form, "facility": assignment.space.facility, "assignment": assignment,
         "title": f"Edit housing — {assignment.horse.display_name}",
+    })
+
+
+@login_required
+def stall_assignment_vacate(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    assignment = get_object_or_404(
+        HorseStallAssignment.objects.select_related("horse", "space__facility"),
+        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+    )
+    if request.method == "POST":
+        assignment.end_date = timezone.localdate()
+        assignment.full_clean()
+        assignment.save(update_fields=["end_date", "updated_at"])
+        messages.success(request, f"{assignment.horse.display_name} vacated {assignment.space.name}.")
+        return redirect("facility_detail", pk=assignment.space.facility_id)
+    return render(request, "portal/stall_assignment_vacate.html", {"assignment": assignment})
+
+
+@login_required
+def stall_assignment_move(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    assignment = get_object_or_404(
+        HorseStallAssignment.objects.select_related("horse", "space__facility"),
+        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+    )
+    facility = assignment.space.facility
+    initial = {"horse": assignment.horse, "start_date": timezone.localdate()}
+    form = HorseStallAssignmentForm(request.POST or None, team=team, facility=facility, initial=initial)
+    form.fields["horse"].disabled = True
+    if request.method == "POST" and form.is_valid():
+        move_date = form.cleaned_data["start_date"]
+        assignment.end_date = move_date
+        assignment.full_clean()
+        assignment.save(update_fields=["end_date", "updated_at"])
+        new_assignment = form.save(commit=False)
+        new_assignment.horse = assignment.horse
+        new_assignment.save()
+        messages.success(request, f"{assignment.horse.display_name} moved to {new_assignment.space.name}.")
+        return redirect("facility_detail", pk=facility.pk)
+    return render(request, "portal/stall_assignment_form.html", {
+        "form": form, "facility": facility, "assignment": assignment,
+        "title": f"Move {assignment.horse.display_name}",
     })
