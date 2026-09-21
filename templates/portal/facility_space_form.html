@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · {{ facility.name|upper }}</div><h1>{{ title }}</h1><p>Describe a physical space and the operational capabilities it supports.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save space</button><a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a></div></form></section>
+{% endblock %}
