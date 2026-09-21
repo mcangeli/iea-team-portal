@@ -15,4 +15,5 @@ urlpatterns = [
     path("stall-assignments/<int:pk>/vacate/", facility_views.stall_assignment_vacate, name="stall_assignment_vacate"),
     path("facilities/<int:facility_pk>/turnout/assign/", facility_views.pasture_assignment_create, name="pasture_assignment_create"),
     path("pasture-assignments/<int:pk>/edit/", facility_views.pasture_assignment_edit, name="pasture_assignment_edit"),
+    path("pasture-assignments/<int:pk>/end/", facility_views.pasture_assignment_end, name="pasture_assignment_end"),
 ]
