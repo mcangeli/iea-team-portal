@@ -178,6 +178,7 @@ def stall_assignment_create(request, facility_pk):
     form = HorseStallAssignmentForm(request.POST or None, team=team, facility=facility)
     if request.method == "POST" and form.is_valid():
         assignment = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=assignment, summary=f"Assigned {assignment.horse.display_name} to {assignment.space.name}")
         messages.success(request, f"{assignment.horse.display_name} assigned to {assignment.space.name}.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/stall_assignment_form.html", {
@@ -198,6 +199,7 @@ def stall_assignment_edit(request, pk):
     )
     if request.method == "POST" and form.is_valid():
         assignment = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Updated housing assignment for {assignment.horse.display_name}")
         messages.success(request, f"Housing assignment for {assignment.horse.display_name} updated.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
     return render(request, "portal/stall_assignment_form.html", {
@@ -223,6 +225,7 @@ def stall_assignment_vacate(request, pk):
     if request.method == "POST":
         assignment.end_date = today
         assignment.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Vacated {assignment.horse.display_name} from {assignment.space.name}", details={"end_date": today})
         messages.success(request, f"{assignment.horse.display_name} vacated {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
     return render(request, "portal/stall_assignment_vacate.html", {"assignment": assignment})
@@ -258,6 +261,8 @@ def stall_assignment_move(request, pk):
             new_assignment.horse = assignment.horse
             new_assignment.full_clean()
             new_assignment.save()
+            _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Ended housing assignment for move of {assignment.horse.display_name}", details={"end_date": move_date})
+            _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=new_assignment, summary=f"Moved {assignment.horse.display_name} to {new_assignment.space.name}", details={"from_space_id": assignment.space_id})
         messages.success(request, f"{assignment.horse.display_name} moved to {new_assignment.space.name}.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/stall_assignment_form.html", {
@@ -274,6 +279,7 @@ def pasture_assignment_create(request, facility_pk):
     form = HorsePastureAssignmentForm(request.POST or None, team=team, facility=facility)
     if request.method == "POST" and form.is_valid():
         assignment = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=assignment, summary=f"Assigned {assignment.horse.display_name} to {assignment.space.name} for turnout")
         messages.success(request, f"{assignment.horse.display_name} assigned to {assignment.space.name} for turnout.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/pasture_assignment_form.html", {
@@ -294,6 +300,7 @@ def pasture_assignment_edit(request, pk):
     )
     if request.method == "POST" and form.is_valid():
         assignment = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Updated turnout assignment for {assignment.horse.display_name}")
         messages.success(request, f"Turnout assignment for {assignment.horse.display_name} updated.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
     return render(request, "portal/pasture_assignment_form.html", {
@@ -316,6 +323,7 @@ def pasture_assignment_end(request, pk):
     if request.method == "POST":
         assignment.end_date = today
         assignment.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Ended turnout for {assignment.horse.display_name} in {assignment.space.name}", details={"end_date": today})
         messages.success(request, f"Turnout ended for {assignment.horse.display_name} in {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
     return render(request, "portal/pasture_assignment_end.html", {"assignment": assignment})
@@ -351,6 +359,8 @@ def pasture_assignment_move(request, pk):
             new_assignment = form.save(commit=False)
             new_assignment.horse = assignment.horse
             new_assignment.save()
+            _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=assignment, summary=f"Ended turnout assignment for move of {assignment.horse.display_name}", details={"end_date": move_date})
+            _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=new_assignment, summary=f"Moved {assignment.horse.display_name} turnout to {new_assignment.space.name}", details={"from_space_id": assignment.space_id})
         messages.success(request, f"{assignment.horse.display_name} turnout moved to {new_assignment.space.name}.")
         return redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/pasture_assignment_form.html", {
