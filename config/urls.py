@@ -27,6 +27,7 @@ urlpatterns = [
     path("", include("portal.people_urls")),
     path("", include("portal.station_urls")),
     path("", include("portal.facility_urls")),
+    path("", include("portal.inventory_urls")),
     path("", include("portal.lesson_program_urls")),
     path("", include("portal.finance_v350_urls")),
     path("", include("portal.urls")),
