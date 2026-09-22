@@ -120,25 +120,26 @@ def iea_lesson_occurrence_create(request):
         series=series,
     )
     if form.is_valid():
-        occurrence = form.save()
         resource_space = form.cleaned_data.get("resource_space")
-        if resource_space:
-            try:
-                assign_lesson_resource(occurrence, resource_space)
-            except ValidationError as exc:
-                occurrence.delete()
-                validation_messages = []
-                if hasattr(exc, "message_dict"):
-                    for field_messages in exc.message_dict.values():
-                        validation_messages.extend(field_messages)
-                else:
-                    validation_messages.extend(exc.messages)
-                form.add_error("resource_space", " ".join(validation_messages))
+        try:
+            with transaction.atomic():
+                occurrence = form.save()
+                if resource_space:
+                    assign_lesson_resource(occurrence, resource_space)
+        except ValidationError as exc:
+            validation_messages = []
+            if hasattr(exc, "message_dict"):
+                for field_messages in exc.message_dict.values():
+                    validation_messages.extend(field_messages)
             else:
-                messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s) in {resource_space.name}.")
-                return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+                validation_messages.extend(exc.messages)
+            form.add_error("resource_space", " ".join(validation_messages))
         else:
-            messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+            location_suffix = f" in {resource_space.name}" if resource_space else ""
+            messages.success(
+                request,
+                f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s){location_suffix}.",
+            )
             return redirect("lesson_occurrence_detail", pk=occurrence.pk)
     return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
