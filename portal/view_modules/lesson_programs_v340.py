@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ..forms_lesson_resources import LessonResourceAssignmentForm, LessonResourceReleaseForm
+from ..forms_lesson_resources import LessonResourceAssignmentForm, LessonResourceReleaseForm
 from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
 from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
@@ -22,6 +23,7 @@ from ..services.lesson_operations import materialize_lesson_series
 from ..services.lesson_permissions import can_manage_lesson_occurrence, can_manage_lesson_series, is_barn_lesson_manager, is_iea_lesson_manager, require_barn_lesson_manager, require_iea_lesson_manager, require_lesson_occurrence_manager
 from ..services.lesson_preparation import prepare_lesson_occurrence
 from ..services.lesson_scheduling import cancel_lesson_occurrence, reschedule_lesson_occurrence
+from ..services.lesson_resources import assign_lesson_resource, current_lesson_resource_reservation, release_lesson_resource
 from ..services.lesson_resources import assign_lesson_resource, current_lesson_resource_reservation, release_lesson_resource
 
 
@@ -331,3 +333,37 @@ def lesson_occurrence_resource_release(request, pk):
         "title": f"Release resource — {occurrence.title}",
         "eyebrow": current.space.name,
     })
+
+
+@login_required
+def lesson_occurrence_resource_assign(request, pk):
+    team = organization_for_view_user(request.user)
+    occurrence = _occurrence_for_team(team, pk)
+    require_lesson_occurrence_manager(request.user, occurrence)
+    current = current_lesson_resource_reservation(occurrence)
+    form = LessonResourceAssignmentForm(request.POST or None, team=team)
+    if request.method == "POST" and form.is_valid():
+        try:
+            reservation = assign_lesson_resource(occurrence, form.cleaned_data["space"])
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        else:
+            messages.success(request, f"{occurrence.title} assigned to {reservation.space.name}.")
+            return redirect("lesson_occurrence_detail", pk=pk)
+    return render(request, "portal/form.html", {"form": form, "title": f"{'Move' if current else 'Assign'} resource — {occurrence.title}", "eyebrow": "LESSON RESOURCE"})
+
+
+@login_required
+def lesson_occurrence_resource_release(request, pk):
+    team = organization_for_view_user(request.user)
+    occurrence = _occurrence_for_team(team, pk)
+    require_lesson_occurrence_manager(request.user, occurrence)
+    current = current_lesson_resource_reservation(occurrence)
+    if not current:
+        return redirect("lesson_occurrence_detail", pk=pk)
+    form = LessonResourceReleaseForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        release_lesson_resource(occurrence, location=form.cleaned_data["location"])
+        messages.success(request, "Managed resource released. The lesson remains scheduled.")
+        return redirect("lesson_occurrence_detail", pk=pk)
+    return render(request, "portal/form.html", {"form": form, "title": f"Release resource — {occurrence.title}", "eyebrow": current.space.name})
