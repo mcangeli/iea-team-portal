@@ -198,8 +198,8 @@ class FacilityManagementUITests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.post(reverse("resource_reservation_create", args=[ring.pk]), {
             "title": "Conflict",
-            "starts_at": (starts + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M"),
-            "ends_at": (starts + timedelta(hours=1, minutes=30)).strftime("%Y-%m-%dT%H:%M"),
+            "starts_at": timezone.localtime(starts + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": timezone.localtime(starts + timedelta(hours=1, minutes=30)).strftime("%Y-%m-%dT%H:%M"),
             "notes": "",
         })
         self.assertEqual(response.status_code, 200)
