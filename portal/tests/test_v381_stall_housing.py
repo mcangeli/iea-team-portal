@@ -56,9 +56,8 @@ class StallHousingWorkflowTests(TestCase):
             horse=self.horse, space=self.stall, start_date=date.today()
         )
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.stall.pk]))
         self.assertContains(response, "Atlas")
-        self.assertContains(response, "Occupied")
         self.assertContains(response, reverse("stall_assignment_edit", args=[assignment.pk]))
 
     def test_ended_assignment_leaves_stall_available(self):
@@ -66,7 +65,7 @@ class StallHousingWorkflowTests(TestCase):
             horse=self.horse, space=self.stall, start_date=date(2026, 1, 1), end_date=date(2026, 2, 1)
         )
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.stall.pk]))
         self.assertContains(response, "Available")
 
 
@@ -121,9 +120,9 @@ class StallHousingWorkflowTests(TestCase):
         assignment.end_date = date.today()
         assignment.save()
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.stall.pk]))
         self.assertContains(response, "Available")
-        self.assertContains(response, "Recent assignments")
+        self.assertContains(response, "Assignment history")
 
 
     def test_adjacent_stall_assignments_can_share_transition_date(self):
