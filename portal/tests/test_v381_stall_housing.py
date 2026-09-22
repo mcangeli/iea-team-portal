@@ -173,3 +173,22 @@ class StallHousingWorkflowTests(TestCase):
                 start_date=date.today(), end_date__isnull=True,
             ).exists()
         )
+
+
+    def test_horse_profile_shows_current_housing_and_history(self):
+        current = HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date.today()
+        )
+        old_stall = FacilitySpace.objects.create(
+            facility=self.facility, name="Old Stall",
+            space_type=FacilitySpace.SpaceType.STALL, housing_capable=True,
+        )
+        HorseStallAssignment.objects.create(
+            horse=self.horse, space=old_stall,
+            start_date=date(2026, 1, 1), end_date=date(2026, 2, 1),
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
+        self.assertContains(response, "Housing &amp; turnout")
+        self.assertContains(response, current.space.name)
+        self.assertContains(response, old_stall.name)
