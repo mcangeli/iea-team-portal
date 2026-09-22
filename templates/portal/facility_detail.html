@@ -1,29 +1,25 @@
 {% extends "base.html" %}
 {% block title %}{{ facility.name }} · Facilities · ArenaLine{% endblock %}
 {% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'facility_list' %}">← Back to Facilities</a></nav>
 <section class="page-intro">
   <div><div class="eyebrow">ARENALINE · FACILITY</div><h1>{{ facility.name }}</h1>{% if facility.address %}<p>{{ facility.address }}</p>{% endif %}</div>
-  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn secondary" href="{% url 'facility_space_create' facility.pk %}">Add space</a><a class="btn" href="{% url 'stall_assignment_create' facility.pk %}">Assign housing</a><a class="btn" href="{% url 'pasture_assignment_create' facility.pk %}">Assign turnout</a></div>{% endif %}
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add building or area</a></div>{% endif %}
 </section>
 {% if facility.notes %}<section class="content-section"><p>{{ facility.notes|linebreaksbr }}</p></section>{% endif %}
-<section class="content-section facility-hierarchy">
-  <div class="section-head"><div><div class="eyebrow">PHYSICAL SPACES</div><h2>Facility layout</h2><p class="muted">Spaces are grouped beneath the physical area they belong to.</p></div></div>
-  {% for node in space_tree %}
-    {% include "portal/_facility_space_node.html" with node=node depth=0 %}
-  {% empty %}
-    <div class="empty-state"><h2>No spaces yet</h2><p>Add the barns, arenas, stalls, pastures and other spaces that make up this facility.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add first space</a>{% endif %}</div>
-  {% endfor %}
-</section>
 <section class="content-section">
-  <div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Recent assignments</h2></div></div>
-  <h3>Turnout</h3>
-  {% for assignment in recent_turnout_history %}
-    <p><strong>{{ assignment.horse.display_name }}</strong> · {{ assignment.space.name }} · {{ assignment.get_turnout_type_display }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' assignment.pk %}">Edit</a>{% endif %}</p>
-  {% empty %}<p class="muted">No completed turnout assignments yet.</p>{% endfor %}
-  <h3>Housing</h3>
-  {% for assignment in recent_housing_history %}
-    <p><strong>{{ assignment.horse.display_name }}</strong> · {{ assignment.space.name }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'stall_assignment_edit' assignment.pk %}">Edit</a>{% endif %}</p>
-  {% empty %}<p class="muted">No completed housing assignments yet.</p>{% endfor %}
+  <div class="section-head"><div><div class="eyebrow">BUILDINGS &amp; AREAS</div><h2>Facility directory</h2><p class="muted">Open a building or area to view its stalls, pastures, storage, rings and other resources.</p></div></div>
+  <div class="card-grid">
+  {% for row in top_space_rows %}
+    <article class="card">
+      <div class="eyebrow">{{ row.space.get_space_type_display }}{% if not row.space.active %} · INACTIVE{% endif %}</div>
+      <h3><a href="{% url 'facility_space_detail' row.space.pk %}">{{ row.space.name }}</a></h3>
+      {% if row.counts %}<p class="muted">{% for label, count in row.counts.items %}{{ count }} {{ label|lower }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="muted">No resources yet</p>{% endif %}
+      <a href="{% url 'facility_space_detail' row.space.pk %}">Open {{ row.space.name }} →</a>
+    </article>
+  {% empty %}
+    <div class="empty-state"><h2>No buildings or areas yet</h2><p>Add the first barn, arena, outdoor area or other top-level space.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add first building or area</a>{% endif %}</div>
+  {% endfor %}
+  </div>
 </section>
-<p><a href="{% url 'facility_list' %}">← All facilities</a></p>
 {% endblock %}
