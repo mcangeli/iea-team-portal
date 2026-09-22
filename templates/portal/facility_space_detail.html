@@ -6,7 +6,7 @@
 </nav>
 <section class="page-intro">
   <div><div class="eyebrow">{{ facility.name }} · {{ space.get_space_type_display|upper }}</div><h1>{{ space.name }}</h1><p>{% if space.parent %}Inside {{ space.parent.name }}{% else %}{{ facility.name }}{% endif %}</p></div>
-  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_space_edit' space.pk %}">Edit</a><a class="btn secondary" href="{% url 'facility_space_create' facility.pk %}?parent={{ space.pk }}">Add resource</a>{% if space.housing_capable %}<a class="btn" href="{% url 'stall_assignment_create' facility.pk %}">Assign housing</a>{% endif %}{% if space.turnout_capable %}<a class="btn" href="{% url 'pasture_assignment_create' facility.pk %}">Assign turnout</a>{% endif %}</div>{% endif %}
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_space_edit' space.pk %}">Edit</a>{% if space.reservable %}<a class="btn" href="{% url 'resource_reservation_create' space.pk %}">Reserve resource</a>{% endif %}<a class="btn secondary" href="{% url 'facility_space_create' facility.pk %}?parent={{ space.pk }}">Add resource</a>{% if space.housing_capable %}<a class="btn" href="{% url 'stall_assignment_create' facility.pk %}">Assign housing</a>{% endif %}{% if space.turnout_capable %}<a class="btn" href="{% url 'pasture_assignment_create' facility.pk %}">Assign turnout</a>{% endif %}</div>{% endif %}
 </section>
 {% if space.notes %}<section class="content-section"><p>{{ space.notes|linebreaksbr }}</p></section>{% endif %}
 {% if groups %}
@@ -22,6 +22,14 @@
     </div>
   </section>
   {% endfor %}
+{% endif %}
+{% if space.reservable %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">SCHEDULE</div><h2>Upcoming reservations</h2><p class="muted">Back-to-back reservations are allowed; overlapping bookings are not.</p></div></div>
+  {% for reservation in upcoming_reservations %}
+    <p><strong>{{ reservation.title }}</strong> · {{ reservation.starts_at|date:"M j, Y g:i A" }}–{{ reservation.ends_at|date:"g:i A" }}{% if can_manage %} · <a href="{% url 'resource_reservation_edit' reservation.pk %}">Edit</a> · <a href="{% url 'resource_reservation_cancel' reservation.pk %}">Cancel</a>{% endif %}</p>
+  {% empty %}<p class="muted">No upcoming reservations.</p>{% endfor %}
+</section>
 {% endif %}
 {% if space.housing_capable %}
 <section class="content-section"><div class="section-head"><div><div class="eyebrow">HOUSING</div><h2>Current assignment</h2></div></div>
