@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -128,14 +128,12 @@ class PastureTurnoutWorkflowTests(TestCase):
     def test_dated_current_turnout_is_visible_and_editable(self):
         assignment = HorsePastureAssignment.objects.create(
             horse=self.horse, space=self.pasture, turnout_type="primary",
-            start_date=date(2026, 8, 1), end_date=date(2026, 9, 30),
+            start_date=date.today() - timedelta(days=7), end_date=date.today() + timedelta(days=7),
         )
         self.client.force_login(self.admin)
-        with self.settings():
-            response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
-        if date.today() >= date(2026, 8, 1) and date.today() <= date(2026, 9, 30):
-            self.assertContains(response, "Atlas")
-            self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "Atlas")
+        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
 
 
     def test_manager_can_move_primary_turnout_and_preserve_history(self):
@@ -173,14 +171,13 @@ class PastureTurnoutWorkflowTests(TestCase):
     def test_manager_can_end_dated_current_turnout(self):
         assignment = HorsePastureAssignment.objects.create(
             horse=self.horse, space=self.pasture, turnout_type="primary",
-            start_date=date(2026, 8, 1), end_date=date(2026, 9, 30),
+            start_date=date.today() - timedelta(days=7), end_date=date.today() + timedelta(days=7),
         )
         self.client.force_login(self.admin)
         response = self.client.post(reverse("pasture_assignment_end", args=[assignment.pk]))
         assignment.refresh_from_db()
-        if date.today() >= date(2026, 8, 1) and date.today() <= date(2026, 9, 30):
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(assignment.end_date, date.today())
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(assignment.end_date, date.today())
 
 
     def test_ended_today_is_hidden_from_current_turnout_and_visible_in_history(self):
