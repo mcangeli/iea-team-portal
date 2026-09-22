@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from portal.model_modules.facilities import Facility, FacilitySpace, ResourceReservation
 from portal.model_modules.lessons import LessonOccurrence, LessonProgram, LessonSeries
-from portal.models import Team, UserProfile
+from portal.models import Season, Team, UserProfile
 from portal.services.lesson_resources import (
     LESSON_OCCURRENCE_SOURCE,
     assign_lesson_resource,
@@ -26,6 +26,8 @@ class LessonResourceSchedulingTests(TestCase):
         self.admin.profile.team = self.team
         self.admin.profile.role = UserProfile.Role.ADMIN
         self.admin.profile.save(update_fields=["team", "role"])
+        today = timezone.localdate()
+        self.season = Season.objects.create(team=self.team, name="Current IEA Season", start_date=today - timedelta(days=30), end_date=today + timedelta(days=180), active=True)
         self.program = LessonProgram.objects.create(team=self.team, name="Academy")
         self.series = LessonSeries.objects.create(program=self.program, name="Tuesday Lessons")
         self.starts = timezone.now() + timedelta(days=2)
