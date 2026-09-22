@@ -5,8 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm, HorsePastureAssignmentForm
-from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment, HorsePastureAssignment
+from .facility_forms import FacilityForm, FacilitySpaceForm, HorseStallAssignmentForm, HorsePastureAssignmentForm, ResourceReservationForm
+from .model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment, HorsePastureAssignment, ResourceReservation
 from .platform import can_manage_organization, organization_for_view_user
 from .models import AuditEvent
 from .view_modules.common import _audit_event
@@ -129,6 +129,69 @@ def facility_space_detail(request, pk):
         "housing_history": housing_history,
         "turnout_history": turnout_history,
         "can_manage": can_manage_organization(request.user),
+        "upcoming_reservations": ResourceReservation.objects.filter(
+            space=space, ends_at__gt=timezone.now()
+        ).order_by("starts_at")[:20] if space.reservable else [],
+    })
+
+
+@login_required
+def resource_reservation_create(request, space_pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    space = get_object_or_404(
+        FacilitySpace.objects.select_related("facility", "parent"),
+        pk=space_pk, facility__team=team, reservable=True, active=True,
+    )
+    form = ResourceReservationForm(request.POST or None, space=space)
+    if request.method == "POST" and form.is_valid():
+        reservation = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=reservation, summary=f"Reserved {space.name} for {reservation.title}")
+        messages.success(request, f"{space.name} reserved for {reservation.title}.")
+        return redirect("facility_space_detail", pk=space.pk)
+    return render(request, "portal/resource_reservation_form.html", {
+        "form": form, "space": space, "facility": space.facility,
+        "title": f"Reserve {space.name}",
+    })
+
+
+@login_required
+def resource_reservation_edit(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    reservation = get_object_or_404(
+        ResourceReservation.objects.select_related("space__facility", "space__parent"),
+        pk=pk, space__facility__team=team,
+    )
+    form = ResourceReservationForm(request.POST or None, instance=reservation, space=reservation.space)
+    if request.method == "POST" and form.is_valid():
+        reservation = form.save()
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=reservation, summary=f"Updated reservation {reservation.title} for {reservation.space.name}")
+        messages.success(request, f"Reservation for {reservation.space.name} updated.")
+        return redirect("facility_space_detail", pk=reservation.space_id)
+    return render(request, "portal/resource_reservation_form.html", {
+        "form": form, "space": reservation.space, "facility": reservation.space.facility,
+        "reservation": reservation, "title": f"Edit reservation — {reservation.space.name}",
+    })
+
+
+@login_required
+def resource_reservation_delete(request, pk):
+    _require_facility_manager(request.user)
+    team = _facility_context(request.user)
+    reservation = get_object_or_404(
+        ResourceReservation.objects.select_related("space__facility"),
+        pk=pk, space__facility__team=team,
+    )
+    space = reservation.space
+    if request.method == "POST":
+        label = reservation.title
+        _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=reservation, summary=f"Cancelled reservation {label} for {space.name}", details={"cancelled": True})
+        reservation.delete()
+        messages.success(request, f"Reservation {label} cancelled.")
+        return redirect("facility_space_detail", pk=space.pk)
+    return render(request, "portal/resource_reservation_cancel.html", {
+        "reservation": reservation, "space": space,
     })
 
 
