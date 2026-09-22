@@ -114,6 +114,46 @@ class LessonResourceSchedulingTests(TestCase):
         self.assertEqual(reservation.starts_at, original_start)
         self.assertEqual(reservation.ends_at, original_end)
 
+    def test_cancel_lesson_releases_resource_and_preserves_history(self):
+        from portal.services.lesson_scheduling import cancel_lesson_occurrence
+
+        reservation = assign_lesson_resource(self.occurrence, self.indoor)
+        cancel_lesson_occurrence(self.occurrence, notes="Weather cancellation")
+        reservation.refresh_from_db()
+        self.occurrence.refresh_from_db()
+        self.assertEqual(self.occurrence.status, LessonOccurrence.Status.CANCELLED)
+        self.assertIsNotNone(reservation.cancelled_at)
+        self.assertIsNone(current_lesson_resource_reservation(self.occurrence))
+        self.assertTrue(ResourceReservation.objects.filter(pk=reservation.pk).exists())
+
+    def test_successful_reschedule_moves_active_reservation_times(self):
+        reservation = assign_lesson_resource(self.occurrence, self.indoor)
+        new_start = self.occurrence.starts_at + timedelta(hours=2)
+        new_end = self.occurrence.ends_at + timedelta(hours=2)
+        reschedule_lesson_occurrence(self.occurrence, starts_at=new_start, ends_at=new_end)
+        self.occurrence.refresh_from_db()
+        reservation.refresh_from_db()
+        self.assertEqual(self.occurrence.starts_at, new_start)
+        self.assertEqual(self.occurrence.ends_at, new_end)
+        self.assertEqual(reservation.starts_at, new_start)
+        self.assertEqual(reservation.ends_at, new_end)
+        self.assertIsNone(reservation.cancelled_at)
+
+    def test_indoor_to_outdoor_history_remains_after_completion(self):
+        from portal.services.lesson_completion import complete_lesson_occurrence
+
+        indoor_reservation = assign_lesson_resource(self.occurrence, self.indoor)
+        outdoor_reservation = assign_lesson_resource(self.occurrence, self.outdoor)
+        indoor_reservation.refresh_from_db()
+        self.assertIsNotNone(indoor_reservation.cancelled_at)
+        # Completion must not erase either the historical Indoor reservation or
+        # the active Outdoor reservation used for the lesson.
+        complete_lesson_occurrence(self.occurrence)
+        self.assertTrue(ResourceReservation.objects.filter(pk=indoor_reservation.pk).exists())
+        self.assertTrue(ResourceReservation.objects.filter(pk=outdoor_reservation.pk).exists())
+        outdoor_reservation.refresh_from_db()
+        self.assertIsNone(outdoor_reservation.cancelled_at)
+
     def test_manager_can_move_resource_through_occurrence_workflow(self):
         assign_lesson_resource(self.occurrence, self.indoor)
         self.client.force_login(self.admin)
