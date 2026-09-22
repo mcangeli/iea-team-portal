@@ -29,6 +29,11 @@
   {% for reservation in upcoming_reservations %}
     <p><strong>{{ reservation.title }}</strong> · {{ reservation.starts_at|date:"M j, Y g:i A" }}–{{ reservation.ends_at|date:"g:i A" }}{% if can_manage %} · <a href="{% url 'resource_reservation_edit' reservation.pk %}">Edit</a> · <a href="{% url 'resource_reservation_cancel' reservation.pk %}">Cancel</a>{% endif %}</p>
   {% empty %}<p class="muted">No upcoming reservations.</p>{% endfor %}
+  {% if reservation_history %}<details><summary>Reservation history</summary>
+    {% for reservation in reservation_history %}
+      <p><strong>{{ reservation.title }}</strong> · {{ reservation.starts_at|date:"M j, Y g:i A" }}–{{ reservation.ends_at|date:"g:i A" }}{% if reservation.cancelled_at %} · <span class="status-pill">Cancelled</span>{% endif %}</p>
+    {% endfor %}
+  </details>{% endif %}
 </section>
 {% endif %}
 {% if space.housing_capable %}
