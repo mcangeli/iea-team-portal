@@ -11,6 +11,7 @@ from django.utils import timezone
 from ..forms_lesson_resources import LessonResourceAssignmentForm, LessonResourceReleaseForm
 from ..forms_lesson_resources import LessonResourceAssignmentForm, LessonResourceReleaseForm
 from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
+from ..model_modules.facilities import ResourceReservation
 from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
 from ..model_modules.finance import FinanceDomain, ReceivableBillingRule, ReceivableCharge
@@ -201,7 +202,8 @@ def lesson_occurrence_detail(request,pk):
     requested_rule=request.GET.get("billing_rule")
     if requested_rule and rules.filter(pk=requested_rule).exists():
         selected_rule=rules.get(pk=requested_rule); billing_rows=_lesson_billing_preview(occurrence,selected_rule)
-    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"resource_reservation":current_lesson_resource_reservation(occurrence),"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
+    resource_reservation=current_lesson_resource_reservation(occurrence); resource_history=ResourceReservation.objects.filter(source_type="lesson_occurrence",source_id=occurrence.pk).select_related("space__facility").order_by("created_at","id")
+    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"resource_reservation":resource_reservation,"resource_history":resource_history,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
 
 @login_required
 def lesson_occurrence_bill(request,pk):
