@@ -206,3 +206,24 @@ class PastureTurnoutWorkflowTests(TestCase):
             horse=self.horse, space=north, turnout_type="primary", start_date=date(2026, 9, 21)
         )
         next_assignment.full_clean()
+
+
+    def test_horse_profile_shows_current_turnout_and_history(self):
+        HorsePastureAssignment.objects.create(
+            horse=self.horse, space=self.pasture, turnout_type="primary",
+            start_date=date.today(),
+        )
+        old = FacilitySpace.objects.create(
+            facility=self.facility, name="Old Paddock",
+            space_type=FacilitySpace.SpaceType.PASTURE, turnout_capable=True,
+        )
+        HorsePastureAssignment.objects.create(
+            horse=self.horse, space=old, turnout_type="primary",
+            start_date=date.today() - timedelta(days=30),
+            end_date=date.today() - timedelta(days=7),
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
+        self.assertContains(response, "Housing &amp; turnout")
+        self.assertContains(response, self.pasture.name)
+        self.assertContains(response, old.name)
