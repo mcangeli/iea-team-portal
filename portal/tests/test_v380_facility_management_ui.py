@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.model_modules.facilities import Facility, FacilitySpace
-from portal.models import Team, UserProfile
+from portal.models import AuditEvent, Team, UserProfile
 
 
 class FacilityManagementUITests(TestCase):
@@ -94,3 +94,27 @@ class FacilityManagementUITests(TestCase):
         self.assertEqual(len(tree), 1)
         self.assertEqual(tree[0]["space"], barn)
         self.assertEqual(tree[0]["children"][0]["space"], stall)
+
+
+    def test_duplicate_facility_name_returns_form_error(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("facility_create"), {
+            "name": self.facility.name, "address": "", "active": "on", "notes": "",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Facility.objects.filter(team=self.team, name=self.facility.name).count(), 1)
+        self.assertTrue(response.context["form"].errors)
+
+    def test_facility_create_and_update_are_audited(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("facility_create"), {
+            "name": "Audited Farm", "address": "", "active": "on", "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        facility = Facility.objects.get(team=self.team, name="Audited Farm")
+        self.assertTrue(AuditEvent.objects.filter(team=self.team, object_id=str(facility.pk), action=AuditEvent.Action.CREATED).exists())
+        response = self.client.post(reverse("facility_edit", args=[facility.pk]), {
+            "name": "Audited Farm Updated", "address": "", "active": "on", "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(AuditEvent.objects.filter(team=self.team, object_id=str(facility.pk), action=AuditEvent.Action.UPDATED).exists())
