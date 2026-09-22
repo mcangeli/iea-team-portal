@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import OuterRef, Q, Subquery
 from django.utils import timezone
 
+from .model_modules.facilities import FacilitySpace
 from .model_modules.horses import Horse
 from .model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from .model_modules.people import LegacyPersonLink, OrganizationGroup, OrganizationRoleAssignment, Person
@@ -147,6 +148,10 @@ class LessonCancelForm(forms.Form):
 
 
 class IEALessonOccurrenceForm(forms.ModelForm):
+    resource_space = forms.ModelChoiceField(
+        queryset=FacilitySpace.objects.none(), required=False, label="Managed resource",
+        help_text="Optional. Choose a managed arena/resource, or use Location for an unmanaged place.",
+    )
     horses = forms.ModelMultipleChoiceField(
         queryset=Horse.objects.none(), required=False, widget=forms.CheckboxSelectMultiple,
         label="Horse planning", help_text="Optional planning pool; horse assignments can be changed on lesson day.",
@@ -177,6 +182,9 @@ class IEALessonOccurrenceForm(forms.ModelForm):
         self.instance.origin = LessonOccurrence.Origin.MANUAL
         self.instance.iea_roster_configured = True
         self.fields["instructor"].queryset = lesson_instructor_queryset(team, iea=True)
+        self.fields["resource_space"].queryset = FacilitySpace.objects.filter(
+            facility__team=team, facility__active=True, active=True, reservable=True
+        ).select_related("facility").order_by("facility__name", "name")
         self.fields["horses"].queryset = Horse.objects.filter(team=team, active=True).order_by("name")
         rider_ids = SeasonMembership.objects.filter(season=season).values_list("rider_id", flat=True)
         person_ids = LegacyPersonLink.objects.filter(rider_id__in=rider_ids).values_list("person_id", flat=True)
