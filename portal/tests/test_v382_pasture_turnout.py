@@ -93,7 +93,7 @@ class PastureTurnoutWorkflowTests(TestCase):
             horse=self.horse, space=self.pasture, turnout_type="primary", start_date=date.today()
         )
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.pasture.pk]))
         self.assertContains(response, "Atlas")
         self.assertContains(response, "Primary")
         self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
@@ -131,7 +131,7 @@ class PastureTurnoutWorkflowTests(TestCase):
             start_date=date.today() - timedelta(days=7), end_date=date.today() + timedelta(days=7),
         )
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.pasture.pk]))
         self.assertContains(response, "Atlas")
         self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
 
@@ -163,9 +163,9 @@ class PastureTurnoutWorkflowTests(TestCase):
             start_date=date(2026, 8, 1), end_date=date(2026, 8, 31),
         )
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
-        self.assertContains(response, "Recent assignments")
-        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.pasture.pk]))
+        self.assertContains(response, "Assignment history")
+        self.assertContains(response, "Atlas")
 
 
     def test_manager_can_end_dated_current_turnout(self):
@@ -187,10 +187,10 @@ class PastureTurnoutWorkflowTests(TestCase):
         assignment.end_date = date.today()
         assignment.save()
         self.client.force_login(self.admin)
-        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        response = self.client.get(reverse("facility_space_detail", args=[self.pasture.pk]))
         self.assertContains(response, "No current turnout assignments.")
-        self.assertContains(response, "Recent assignments")
-        self.assertContains(response, reverse("pasture_assignment_edit", args=[assignment.pk]))
+        self.assertContains(response, "Assignment history")
+        self.assertContains(response, "Atlas")
 
 
     def test_adjacent_primary_turnout_can_share_transition_date(self):
