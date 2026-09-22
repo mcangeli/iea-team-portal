@@ -102,3 +102,43 @@ class FacilityFoundationContractTests(TestCase):
             ResourceReservation(
                 space=self.ring, starts_at=starts, ends_at=starts, title="Bad"
             ).full_clean()
+
+    def test_reservation_overlap_uses_half_open_intervals(self):
+        starts = timezone.now()
+        existing = ResourceReservation.objects.create(
+            space=self.ring, starts_at=starts, ends_at=starts + timedelta(hours=1), title="Lesson"
+        )
+        adjacent = ResourceReservation(
+            space=self.ring, starts_at=existing.ends_at,
+            ends_at=existing.ends_at + timedelta(hours=1), title="Next lesson"
+        )
+        adjacent.full_clean()
+        overlapping = ResourceReservation(
+            space=self.ring, starts_at=starts + timedelta(minutes=30),
+            ends_at=starts + timedelta(hours=1, minutes=30), title="Conflict"
+        )
+        with self.assertRaises(ValidationError):
+            overlapping.full_clean()
+
+    def test_reservation_edit_does_not_conflict_with_itself(self):
+        starts = timezone.now()
+        reservation = ResourceReservation.objects.create(
+            space=self.ring, starts_at=starts, ends_at=starts + timedelta(hours=1), title="Lesson"
+        )
+        reservation.title = "Updated lesson"
+        reservation.full_clean()
+
+    def test_reservations_on_different_resources_may_overlap(self):
+        starts = timezone.now()
+        second_ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Outdoor Arena",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        ResourceReservation.objects.create(
+            space=self.ring, starts_at=starts, ends_at=starts + timedelta(hours=1), title="Indoor"
+        )
+        other = ResourceReservation(
+            space=second_ring, starts_at=starts, ends_at=starts + timedelta(hours=1), title="Outdoor"
+        )
+        other.full_clean()
+
