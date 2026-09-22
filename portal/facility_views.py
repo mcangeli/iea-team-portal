@@ -44,62 +44,90 @@ def facility_list(request):
 def facility_detail(request, pk):
     team = _facility_context(request.user)
     facility = get_object_or_404(Facility, pk=pk, team=team)
-    spaces = list(facility.spaces.select_related("parent").order_by("name", "id"))
-    children_by_parent = {}
-    for space in spaces:
-        children_by_parent.setdefault(space.parent_id, []).append(space)
-
-    def build_node(space, seen=None):
-        seen = set(seen or ())
-        if space.pk in seen:
-            return {"space": space, "children": []}
-        seen.add(space.pk)
-        return {
-            "space": space,
-            "children": [build_node(child, seen) for child in children_by_parent.get(space.pk, [])],
-        }
-
-    space_tree = [build_node(space) for space in children_by_parent.get(None, [])]
-    today = timezone.localdate()
-    current_stall_assignments = (
-        _current_assignments(HorseStallAssignment.objects.filter(space__facility=facility), today)
-        .select_related("horse", "space")
-        .order_by("space__name", "horse__name")
+    top_spaces = list(
+        facility.spaces.filter(parent__isnull=True)
+        .order_by("space_type", "name", "id")
     )
-    current_by_space = {assignment.space_id: assignment for assignment in current_stall_assignments}
-    current_turnout_assignments = (
-        _current_assignments(HorsePastureAssignment.objects.filter(space__facility=facility), today)
-        .select_related("horse", "space")
-        .order_by("space__name", "turnout_type", "horse__name")
-    )
-    turnout_by_space = {}
-    for assignment in current_turnout_assignments:
-        turnout_by_space.setdefault(assignment.space_id, []).append(assignment)
-
-    def attach_occupancy(nodes):
-        for node in nodes:
-            node["stall_assignment"] = current_by_space.get(node["space"].pk)
-            node["turnout_assignments"] = turnout_by_space.get(node["space"].pk, [])
-            attach_occupancy(node["children"])
-    attach_occupancy(space_tree)
-    recent_turnout_history = (
-        HorsePastureAssignment.objects.filter(space__facility=facility, end_date__lte=today)
-        .select_related("horse", "space")
-        .order_by("-end_date", "-start_date", "horse__name")[:20]
-    )
-    recent_housing_history = (
-        HorseStallAssignment.objects.filter(space__facility=facility, end_date__lte=today)
-        .select_related("horse", "space")
-        .order_by("-end_date", "-start_date", "horse__name")[:20]
-    )
+    all_spaces = list(facility.spaces.all())
+    descendant_counts = {}
+    for root in top_spaces:
+        pending = [root.pk]
+        seen = set()
+        descendants = []
+        while pending:
+            parent_id = pending.pop()
+            if parent_id in seen:
+                continue
+            seen.add(parent_id)
+            children = [space for space in all_spaces if space.parent_id == parent_id]
+            descendants.extend(children)
+            pending.extend(child.pk for child in children)
+        counts = {}
+        for child in descendants:
+            label = child.get_space_type_display()
+            counts[label] = counts.get(label, 0) + 1
+        descendant_counts[root.pk] = counts
+    top_space_rows = [
+        {"space": space, "counts": descendant_counts.get(space.pk, {})}
+        for space in top_spaces
+    ]
     return render(request, "portal/facility_detail.html", {
         "facility": facility,
-        "spaces": spaces,
-        "space_tree": space_tree,
-        "current_stall_assignments": current_stall_assignments,
-        "current_turnout_assignments": current_turnout_assignments,
-        "recent_turnout_history": recent_turnout_history,
-        "recent_housing_history": recent_housing_history,
+        "top_space_rows": top_space_rows,
+        "can_manage": can_manage_organization(request.user),
+    })
+
+
+@login_required
+def facility_space_detail(request, pk):
+    team = _facility_context(request.user)
+    space = get_object_or_404(
+        FacilitySpace.objects.select_related("facility", "parent"),
+        pk=pk, facility__team=team,
+    )
+    children = list(space.children.order_by("space_type", "name", "id"))
+    groups = []
+    group_order = [
+        (FacilitySpace.SpaceType.STALL, "Stalls"),
+        (FacilitySpace.SpaceType.PASTURE, "Pasture & turnout"),
+        (FacilitySpace.SpaceType.STORAGE, "Storage"),
+        (FacilitySpace.SpaceType.ARENA, "Rings & arenas"),
+    ]
+    grouped_ids = set()
+    for space_type, label in group_order:
+        items = [child for child in children if child.space_type == space_type]
+        if items:
+            groups.append({"label": label, "spaces": items})
+            grouped_ids.update(item.pk for item in items)
+    other = [child for child in children if child.pk not in grouped_ids]
+    if other:
+        groups.append({"label": "Other", "spaces": other})
+
+    today = timezone.localdate()
+    current_housing = (
+        _current_assignments(HorseStallAssignment.objects.filter(space=space), today)
+        .select_related("horse").first()
+    )
+    current_turnout = (
+        _current_assignments(HorsePastureAssignment.objects.filter(space=space), today)
+        .select_related("horse").order_by("turnout_type", "horse__name")
+    )
+    housing_history = (
+        HorseStallAssignment.objects.filter(space=space, end_date__lte=today)
+        .select_related("horse").order_by("-end_date", "-start_date")[:20]
+    )
+    turnout_history = (
+        HorsePastureAssignment.objects.filter(space=space, end_date__lte=today)
+        .select_related("horse").order_by("-end_date", "-start_date")[:20]
+    )
+    return render(request, "portal/facility_space_detail.html", {
+        "facility": space.facility,
+        "space": space,
+        "groups": groups,
+        "current_housing": current_housing,
+        "current_turnout": current_turnout,
+        "housing_history": housing_history,
+        "turnout_history": turnout_history,
         "can_manage": can_manage_organization(request.user),
     })
 
