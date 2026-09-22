@@ -6,6 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from portal.model_modules.lessons import LessonOccurrence, LessonSeries
+from portal.services.lesson_resources import current_lesson_resource_reservation, sync_lesson_resource_times
 
 
 @dataclass(frozen=True)
@@ -156,6 +157,14 @@ def reschedule_lesson_occurrence(occurrence: LessonOccurrence, *, starts_at, end
     if notes is not None:
         occurrence.notes = notes
     occurrence.full_clean()
+    reservation = current_lesson_resource_reservation(occurrence)
+    if reservation:
+        original_starts_at, original_ends_at = occurrence.starts_at, occurrence.ends_at
+        try:
+            sync_lesson_resource_times(occurrence)
+        except ValidationError:
+            occurrence.refresh_from_db()
+            raise
     occurrence.save()
     return occurrence
 
