@@ -186,7 +186,7 @@ class ResourceReservationForm(forms.ModelForm):
         ends_at = cleaned.get("ends_at")
         if starts_at and ends_at:
             overlapping = ResourceReservation.objects.filter(
-                space=self.space,
+                space=self.space, cancelled_at__isnull=True,
                 starts_at__lt=ends_at,
                 ends_at__gt=starts_at,
             )
