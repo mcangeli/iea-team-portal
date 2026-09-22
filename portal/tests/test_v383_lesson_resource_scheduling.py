@@ -15,7 +15,7 @@ from portal.services.lesson_resources import (
     current_lesson_resource_reservation,
     release_lesson_resource,
 )
-from portal.services.lesson_scheduling import reschedule_lesson_occurrence
+from portal.services.lesson_scheduling import refresh_future_lesson_occurrences, reschedule_lesson_occurrence
 
 
 class LessonResourceSchedulingTests(TestCase):
@@ -240,6 +240,30 @@ class LessonResourceSchedulingTests(TestCase):
         self.assertTrue(response.context["form"].errors.get("resource_space"))
         self.assertFalse(LessonOccurrence.objects.filter(title="Conflicting Scheduled Lesson").exists())
         self.assertEqual(ResourceReservation.objects.filter(space=self.indoor).count(), 1)
+
+    def test_refresh_preserves_resource_backed_generated_occurrence(self):
+        self.series.active = True
+        self.series.weekday = self.occurrence.starts_at.weekday()
+        self.series.starts_at_time = timezone.localtime(self.occurrence.starts_at).time().replace(tzinfo=None)
+        self.series.duration_minutes = 90
+        self.series.name = "Changed Series Name"
+        self.series.save()
+        self.occurrence.origin = LessonOccurrence.Origin.GENERATED
+        self.occurrence.scheduled_for = self.occurrence.starts_at
+        self.occurrence.save(update_fields=["origin", "scheduled_for", "updated_at"])
+        reservation = assign_lesson_resource(self.occurrence, self.indoor)
+
+        result = refresh_future_lesson_occurrences(
+            self.series, from_datetime=self.occurrence.starts_at - timedelta(minutes=1)
+        )
+
+        self.occurrence.refresh_from_db()
+        reservation.refresh_from_db()
+        self.assertIn(self.occurrence, result.preserved)
+        self.assertNotIn(self.occurrence, result.updated)
+        self.assertEqual(self.occurrence.title, "Intermediate Lesson")
+        self.assertEqual(reservation.space, self.indoor)
+        self.assertIsNone(reservation.cancelled_at)
 
     def test_resource_form_does_not_offer_other_organization_spaces(self):
         other_facility = Facility.objects.create(team=self.other_team, name="Other Farm")
