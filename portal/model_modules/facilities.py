@@ -11,6 +11,7 @@ class Facility(models.Model):
     address = models.CharField(max_length=255, blank=True)
     active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -208,7 +209,7 @@ class ResourceReservation(models.Model):
             raise ValidationError({"ends_at": "Reservation end must be after its start."})
         if self.space_id and self.starts_at and self.ends_at:
             overlapping = ResourceReservation.objects.filter(
-                space_id=self.space_id,
+                space_id=self.space_id, cancelled_at__isnull=True,
                 starts_at__lt=self.ends_at,
                 ends_at__gt=self.starts_at,
             )
