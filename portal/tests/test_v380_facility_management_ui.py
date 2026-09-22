@@ -1,8 +1,10 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
-from portal.model_modules.facilities import Facility, FacilitySpace
+from portal.model_modules.facilities import Facility, FacilitySpace, ResourceReservation
 from portal.models import AuditEvent, Team, UserProfile
 
 
@@ -162,3 +164,70 @@ class FacilityManagementUITests(TestCase):
         })
         self.assertEqual(response.status_code, 302)
         self.assertTrue(AuditEvent.objects.filter(team=self.team, entity_id=facility.pk, action=AuditEvent.Action.UPDATED).exists())
+
+
+    def test_manager_can_create_resource_reservation(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Indoor Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        starts = timezone.now() + timedelta(days=1)
+        ends = starts + timedelta(hours=1)
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("resource_reservation_create", args=[ring.pk]), {
+            "title": "Private lesson",
+            "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": ends.strftime("%Y-%m-%dT%H:%M"),
+            "notes": "",
+        })
+        reservation = ResourceReservation.objects.get(space=ring, title="Private lesson")
+        self.assertRedirects(response, reverse("facility_space_detail", args=[ring.pk]))
+        self.assertTrue(AuditEvent.objects.filter(
+            team=self.team, entity_id=reservation.pk, action=AuditEvent.Action.CREATED
+        ).exists())
+
+    def test_overlapping_reservation_returns_form_error(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Outdoor Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        starts = timezone.now() + timedelta(days=1)
+        ResourceReservation.objects.create(
+            space=ring, title="Existing", starts_at=starts, ends_at=starts + timedelta(hours=1)
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("resource_reservation_create", args=[ring.pk]), {
+            "title": "Conflict",
+            "starts_at": (starts + timedelta(minutes=30)).strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": (starts + timedelta(hours=1, minutes=30)).strftime("%Y-%m-%dT%H:%M"),
+            "notes": "",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors)
+        self.assertFalse(ResourceReservation.objects.filter(space=ring, title="Conflict").exists())
+
+    def test_non_manager_cannot_manage_reservations(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Schooling Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        self.client.force_login(self.parent)
+        self.assertEqual(
+            self.client.get(reverse("resource_reservation_create", args=[ring.pk])).status_code, 403
+        )
+
+    def test_resource_page_shows_upcoming_reservations(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Competition Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        starts = timezone.now() + timedelta(days=1)
+        ResourceReservation.objects.create(
+            space=ring, title="Arena maintenance",
+            starts_at=starts, ends_at=starts + timedelta(hours=2),
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_space_detail", args=[ring.pk]))
+        self.assertContains(response, "Upcoming reservations")
+        self.assertContains(response, "Arena maintenance")
+        self.assertContains(response, "Reserve resource")
