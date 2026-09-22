@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a data-history-back href="{% url 'inventory_list' %}">← Back</a></nav>
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · INVENTORY</div><h1>{{ title }}</h1></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save</button></div></form></section>
+{% endblock %}
