@@ -206,6 +206,16 @@ class ResourceReservation(models.Model):
             raise ValidationError({"space": "Selected facility space is not reservable."})
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             raise ValidationError({"ends_at": "Reservation end must be after its start."})
+        if self.space_id and self.starts_at and self.ends_at:
+            overlapping = ResourceReservation.objects.filter(
+                space_id=self.space_id,
+                starts_at__lt=self.ends_at,
+                ends_at__gt=self.starts_at,
+            )
+            if self.pk:
+                overlapping = overlapping.exclude(pk=self.pk)
+            if overlapping.exists():
+                raise ValidationError({"starts_at": "Selected resource already has an overlapping reservation."})
 
     def __str__(self):
         return f"{self.title} — {self.space}"
