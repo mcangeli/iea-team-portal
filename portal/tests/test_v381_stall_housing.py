@@ -6,7 +6,7 @@ from django.urls import reverse
 
 from portal.model_modules.facilities import Facility, FacilitySpace, HorseStallAssignment
 from portal.model_modules.horses import Horse
-from portal.models import Team, UserProfile
+from portal.models import AuditEvent, Team, UserProfile
 
 
 class StallHousingWorkflowTests(TestCase):
@@ -192,3 +192,22 @@ class StallHousingWorkflowTests(TestCase):
         self.assertContains(response, "Housing &amp; turnout")
         self.assertContains(response, current.space.name)
         self.assertContains(response, old_stall.name)
+
+
+    def test_housing_mutations_are_audited(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("stall_assignment_create", args=[self.facility.pk]), {
+            "horse": self.horse.pk, "space": self.stall.pk,
+            "start_date": date.today(), "end_date": "", "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        assignment = HorseStallAssignment.objects.get(horse=self.horse)
+        self.assertTrue(AuditEvent.objects.filter(
+            team=self.team, entity_id=assignment.pk, action=AuditEvent.Action.CREATED
+        ).exists())
+        response = self.client.post(reverse("stall_assignment_vacate", args=[assignment.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(AuditEvent.objects.filter(
+            team=self.team, entity_id=assignment.pk, action=AuditEvent.Action.UPDATED,
+            summary__icontains="Vacated",
+        ).exists())
