@@ -6,7 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from portal.model_modules.lessons import LessonOccurrence, LessonSeries
-from portal.services.lesson_resources import current_lesson_resource_reservation, sync_lesson_resource_times
+from portal.services.lesson_resources import current_lesson_resource_reservation, release_lesson_resource, sync_lesson_resource_times
 
 
 @dataclass(frozen=True)
@@ -139,6 +139,7 @@ def cancel_lesson_occurrence(occurrence: LessonOccurrence, *, notes=None) -> Les
         occurrence.notes = notes
     occurrence.full_clean()
     occurrence.save()
+    release_lesson_resource(occurrence, location=occurrence.location)
     return occurrence
 
 
