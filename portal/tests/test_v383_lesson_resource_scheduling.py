@@ -265,6 +265,75 @@ class LessonResourceSchedulingTests(TestCase):
         self.assertEqual(reservation.space, self.indoor)
         self.assertIsNone(reservation.cancelled_at)
 
+    def test_iea_duplicate_with_managed_resource_creates_linked_reservation(self):
+        from portal.model_modules.lessons import IEALessonSeriesContext
+
+        IEALessonSeriesContext.objects.create(
+            series=self.series,
+            season=self.season,
+            team_level=IEALessonSeriesContext.TeamLevel.MIXED,
+        )
+        self.client.force_login(self.admin)
+        starts = timezone.localtime(self.starts + timedelta(days=1))
+        ends = starts + timedelta(hours=1)
+        response = self.client.post(
+            reverse("iea_lesson_occurrence_duplicate", args=[self.occurrence.pk]),
+            {
+                "title": "Duplicated Indoor Lesson",
+                "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+                "ends_at": ends.strftime("%Y-%m-%dT%H:%M"),
+                "instructor": "",
+                "resource_space": self.indoor.pk,
+                "location": "",
+                "capacity": 6,
+                "notes": "",
+            },
+        )
+        duplicate = LessonOccurrence.objects.get(title="Duplicated Indoor Lesson")
+        reservation = current_lesson_resource_reservation(duplicate)
+        self.assertRedirects(response, reverse("lesson_occurrence_detail", args=[duplicate.pk]))
+        self.assertIsNotNone(reservation)
+        self.assertEqual(reservation.space, self.indoor)
+        duplicate.refresh_from_db()
+        self.assertEqual(duplicate.location, self.indoor.name)
+
+    def test_iea_duplicate_resource_conflict_rolls_back_occurrence(self):
+        from portal.model_modules.lessons import IEALessonSeriesContext
+
+        IEALessonSeriesContext.objects.create(
+            series=self.series,
+            season=self.season,
+            team_level=IEALessonSeriesContext.TeamLevel.MIXED,
+        )
+        conflict_start = self.starts + timedelta(days=1)
+        conflict_end = conflict_start + timedelta(hours=1)
+        ResourceReservation.objects.create(
+            space=self.indoor,
+            title="Existing duplicate-slot booking",
+            starts_at=conflict_start,
+            ends_at=conflict_end,
+        )
+        self.client.force_login(self.admin)
+        starts = timezone.localtime(conflict_start)
+        ends = timezone.localtime(conflict_end)
+        response = self.client.post(
+            reverse("iea_lesson_occurrence_duplicate", args=[self.occurrence.pk]),
+            {
+                "title": "Conflicting Duplicate Lesson",
+                "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+                "ends_at": ends.strftime("%Y-%m-%dT%H:%M"),
+                "instructor": "",
+                "resource_space": self.indoor.pk,
+                "location": "",
+                "capacity": 6,
+                "notes": "",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors.get("resource_space"))
+        self.assertFalse(LessonOccurrence.objects.filter(title="Conflicting Duplicate Lesson").exists())
+        self.assertEqual(ResourceReservation.objects.filter(space=self.indoor).count(), 1)
+
     def test_resource_form_does_not_offer_other_organization_spaces(self):
         other_facility = Facility.objects.create(team=self.other_team, name="Other Farm")
         other_ring = FacilitySpace.objects.create(
