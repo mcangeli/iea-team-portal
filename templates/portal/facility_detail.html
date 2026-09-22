@@ -14,7 +14,7 @@
     <article class="card">
       <div class="eyebrow">{{ row.space.get_space_type_display }}{% if not row.space.active %} · INACTIVE{% endif %}</div>
       <h3><a href="{% url 'facility_space_detail' row.space.pk %}">{{ row.space.name }}</a></h3>
-      {% if row.counts %}<p class="muted">{% for label, count in row.counts.items %}{{ count }} {{ label|lower }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="muted">No resources yet</p>{% endif %}
+      {% if row.counts %}<p class="muted">{% for label, count in row.counts.items %}{{ count }} {{ label|lower }}{{ count|pluralize }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="muted">No resources yet</p>{% endif %}
       <a href="{% url 'facility_space_detail' row.space.pk %}">Open {{ row.space.name }} →</a>
     </article>
   {% empty %}
