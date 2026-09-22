@@ -176,6 +176,24 @@ class LessonResourceSchedulingTests(TestCase):
         self.assertRedirects(response, reverse("lesson_occurrence_detail", args=[self.occurrence.pk]))
         self.assertEqual(current_lesson_resource_reservation(self.occurrence).space, self.outdoor)
 
+    def test_iea_schedule_form_offers_same_team_managed_resources(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("iea_lesson_occurrence_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Managed resource")
+        self.assertContains(response, "Indoor Arena")
+
+    def test_iea_schedule_form_excludes_other_team_resources(self):
+        other_facility = Facility.objects.create(team=self.other_team, name="Other Farm")
+        other_ring = FacilitySpace.objects.create(
+            facility=other_facility, name="Secret Other Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("iea_lesson_occurrence_create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, other_ring.name)
+
     def test_resource_form_does_not_offer_other_organization_spaces(self):
         other_facility = Facility.objects.create(team=self.other_team, name="Other Farm")
         other_ring = FacilitySpace.objects.create(
