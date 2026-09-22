@@ -130,8 +130,13 @@ def facility_space_detail(request, pk):
         "turnout_history": turnout_history,
         "can_manage": can_manage_organization(request.user),
         "upcoming_reservations": ResourceReservation.objects.filter(
-            space=space, ends_at__gt=timezone.now()
+            space=space, ends_at__gt=timezone.now(), cancelled_at__isnull=True
         ).order_by("starts_at")[:20] if space.reservable else [],
+        "reservation_history": ResourceReservation.objects.filter(
+            space=space
+        ).filter(
+            models.Q(ends_at__lte=timezone.now()) | models.Q(cancelled_at__isnull=False)
+        ).order_by("-starts_at")[:20] if space.reservable else [],
     })
 
 
@@ -187,7 +192,8 @@ def resource_reservation_delete(request, pk):
     if request.method == "POST":
         label = reservation.title
         _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=reservation, summary=f"Cancelled reservation {label} for {space.name}", details={"cancelled": True})
-        reservation.delete()
+        reservation.cancelled_at = timezone.now()
+        reservation.save(update_fields=["cancelled_at", "updated_at"])
         messages.success(request, f"Reservation {label} cancelled.")
         return redirect("facility_space_detail", pk=space.pk)
     return render(request, "portal/resource_reservation_cancel.html", {
