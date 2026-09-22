@@ -154,6 +154,18 @@ class LessonResourceSchedulingTests(TestCase):
         outdoor_reservation.refresh_from_db()
         self.assertIsNone(outdoor_reservation.cancelled_at)
 
+    def test_occurrence_detail_shows_resource_move_history(self):
+        assign_lesson_resource(self.occurrence, self.indoor)
+        assign_lesson_resource(self.occurrence, self.outdoor)
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("lesson_occurrence_detail", args=[self.occurrence.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Resource history")
+        self.assertContains(response, "Indoor Arena")
+        self.assertContains(response, "Outdoor Arena")
+        self.assertContains(response, "Released / moved")
+        self.assertContains(response, "Current resource")
+
     def test_manager_can_move_resource_through_occurrence_workflow(self):
         assign_lesson_resource(self.occurrence, self.indoor)
         self.client.force_login(self.admin)
