@@ -112,9 +112,9 @@ class FacilityManagementUITests(TestCase):
         })
         self.assertEqual(response.status_code, 302)
         facility = Facility.objects.get(team=self.team, name="Audited Farm")
-        self.assertTrue(AuditEvent.objects.filter(team=self.team, object_id=str(facility.pk), action=AuditEvent.Action.CREATED).exists())
+        self.assertTrue(AuditEvent.objects.filter(team=self.team, entity_id=facility.pk, action=AuditEvent.Action.CREATED).exists())
         response = self.client.post(reverse("facility_edit", args=[facility.pk]), {
             "name": "Audited Farm Updated", "address": "", "active": "on", "notes": "",
         })
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(AuditEvent.objects.filter(team=self.team, object_id=str(facility.pk), action=AuditEvent.Action.UPDATED).exists())
+        self.assertTrue(AuditEvent.objects.filter(team=self.team, entity_id=facility.pk, action=AuditEvent.Action.UPDATED).exists())
