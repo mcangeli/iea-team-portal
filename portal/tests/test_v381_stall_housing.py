@@ -138,3 +138,38 @@ class StallHousingWorkflowTests(TestCase):
             horse=self.horse, space=other_stall, start_date=date(2026, 9, 21)
         )
         next_assignment.full_clean()
+
+
+    def test_vacate_then_reassign_same_day_does_not_overlap(self):
+        old_assignment = HorseStallAssignment.objects.create(
+            horse=self.horse, space=self.stall, start_date=date.today()
+        )
+        new_stall = FacilitySpace.objects.create(
+            facility=self.facility, name="Same Day Stall",
+            space_type=FacilitySpace.SpaceType.STALL, housing_capable=True,
+        )
+        self.client.force_login(self.admin)
+        vacate_response = self.client.post(
+            reverse("stall_assignment_vacate", args=[old_assignment.pk])
+        )
+        self.assertEqual(vacate_response.status_code, 302)
+        old_assignment.refresh_from_db()
+        self.assertEqual(old_assignment.end_date, date.today())
+
+        assign_response = self.client.post(
+            reverse("stall_assignment_create", args=[self.facility.pk]),
+            {
+                "horse": self.horse.pk,
+                "space": new_stall.pk,
+                "start_date": date.today(),
+                "end_date": "",
+                "notes": "",
+            },
+        )
+        self.assertEqual(assign_response.status_code, 302)
+        self.assertTrue(
+            HorseStallAssignment.objects.filter(
+                horse=self.horse, space=new_stall,
+                start_date=date.today(), end_date__isnull=True,
+            ).exists()
+        )
