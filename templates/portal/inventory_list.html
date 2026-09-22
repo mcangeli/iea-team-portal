@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Inventory · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro">
+  <div><div class="eyebrow">ARENALINE · OPERATIONS</div><h1>Inventory</h1><p>See what is on hand, where it is stored, and what needs attention.</p></div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'inventory_category_create' %}">Add category</a><a class="btn" href="{% url 'inventory_item_create' %}">Add item</a></div>{% endif %}
+</section>
+<section class="content-section">
+  <div class="card-grid">
+  {% for item in items %}
+    <article class="card">
+      <div class="eyebrow">{% if item.category %}{{ item.category.name }}{% else %}UNCATEGORIZED{% endif %}{% if not item.active %} · INACTIVE{% endif %}</div>
+      <h3><a href="{% url 'inventory_item_detail' item.pk %}">{{ item.name }}</a></h3>
+      <p><strong>{{ item.total_on_hand|floatformat:"-3" }}</strong> {{ item.unit }}{{ item.total_on_hand|pluralize }} on hand</p>
+      {% if item.is_low_stock %}<p><strong>Low stock</strong> · reorder level {{ item.reorder_level|floatformat:"-3" }} {{ item.unit }}{{ item.reorder_level|pluralize }}</p>{% endif %}
+      <a href="{% url 'inventory_item_detail' item.pk %}">View inventory →</a>
+    </article>
+  {% empty %}
+    <div class="empty-state"><h2>No inventory items yet</h2><p>Add the first feed, bedding, supply, or barn item to begin tracking stock.</p>{% if can_manage %}<a class="btn" href="{% url 'inventory_item_create' %}">Add first item</a>{% endif %}</div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
