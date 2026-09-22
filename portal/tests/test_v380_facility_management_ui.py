@@ -80,20 +80,64 @@ class FacilityManagementUITests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-    def test_facility_detail_builds_parent_child_hierarchy(self):
+    def test_facility_detail_shows_only_top_level_spaces(self):
         barn = FacilitySpace.objects.create(
             facility=self.facility, name="Main Barn", space_type=FacilitySpace.SpaceType.BARN
         )
-        stall = FacilitySpace.objects.create(
+        FacilitySpace.objects.create(
             facility=self.facility, parent=barn, name="Stall 1",
             space_type=FacilitySpace.SpaceType.STALL, housing_capable=True
         )
         self.client.force_login(self.admin)
         response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
-        tree = response.context["space_tree"]
-        self.assertEqual(len(tree), 1)
-        self.assertEqual(tree[0]["space"], barn)
-        self.assertEqual(tree[0]["children"][0]["space"], stall)
+        self.assertContains(response, "Main Barn")
+        self.assertContains(response, "1 stall")
+        self.assertNotContains(response, "Stall 1")
+
+    def test_space_detail_groups_immediate_resources(self):
+        barn = FacilitySpace.objects.create(
+            facility=self.facility, name="Main Barn", space_type=FacilitySpace.SpaceType.BARN
+        )
+        stall = FacilitySpace.objects.create(
+            facility=self.facility, parent=barn, name="Stall 12",
+            space_type=FacilitySpace.SpaceType.STALL, housing_capable=True
+        )
+        storage = FacilitySpace.objects.create(
+            facility=self.facility, parent=barn, name="Feed Storage",
+            space_type=FacilitySpace.SpaceType.STORAGE, inventory_storage_capable=True
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_space_detail", args=[barn.pk]))
+        self.assertContains(response, "Stalls")
+        self.assertContains(response, stall.name)
+        self.assertContains(response, "Storage")
+        self.assertContains(response, storage.name)
+
+    def test_space_detail_rejects_cross_organization_lookup(self):
+        other_space = FacilitySpace.objects.create(
+            facility=self.other_facility, name="Other Barn", space_type=FacilitySpace.SpaceType.BARN
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_space_detail", args=[other_space.pk]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_large_stall_inventory_does_not_expand_on_facility_page(self):
+        barn = FacilitySpace.objects.create(
+            facility=self.facility, name="Large Barn", space_type=FacilitySpace.SpaceType.BARN
+        )
+        for number in range(1, 51):
+            FacilitySpace.objects.create(
+                facility=self.facility, parent=barn, name=f"Scale Stall {number}",
+                space_type=FacilitySpace.SpaceType.STALL, housing_capable=True,
+            )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_detail", args=[self.facility.pk]))
+        self.assertContains(response, "Large Barn")
+        self.assertContains(response, "50 stalls")
+        self.assertNotContains(response, "Scale Stall 1")
+        barn_response = self.client.get(reverse("facility_space_detail", args=[barn.pk]))
+        self.assertContains(barn_response, "Scale Stall 1")
+        self.assertContains(barn_response, "Scale Stall 50")
 
 
     def test_duplicate_facility_name_returns_form_error(self):
