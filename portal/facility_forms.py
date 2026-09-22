@@ -9,6 +9,15 @@ class FacilityForm(forms.ModelForm):
         self.team = team
         self.instance.team = team
 
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        duplicates = Facility.objects.filter(team=self.team, name=name)
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise forms.ValidationError("A facility with this name already exists for this organization.")
+        return name
+
     def save(self, commit=True):
         obj = super().save(commit=False)
         obj.team = self.team
