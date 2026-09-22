@@ -24,6 +24,12 @@ def _require_facility_manager(user):
         raise PermissionDenied
 
 
+def _current_assignments(queryset, as_of):
+    return queryset.filter(start_date__lte=as_of).filter(
+        models.Q(end_date__isnull=True) | models.Q(end_date__gt=as_of)
+    )
+
+
 @login_required
 def facility_list(request):
     team = _facility_context(request.user)
@@ -56,15 +62,13 @@ def facility_detail(request, pk):
     space_tree = [build_node(space) for space in children_by_parent.get(None, [])]
     today = timezone.localdate()
     current_stall_assignments = (
-        HorseStallAssignment.objects.filter(space__facility=facility, start_date__lte=today)
-        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
+        _current_assignments(HorseStallAssignment.objects.filter(space__facility=facility), today)
         .select_related("horse", "space")
         .order_by("space__name", "horse__name")
     )
     current_by_space = {assignment.space_id: assignment for assignment in current_stall_assignments}
     current_turnout_assignments = (
-        HorsePastureAssignment.objects.filter(space__facility=facility, start_date__lte=today)
-        .filter(models.Q(end_date__isnull=True) | models.Q(end_date__gt=today))
+        _current_assignments(HorsePastureAssignment.objects.filter(space__facility=facility), today)
         .select_related("horse", "space")
         .order_by("space__name", "turnout_type", "horse__name")
     )
@@ -206,12 +210,18 @@ def stall_assignment_edit(request, pk):
 def stall_assignment_vacate(request, pk):
     _require_facility_manager(request.user)
     team = _facility_context(request.user)
+    today = timezone.localdate()
     assignment = get_object_or_404(
-        HorseStallAssignment.objects.select_related("horse", "space__facility"),
-        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+        _current_assignments(
+            HorseStallAssignment.objects.select_related("horse", "space__facility").filter(
+                horse__team=team, space__facility__team=team
+            ),
+            today,
+        ),
+        pk=pk,
     )
     if request.method == "POST":
-        assignment.end_date = timezone.localdate()
+        assignment.end_date = today
         assignment.save()
         messages.success(request, f"{assignment.horse.display_name} vacated {assignment.space.name}.")
         return redirect("facility_detail", pk=assignment.space.facility_id)
@@ -222,12 +232,18 @@ def stall_assignment_vacate(request, pk):
 def stall_assignment_move(request, pk):
     _require_facility_manager(request.user)
     team = _facility_context(request.user)
+    today = timezone.localdate()
     assignment = get_object_or_404(
-        HorseStallAssignment.objects.select_related("horse", "space__facility"),
-        pk=pk, horse__team=team, space__facility__team=team, end_date__isnull=True,
+        _current_assignments(
+            HorseStallAssignment.objects.select_related("horse", "space__facility").filter(
+                horse__team=team, space__facility__team=team
+            ),
+            today,
+        ),
+        pk=pk,
     )
     facility = assignment.space.facility
-    initial = {"horse": assignment.horse, "start_date": timezone.localdate()}
+    initial = {"horse": assignment.horse, "start_date": today}
     form = HorseStallAssignmentForm(
         request.POST or None, team=team, facility=facility, initial=initial, moving_from=assignment
     )
@@ -295,7 +311,7 @@ def pasture_assignment_end(request, pk):
         pk=pk, horse__team=team, space__facility__team=team,
     )
     today = timezone.localdate()
-    if assignment.start_date > today or (assignment.end_date is not None and assignment.end_date < today):
+    if assignment.start_date > today or (assignment.end_date is not None and assignment.end_date <= today):
         raise PermissionDenied
     if request.method == "POST":
         assignment.end_date = today
@@ -315,7 +331,7 @@ def pasture_assignment_move(request, pk):
         pk=pk, horse__team=team, space__facility__team=team,
         start_date__lte=today,
     )
-    if assignment.end_date is not None and assignment.end_date < today:
+    if assignment.end_date is not None and assignment.end_date <= today:
         raise PermissionDenied
     facility = assignment.space.facility
     initial = {
