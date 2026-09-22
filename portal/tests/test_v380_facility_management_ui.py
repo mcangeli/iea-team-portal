@@ -231,3 +231,46 @@ class FacilityManagementUITests(TestCase):
         self.assertContains(response, "Upcoming reservations")
         self.assertContains(response, "Arena maintenance")
         self.assertContains(response, "Reserve resource")
+
+
+    def test_cancelled_reservation_is_preserved_in_history_and_frees_slot(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="History Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        starts = timezone.now() + timedelta(days=1)
+        reservation = ResourceReservation.objects.create(
+            space=ring, title="Cancelled lesson",
+            starts_at=starts, ends_at=starts + timedelta(hours=1),
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("resource_reservation_cancel", args=[reservation.pk]))
+        self.assertRedirects(response, reverse("facility_space_detail", args=[ring.pk]))
+        reservation.refresh_from_db()
+        self.assertIsNotNone(reservation.cancelled_at)
+
+        replacement = ResourceReservation(
+            space=ring, title="Replacement lesson",
+            starts_at=starts, ends_at=starts + timedelta(hours=1),
+        )
+        replacement.full_clean()
+
+        detail = self.client.get(reverse("facility_space_detail", args=[ring.pk]))
+        self.assertContains(detail, "Reservation history")
+        self.assertContains(detail, "Cancelled lesson")
+        self.assertContains(detail, "Cancelled")
+
+    def test_completed_reservation_appears_in_history(self):
+        ring = FacilitySpace.objects.create(
+            facility=self.facility, name="Past Ring",
+            space_type=FacilitySpace.SpaceType.ARENA, reservable=True,
+        )
+        ends = timezone.now() - timedelta(hours=1)
+        ResourceReservation.objects.create(
+            space=ring, title="Morning schooling",
+            starts_at=ends - timedelta(hours=1), ends_at=ends,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("facility_space_detail", args=[ring.pk]))
+        self.assertContains(response, "Reservation history")
+        self.assertContains(response, "Morning schooling")
