@@ -122,8 +122,19 @@ def iea_lesson_occurrence_create(request):
     )
     if form.is_valid():
         occurrence = form.save()
-        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
-        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+        resource_space = form.cleaned_data.get("resource_space")
+        if resource_space:
+            try:
+                assign_lesson_resource(occurrence, resource_space)
+            except ValidationError as exc:
+                occurrence.delete()
+                form.add_error("resource_space", exc)
+            else:
+                messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s) in {resource_space.name}.")
+                return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+        else:
+            messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
+            return redirect("lesson_occurrence_detail", pk=occurrence.pk)
     return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
 @login_required
