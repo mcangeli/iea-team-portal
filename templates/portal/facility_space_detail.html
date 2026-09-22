@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ space.name }} · {{ facility.name }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">
+  {% if space.parent %}<a href="{% url 'facility_space_detail' space.parent.pk %}">← Back to {{ space.parent.name }}</a>{% else %}<a href="{% url 'facility_detail' facility.pk %}">← Back to {{ facility.name }}</a>{% endif %}
+</nav>
+<section class="page-intro">
+  <div><div class="eyebrow">{{ facility.name }} · {{ space.get_space_type_display|upper }}</div><h1>{{ space.name }}</h1><p>{% if space.parent %}Inside {{ space.parent.name }}{% else %}{{ facility.name }}{% endif %}</p></div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_space_edit' space.pk %}">Edit</a><a class="btn secondary" href="{% url 'facility_space_create' facility.pk %}?parent={{ space.pk }}">Add resource</a>{% if space.housing_capable %}<a class="btn" href="{% url 'stall_assignment_create' facility.pk %}">Assign housing</a>{% endif %}{% if space.turnout_capable %}<a class="btn" href="{% url 'pasture_assignment_create' facility.pk %}">Assign turnout</a>{% endif %}</div>{% endif %}
+</section>
+{% if space.notes %}<section class="content-section"><p>{{ space.notes|linebreaksbr }}</p></section>{% endif %}
+{% if groups %}
+  {% for group in groups %}
+  <section class="content-section">
+    <div class="section-head"><div><div class="eyebrow">RESOURCES</div><h2>{{ group.label }}</h2></div></div>
+    <div class="card-grid">
+    {% for child in group.spaces %}
+      <article class="card"><div class="eyebrow">{{ child.get_space_type_display }}{% if not child.active %} · INACTIVE{% endif %}</div><h3><a href="{% url 'facility_space_detail' child.pk %}">{{ child.name }}</a></h3>
+      <div class="facility-space-capabilities">{% if child.reservable %}<span class="status-pill">Reservable</span>{% endif %}{% if child.housing_capable %}<span class="status-pill">Housing</span>{% endif %}{% if child.turnout_capable %}<span class="status-pill">Turnout</span>{% endif %}{% if child.inventory_storage_capable %}<span class="status-pill">Inventory storage</span>{% endif %}</div>
+      <a href="{% url 'facility_space_detail' child.pk %}">Open resource →</a></article>
+    {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+{% endif %}
+{% if space.housing_capable %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">HOUSING</div><h2>Current assignment</h2></div></div>
+{% if current_housing %}<p><strong>{{ current_housing.horse.display_name }}</strong> · Since {{ current_housing.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'stall_assignment_edit' current_housing.pk %}">Edit</a> · <a href="{% url 'stall_assignment_move' current_housing.pk %}">Move</a> · <a href="{% url 'stall_assignment_vacate' current_housing.pk %}">Vacate</a>{% endif %}</p>{% else %}<p class="muted"><span class="status-pill">Available</span> No current horse assignment.</p>{% endif %}
+{% if housing_history %}<details><summary>Assignment history</summary>{% for assignment in housing_history %}<p>{{ assignment.horse.display_name }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}</p>{% endfor %}</details>{% endif %}</section>
+{% endif %}
+{% if space.turnout_capable %}
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">TURNOUT</div><h2>Current assignments</h2></div></div>
+{% for assignment in current_turnout %}<p><strong>{{ assignment.horse.display_name }}</strong> · {{ assignment.get_turnout_type_display }} · Since {{ assignment.start_date|date:"M j, Y" }}{% if can_manage %} · <a href="{% url 'pasture_assignment_edit' assignment.pk %}">Edit</a> · <a href="{% url 'pasture_assignment_move' assignment.pk %}">Move</a> · <a href="{% url 'pasture_assignment_end' assignment.pk %}">End</a>{% endif %}</p>{% empty %}<p class="muted">No current turnout assignments.</p>{% endfor %}
+{% if turnout_history %}<details><summary>Assignment history</summary>{% for assignment in turnout_history %}<p>{{ assignment.horse.display_name }} · {{ assignment.get_turnout_type_display }} · {{ assignment.start_date|date:"M j, Y" }}–{{ assignment.end_date|date:"M j, Y" }}</p>{% endfor %}</details>{% endif %}</section>
+{% endif %}
+{% if not groups and not space.housing_capable and not space.turnout_capable %}<section class="content-section"><div class="empty-state"><h2>No child resources</h2><p>This resource has no nested spaces or current horse-assignment workflow.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}?parent={{ space.pk }}">Add nested resource</a>{% endif %}</div></section>{% endif %}
+{% endblock %}
