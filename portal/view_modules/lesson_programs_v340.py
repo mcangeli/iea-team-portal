@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -255,9 +256,27 @@ def iea_lesson_occurrence_duplicate(request, pk):
         request.POST or None, initial=initial, team=team, season=season, series=source.series
     )
     if form.is_valid():
-        occurrence = form.save()
-        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
-        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+        resource_space = form.cleaned_data.get("resource_space")
+        try:
+            with transaction.atomic():
+                occurrence = form.save()
+                if resource_space:
+                    assign_lesson_resource(occurrence, resource_space)
+        except ValidationError as exc:
+            validation_messages = []
+            if hasattr(exc, "message_dict"):
+                for field_messages in exc.message_dict.values():
+                    validation_messages.extend(field_messages)
+            else:
+                validation_messages.extend(exc.messages)
+            form.add_error("resource_space", " ".join(validation_messages))
+        else:
+            location_suffix = f" in {resource_space.name}" if resource_space else ""
+            messages.success(
+                request,
+                f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s){location_suffix}.",
+            )
+            return redirect("lesson_occurrence_detail", pk=occurrence.pk)
     return render(
         request,
         "portal/iea_lesson_occurrence_form.html",
