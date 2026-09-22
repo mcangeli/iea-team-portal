@@ -1,6 +1,6 @@
 from django import forms
 
-from .model_modules.facilities import Facility, FacilitySpace
+from .model_modules.facilities import Facility, FacilitySpace, ResourceReservation
 
 
 class FacilityForm(forms.ModelForm):
@@ -156,3 +156,43 @@ class HorsePastureAssignmentForm(forms.ModelForm):
         if not space.turnout_capable:
             raise forms.ValidationError("Choose a space that supports turnout.")
         return space
+
+
+class ResourceReservationForm(forms.ModelForm):
+    class Meta:
+        model = ResourceReservation
+        fields = ("title", "starts_at", "ends_at", "notes")
+        widgets = {
+            "starts_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "ends_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, space, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.space = space
+        self.instance.space = space
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.errors:
+            return cleaned
+        self.instance.space = self.space
+        self.instance.title = cleaned.get("title", "")
+        self.instance.starts_at = cleaned.get("starts_at")
+        self.instance.ends_at = cleaned.get("ends_at")
+        self.instance.notes = cleaned.get("notes", "")
+        try:
+            self.instance.full_clean()
+        except forms.ValidationError as exc:
+            for field, errors in exc.message_dict.items():
+                for error in errors:
+                    self.add_error(field if field in self.fields else None, error)
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.space = self.space
+        if commit:
+            obj.save()
+        return obj
