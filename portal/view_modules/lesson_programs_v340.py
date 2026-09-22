@@ -128,13 +128,13 @@ def iea_lesson_occurrence_create(request):
                 assign_lesson_resource(occurrence, resource_space)
             except ValidationError as exc:
                 occurrence.delete()
-                messages = []
+                validation_messages = []
                 if hasattr(exc, "message_dict"):
                     for field_messages in exc.message_dict.values():
-                        messages.extend(field_messages)
+                        validation_messages.extend(field_messages)
                 else:
-                    messages.extend(exc.messages)
-                form.add_error("resource_space", " ".join(messages))
+                    validation_messages.extend(exc.messages)
+                form.add_error("resource_space", " ".join(validation_messages))
             else:
                 messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s) in {resource_space.name}.")
                 return redirect("lesson_occurrence_detail", pk=occurrence.pk)
