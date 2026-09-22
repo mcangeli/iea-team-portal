@@ -196,6 +196,51 @@ class LessonResourceSchedulingTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, other_ring.name)
 
+    def test_iea_schedule_with_managed_resource_creates_linked_reservation(self):
+        self.client.force_login(self.admin)
+        starts = timezone.localtime(self.starts)
+        ends = timezone.localtime(self.starts + timedelta(hours=1))
+        response = self.client.post(reverse("iea_lesson_occurrence_create"), {
+            "title": "Scheduled Indoor Lesson",
+            "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": ends.strftime("%Y-%m-%dT%H:%M"),
+            "instructor": "",
+            "resource_space": self.indoor.pk,
+            "location": "",
+            "capacity": 6,
+            "notes": "",
+        })
+        occurrence = LessonOccurrence.objects.get(title="Scheduled Indoor Lesson")
+        reservation = current_lesson_resource_reservation(occurrence)
+        self.assertRedirects(response, reverse("lesson_occurrence_detail", args=[occurrence.pk]))
+        self.assertIsNotNone(reservation)
+        self.assertEqual(reservation.space, self.indoor)
+        occurrence.refresh_from_db()
+        self.assertEqual(occurrence.location, self.indoor.name)
+
+    def test_iea_schedule_resource_conflict_does_not_leave_occurrence(self):
+        self.client.force_login(self.admin)
+        ResourceReservation.objects.create(
+            space=self.indoor, title="Existing booking",
+            starts_at=self.starts, ends_at=self.starts + timedelta(hours=1),
+        )
+        starts = timezone.localtime(self.starts)
+        ends = timezone.localtime(self.starts + timedelta(hours=1))
+        response = self.client.post(reverse("iea_lesson_occurrence_create"), {
+            "title": "Conflicting Scheduled Lesson",
+            "starts_at": starts.strftime("%Y-%m-%dT%H:%M"),
+            "ends_at": ends.strftime("%Y-%m-%dT%H:%M"),
+            "instructor": "",
+            "resource_space": self.indoor.pk,
+            "location": "",
+            "capacity": 6,
+            "notes": "",
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["form"].errors.get("resource_space"))
+        self.assertFalse(LessonOccurrence.objects.filter(title="Conflicting Scheduled Lesson").exists())
+        self.assertEqual(ResourceReservation.objects.filter(space=self.indoor).count(), 1)
+
     def test_resource_form_does_not_offer_other_organization_spaces(self):
         other_facility = Facility.objects.create(team=self.other_team, name="Other Farm")
         other_ring = FacilitySpace.objects.create(
