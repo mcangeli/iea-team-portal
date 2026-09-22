@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} · Inventory · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'inventory_list' %}">← Back to Inventory</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">INVENTORY{% if item.category %} · {{ item.category.name }}{% endif %}</div><h1>{{ item.name }}</h1><p>{{ item.total_on_hand|floatformat:"-3" }} {{ item.unit }}{{ item.total_on_hand|pluralize }} on hand{% if item.is_low_stock %} · <strong>Low stock</strong>{% endif %}</p></div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'inventory_item_edit' item.pk %}">Edit item</a><a class="btn" href="{% url 'inventory_receive' item.pk %}">Receive</a><a class="btn" href="{% url 'inventory_use' item.pk %}">Use</a><a class="btn secondary" href="{% url 'inventory_adjust' item.pk %}">Adjust</a><a class="btn secondary" href="{% url 'inventory_transfer' item.pk %}">Transfer</a></div>{% endif %}
+</section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">STOCK BY LOCATION</div><h2>On hand</h2></div></div>
+<div class="card-grid">{% for balance in stock %}<article class="card"><div class="eyebrow">{{ balance.space.facility.name }}</div><h3>{{ balance.space.name }}</h3><p><strong>{{ balance.quantity|floatformat:"-3" }}</strong> {{ item.unit }}{{ balance.quantity|pluralize }}</p></article>{% empty %}<div class="empty-state"><p>No stock has been recorded yet.</p></div>{% endfor %}</div></section>
+<section class="content-section"><div class="section-head"><div><div class="eyebrow">HISTORY</div><h2>Inventory activity</h2></div></div>
+<div class="card-grid">{% for entry in history %}<article class="card"><div class="eyebrow">{{ entry.occurred_at|date:"M j, Y g:i A" }} · {{ entry.space.name }}</div><h3>{{ entry.get_transaction_type_display }}{% if entry.adjustment_direction %} · {{ entry.get_adjustment_direction_display }}{% endif %}</h3><p>{{ entry.quantity|floatformat:"-3" }} {{ item.unit }}{{ entry.quantity|pluralize }}{% if entry.reference %} · {{ entry.reference }}{% endif %}</p>{% if entry.notes %}<p class="muted">{{ entry.notes }}</p>{% endif %}</article>{% empty %}<div class="empty-state"><p>No inventory activity yet.</p></div>{% endfor %}</div></section>
+{% endblock %}
