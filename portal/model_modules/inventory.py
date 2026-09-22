@@ -150,6 +150,10 @@ class InventoryTransaction(models.Model):
         TRANSFER_IN = "transfer_in", "Transfer in"
         TRANSFER_OUT = "transfer_out", "Transfer out"
 
+    class AdjustmentDirection(models.TextChoices):
+        INCREASE = "increase", "Increase"
+        DECREASE = "decrease", "Decrease"
+
     item = models.ForeignKey(
         InventoryItem, on_delete=models.PROTECT, related_name="transactions"
     )
@@ -162,6 +166,9 @@ class InventoryTransaction(models.Model):
         max_length=16, choices=TransactionType.choices
     )
     quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    adjustment_direction = models.CharField(
+        max_length=8, choices=AdjustmentDirection.choices, blank=True
+    )
     transfer_key = models.CharField(
         max_length=64,
         blank=True,
@@ -185,6 +192,10 @@ class InventoryTransaction(models.Model):
         super().clean()
         if self.quantity is not None and self.quantity <= ZERO_QUANTITY:
             raise ValidationError({"quantity": "Inventory transaction quantity must be greater than zero."})
+        if self.transaction_type == self.TransactionType.ADJUST and not self.adjustment_direction:
+            raise ValidationError({"adjustment_direction": "Adjustments require an increase or decrease direction."})
+        if self.transaction_type != self.TransactionType.ADJUST and self.adjustment_direction:
+            raise ValidationError({"adjustment_direction": "Adjustment direction is only valid for adjustments."})
         if self.space_id:
             if not self.space.inventory_storage_capable:
                 raise ValidationError(
