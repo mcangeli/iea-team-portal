@@ -11,7 +11,6 @@ class Facility(models.Model):
     address = models.CharField(max_length=255, blank=True)
     active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
-    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -195,6 +194,7 @@ class ResourceReservation(models.Model):
     source_type = models.CharField(max_length=80, blank=True)
     source_id = models.PositiveBigIntegerField(null=True, blank=True)
     notes = models.TextField(blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
