@@ -182,6 +182,19 @@ class ResourceReservationForm(forms.ModelForm):
         self.instance.starts_at = cleaned.get("starts_at")
         self.instance.ends_at = cleaned.get("ends_at")
         self.instance.notes = cleaned.get("notes", "")
+        starts_at = cleaned.get("starts_at")
+        ends_at = cleaned.get("ends_at")
+        if starts_at and ends_at:
+            overlapping = ResourceReservation.objects.filter(
+                space=self.space,
+                starts_at__lt=ends_at,
+                ends_at__gt=starts_at,
+            )
+            if self.instance.pk:
+                overlapping = overlapping.exclude(pk=self.instance.pk)
+            if overlapping.exists():
+                self.add_error("starts_at", "Selected resource already has an overlapping reservation.")
+                return cleaned
         try:
             self.instance.full_clean()
         except forms.ValidationError as exc:
