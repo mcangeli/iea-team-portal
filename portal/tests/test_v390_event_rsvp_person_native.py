@@ -23,7 +23,6 @@ class V390EventRSVPPersonNativeTests(TestCase):
             team=self.team, first_name="Casey", last_name="Participant"
         )
         PersonRelationship.objects.create(
-            team=self.team,
             from_person=self.parent,
             to_person=self.child,
             relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
