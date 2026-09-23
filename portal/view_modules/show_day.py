@@ -300,7 +300,7 @@ def show_day_dashboard(request, pk):
 
     schedule_classes = list(
         show.classes.select_related("season_class")
-        .prefetch_related("entries__rider", "entries__result")
+        .prefetch_related("entries__rider", "entries__iea_participant__person", "entries__result")
         .order_by("sort_order", "class_number", "name")
     )
 
@@ -411,7 +411,7 @@ def show_day_dashboard(request, pk):
         "my_assignments": my_assignments[:6],
         "planning_preview": planning_items[:6],
         "can_plan_show": _can_plan_show(request.user, show),
-        "has_personal_riders": _personal_riders(request.user, team).exists(),
+        "has_personal_riders": personal_iea_participants_for_user(request.user, team).exists(),
     })
 
 @login_required
