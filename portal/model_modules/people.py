@@ -100,6 +100,65 @@ class LegacyPersonLink(models.Model):
         return f"Legacy identity — {self.person}"
 
 
+class IEAParticipant(models.Model):
+    """Persistent Person-linked IEA identity.
+
+    Season-specific team level, classes, division, points, and qualification
+    remain in season/competition records. This model owns only durable IEA
+    participant identity that should follow the Person across seasons.
+    """
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        related_name="iea_participants",
+    )
+    person = models.OneToOneField(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="iea_participant",
+    )
+    iea_member_number = models.CharField(max_length=40, blank=True)
+    active = models.BooleanField(default=True)
+    notes = models.CharField(max_length=255, blank=True)
+    legacy_rider = models.OneToOneField(
+        Rider,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="iea_participant_bridge",
+        help_text="Compatibility source while legacy Rider-backed IEA workflows are migrated.",
+    )
+
+    class Meta:
+        ordering = ["person__last_name", "person__first_name", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["team", "iea_member_number"],
+                condition=~models.Q(iea_member_number=""),
+                name="unique_iea_member_number_per_team",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.person_id and self.team_id and self.person.team_id != self.team_id:
+            raise ValidationError("IEA participant must belong to the person's organization.")
+        if self.legacy_rider_id:
+            if self.legacy_rider.team_id != self.team_id:
+                raise ValidationError("Legacy rider must belong to the IEA participant's organization.")
+            if self.person_id:
+                try:
+                    legacy_identity = self.person.legacy_identity
+                except LegacyPersonLink.DoesNotExist:
+                    legacy_identity = None
+                if legacy_identity and legacy_identity.rider_id and legacy_identity.rider_id != self.legacy_rider_id:
+                    raise ValidationError("Legacy rider must match the Person's existing legacy identity bridge.")
+
+    def __str__(self):
+        return f"{self.person} — IEA"
+
+
 class PersonRelationship(models.Model):
     class RelationshipType(models.TextChoices):
         PARENT_GUARDIAN = "parent_guardian", "Parent / Guardian"
