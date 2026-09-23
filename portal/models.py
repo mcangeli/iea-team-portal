@@ -257,7 +257,11 @@ class SeasonMembership(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(\n                fields=["rider", "season"],\n                condition=models.Q(rider__isnull=False),\n                name="unique_rider_season",\n            ),
+            models.UniqueConstraint(
+                fields=["rider", "season"],
+                condition=models.Q(rider__isnull=False),
+                name="unique_rider_season",
+            ),
             models.UniqueConstraint(
                 fields=["iea_participant", "season"],
                 condition=models.Q(iea_participant__isnull=False),
