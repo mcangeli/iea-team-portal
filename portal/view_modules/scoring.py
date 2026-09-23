@@ -143,7 +143,7 @@ def qualification_override_edit(request, membership_pk, class_pk):
         raise PermissionDenied
     _ensure_season_open(membership_probe.season)
     membership = membership_probe
-    membership = SeasonMembership.objects.select_related("rider", "season").get(pk=membership.pk)
+    membership = SeasonMembership.objects.select_related("rider", "iea_participant__person", "season").get(pk=membership.pk)
     season_class = get_object_or_404(SeasonClass, pk=class_pk, season=membership.season)
     if not membership.classes.filter(pk=season_class.pk).exists():
         raise PermissionDenied("This rider is not assigned to that season class.")
@@ -154,7 +154,8 @@ def qualification_override_edit(request, membership_pk, class_pk):
         if obj.status == QualificationOverride.Status.AUTO and not obj.notes:
             obj.delete()
         messages.success(request, "Qualification status updated."); return redirect("standings")
-    return render(request, "portal/form.html", {"form": form, "title": f"Qualification · {membership.rider}", "eyebrow": season_class.name})
+    participant_name = membership.iea_participant.person if membership.iea_participant_id else membership.rider
+    return render(request, "portal/form.html", {"form": form, "title": f"Qualification · {participant_name}", "eyebrow": season_class.name})
 
 @login_required
 def standings_export(request):
@@ -169,14 +170,16 @@ def standings_export(request):
     writer.writerow(["Individual qualification"])
     writer.writerow(["Team", "Rider", "Class", "Points", "Threshold", "Qualified"])
     for row in _qualification_rows(season):
-        writer.writerow([row["membership"].get_team_level_display(), row["rider"], row["season_class"].name, row["points"], row["threshold"], "Yes" if row["qualified"] else "No"])
+        writer.writerow([row["membership"].get_team_level_display(), row["person"] or row["rider"], row["season_class"].name, row["points"], row["threshold"], "Yes" if row["qualified"] else "No"])
     writer.writerow([]); writer.writerow(["Team points"])
     writer.writerow(["Show", "Team", "Points rider", "Class", "Place", "Points"])
     team_rows, _ = _team_scoring_rows(season, include_riders=True)
     for row in team_rows:
         for cr in row["classes"]:
             result = cr["result"]
-            writer.writerow([row["show"].name, row["team_label"], cr["entry"].rider, cr["entry"].show_class.display_name, result.place if result else "", cr["points"]])
+            entry = cr["entry"]
+            participant_name = entry.iea_participant.person if entry.iea_participant_id else entry.rider
+            writer.writerow([row["show"].name, row["team_label"], participant_name, entry.show_class.display_name, result.place if result else "", cr["points"]])
     return response
 
 def _season_membership_for_entry(entry, season):
