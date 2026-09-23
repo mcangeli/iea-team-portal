@@ -96,6 +96,21 @@ class InventoryUITests(TestCase):
         response = self.client.get(reverse("inventory_item_detail", args=[self.item.pk]))
         self.assertContains(response, reverse("facility_space_detail", args=[self.feed_room.pk]))
 
+    def test_inventory_create_and_edit_pages_have_deterministic_navigation(self):
+        self.client.force_login(self.admin)
+        create_response = self.client.get(reverse("inventory_item_create"))
+        self.assertContains(create_response, reverse("inventory_list"))
+        detail_response = self.client.get(reverse("inventory_item_detail", args=[self.item.pk]))
+        self.assertContains(detail_response, reverse("inventory_list"))
+        edit_response = self.client.get(reverse("inventory_item_edit", args=[self.item.pk]))
+        self.assertContains(edit_response, reverse("inventory_item_detail", args=[self.item.pk]))
+
+    def test_inventory_workspace_links_facilities_for_storage_management(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("inventory_list"))
+        self.assertContains(response, reverse("facility_list"))
+        self.assertContains(response, "Manage storage locations")
+
     def test_inventory_action_pages_return_to_item_detail(self):
         self.client.force_login(self.admin)
         for name in ("inventory_receive", "inventory_use", "inventory_adjust", "inventory_transfer"):
