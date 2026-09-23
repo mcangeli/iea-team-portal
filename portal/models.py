@@ -297,7 +297,14 @@ class EventRSVP(models.Model):
         NOT_GOING = "not_going", "Not going"
 
     event = models.ForeignKey("CalendarEvent", on_delete=models.CASCADE, related_name="rsvps")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="event_rsvps")
+    rider = models.ForeignKey(
+        Rider, on_delete=models.CASCADE, related_name="event_rsvps",
+        null=True, blank=True,
+    )
+    person = models.ForeignKey(
+        "portal.Person", on_delete=models.CASCADE, related_name="event_rsvps",
+        null=True, blank=True,
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.CharField(max_length=255, blank=True)
     responded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="event_rsvp_responses")
@@ -306,8 +313,30 @@ class EventRSVP(models.Model):
     class Meta:
         ordering = ["rider__last_name", "rider__first_name"]
         constraints = [
-            models.UniqueConstraint(fields=["event", "rider"], name="unique_event_rider_rsvp")
+            models.UniqueConstraint(
+                fields=["event", "rider"],
+                condition=models.Q(rider__isnull=False),
+                name="unique_event_rider_rsvp",
+            ),
+            models.UniqueConstraint(
+                fields=["event", "person"],
+                condition=models.Q(person__isnull=False),
+                name="unique_event_person_rsvp",
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        if not self.person_id and not self.rider_id:
+            raise ValidationError("Event RSVP requires a Person or legacy Rider.")
+        if self.person_id and self.person.team_id != self.event.team_id:
+            raise ValidationError("RSVP Person must belong to the event organization.")
+        if self.rider_id and self.rider.team_id != self.event.team_id:
+            raise ValidationError("RSVP Rider must belong to the event organization.")
+
+    @property
+    def participant_identity(self):
+        return self.person if self.person_id else self.rider
 
     def save(self, *args, **kwargs):
         if self.status != self.Status.PENDING:
@@ -315,7 +344,7 @@ class EventRSVP(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.rider} — {self.event}"
+        return f"{self.participant_identity} — {self.event}"
 
 
 class ActionItem(models.Model):
