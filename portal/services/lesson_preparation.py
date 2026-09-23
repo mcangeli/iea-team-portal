@@ -68,19 +68,42 @@ def _iea_participants(occurrence: LessonOccurrence):
     memberships = SeasonMembership.objects.filter(season=context.season)
     if context.team_level != "mixed":
         memberships = memberships.filter(team_level=context.team_level)
-    memberships = memberships.select_related("rider").order_by(
-        "rider__last_name", "rider__first_name", "id"
+    memberships = list(
+        memberships.select_related(
+            "iea_participant__person",
+            "rider",
+        ).order_by(
+            "iea_participant__person__last_name",
+            "iea_participant__person__first_name",
+            "rider__last_name",
+            "rider__first_name",
+            "id",
+        )
     )
-    rider_ids = [membership.rider_id for membership in memberships]
+
+    # Person-native participation is authoritative. Legacy Rider links fill only
+    # pre-v3.9 membership rows whose additive IEAParticipant link is still null.
+    legacy_memberships = [membership for membership in memberships if not membership.iea_participant_id]
+    rider_ids = [membership.rider_id for membership in legacy_memberships]
     links = {
         link.rider_id: link.person
         for link in LegacyPersonLink.objects.filter(rider_id__in=rider_ids).select_related("person")
     }
-    missing = [membership.rider for membership in memberships if membership.rider_id not in links]
+    missing = [
+        membership.rider
+        for membership in legacy_memberships
+        if membership.rider_id not in links
+    ]
     if missing:
         names = ", ".join(str(rider) for rider in missing)
         raise ValidationError(f"IEA lesson roster contains rider(s) without canonical Person links: {names}.")
-    return [links[membership.rider_id] for membership in memberships]
+
+    return [
+        membership.iea_participant.person
+        if membership.iea_participant_id
+        else links[membership.rider_id]
+        for membership in memberships
+    ]
 
 
 def _participants_for_occurrence(occurrence: LessonOccurrence):
