@@ -1,8 +1,10 @@
 from datetime import date
 
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
 
-from portal.model_modules.people import IEAParticipant, Person
+from portal.model_modules.people import IEAParticipant, Person, PersonRelationship
 from portal.models import Season, SeasonClass, SeasonMembership, Show, ShowClass, ShowDayRiderStatus, ShowEntry, Team
 from portal.view_modules.show_day_helpers import _show_day_participating_participants
 
@@ -57,3 +59,28 @@ class V390ShowDayPersonNativeTests(TestCase):
         self.assertIsNone(status.rider_id)
         self.assertEqual(status.participant_identity, self.person)
         self.assertEqual(status.iea_participant_id, self.participant.id)
+
+    def test_parent_relationship_can_update_person_native_show_day_status(self):
+        parent_user = User.objects.create_user(username="person-native-parent", password="test-pass")
+        parent = Person.objects.create(
+            team=self.team, user=parent_user, first_name="Parent", last_name="Person"
+        )
+        PersonRelationship.objects.create(
+            from_person=parent,
+            to_person=self.person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            active=True,
+        )
+        self.client.force_login(parent_user)
+
+        response = self.client.post(
+            reverse("show_day_rider_status_update", args=[self.show.pk, self.participant.pk]),
+            {"status": ShowDayRiderStatus.Status.ARRIVED},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        status = ShowDayRiderStatus.objects.get(
+            show=self.show, iea_participant=self.participant
+        )
+        self.assertEqual(status.status, ShowDayRiderStatus.Status.ARRIVED)
+        self.assertIsNone(status.rider_id)
