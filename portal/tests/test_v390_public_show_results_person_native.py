@@ -79,7 +79,6 @@ class V390PublicShowResultsPersonNativeTests(TestCase):
         )
         self.publication = PublicShowPublication.objects.create(
             show=self.show,
-            site=self.site,
             slug="person-native-show",
             is_published=True,
             publish_results=True,
