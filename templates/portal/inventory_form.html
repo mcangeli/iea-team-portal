@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · ArenaLine{% endblock %}
 {% block content %}
-<nav class="page-back-nav"><a data-history-back href="{% url 'inventory_list' %}">← Back</a></nav>
-<section class="page-intro"><div><div class="eyebrow">ARENALINE · INVENTORY</div><h1>{{ title }}</h1></div></section>
-<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save</button></div></form></section>
+<nav class="page-back-nav" aria-label="Back navigation">{% if item %}<a href="{% url 'inventory_item_detail' item.pk %}">← Back to {{ item.name }}</a>{% else %}<a href="{% url 'inventory_list' %}">← Back to Inventory</a>{% endif %}</nav>
+<section class="page-intro inventory-form-intro"><div><div class="eyebrow">ARENALINE · INVENTORY</div><h1>{{ title }}</h1><p>{% if item %}Update the item record without changing its stock history.{% else %}Add a supply or barn item to the shared inventory workspace.{% endif %}</p></div></section>
+<section class="content-section inventory-form-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save</button>{% if item %}<a class="btn secondary" href="{% url 'inventory_item_detail' item.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'inventory_list' %}">Cancel</a>{% endif %}</div></form></section>
 {% endblock %}
