@@ -732,7 +732,15 @@ class ShowEntry(models.Model):
         SCRATCHED = "scratched", "Scratched"
 
     show_class = models.ForeignKey(ShowClass, on_delete=models.CASCADE, related_name="entries")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="show_entries")
+    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, null=True, blank=True, related_name="show_entries")
+    iea_participant = models.ForeignKey(
+        "IEAParticipant",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="show_entries",
+        help_text="Person-native IEA participant identity. Legacy Rider remains during the v3.9 transition.",
+    )
     competition_track = models.CharField(
         max_length=20,
         choices=CompetitionTrack.choices,
@@ -744,21 +752,34 @@ class ShowEntry(models.Model):
     notes = models.CharField(max_length=255, blank=True)
 
     class Meta:
-        ordering = ["show_class", "rider__last_name", "rider__first_name", "competition_track"]
+        ordering = ["show_class", "id"]
         constraints = [
             models.UniqueConstraint(
                 fields=["show_class", "rider", "competition_track"],
+                condition=models.Q(rider__isnull=False),
                 name="unique_rider_show_class_track",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=["show_class", "iea_participant", "competition_track"],
+                condition=models.Q(iea_participant__isnull=False),
+                name="unique_iea_participant_show_class_track",
+            ),
         ]
 
     def clean(self):
         super().clean()
-        if not self.show_class_id or not self.rider_id or not self.show_class.season_class_id:
+        if not self.show_class_id or not (self.iea_participant_id or self.rider_id) or not self.show_class.season_class_id:
             return
 
         show = self.show_class.show
-        membership = SeasonMembership.objects.filter(rider=self.rider, season=show.season).first()
+        membership = None
+        if self.iea_participant_id:
+            membership = SeasonMembership.objects.filter(
+                iea_participant=self.iea_participant,
+                season=show.season,
+            ).first()
+        if membership is None and self.rider_id:
+            membership = SeasonMembership.objects.filter(rider=self.rider, season=show.season).first()
         if not membership:
             raise ValidationError("This rider is not on the roster for this show's season.")
 
@@ -778,10 +799,17 @@ class ShowEntry(models.Model):
                 for other in self.show_class.entries.filter(
                     is_point_rider=True,
                     competition_track=self.CompetitionTrack.REGULAR,
-                ).exclude(pk=self.pk).select_related("rider"):
-                    other_membership = SeasonMembership.objects.filter(
-                        rider=other.rider, season=show.season
-                    ).first()
+                ).exclude(pk=self.pk).select_related("rider", "iea_participant"):
+                    other_membership = None
+                    if other.iea_participant_id:
+                        other_membership = SeasonMembership.objects.filter(
+                            iea_participant=other.iea_participant,
+                            season=show.season,
+                        ).first()
+                    if other_membership is None and other.rider_id:
+                        other_membership = SeasonMembership.objects.filter(
+                            rider=other.rider, season=show.season
+                        ).first()
                     if other_membership and other_membership.team_level == membership.team_level:
                         conflict_ids.append(other.pk)
                 if conflict_ids:
@@ -818,7 +846,8 @@ class ShowEntry(models.Model):
             return None
 
     def __str__(self):
-        return f"{self.rider} — {self.show_class.display_name}"
+        participant = self.iea_participant.person if self.iea_participant_id else self.rider
+        return f"{participant} — {self.show_class.display_name}"
 
 
 class ShowResult(models.Model):
