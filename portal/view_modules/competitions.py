@@ -117,7 +117,8 @@ def show_detail(request, pk):
     can_manage = _can_manage(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
     classes = show.classes.select_related("season_class").prefetch_related(
-        "entries__rider", "entries__result", "entries__rider__memberships"
+        "entries__rider", "entries__result", "entries__rider__memberships",
+        "entries__iea_participant__person", "entries__iea_participant__season_memberships",
     )
 
     postseason_team_totals = []
@@ -128,10 +129,17 @@ def show_detail(request, pk):
 
     for show_class in classes:
         for entry in show_class.entries.all():
-            membership = next(
-                (m for m in entry.rider.memberships.all() if m.season_id == show.season_id),
-                None,
-            )
+            membership = None
+            if entry.iea_participant_id:
+                membership = next(
+                    (m for m in entry.iea_participant.season_memberships.all() if m.season_id == show.season_id),
+                    None,
+                )
+            if membership is None and entry.rider_id:
+                membership = next(
+                    (m for m in entry.rider.memberships.all() if m.season_id == show.season_id),
+                    None,
+                )
             if can_manage:
                 entry.point_team_label = membership.get_team_level_display() if membership else "Team"
 
@@ -183,8 +191,15 @@ def show_detail(request, pk):
             if ShowEntry.objects.filter(
                 show_class__show=show,
                 competition_track=ShowEntry.CompetitionTrack.TEAM,
-                rider__memberships__season=show.season,
-                rider__memberships__team_level=level,
+            ).filter(
+                Q(
+                    iea_participant__season_memberships__season=show.season,
+                    iea_participant__season_memberships__team_level=level,
+                )
+                | Q(
+                    rider__memberships__season=show.season,
+                    rider__memberships__team_level=level,
+                )
             ).exists()
         ]
 
@@ -301,17 +316,18 @@ def show_entry_create(request, show_pk):
 @login_required
 def show_entry_edit(request, entry_pk):
     _require_manage(request.user); team = _team(request.user)
-    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show__season", "rider"), pk=entry_pk, show_class__show__team=team); show = entry.show_class.show
+    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show__season", "rider", "iea_participant__person"), pk=entry_pk, show_class__show__team=team); show = entry.show_class.show
     _ensure_season_open(show.season)
     form = ShowEntryForm(request.POST or None, instance=entry, show=show, team=team)
     if form.is_valid():
         obj = form.save(commit=False); obj.full_clean(); obj.save(); messages.success(request, "Rider entry updated."); return redirect("show_detail", pk=show.pk)
-    return render(request, "portal/form.html", {"form": form, "title": f"Edit entry · {entry.rider}", "eyebrow": show.name})
+    participant_name = entry.iea_participant.person if entry.iea_participant_id else entry.rider
+    return render(request, "portal/form.html", {"form": form, "title": f"Edit entry · {participant_name}", "eyebrow": show.name})
 
 @login_required
 def show_entry_delete(request, entry_pk):
     _require_manage(request.user); team = _team(request.user)
-    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show__season", "rider"), pk=entry_pk, show_class__show__team=team); show_id = entry.show_class.show_id
+    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show__season", "rider", "iea_participant__person"), pk=entry_pk, show_class__show__team=team); show_id = entry.show_class.show_id
     _ensure_season_open(entry.show_class.show.season)
     if request.method == "POST":
         entry.delete(); messages.success(request, "Rider entry removed."); return redirect("show_detail", pk=show_id)
@@ -324,7 +340,8 @@ def show_result_edit(request, entry_pk):
     if not _can_manage_points(request.user, entry_probe.show_class.show.season):
         raise PermissionDenied
     _ensure_season_open(entry_probe.show_class.show.season)
-    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show", "rider"), pk=entry_pk, show_class__show__team=team)
+    entry = get_object_or_404(ShowEntry.objects.select_related("show_class__show", "rider", "iea_participant__person"), pk=entry_pk, show_class__show__team=team)
+    participant_name = entry.iea_participant.person if entry.iea_participant_id else entry.rider
     result, created = ShowResult.objects.get_or_create(entry=entry); form = ShowResultForm(request.POST or None, instance=result)
     if form.is_valid():
         result = form.save()
@@ -332,9 +349,9 @@ def show_result_edit(request, entry_pk):
             team=team, actor=request.user,
             action=AuditEvent.Action.CREATED if created else AuditEvent.Action.UPDATED,
             obj=result, season=entry.show_class.show.season,
-            summary=f"Saved result for {entry.rider} · {entry.show_class.display_name}",
-            details={"show": entry.show_class.show, "rider": entry.rider, "points": result.points},
+            summary=f"Saved result for {participant_name} · {entry.show_class.display_name}",
+            details={"show": entry.show_class.show, "participant": participant_name, "points": result.points},
         )
         messages.success(request, "Result saved.")
         return redirect("show_detail", pk=entry.show_class.show_id)
-    return render(request, "portal/form.html", {"form": form, "title": f"Result · {entry.rider}", "eyebrow": entry.show_class.display_name})
+    return render(request, "portal/form.html", {"form": form, "title": f"Result · {participant_name}", "eyebrow": entry.show_class.display_name})
