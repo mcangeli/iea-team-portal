@@ -371,8 +371,18 @@ class ShowEntryForm(_LegacyShowEntryForm):
         from portal.iea_voc import voc_candidate_ids
 
         candidate_ids = voc_candidate_ids(show)
+        legacy_rider_ids = [
+            value for kind, value in candidate_ids if kind == "rider"
+        ]
+        person_ids = [
+            value for kind, value in candidate_ids if kind == "person"
+        ]
+        participant_rider_ids = IEAParticipant.objects.filter(
+            person_id__in=person_ids,
+            legacy_rider__isnull=False,
+        ).values_list("legacy_rider_id", flat=True)
         self.fields["rider"].queryset = Rider.objects.filter(
-            pk__in=candidate_ids,
+            pk__in=set(legacy_rider_ids) | set(participant_rider_ids),
             team=team,
             active=True,
         )
