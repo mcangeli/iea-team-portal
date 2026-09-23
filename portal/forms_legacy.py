@@ -5,6 +5,7 @@ from django.forms import formset_factory
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from .model_modules.people import Person
 from .models import (
     Announcement, CalendarEvent, GuardianContact, Rider, RiderGuardian, SeasonClass,
     SeasonMembership, SeasonScoringConfig, QualificationOverride, Show, ShowClass, ShowEntry, ShowResult,
@@ -798,27 +799,28 @@ class RiderDevelopmentNoteForm(forms.ModelForm):
 class RiderAwardForm(forms.ModelForm):
     class Meta:
         model = RiderAward
-        fields = ["rider", "title", "description", "presentation_date", "published"]
+        fields = ["person", "title", "description", "presentation_date", "published"]
         widgets = {"presentation_date": DateInput()}
 
     def __init__(self, *args, season=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.season = season or (self.instance.season if self.instance and self.instance.pk else None)
         if self.season:
-            self.fields["rider"].queryset = Rider.objects.filter(
-                memberships__season=self.season, active=True
+            self.fields["person"].queryset = Person.objects.filter(
+                iea_participant__season_memberships__season=self.season,
+                active=True,
             ).distinct().order_by("last_name", "first_name")
 
     def clean(self):
         cleaned = super().clean()
-        rider = cleaned.get("rider")
+        person = cleaned.get("person")
         title = (cleaned.get("title") or "").strip()
-        if self.season and rider and title:
+        if self.season and person and title:
             duplicate = RiderAward.objects.filter(
-                season=self.season, rider=rider, title__iexact=title
+                season=self.season, person=person, title__iexact=title
             ).exclude(pk=getattr(self.instance, "pk", None))
             if duplicate.exists():
-                self.add_error("title", "This award has already been recorded for this rider in this season.")
+                self.add_error("title", "This award has already been recorded for this person in this season.")
         return cleaned
 
 
