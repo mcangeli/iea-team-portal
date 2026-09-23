@@ -16,6 +16,7 @@ from .forms_legacy import ShowEntryForm as _LegacyShowEntryForm
 from .forms_legacy import UserOnboardingForm as _LegacyUserOnboardingForm
 from .forms_legacy import UserAccountEditForm as _LegacyUserAccountEditForm
 from .model_modules.competition_iea import IEAClassCatalogEntry
+from .model_modules.people import IEAParticipant
 from .people_accounts import sync_user_person_after_account_edit, sync_user_person_identity
 
 
