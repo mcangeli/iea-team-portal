@@ -121,43 +121,46 @@ def my_show_day(request, pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
 
-    personal_rider_ids = set(
-        _personal_riders(request.user, team).values_list("id", flat=True)
+    from portal.people_services import personal_iea_participants_for_user
+
+    personal_participant_ids = set(
+        personal_iea_participants_for_user(request.user, team).values_list("id", flat=True)
     )
     participating = list(
-        _show_day_participating_riders(show)
-        .filter(pk__in=personal_rider_ids)
-        .prefetch_related("memberships")
+        _show_day_participating_participants(show)
+        .filter(pk__in=personal_participant_ids)
+        .prefetch_related("season_memberships")
     )
 
     status_map = {
-        obj.rider_id: obj
+        obj.iea_participant_id: obj
         for obj in ShowDayRiderStatus.objects.filter(
-            show=show, rider_id__in=personal_rider_ids
+            show=show, iea_participant_id__in=personal_participant_ids
         ).select_related("updated_by")
     }
 
     rider_rows = []
-    for rider in participating:
+    for participant in participating:
         membership = next(
-            (m for m in rider.memberships.all() if m.season_id == show.season_id),
+            (m for m in participant.season_memberships.all() if m.season_id == show.season_id),
             None,
         )
-        status_obj = status_map.get(rider.pk)
+        status_obj = status_map.get(participant.pk)
         status_value = (
             status_obj.status if status_obj
             else ShowDayRiderStatus.Status.EXPECTED
         )
         rider_rows.append({
-            "rider": rider,
+            "rider": participant.legacy_rider or participant.person,
+            "participant": participant,
             "membership": membership,
             "status_obj": status_obj,
             "status": status_value,
             "status_label": dict(ShowDayRiderStatus.Status.choices).get(
                 status_value, status_value
             ),
-            "can_edit": _can_update_show_day_rider_status(
-                request.user, show, rider
+            "can_edit": _can_update_show_day_participant_status(
+                request.user, show, participant
             ),
         })
 
@@ -171,7 +174,7 @@ def my_show_day(request, pk):
         entries = [
             entry for entry in show_class.entries.all()
             if entry.status != ShowEntry.Status.SCRATCHED
-            and entry.rider_id in personal_rider_ids
+            and entry.iea_participant_id in personal_participant_ids
         ]
         if not entries:
             continue
