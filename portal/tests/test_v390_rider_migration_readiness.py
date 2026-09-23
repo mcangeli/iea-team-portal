@@ -11,7 +11,12 @@ from portal.services.rider_migration_readiness import audit_rider_migration_read
 class V390RiderMigrationReadinessTests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="Readiness Farm")
-        self.season = Season.objects.create(\n            team=self.team,\n            name="2026-2027",\n            start_date=date(2026, 7, 1),\n            end_date=date(2027, 6, 30),\n        )
+        self.season = Season.objects.create(
+            team=self.team,
+            name="2026-2027",
+            start_date=date(2026, 7, 1),
+            end_date=date(2027, 6, 30),
+        )
         self.person = Person.objects.create(team=self.team, first_name="Ready", last_name="Rider")
         self.rider = Rider.objects.create(
             team=self.team, first_name="Ready", last_name="Rider",
