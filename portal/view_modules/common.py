@@ -200,9 +200,9 @@ def _selected_team(request):
 
 def _qualification_rows(season, team_level="all"):
     config, _ = SeasonScoringConfig.objects.get_or_create(season=season)
-    memberships = list(season.memberships.select_related("rider").prefetch_related("classes", "qualification_overrides"))
+    memberships = list(season.memberships.select_related("iea_participant__person", "iea_participant__legacy_rider", "rider").prefetch_related("classes", "qualification_overrides"))
     if team_level in TEAM_LEVELS: memberships = [m for m in memberships if m.team_level == team_level]
-    rider_ids = [m.rider_id for m in memberships]; totals = {}
+    rider_ids = [m.iea_participant.legacy_rider_id for m in memberships if m.iea_participant_id and m.iea_participant.legacy_rider_id]; totals = {}
     if rider_ids:
         grouped = ShowResult.objects.filter(entry__rider_id__in=rider_ids, entry__show_class__show__season=season,
             entry__show_class__show__competition_level=Show.CompetitionLevel.REGULAR, entry__competition_track=ShowEntry.CompetitionTrack.REGULAR,
@@ -212,11 +212,11 @@ def _qualification_rows(season, team_level="all"):
     for membership in memberships:
         override_map = {o.season_class_id: o for o in membership.qualification_overrides.all()}
         for season_class in sorted([sc for sc in membership.classes.all() if sc.active], key=lambda sc: (sc.sort_order, sc.name.casefold())):
-            total = totals.get((membership.rider_id, season_class.pk), 0); override = override_map.get(season_class.pk); auto_qualified = total >= config.individual_qualification_points
+            rider_id = membership.iea_participant.legacy_rider_id if membership.iea_participant_id else membership.rider_id\n            total = totals.get((rider_id, season_class.pk), 0); override = override_map.get(season_class.pk); auto_qualified = total >= config.individual_qualification_points
             if override and override.status == QualificationOverride.Status.QUALIFIED: qualified = True
             elif override and override.status == QualificationOverride.Status.NOT_QUALIFIED: qualified = False
             else: qualified = auto_qualified
-            rows.append({"membership": membership, "rider": membership.rider, "season_class": season_class, "points": total, "threshold": config.individual_qualification_points, "qualified": qualified, "override": override})
+            rider = membership.iea_participant.legacy_rider if membership.iea_participant_id and membership.iea_participant.legacy_rider_id else membership.rider\n            rows.append({"membership": membership, "rider": rider, "person": membership.iea_participant.person if membership.iea_participant_id else None, "season_class": season_class, "points": total, "threshold": config.individual_qualification_points, "qualified": qualified, "override": override})
     return rows
 
 def _team_scoring_rows(season, team_level="all", include_riders=True):
@@ -226,7 +226,7 @@ def _team_scoring_rows(season, team_level="all", include_riders=True):
     for show in shows:
         for level in levels:
             entries = ShowEntry.objects.filter(show_class__show=show, competition_track=ShowEntry.CompetitionTrack.REGULAR, is_point_rider=True,
-                status__in=[ShowEntry.Status.PLANNED, ShowEntry.Status.ENTERED], rider__memberships__season=season, rider__memberships__team_level=level).select_related("rider", "show_class__season_class", "result").distinct()
+                status__in=[ShowEntry.Status.PLANNED, ShowEntry.Status.ENTERED], rider__iea_participant_bridge__season_memberships__season=season, rider__iea_participant_bridge__season_memberships__team_level=level).select_related("rider", "show_class__season_class", "result").distinct()
             class_rows = []; show_total = 0
             for entry in entries:
                 if _is_non_team_scoring_class(entry.show_class): continue
