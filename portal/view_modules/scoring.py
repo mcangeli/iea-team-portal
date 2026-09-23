@@ -179,6 +179,19 @@ def standings_export(request):
             writer.writerow([row["show"].name, row["team_label"], cr["entry"].rider, cr["entry"].show_class.display_name, result.place if result else "", cr["points"]])
     return response
 
+def _season_membership_for_entry(entry, season):
+    """Resolve IEA season membership through Person-native identity first."""
+    participant = getattr(entry.rider, "iea_participant_bridge", None)
+    if participant is not None:
+        membership = SeasonMembership.objects.filter(
+            iea_participant=participant,
+            season=season,
+        ).first()
+        if membership is not None:
+            return membership
+    return SeasonMembership.objects.filter(rider=entry.rider, season=season).first()
+
+
 @login_required
 @require_POST
 def point_rider_set(request, entry_pk):
@@ -208,7 +221,7 @@ def point_rider_set(request, entry_pk):
             f"{entry.show_class.display_name} does not award IEA team points and cannot have a points rider."
         )
         return redirect("show_detail", pk=show.pk)
-    membership = SeasonMembership.objects.filter(rider=entry.rider, season=show.season).first()
+    membership = _season_membership_for_entry(entry, show.season)
     if not membership:
         messages.error(request, "This rider is not on the season roster.")
         return redirect("show_detail", pk=show.pk)
@@ -219,7 +232,7 @@ def point_rider_set(request, entry_pk):
         messages.success(request, f"Cleared {entry.rider} as the points rider for {entry.show_class.display_name}.")
         return redirect("show_detail", pk=show.pk)
     for other in entry.show_class.entries.filter(is_point_rider=True).exclude(pk=entry.pk).select_related("rider"):
-        other_membership = SeasonMembership.objects.filter(rider=other.rider, season=show.season).first()
+        other_membership = _season_membership_for_entry(other, show.season)
         if other_membership and other_membership.team_level == membership.team_level:
             other.is_point_rider = False
             other.save(update_fields=["is_point_rider"])
