@@ -53,6 +53,7 @@ from ..models import (
     FundraisingPolicy,
 )
 from ..platform import active_period_for_organization, organization_for_view_user
+from ..people_compat import ensure_iea_participant_for_rider
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
@@ -339,8 +340,10 @@ def rider_create(request):
 
                 season = form.cleaned_data.get("season")
                 if season:
+                    participant, _ = ensure_iea_participant_for_rider(obj)
                     membership = SeasonMembership.objects.create(
                         rider=obj,
+                        iea_participant=participant,
                         season=season,
                         team_level=form.cleaned_data["team_level"],
                         home_barn=form.cleaned_data.get("home_barn"),
@@ -390,7 +393,17 @@ def rider_membership_edit(request, pk, season_pk=None):
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("rider_detail", pk=rider.pk)
     _ensure_season_open(season)
-    membership, _ = SeasonMembership.objects.get_or_create(rider=rider, season=season)
+    participant, _ = ensure_iea_participant_for_rider(rider)
+    membership, created = SeasonMembership.objects.get_or_create(
+        iea_participant=participant,
+        season=season,
+        defaults={"rider": rider},
+    )
+    if membership.rider_id != rider.id:
+        raise ValidationError("Season membership is linked to a different legacy rider.")
+    if not membership.iea_participant_id:
+        membership.iea_participant = participant
+        membership.save(update_fields=["iea_participant"])
     form = SeasonMembershipForm(request.POST or None, instance=membership, season=season)
     if form.is_valid():
         form.save(); messages.success(request, f"{season.name} team and class assignments updated.")
