@@ -256,7 +256,14 @@ class SeasonMembership(models.Model):
     notes = models.TextField(blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=["rider", "season"], name="unique_rider_season")]
+        constraints = [
+            models.UniqueConstraint(fields=["rider", "season"], name="unique_rider_season"),
+            models.UniqueConstraint(
+                fields=["iea_participant", "season"],
+                condition=models.Q(iea_participant__isnull=False),
+                name="unique_iea_participant_season",
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.team_level and self.rider.grade:
