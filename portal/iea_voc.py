@@ -14,6 +14,17 @@ class VOCCandidate:
     h2_place: int | None
     cutoff_tie: bool = False
 
+    @property
+    def rider_id(self):
+        """Legacy compatibility identifier while Rider-backed callers migrate."""
+        kind, value = self.participant_key
+        return value if kind == "rider" else None
+
+    @property
+    def person_id(self):
+        kind, value = self.participant_key
+        return value if kind == "person" else None
+
 
 def voc_candidates(show):
     """Return ranked same-show VOC candidates from completed H1/H2 results.
