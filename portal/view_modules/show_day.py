@@ -776,11 +776,23 @@ def show_week_summary(request, pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
     can_manage = _can_manage(request.user)
-    classes = show.classes.select_related("season_class").prefetch_related("entries__rider", "entries__result")
-    roster = Rider.objects.filter(show_entries__show_class__show=show).distinct().order_by("last_name", "first_name")
-    availability = ShowAvailability.objects.filter(show=show, rider__in=roster).select_related("rider")
+    classes = show.classes.select_related("season_class").prefetch_related(
+        "entries__rider", "entries__iea_participant__person", "entries__result"
+    )
+    roster = list(
+        _show_day_participating_participants(show).select_related("person", "legacy_rider")
+    )
+    availability = ShowAvailability.objects.filter(
+        show=show, iea_participant__in=roster
+    ).select_related("iea_participant__person", "rider")
     if not can_manage:
-        availability = availability.filter(rider__in=_visible_riders(request.user, team))
+        from portal.people_services import personal_iea_participants_for_user
+        visible_participant_ids = personal_iea_participants_for_user(
+            request.user, team
+        ).values_list("id", flat=True)
+        availability = availability.filter(iea_participant_id__in=visible_participant_ids)
+        visible_ids = set(visible_participant_ids)
+        roster = [participant for participant in roster if participant.pk in visible_ids]
     return render(request, "portal/show_week_summary.html", {
         "show": show, "classes": classes, "roster": roster, "availability": availability, "can_manage": can_manage,
     })
@@ -791,9 +803,20 @@ def show_week_summary_send(request, pk):
     _require_manage(request.user)
     team = _team(request.user)
     show = get_object_or_404(Show, pk=pk, team=team)
-    riders = Rider.objects.filter(show_entries__show_class__show=show).distinct()
-    recipient_ids = set(riders.exclude(user__isnull=True).values_list("user_id", flat=True))
-    recipient_ids.update(GuardianContact.objects.filter(rider_links__rider__in=riders, user__isnull=False).values_list("user_id", flat=True))
+    participants = _show_day_participating_participants(show)
+    participant_person_ids = set(participants.values_list("person_id", flat=True))
+    recipient_ids = set(
+        User.objects.filter(arena_person__id__in=participant_person_ids).values_list("id", flat=True)
+    )
+    from portal.model_modules.people import PersonRelationship
+    parent_person_ids = PersonRelationship.objects.filter(
+        to_person_id__in=participant_person_ids,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).values_list("from_person_id", flat=True)
+    recipient_ids.update(
+        User.objects.filter(arena_person__id__in=parent_person_ids).values_list("id", flat=True)
+    )
     recipient_ids.update(User.objects.filter(profile__team=team, profile__role__in=[UserProfile.Role.ADMIN, UserProfile.Role.COACH]).values_list("id", flat=True))
     title = f"Show week: {show.name}"
     body = f"{show.name} is {show.show_date:%A, %B %d}. Check the portal for entries, schedule, venue, and your availability status."
