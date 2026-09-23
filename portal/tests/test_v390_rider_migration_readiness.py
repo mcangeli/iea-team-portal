@@ -1,5 +1,7 @@
 from django.core.management import call_command
-from datetime import date\n\nfrom django.test import TestCase
+from datetime import date
+
+from django.test import TestCase
 
 from portal.model_modules.people import IEAParticipant, LegacyPersonLink, Person
 from portal.models import Rider, Season, SeasonMembership, Team
