@@ -1,5 +1,5 @@
 from django.core.management import call_command
-from django.test import TestCase
+from datetime import date\n\nfrom django.test import TestCase
 
 from portal.model_modules.people import IEAParticipant, LegacyPersonLink, Person
 from portal.models import Rider, Season, SeasonMembership, Team
@@ -9,7 +9,7 @@ from portal.services.rider_migration_readiness import audit_rider_migration_read
 class V390RiderMigrationReadinessTests(TestCase):
     def setUp(self):
         self.team = Team.objects.create(name="Readiness Farm")
-        self.season = Season.objects.create(team=self.team, name="2026-2027")
+        self.season = Season.objects.create(\n            team=self.team,\n            name="2026-2027",\n            start_date=date(2026, 7, 1),\n            end_date=date(2027, 6, 30),\n        )
         self.person = Person.objects.create(team=self.team, first_name="Ready", last_name="Rider")
         self.rider = Rider.objects.create(
             team=self.team, first_name="Ready", last_name="Rider",
