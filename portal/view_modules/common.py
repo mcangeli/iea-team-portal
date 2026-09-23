@@ -212,11 +212,13 @@ def _qualification_rows(season, team_level="all"):
     for membership in memberships:
         override_map = {o.season_class_id: o for o in membership.qualification_overrides.all()}
         for season_class in sorted([sc for sc in membership.classes.all() if sc.active], key=lambda sc: (sc.sort_order, sc.name.casefold())):
-            rider_id = membership.iea_participant.legacy_rider_id if membership.iea_participant_id else membership.rider_id\n            total = totals.get((rider_id, season_class.pk), 0); override = override_map.get(season_class.pk); auto_qualified = total >= config.individual_qualification_points
+            rider_id = membership.iea_participant.legacy_rider_id if membership.iea_participant_id else membership.rider_id
+            total = totals.get((rider_id, season_class.pk), 0); override = override_map.get(season_class.pk); auto_qualified = total >= config.individual_qualification_points
             if override and override.status == QualificationOverride.Status.QUALIFIED: qualified = True
             elif override and override.status == QualificationOverride.Status.NOT_QUALIFIED: qualified = False
             else: qualified = auto_qualified
-            rider = membership.iea_participant.legacy_rider if membership.iea_participant_id and membership.iea_participant.legacy_rider_id else membership.rider\n            rows.append({"membership": membership, "rider": rider, "person": membership.iea_participant.person if membership.iea_participant_id else None, "season_class": season_class, "points": total, "threshold": config.individual_qualification_points, "qualified": qualified, "override": override})
+            rider = membership.iea_participant.legacy_rider if membership.iea_participant_id and membership.iea_participant.legacy_rider_id else membership.rider
+            rows.append({"membership": membership, "rider": rider, "person": membership.iea_participant.person if membership.iea_participant_id else None, "season_class": season_class, "points": total, "threshold": config.individual_qualification_points, "qualified": qualified, "override": override})
     return rows
 
 def _team_scoring_rows(season, team_level="all", include_riders=True):
