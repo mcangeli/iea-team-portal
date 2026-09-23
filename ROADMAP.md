@@ -17,10 +17,33 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.5.0 — Barn Finance & Business Operations:** released.
 - **3.6.0 — Dashboard Refresh & Account Security:** released.
 - **3.7.0 — Barn Finance Completion:** released.
-- **3.8.x — Barn, Facility & Resource Operations:** tentatively committed next release family.
+- **3.8.0 — Barn, Facility & Resource Operations:** released.
 - **3.9.x — Operations, Communications & Boarding Completion:** tentative.
 - **3.10.x — Analytics & History:** tentative.
 - **3.11.x — 3.x Platform Stabilization & Completion:** tentative.
+
+---
+
+# 3.8.0 — Barn, Facility & Resource Operations
+
+**Status: released.**
+
+v3.8.0 establishes the canonical physical-operations foundation for ArenaLine while preserving domain ownership: Facilities own physical-place identity, Horses own horse records, Lessons own lesson facts, Inventory owns stock facts, Calendar remains a projection, and Finance remains authoritative for financial transactions.
+
+Major outcomes:
+
+- organization-scoped Facilities with nested Facility Spaces;
+- capability-driven arenas/resources, stalls, pastures/paddocks, storage, and other physical spaces;
+- independent effective-dated stall housing and pasture/turnout assignments with preserved history;
+- reservable Facility Spaces and lesson-resource scheduling/collision controls;
+- additive canonical location links while retaining established free-text location/venue compatibility;
+- inventory categories/items, stock by storage location, receive/use/adjust/transfer movements, low-stock visibility, and transaction history;
+- integrated Facilities and Inventory navigation/presentation with hierarchical resource navigation;
+- migrations 0111–0114 and regression coverage across facility, housing, turnout, scheduling, and inventory boundaries.
+
+Final validation: **102/102 focused v3.8 tests** and **1452/1452 complete ArenaLine tests passing**, with clean migration-state and Django system checks.
+
+Detailed release notes: `docs/releases/v3.8.0.md`.
 
 ---
 
