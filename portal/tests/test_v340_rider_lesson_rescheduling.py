@@ -23,7 +23,9 @@ class RiderLessonReschedulingTests(TestCase):
         today = timezone.localdate()
         series_start = today - timedelta(days=14)
         series_end = today + timedelta(days=42)
-        # Keep generated occurrences strictly in the future regardless of the current local clock.\n        generation_start = today + timedelta(days=1)\n        generation_end = today + timedelta(days=28)
+        # Keep generated occurrences strictly in the future regardless of the current local clock.
+        generation_start = today + timedelta(days=1)
+        generation_end = today + timedelta(days=28)
         self.series = LessonSeries.objects.create(program=self.program, name="Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, capacity=4, start_date=series_start, end_date=series_end)
         LessonEnrollment.objects.create(series=self.series, person=self.rider)
         generated = generate_lesson_occurrences(self.series, generation_start, generation_end).created
