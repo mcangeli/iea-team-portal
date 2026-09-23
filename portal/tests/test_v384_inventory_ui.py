@@ -89,3 +89,15 @@ class InventoryUITests(TestCase):
         response = self.client.get(reverse("inventory_list"))
         self.assertContains(response, reverse("inventory_list"))
         self.assertContains(response, ">Inventory<", html=False)
+
+    def test_item_detail_links_storage_location_back_to_facilities(self):
+        InventoryStock.objects.create(item=self.item, space=self.feed_room, quantity=Decimal("3"))
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("inventory_item_detail", args=[self.item.pk]))
+        self.assertContains(response, reverse("facility_space_detail", args=[self.feed_room.pk]))
+
+    def test_inventory_action_pages_return_to_item_detail(self):
+        self.client.force_login(self.admin)
+        for name in ("inventory_receive", "inventory_use", "inventory_adjust", "inventory_transfer"):
+            response = self.client.get(reverse(name, args=[self.item.pk]))
+            self.assertContains(response, reverse("inventory_item_detail", args=[self.item.pk]))
