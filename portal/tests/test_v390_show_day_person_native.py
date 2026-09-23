@@ -87,3 +87,32 @@ class V390ShowDayPersonNativeTests(TestCase):
         )
         self.assertEqual(status.status, ShowDayRiderStatus.Status.ARRIVED)
         self.assertIsNone(status.rider_id)
+
+    def test_parent_my_show_day_includes_person_native_participant_without_rider(self):
+        parent_user = User.objects.create_user(username="person-native-show-day-parent", password="test-pass")
+        parent_user.profile.team = self.team
+        parent_user.profile.role = UserProfile.Role.PARENT
+        parent_user.profile.save(update_fields=["team", "role"])
+        parent = Person.objects.create(
+            team=self.team, user=parent_user, first_name="Show Day", last_name="Parent"
+        )
+        PersonRelationship.objects.create(
+            from_person=parent,
+            to_person=self.person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            active=True,
+        )
+        self.client.force_login(parent_user)
+
+        response = self.client.get(reverse("my_show_day", args=[self.show.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        rows = response.context["rider_rows"]
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["participant"], self.participant)
+        self.assertEqual(rows[0]["rider"], self.person)
+        self.assertIsNone(self.participant.legacy_rider_id)
+
+        class_rows = response.context["class_rows"]
+        self.assertEqual(len(class_rows), 1)
+        self.assertEqual(class_rows[0]["entries"], [self.entry])
