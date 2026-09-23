@@ -235,6 +235,14 @@ class SeasonMembership(models.Model):
         UPPER = "upper", "Upper School Team"
 
     rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="memberships")
+    iea_participant = models.ForeignKey(
+        "IEAParticipant",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="season_memberships",
+        help_text="Person-native IEA participant identity. Legacy Rider remains during the v3.9 transition.",
+    )
     season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="memberships")
     team_level = models.CharField(max_length=20, choices=TeamLevel.choices, blank=True)
     home_barn = models.ForeignKey(
