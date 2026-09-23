@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.model_modules.people import IEAParticipant, Person, PersonRelationship
-from portal.models import Season, SeasonClass, SeasonMembership, Show, ShowClass, ShowDayRiderStatus, ShowEntry, Team, UserProfile
+from portal.models import Season, SeasonClass, SeasonMembership, Show, ShowAvailability, ShowClass, ShowDayRiderStatus, ShowEntry, Team, UserProfile
 from portal.view_modules.show_day_helpers import _show_day_participating_participants
 
 
