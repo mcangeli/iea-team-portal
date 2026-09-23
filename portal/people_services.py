@@ -4,7 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.utils import timezone
 
-from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
+from portal.model_modules.people import IEAParticipant, LegacyPersonLink, Person, PersonRelationship
 from portal.view_modules.common import _can_manage, _team
 
 
@@ -98,6 +98,23 @@ def canonical_self_rider_ids_for_user(user, team):
             rider__team=team,
             rider__isnull=False,
         ).values_list("rider_id", flat=True)
+    )
+
+
+def personal_iea_participants_for_user(user, team):
+    """Return canonical IEA participants belonging to the login or their family."""
+    viewer = _person_for_login(user)
+    if not viewer or viewer.team_id != team.id:
+        return IEAParticipant.objects.none()
+    child_person_ids = _active_parent_relationships().filter(
+        from_person=viewer,
+        to_person__team=team,
+    ).values_list("to_person_id", flat=True)
+    return (
+        IEAParticipant.objects.filter(team=team, active=True)
+        .filter(Q(person=viewer) | Q(person_id__in=child_person_ids))
+        .select_related("person", "legacy_rider")
+        .distinct()
     )
 
 
