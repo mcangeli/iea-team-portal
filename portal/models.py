@@ -234,7 +234,7 @@ class SeasonMembership(models.Model):
         FUTURES = "futures", "Futures Team"
         UPPER = "upper", "Upper School Team"
 
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="memberships")
+    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, null=True, blank=True, related_name="memberships")
     iea_participant = models.ForeignKey(
         "IEAParticipant",
         on_delete=models.PROTECT,
@@ -257,7 +257,7 @@ class SeasonMembership(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["rider", "season"], name="unique_rider_season"),
+            models.UniqueConstraint(\n                fields=["rider", "season"],\n                condition=models.Q(rider__isnull=False),\n                name="unique_rider_season",\n            ),
             models.UniqueConstraint(
                 fields=["iea_participant", "season"],
                 condition=models.Q(iea_participant__isnull=False),
@@ -266,15 +266,22 @@ class SeasonMembership(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if not self.team_level and self.rider.grade:
-            if 4 <= self.rider.grade <= 8:
-                self.team_level = self.TeamLevel.FUTURES
-            elif 9 <= self.rider.grade <= 12:
-                self.team_level = self.TeamLevel.UPPER
+        if not self.team_level:
+            grade = None
+            if self.iea_participant_id:
+                grade = getattr(self.iea_participant.person, "grade", None)
+            if grade is None and self.rider_id:
+                grade = self.rider.grade
+            if grade is not None:
+                if 4 <= grade <= 8:
+                    self.team_level = self.TeamLevel.FUTURES
+                elif 9 <= grade <= 12:
+                    self.team_level = self.TeamLevel.UPPER
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.rider} — {self.season.name}"
+        participant = self.iea_participant.person if self.iea_participant_id else self.rider
+        return f"{participant} — {self.season.name}"
 
 
 
