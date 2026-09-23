@@ -4,6 +4,30 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.8.0 — Barn, Facility & Resource Operations
+
+Released September 2026.
+
+v3.8.0 establishes ArenaLine's canonical physical-operations layer for facilities, spaces, horse housing/turnout, reservable lesson resources, and inventory storage/stock movement without creating a competing scheduling or finance silo.
+
+Highlights:
+
+- adds organization-scoped Facilities and nested Facility Spaces for buildings, arenas, stalls, pastures/paddocks, storage, and other physical resources;
+- uses explicit space capabilities for reservation, stall/housing, pasture/turnout, and inventory storage workflows;
+- adds effective-dated HorseStallAssignment and HorsePastureAssignment history while keeping stall housing and turnout independent;
+- adds ResourceReservation with collision-aware lesson-resource scheduling while preserving Lessons as the owner of lesson facts and Calendar as a projection surface;
+- retains existing free-text lesson, calendar, and show location fields as compatibility/history surfaces and continues to support external show venues without local Facility records;
+- adds Inventory categories/items, per-location stock, receive/use/adjust/transfer operations, low-stock visibility, and durable transaction history;
+- links inventory storage to storage-capable Facility Spaces while keeping inventory stock facts separate from Facility identity and Finance/AP ownership;
+- adds polished Facilities and Inventory workspaces with deterministic hierarchy/navigation and responsive ArenaLine presentation;
+- stabilizes the v3.4 rider lesson-rescheduling regression fixture so its future-lesson assumptions are independent of the wall calendar.
+
+Migrations: `0111_facility_facilityspace_horsepastureassignment_and_more.py` through `0114_inventorytransaction_adjustment_direction.py`.
+
+Validation: focused v3.8 regression gate **102/102 passing**, complete ArenaLine regression suite **1452/1452 passing**, `makemigrations --check --dry-run` reporting **No changes detected**, `migrate --plan` reporting **No planned migration operations**, and Django system check reporting **no issues**.
+
+Detailed notes: `docs/releases/v3.8.0.md`.
+
 ## v3.7.0 — Barn Finance Completion
 
 Release candidate — September 2026.

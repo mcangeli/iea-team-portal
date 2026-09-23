@@ -5,7 +5,9 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from portal.model_modules.facilities import ResourceReservation
 from portal.model_modules.lessons import LessonOccurrence, LessonSeries
+from portal.services.lesson_resources import LESSON_OCCURRENCE_SOURCE, current_lesson_resource_reservation, release_lesson_resource, sync_lesson_resource_times
 
 
 @dataclass(frozen=True)
@@ -60,7 +62,14 @@ def _validate_series_for_generation(series: LessonSeries):
 
 
 def _occurrence_has_operational_history(occurrence: LessonOccurrence) -> bool:
-    return occurrence.attendance_records.exists() or occurrence.assignments.exists()
+    return (
+        occurrence.attendance_records.exists()
+        or occurrence.assignments.exists()
+        or ResourceReservation.objects.filter(
+            source_type=LESSON_OCCURRENCE_SOURCE,
+            source_id=occurrence.pk,
+        ).exists()
+    )
 
 
 def generate_lesson_occurrences(series: LessonSeries, start_date: date, end_date: date) -> LessonOccurrenceGenerationResult:
@@ -138,9 +147,11 @@ def cancel_lesson_occurrence(occurrence: LessonOccurrence, *, notes=None) -> Les
         occurrence.notes = notes
     occurrence.full_clean()
     occurrence.save()
+    release_lesson_resource(occurrence, location=occurrence.location)
     return occurrence
 
 
+@transaction.atomic
 def reschedule_lesson_occurrence(occurrence: LessonOccurrence, *, starts_at, ends_at=None, notes=None) -> LessonOccurrence:
     """Move one occurrence while retaining its immutable generated slot."""
     if occurrence.status == LessonOccurrence.Status.COMPLETED:
@@ -156,6 +167,8 @@ def reschedule_lesson_occurrence(occurrence: LessonOccurrence, *, starts_at, end
     if notes is not None:
         occurrence.notes = notes
     occurrence.full_clean()
+    if current_lesson_resource_reservation(occurrence):
+        sync_lesson_resource_times(occurrence)
     occurrence.save()
     return occurrence
 

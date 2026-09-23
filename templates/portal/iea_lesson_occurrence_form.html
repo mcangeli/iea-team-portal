@@ -15,7 +15,7 @@
       <p>{{ form.instructor.label_tag }}{{ form.instructor }}{{ form.instructor.errors }}</p>
       <p>{{ form.starts_at.label_tag }}{{ form.starts_at }}{{ form.starts_at.errors }}</p>
       <p>{{ form.ends_at.label_tag }}{{ form.ends_at }}{{ form.ends_at.errors }}</p>
-      <p>{{ form.location.label_tag }}{{ form.location }}{{ form.location.errors }}</p>
+      <p>{{ form.resource_space.label_tag }}{{ form.resource_space }}{% if form.resource_space.help_text %}<small class="muted">{{ form.resource_space.help_text }}</small>{% endif %}{{ form.resource_space.errors }}</p>\n      <p>{{ form.location.label_tag }}{{ form.location }}{{ form.location.errors }}</p>
       <p>{{ form.capacity.label_tag }}{{ form.capacity }}{{ form.capacity.errors }}</p>
     </div>
     <p>{{ form.notes.label_tag }}{{ form.notes }}{{ form.notes.errors }}</p>

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}End turnout · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · PASTURE & TURNOUT</div><h1>End turnout</h1><p>End the current {{ assignment.get_turnout_type_display|lower }} turnout assignment for <strong>{{ assignment.horse.display_name }}</strong> in <strong>{{ assignment.space.name }}</strong>. The assignment will remain in history.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}<div class="actions"><button class="btn" type="submit">End turnout</button><a class="btn secondary" href="{% url 'facility_detail' assignment.space.facility_id %}">Cancel</a></div></form></section>
+{% endblock %}

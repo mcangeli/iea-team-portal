@@ -181,6 +181,20 @@ MFA is optional per account and uses TOTP plus hashed single-use recovery codes.
 
 Mail delivery is deployment infrastructure rather than an ArenaLine domain. The default target is a local Postfix listener. Container deployments must explicitly provide a restricted route from the web container to the host MTA; loopback inside the container is not the host.
 
+## v3.8 facility, resource, and inventory boundary
+
+v3.8 adds a canonical physical-operations layer without creating a new owner for lesson, horse, calendar, show, inventory, or finance facts.
+
+`Facility` is the organization-scoped physical site/property identity. `FacilitySpace` is a durable, nestable place within a Facility. Space capabilities determine whether a space may be reserved, used for stall housing, used for pasture/turnout, or used for inventory storage. Parent/child relationships remain inside the same organization and Facility and may not form cycles.
+
+Horse housing and turnout are intentionally independent. `HorseStallAssignment` and `HorsePastureAssignment` are effective-dated relationships to capable Facility Spaces and preserve history. A horse may have both, only a pasture assignment, or temporarily neither; ArenaLine does not model a stall as owning or implying a pasture.
+
+`ResourceReservation` reserves a reservable Facility Space for a time interval and retains source/provenance. The reservation layer protects shared physical capacity but does not become authoritative for the activity that uses it. Lesson occurrences remain lesson-domain records; reservation synchronization is a supporting service. The Calendar remains an aggregation/projection surface.
+
+Existing free-text locations and external show venues remain valid compatibility/history surfaces. Canonical FacilitySpace links are additive and ambiguous historical strings are not automatically converted.
+
+Inventory is a separate operational domain. `InventoryItem` and `InventoryStock` own item and quantity facts; stock is located in inventory-storage-capable Facility Spaces. `InventoryTransaction` preserves receive, use, adjustment, and transfer history. Facilities own the storage-place identity, while Finance/AP continues to own vendors, obligations, payments, and financial transactions. Inventory does not introduce a parallel ledger.
+
 ## Presentation boundary
 
 Shared presentation belongs in static stylesheets and common components rather than template-local style blocks. `docs/PRODUCT_AND_UI_GUIDE.md` is the standing presentation/product guide.

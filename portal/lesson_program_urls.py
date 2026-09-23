@@ -29,6 +29,8 @@ urlpatterns = [
     path("lesson-occurrences/<int:pk>/bill/", views.lesson_occurrence_bill, name="lesson_occurrence_bill"),
     path("lesson-occurrences/<int:pk>/cancel/", views.lesson_occurrence_cancel, name="lesson_occurrence_cancel"),
     path("lesson-occurrences/<int:pk>/reschedule/", views.lesson_occurrence_reschedule, name="lesson_occurrence_reschedule"),
+    path("lesson-occurrences/<int:pk>/resource/", views.lesson_occurrence_resource_assign, name="lesson_occurrence_resource_assign"),
+    path("lesson-occurrences/<int:pk>/resource/release/", views.lesson_occurrence_resource_release, name="lesson_occurrence_resource_release"),
     path("lesson-attendance/<int:pk>/edit/", views.lesson_attendance_edit, name="lesson_occurrence_attendance_edit"),
     path("lesson-assignments/<int:pk>/edit/", views.lesson_assignment_edit, name="lesson_assignment_edit"),
 ]

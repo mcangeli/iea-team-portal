@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'facility_space_detail' space.pk %}">← Back to {{ space.name }}</a></nav>
+<section class="page-intro"><div><div class="eyebrow">{{ facility.name }} · RESOURCE SCHEDULING</div><h1>{{ title }}</h1><p>Reservations use exact start and end times. Back-to-back bookings are allowed.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">{% if reservation %}Save reservation{% else %}Reserve resource{% endif %}</button><a class="btn secondary" href="{% url 'facility_space_detail' space.pk %}">Cancel</a></div></form></section>
+{% endblock %}

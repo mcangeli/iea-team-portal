@@ -1,10 +1,10 @@
 # ArenaLine
 
-**Current version: v3.7.2**
+**Current version: v3.8.0**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.7.0 completes the Barn Finance architecture with domain-separated Accounts Payable and Receivables, generic budgeting, unified operational reporting, transaction traceability, historical as-of reporting, and compatibility bridges for established IEA finance workflows.
+v3.8.0 adds Barn, Facility & Resource Operations: canonical facilities and nested physical spaces, horse stall/turnout assignments, reservable lesson resources, and location-aware inventory operations while preserving established lesson, horse, calendar, show, and finance ownership boundaries.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -15,11 +15,23 @@ v3.7.0 completes the Barn Finance architecture with domain-separated Accounts Pa
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.7.0.md` (v3.7.1/v3.7.2 are maintenance releases).
+- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.8.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
+
+## v3.8.0 highlights
+
+### Barn, Facility & Resource Operations
+
+ArenaLine now models the barn's physical operating environment directly. **Facilities** represent organization-owned sites, while nested **Facility Spaces** represent buildings, arenas, stalls, pastures/paddocks, storage areas, and other durable places. Capabilities determine whether a space can be reserved, used for stall housing, used for turnout, or used for inventory storage.
+
+Horse stall housing and pasture/turnout are independent, effective-dated assignments so ArenaLine preserves operational history without forcing a stall-to-pasture relationship. Reservable spaces can be scheduled for lesson occurrences while Lessons remain authoritative for lesson facts. Existing free-text lesson/show/calendar locations remain valid compatibility and historical snapshots.
+
+The new **Inventory** workspace tracks organization-scoped items, categories, stock by storage-capable Facility Space, receive/use/adjust/transfer movements, low-stock status, and transaction history. Inventory owns stock facts; Facilities own physical-place identity; Finance remains authoritative for financial transactions and purchasing/accounting concerns.
+
+v3.8.0 includes migrations 0111–0114. Final staging validation completed with **102/102 focused v3.8 tests** and **1452/1452 complete ArenaLine tests passing**, with no model drift, no pending migration operations, and a clean Django system check.
 
 ## v3.7.2 maintenance release
 

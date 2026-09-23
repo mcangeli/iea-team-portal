@@ -4,11 +4,14 @@ from datetime import date, timedelta
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from ..forms_lesson_resources import LessonResourceAssignmentForm, LessonResourceReleaseForm
 from ..forms_lessons_v340 import IEALessonOccurrenceForm, IEALessonSeriesForm, LessonAttendanceRecordForm, LessonCancelForm, LessonEnrollmentForm, LessonParticipantAssignmentForm, LessonProgramForm, LessonRescheduleForm, LessonSeriesForm
+from ..model_modules.facilities import ResourceReservation
 from ..model_modules.lessons import IEALessonOccurrenceParticipant, IEALessonSeriesContext, LessonAssignment, LessonAttendanceRecord, LessonEnrollment, LessonOccurrence, LessonProgram, LessonSeries
 from ..models import SeasonMembership
 from ..model_modules.finance import FinanceDomain, ReceivableBillingRule, ReceivableCharge
@@ -21,6 +24,7 @@ from ..services.lesson_operations import materialize_lesson_series
 from ..services.lesson_permissions import can_manage_lesson_occurrence, can_manage_lesson_series, is_barn_lesson_manager, is_iea_lesson_manager, require_barn_lesson_manager, require_iea_lesson_manager, require_lesson_occurrence_manager
 from ..services.lesson_preparation import prepare_lesson_occurrence
 from ..services.lesson_scheduling import cancel_lesson_occurrence, reschedule_lesson_occurrence
+from ..services.lesson_resources import LESSON_OCCURRENCE_SOURCE, assign_lesson_resource, current_lesson_resource_reservation, release_lesson_resource
 
 
 def _barn_programs(team):
@@ -116,9 +120,27 @@ def iea_lesson_occurrence_create(request):
         series=series,
     )
     if form.is_valid():
-        occurrence = form.save()
-        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
-        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+        resource_space = form.cleaned_data.get("resource_space")
+        try:
+            with transaction.atomic():
+                occurrence = form.save()
+                if resource_space:
+                    assign_lesson_resource(occurrence, resource_space)
+        except ValidationError as exc:
+            validation_messages = []
+            if hasattr(exc, "message_dict"):
+                for field_messages in exc.message_dict.values():
+                    validation_messages.extend(field_messages)
+            else:
+                validation_messages.extend(exc.messages)
+            form.add_error("resource_space", " ".join(validation_messages))
+        else:
+            location_suffix = f" in {resource_space.name}" if resource_space else ""
+            messages.success(
+                request,
+                f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s){location_suffix}.",
+            )
+            return redirect("lesson_occurrence_detail", pk=occurrence.pk)
     return render(request, "portal/iea_lesson_occurrence_form.html", {"form": form, "season": season})
 
 @login_required
@@ -197,7 +219,8 @@ def lesson_occurrence_detail(request,pk):
     requested_rule=request.GET.get("billing_rule")
     if requested_rule and rules.filter(pk=requested_rule).exists():
         selected_rule=rules.get(pk=requested_rule); billing_rows=_lesson_billing_preview(occurrence,selected_rule)
-    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
+    resource_reservation=current_lesson_resource_reservation(occurrence); resource_history=ResourceReservation.objects.filter(source_type=LESSON_OCCURRENCE_SOURCE,source_id=occurrence.pk).select_related("space__facility").order_by("created_at","id")
+    return render(request,"portal/lesson_occurrence_detail.html",{"occurrence":occurrence,"resource_reservation":resource_reservation,"resource_history":resource_history,"iea_context":context,"attendance":occurrence.attendance_records.select_related("person").order_by("person__last_name","person__first_name"),"assignments":occurrence.assignments.select_related("person","horse").order_by("role","person__last_name"),"can_manage":can_manage_lesson_occurrence(request.user,occurrence),"billing_rules":rules,"selected_billing_rule":selected_rule,"billing_rows":billing_rows})
 
 @login_required
 def lesson_occurrence_bill(request,pk):
@@ -234,9 +257,27 @@ def iea_lesson_occurrence_duplicate(request, pk):
         request.POST or None, initial=initial, team=team, season=season, series=source.series
     )
     if form.is_valid():
-        occurrence = form.save()
-        messages.success(request, f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s).")
-        return redirect("lesson_occurrence_detail", pk=occurrence.pk)
+        resource_space = form.cleaned_data.get("resource_space")
+        try:
+            with transaction.atomic():
+                occurrence = form.save()
+                if resource_space:
+                    assign_lesson_resource(occurrence, resource_space)
+        except ValidationError as exc:
+            validation_messages = []
+            if hasattr(exc, "message_dict"):
+                for field_messages in exc.message_dict.values():
+                    validation_messages.extend(field_messages)
+            else:
+                validation_messages.extend(exc.messages)
+            form.add_error("resource_space", " ".join(validation_messages))
+        else:
+            location_suffix = f" in {resource_space.name}" if resource_space else ""
+            messages.success(
+                request,
+                f"{occurrence.title} scheduled with {occurrence.iea_participants.count()} rider(s){location_suffix}.",
+            )
+            return redirect("lesson_occurrence_detail", pk=occurrence.pk)
     return render(
         request,
         "portal/iea_lesson_occurrence_form.html",
@@ -287,3 +328,46 @@ def lesson_occurrence_reschedule(request,pk):
         try: reschedule_lesson_occurrence(occurrence,starts_at=form.cleaned_data["starts_at"],ends_at=form.cleaned_data["ends_at"],notes=form.cleaned_data["notes"]); messages.success(request,"Lesson rescheduled. Its original recurrence slot remains protected."); return redirect("lesson_occurrence_detail",pk=pk)
         except ValidationError as exc: form.add_error(None,exc)
     return render(request,"portal/form.html",{"form":form,"title":f"Reschedule {occurrence.title}","eyebrow":"LESSON OCCURRENCE"})
+
+
+@login_required
+def lesson_occurrence_resource_assign(request, pk):
+    team = organization_for_view_user(request.user)
+    occurrence = _occurrence_for_team(team, pk)
+    require_lesson_occurrence_manager(request.user, occurrence)
+    current = current_lesson_resource_reservation(occurrence)
+    form = LessonResourceAssignmentForm(request.POST or None, team=team)
+    if request.method == "POST" and form.is_valid():
+        try:
+            reservation = assign_lesson_resource(occurrence, form.cleaned_data["space"])
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        else:
+            messages.success(request, f"{occurrence.title} assigned to {reservation.space.name}.")
+            return redirect("lesson_occurrence_detail", pk=pk)
+    return render(request, "portal/form.html", {
+        "form": form,
+        "title": f"{'Move' if current else 'Assign'} resource — {occurrence.title}",
+        "eyebrow": "LESSON RESOURCE",
+    })
+
+
+@login_required
+def lesson_occurrence_resource_release(request, pk):
+    team = organization_for_view_user(request.user)
+    occurrence = _occurrence_for_team(team, pk)
+    require_lesson_occurrence_manager(request.user, occurrence)
+    current = current_lesson_resource_reservation(occurrence)
+    if not current:
+        return redirect("lesson_occurrence_detail", pk=pk)
+    form = LessonResourceReleaseForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        release_lesson_resource(occurrence, location=form.cleaned_data["location"])
+        messages.success(request, "Managed resource released. The lesson remains scheduled.")
+        return redirect("lesson_occurrence_detail", pk=pk)
+    return render(request, "portal/form.html", {
+        "form": form,
+        "title": f"Release resource — {occurrence.title}",
+        "eyebrow": current.space.name,
+    })
+

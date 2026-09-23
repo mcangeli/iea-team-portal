@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ facility.name }} · Facilities · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'facility_list' %}">← Back to Facilities</a></nav>
+<section class="page-intro">
+  <div><div class="eyebrow">ARENALINE · FACILITY</div><h1>{{ facility.name }}</h1>{% if facility.address %}<p>{{ facility.address }}</p>{% endif %}</div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'facility_edit' facility.pk %}">Edit facility</a><a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add building or area</a></div>{% endif %}
+</section>
+{% if facility.notes %}<section class="content-section"><p>{{ facility.notes|linebreaksbr }}</p></section>{% endif %}
+<section class="content-section">
+  <div class="section-head"><div><div class="eyebrow">BUILDINGS &amp; AREAS</div><h2>Facility directory</h2><p class="muted">Open a building or area to view its stalls, pastures, storage, rings and other resources.</p></div></div>
+  <div class="card-grid">
+  {% for row in top_space_rows %}
+    <article class="card">
+      <div class="eyebrow">{{ row.space.get_space_type_display }}{% if not row.space.active %} · INACTIVE{% endif %}</div>
+      <h3><a href="{% url 'facility_space_detail' row.space.pk %}">{{ row.space.name }}</a></h3>
+      {% if row.counts %}<p class="muted">{% for label, count in row.counts.items %}{{ count }} {{ label|lower }}{{ count|pluralize }}{% if not forloop.last %} · {% endif %}{% endfor %}</p>{% else %}<p class="muted">No resources yet</p>{% endif %}
+      <a href="{% url 'facility_space_detail' row.space.pk %}">Open {{ row.space.name }} →</a>
+    </article>
+  {% empty %}
+    <div class="empty-state"><h2>No buildings or areas yet</h2><p>Add the first barn, arena, outdoor area or other top-level space.</p>{% if can_manage %}<a class="btn" href="{% url 'facility_space_create' facility.pk %}">Add first building or area</a>{% endif %}</div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}

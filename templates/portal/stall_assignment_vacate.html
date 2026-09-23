@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Vacate {{ assignment.space.name }} · ArenaLine{% endblock %}
+{% block content %}
+<section class="page-intro"><div><div class="eyebrow">ARENALINE · HORSE HOUSING</div><h1>Vacate {{ assignment.space.name }}</h1><p>Close the current housing assignment for {{ assignment.horse.display_name }}. The assignment remains in housing history.</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}<div class="actions"><button class="btn" type="submit">Vacate stall</button><a class="btn secondary" href="{% url 'facility_detail' assignment.space.facility.pk %}">Cancel</a></div></form></section>
+{% endblock %}

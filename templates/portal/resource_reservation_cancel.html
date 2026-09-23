@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Cancel reservation · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'facility_space_detail' space.pk %}">← Back to {{ space.name }}</a></nav>
+<section class="page-intro"><div><div class="eyebrow">RESOURCE SCHEDULING</div><h1>Cancel reservation</h1><p>{{ reservation.title }} · {{ reservation.starts_at|date:"M j, Y g:i A" }}–{{ reservation.ends_at|date:"g:i A" }}</p></div></section>
+<section class="content-section"><form method="post">{% csrf_token %}<p>This removes the reservation from the resource schedule.</p><div class="actions"><button class="btn" type="submit">Cancel reservation</button><a class="btn secondary" href="{% url 'facility_space_detail' space.pk %}">Keep reservation</a></div></form></section>
+{% endblock %}
