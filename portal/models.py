@@ -976,7 +976,14 @@ class ShowAvailability(models.Model):
         UNAVAILABLE = "unavailable", "Unavailable"
 
     show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="availability")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="show_availability")
+    rider = models.ForeignKey(
+        Rider, on_delete=models.CASCADE, related_name="show_availability",
+        null=True, blank=True,
+    )
+    iea_participant = models.ForeignKey(
+        "portal.IEAParticipant", on_delete=models.CASCADE, related_name="show_availability",
+        null=True, blank=True,
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     notes = models.CharField(max_length=255, blank=True)
     responded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="show_availability_responses")
@@ -984,7 +991,31 @@ class ShowAvailability(models.Model):
 
     class Meta:
         ordering = ["rider__last_name", "rider__first_name"]
-        constraints = [models.UniqueConstraint(fields=["show", "rider"], name="unique_show_rider_availability")]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["show", "rider"],
+                condition=models.Q(rider__isnull=False),
+                name="unique_show_rider_availability",
+            ),
+            models.UniqueConstraint(
+                fields=["show", "iea_participant"],
+                condition=models.Q(iea_participant__isnull=False),
+                name="unique_show_iea_participant_availability",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if not self.rider_id and not self.iea_participant_id:
+            raise ValidationError("Show availability requires an IEA participant or legacy rider.")
+        if self.iea_participant_id and self.iea_participant.team_id != self.show.team_id:
+            raise ValidationError("Show availability participant must belong to the same team as the show.")
+        if self.rider_id and self.rider.team_id != self.show.team_id:
+            raise ValidationError("Show availability rider must belong to the same team as the show.")
+
+    @property
+    def participant_identity(self):
+        return self.iea_participant.person if self.iea_participant_id else self.rider
 
     def save(self, *args, **kwargs):
         if self.status != self.Status.PENDING and not self.responded_at:
@@ -992,7 +1023,7 @@ class ShowAvailability(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.rider} — {self.show}"
+        return f"{self.participant_identity} — {self.show}"
 
 
 class ShowDayRiderStatus(models.Model):
