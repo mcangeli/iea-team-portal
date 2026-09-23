@@ -1,8 +1,9 @@
-from datetime import date, time
+from datetime import timedelta, time
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from portal.model_modules.lessons import LessonAttendanceRecord, LessonEnrollment, LessonParticipantMove, LessonProgram, LessonSeries
 from portal.model_modules.people import OrganizationRoleAssignment, Person
@@ -19,9 +20,14 @@ class RiderLessonReschedulingTests(TestCase):
         self.rider = Person.objects.create(team=self.team, user=self.user, first_name="Avery", last_name="Rider")
         OrganizationRoleAssignment.objects.create(team=self.team, person=self.rider, role=OrganizationRoleAssignment.Role.RIDER)
         self.program = LessonProgram.objects.create(team=self.team, name="Barn Lessons")
-        self.series = LessonSeries.objects.create(program=self.program, name="Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, capacity=4, start_date=date(2026,9,1), end_date=date(2026,10,31))
+        today = timezone.localdate()
+        series_start = today - timedelta(days=14)
+        series_end = today + timedelta(days=42)
+        generation_start = today
+        generation_end = today + timedelta(days=21)
+        self.series = LessonSeries.objects.create(program=self.program, name="Tuesday", weekday=1, starts_at_time=time(17), duration_minutes=60, capacity=4, start_date=series_start, end_date=series_end)
         LessonEnrollment.objects.create(series=self.series, person=self.rider)
-        generated = generate_lesson_occurrences(self.series, date(2026,9,22), date(2026,10,6)).created
+        generated = generate_lesson_occurrences(self.series, generation_start, generation_end).created
         self.source, self.destination, self.other_occurrence = generated[0], generated[1], generated[2]
         prepare_lesson_occurrence(self.source)
         self.client.force_login(self.user)
