@@ -394,9 +394,9 @@ def season_review(request, season_pk):
     qualification_rows = _qualification_rows(season) if points_access else [
         row for row in _qualification_rows(season) if row["rider"].pk in {r.pk for r in riders}
     ]
-    awards = RiderAward.objects.filter(season=season, published=True).select_related("rider")
+    awards = RiderAward.objects.filter(season=season, published=True).select_related("person", "rider")
     if not (_can_manage(request.user) or points_access):
-        awards = awards.filter(rider__in=riders)
+        awards = awards.filter(Q(person__legacy_identity__rider__in=riders) | Q(rider__in=riders)).distinct()
     team_rows, team_summary = _team_scoring_rows(season, include_riders=points_access)
     postseason_results = ShowResult.objects.filter(
         entry__show_class__show__season=season,
@@ -493,10 +493,10 @@ def rider_history(request, pk):
         if not summary_rows:
             continue
         row = summary_rows[0]
-        row["awards"] = RiderAward.objects.filter(season=season, rider=rider)
+        row["awards"] = RiderAward.objects.filter(season=season).filter(Q(person__legacy_identity__rider=rider) | Q(rider=rider)).distinct()
         if not _can_manage(request.user):
             row["awards"] = row["awards"].filter(published=True)
-        notes = RiderDevelopmentNote.objects.filter(season=season, rider=rider).select_related("author")
+        notes = RiderDevelopmentNote.objects.filter(season=season).filter(Q(person__legacy_identity__rider=rider) | Q(rider=rider)).select_related("author", "person").distinct()
         if not _can_manage(request.user):
             notes = notes.filter(family_visible=True)
         row["notes"] = notes
@@ -876,8 +876,8 @@ def rider_summary_print(request, pk, season_pk):
     season = get_object_or_404(Season, pk=season_pk, team=team)
     summary = _season_rider_summary(season, [rider])[0]
     qualifications = [r for r in _qualification_rows(season) if r["rider"].pk == rider.pk]
-    awards = RiderAward.objects.filter(season=season, rider=rider, published=True)
-    notes = RiderDevelopmentNote.objects.filter(season=season, rider=rider, family_visible=True).select_related("author")
+    awards = RiderAward.objects.filter(season=season, published=True).filter(Q(person__legacy_identity__rider=rider) | Q(rider=rider)).distinct()
+    notes = RiderDevelopmentNote.objects.filter(season=season, family_visible=True).filter(Q(person__legacy_identity__rider=rider) | Q(rider=rider)).select_related("author", "person").distinct()
     postseason_results = ShowResult.objects.filter(
         entry__rider=rider,
         entry__show_class__show__season=season,
@@ -901,16 +901,25 @@ def development_note_add(request, pk, season_pk):
     rider = get_object_or_404(Rider, pk=pk, team=team); season = get_object_or_404(Season, pk=season_pk, team=team)
     form = RiderDevelopmentNoteForm(request.POST or None)
     if form.is_valid():
-        obj = form.save(commit=False); obj.rider = rider; obj.season = season; obj.author = request.user; obj.save()
+        obj = form.save(commit=False)
+        obj.rider = rider
+        legacy_link = getattr(rider, "person_identity", None)
+        obj.person = legacy_link.person if legacy_link else None
+        obj.season = season
+        obj.author = request.user
+        obj.save()
         messages.success(request, "Development note added."); return redirect("rider_history", pk=rider.pk)
     return render(request, "portal/form.html", {"form": form, "title": f"Development note · {rider.display_name}", "eyebrow": season.name})
 
 @login_required
 def award_list(request, season_pk):
     team = _team(request.user); season = get_object_or_404(Season, pk=season_pk, team=team)
-    awards = RiderAward.objects.filter(season=season).select_related("rider")
+    awards = RiderAward.objects.filter(season=season).select_related("person", "rider")
     if not _can_manage(request.user):
-        awards = awards.filter(published=True, rider__in=_visible_riders(request.user, team))
+        visible_riders = _visible_riders(request.user, team)
+        awards = awards.filter(published=True).filter(
+            Q(person__legacy_identity__rider__in=visible_riders) | Q(rider__in=visible_riders)
+        ).distinct()
     return render(request, "portal/award_list.html", {"season": season, "awards": awards, "can_manage": _can_manage(request.user)})
 
 @login_required
@@ -974,7 +983,7 @@ def team_record_book(request):
     records.sort(key=lambda x: (x["points"], x["wins"]), reverse=True)
     awards = RiderAward.objects.filter(
         season__team=team, published=True
-    ).select_related("season", "rider")[:50]
+    ).select_related("season", "person", "rider")[:50]
     postseason_entries = ShowEntry.objects.filter(
         show_class__show__team=team,
         competition_track=ShowEntry.CompetitionTrack.INDIVIDUAL,
