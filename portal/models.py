@@ -311,7 +311,7 @@ class EventRSVP(models.Model):
     responded_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ["rider__last_name", "rider__first_name"]
+        ordering = ["person__last_name", "person__first_name", "rider__last_name", "rider__first_name"]
         constraints = [
             models.UniqueConstraint(
                 fields=["event", "rider"],
