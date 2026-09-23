@@ -116,3 +116,24 @@ class V390ShowDayPersonNativeTests(TestCase):
         class_rows = response.context["class_rows"]
         self.assertEqual(len(class_rows), 1)
         self.assertEqual(class_rows[0]["entries"], [self.entry])
+
+    def test_show_week_summary_supports_person_native_participant(self):
+        ShowAvailability.objects.create(
+            show=self.show,
+            iea_participant=self.participant,
+            status=ShowAvailability.Status.AVAILABLE,
+        )
+        manager = User.objects.create_user(username="show-week-manager", password="test-pass")
+        manager.profile.team = self.team
+        manager.profile.role = UserProfile.Role.ADMIN
+        manager.profile.save(update_fields=["team", "role"])
+        self.client.force_login(manager)
+
+        response = self.client.get(reverse("show_week_summary", args=[self.show.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["roster"], [self.participant])
+        availability = list(response.context["availability"])
+        self.assertEqual(len(availability), 1)
+        self.assertEqual(availability[0].participant_identity, self.person)
+        self.assertIsNone(availability[0].rider_id)
