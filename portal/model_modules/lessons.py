@@ -215,9 +215,33 @@ class IEALessonOccurrenceParticipant(models.Model):
         if self.person.team_id != self.occurrence.series.program.team_id:
             raise ValidationError("IEA lesson participant must belong to the same organization.")
         context = self.occurrence.series.iea_context
-        from portal.model_modules.people import LegacyPersonLink
-        rider_ids = LegacyPersonLink.objects.filter(person=self.person).values_list("rider_id", flat=True)
-        if not SeasonMembership.objects.filter(season=context.season, rider_id__in=rider_ids).exists():
+        from portal.model_modules.people import IEAParticipant, LegacyPersonLink
+
+        participant = IEAParticipant.objects.filter(
+            person=self.person,
+            team=self.person.team,
+            active=True,
+        ).first()
+        eligible = (
+            participant is not None
+            and SeasonMembership.objects.filter(
+                season=context.season,
+                iea_participant=participant,
+            ).exists()
+        )
+        if not eligible:
+            # Transitional compatibility for pre-v3.9 rows that have not yet
+            # acquired the additive IEAParticipant season link.
+            rider_ids = LegacyPersonLink.objects.filter(
+                person=self.person,
+                rider__isnull=False,
+            ).values_list("rider_id", flat=True)
+            eligible = SeasonMembership.objects.filter(
+                season=context.season,
+                rider_id__in=rider_ids,
+                iea_participant__isnull=True,
+            ).exists()
+        if not eligible:
             raise ValidationError("IEA lesson participant must be an eligible rider in the configured season.")
 
     def __str__(self):
