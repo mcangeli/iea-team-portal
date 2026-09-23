@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from portal.model_modules.people import (
+    IEAParticipant,
     LegacyPersonLink,
     OrganizationRoleAssignment,
     Person,
@@ -192,3 +193,94 @@ def end_rider_guardian_relationship(*, rider, guardian):
         relationship.active = False
         relationship.end_date = timezone.localdate()
         relationship.save(update_fields=["active", "end_date"])
+
+
+def ensure_iea_participant_for_person(person):
+    """Create or validate Person-native IEA identity from a deterministic Rider bridge.
+
+    This helper intentionally refuses to infer identity from names, email
+    addresses, or other fuzzy attributes. Existing Person-side IEA data wins;
+    conflicts are surfaced for reconciliation rather than silently overwritten.
+    """
+    try:
+        bridge = person.legacy_identity
+    except LegacyPersonLink.DoesNotExist:
+        bridge = None
+
+    if not bridge or not bridge.rider_id:
+        raise ValidationError("A linked legacy rider is required to backfill IEA participation.")
+
+    rider = bridge.rider
+    if rider.team_id != person.team_id:
+        raise ValidationError("Linked legacy rider must belong to the person's organization.")
+
+    participant = IEAParticipant.objects.filter(person=person).first()
+    if participant:
+        if participant.team_id != person.team_id:
+            raise ValidationError("Existing IEA participant belongs to another organization.")
+        if participant.legacy_rider_id and participant.legacy_rider_id != rider.id:
+            raise ValidationError("Existing IEA participant is linked to a different legacy rider.")
+        if (
+            participant.iea_member_number
+            and rider.iea_member_number
+            and participant.iea_member_number != rider.iea_member_number
+        ):
+            raise ValidationError("IEA member number conflicts with the linked legacy rider.")
+
+        changed = []
+        if not participant.legacy_rider_id:
+            participant.legacy_rider = rider
+            changed.append("legacy_rider")
+        if not participant.iea_member_number and rider.iea_member_number:
+            participant.iea_member_number = rider.iea_member_number
+            changed.append("iea_member_number")
+        if changed:
+            participant.full_clean()
+            participant.save(update_fields=changed)
+        return participant, False
+
+    participant = IEAParticipant(
+        team=person.team,
+        person=person,
+        legacy_rider=rider,
+        iea_member_number=rider.iea_member_number,
+        active=rider.active,
+    )
+    participant.full_clean()
+    participant.save()
+    return participant, True
+
+
+def ensure_iea_participant_for_rider(rider):
+    """Ensure canonical Person and Person-native IEA identity for one legacy Rider."""
+    person = ensure_rider_person(rider)
+    return ensure_iea_participant_for_person(person)
+
+
+def backfill_iea_participants(*, team=None):
+    """Backfill deterministic legacy Rider bridges and report conflicts.
+
+    Returns a summary rather than swallowing conflicts so callers can reconcile
+    ambiguous historical data explicitly.
+    """
+    links = LegacyPersonLink.objects.filter(rider__isnull=False).select_related(
+        "person", "rider"
+    )
+    if team is not None:
+        links = links.filter(person__team=team)
+
+    summary = {"created": 0, "existing": 0, "conflicts": []}
+    for link in links.order_by("person_id"):
+        try:
+            _, created = ensure_iea_participant_for_person(link.person)
+        except ValidationError as exc:
+            summary["conflicts"].append(
+                {
+                    "person_id": link.person_id,
+                    "rider_id": link.rider_id,
+                    "errors": list(exc.messages),
+                }
+            )
+            continue
+        summary["created" if created else "existing"] += 1
+    return summary
