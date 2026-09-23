@@ -1004,7 +1004,11 @@ class ShowDayRiderStatus(models.Model):
         FINISHED = "finished", "Finished / Left"
 
     show = models.ForeignKey(Show, on_delete=models.CASCADE, related_name="rider_statuses")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="show_day_statuses")
+    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="show_day_statuses", null=True, blank=True)
+    iea_participant = models.ForeignKey(
+        "portal.IEAParticipant", on_delete=models.CASCADE, related_name="show_day_statuses",
+        null=True, blank=True,
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.EXPECTED)
     note = models.CharField(max_length=180, blank=True)
     updated_by = models.ForeignKey(
@@ -1016,19 +1020,41 @@ class ShowDayRiderStatus(models.Model):
     class Meta:
         ordering = ["rider__last_name", "rider__first_name"]
         constraints = [
-            models.UniqueConstraint(fields=["show", "rider"], name="unique_show_day_rider_status")
+            models.UniqueConstraint(
+                fields=["show", "rider"],
+                condition=models.Q(rider__isnull=False),
+                name="unique_show_day_rider_status",
+            ),
+            models.UniqueConstraint(
+                fields=["show", "iea_participant"],
+                condition=models.Q(iea_participant__isnull=False),
+                name="unique_show_day_iea_participant_status",
+            ),
         ]
 
     def clean(self):
         super().clean()
-        if self.show_id and self.rider_id:
+        if not self.rider_id and not self.iea_participant_id:
+            raise ValidationError("Show-day status requires an IEA participant or legacy rider.")
+        if self.iea_participant_id:
+            if self.iea_participant.team_id != self.show.team_id:
+                raise ValidationError("Show-day participant status must belong to the same team as the show.")
+            if not SeasonMembership.objects.filter(
+                season=self.show.season, iea_participant=self.iea_participant
+            ).exists():
+                raise ValidationError("This participant is not on the roster for the show's season.")
+        elif self.rider_id:
             if self.rider.team_id != self.show.team_id:
                 raise ValidationError("Show-day rider status must belong to the same team as the show.")
             if not SeasonMembership.objects.filter(season=self.show.season, rider=self.rider).exists():
                 raise ValidationError("This rider is not on the roster for the show's season.")
 
+    @property
+    def participant_identity(self):
+        return self.iea_participant.person if self.iea_participant_id else self.rider
+
     def __str__(self):
-        return f"{self.show} · {self.rider} · {self.get_status_display()}"
+        return f"{self.show} · {self.participant_identity} · {self.get_status_display()}"
 
 
 class VolunteerLog(models.Model):
