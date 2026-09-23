@@ -44,15 +44,17 @@ def rider_list(request):
     qs = _team_roster(request.user, team)
     if season:
         qs = qs.prefetch_related(Prefetch(
-            "memberships",
-            queryset=SeasonMembership.objects.filter(season=season).select_related("season").prefetch_related("classes"),
+            "iea_participant_bridge__season_memberships",
+            queryset=SeasonMembership.objects.filter(season=season).select_related(
+                "season", "iea_participant__person"
+            ).prefetch_related("classes"),
             to_attr="active_season_memberships",
         ))
     selected = _selected_team(request)
     if season:
-        futures = _attach_public_profiles(qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct())
-        upper = _attach_public_profiles(qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct())
-        unassigned = _attach_public_profiles(qs.exclude(memberships__season=season).distinct())
+        futures = _attach_public_profiles(qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct())
+        upper = _attach_public_profiles(qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct())
+        unassigned = _attach_public_profiles(qs.exclude(iea_participant_bridge__season_memberships__season=season).distinct())
     else:
         futures = []; upper = []; unassigned = _attach_public_profiles(qs)
     riders = _attach_public_profiles(qs)
@@ -103,12 +105,16 @@ def _canonical_family_rows(rider):
 @login_required
 def rider_detail(request, pk):
     team = organization_for_view_user(request.user)
-    rider = get_object_or_404(
-        Rider.objects.prefetch_related("memberships__season", "memberships__classes"), pk=pk, team=team
-    )
+    rider = get_object_or_404(Rider, pk=pk, team=team)
     private_view = can_view_private_rider(request.user, rider)
     active_season = active_period_for_organization(team)
-    memberships = list(rider.memberships.all())
+    try:
+        participant = rider.iea_participant_bridge
+    except AttributeError:
+        participant = None
+    memberships = list(
+        participant.season_memberships.select_related("season", "iea_participant__person").prefetch_related("classes")
+    ) if participant else []
     current_membership = next((m for m in memberships if active_season and m.season_id == active_season.id), None)
     historical_memberships = [m for m in memberships if not active_season or m.season_id != active_season.id]
     historical_memberships.sort(key=lambda m: (m.season.start_date, m.season.id), reverse=True)
