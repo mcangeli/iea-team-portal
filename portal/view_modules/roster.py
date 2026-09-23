@@ -114,7 +114,10 @@ def dashboard(request):
     events = team.events.filter(starts_at__gte=now)[:6]
     riders = _visible_riders(request.user, team).filter(active=True)
     shows = team.shows.filter(show_date__gte=today).order_by("show_date")[:4]
-    memberships = season.memberships.select_related("rider") if season else SeasonMembership.objects.none()
+    memberships = (
+        season.memberships.select_related("iea_participant__person", "rider")
+        if season else SeasonMembership.objects.none()
+    )
     upcoming_lessons = Lesson.objects.none()
     volunteer_due = 0
     pending_volunteer = 0
@@ -228,11 +231,19 @@ def my_team(request):
     )
     memberships = {}
     if season:
+        # Prefer the Person-native IEA participant path. Keep Rider ids only as
+        # the presentation-key bridge while the legacy roster UI is retired.
         memberships = {
-            m.rider_id: m
+            m.iea_participant.legacy_rider_id: m
             for m in SeasonMembership.objects.filter(
-                season=season, rider_id__in=rider_ids
-            ).select_related("home_barn").prefetch_related("classes")
+                season=season,
+                iea_participant__legacy_rider_id__in=rider_ids,
+            ).select_related(
+                "home_barn",
+                "iea_participant__person",
+                "iea_participant__legacy_rider",
+            ).prefetch_related("classes")
+            if m.iea_participant_id and m.iea_participant.legacy_rider_id
         }
     rider_rows = []
     for rider in riders:
@@ -267,9 +278,9 @@ def rider_list(request):
     season = active_period_for_organization(team)
     selected = _selected_team(request)
     if season:
-        futures = qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct()
-        upper = qs.filter(memberships__season=season, memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct()
-        unassigned = qs.exclude(memberships__season=season).distinct()
+        futures = qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct()
+        upper = qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct()
+        unassigned = qs.exclude(iea_participant_bridge__season_memberships__season=season).distinct()
     else:
         futures = Rider.objects.none(); upper = Rider.objects.none(); unassigned = qs
     return render(request, "portal/rider_list.html", {
@@ -283,18 +294,18 @@ def rider_export(request):
     team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
     qs = team.riders.filter(active=True).order_by("last_name", "first_name")
     if season and selected in TEAM_LEVELS:
-        qs = qs.filter(memberships__season=season, memberships__team_level=selected).distinct()
+        qs = qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=selected).distinct()
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="rider-roster.csv"'
     writer = csv.writer(response)
     writer.writerow(["Rider", "Email", "Grade", "School", "Team", "Season classes", "IEA member number"])
     for rider in qs:
-        membership = rider.memberships.filter(season=season).prefetch_related("classes").first() if season else None
+        membership = rider.iea_participant_bridge.season_memberships.filter(season=season).prefetch_related("classes").first() if season and hasattr(rider, "iea_participant_bridge") else None
         writer.writerow([
             str(rider), rider.email, rider.grade or "", rider.school,
             membership.get_team_level_display() if membership else "Unassigned",
             "; ".join(c.name for c in membership.classes.all()) if membership else "",
-            rider.iea_member_number,
+            rider.iea_participant_bridge.iea_member_number if hasattr(rider, "iea_participant_bridge") else rider.iea_member_number,
         ])
     return response
 
