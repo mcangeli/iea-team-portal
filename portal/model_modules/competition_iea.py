@@ -229,10 +229,20 @@ def _catalog_aware_show_entry_clean(instance):
     if show.competition_level != "regular":
         raise ValidationError("Official IEA show-only classes are regular-season offerings.")
 
-    membership = SeasonMembership.objects.filter(
-        rider=instance.rider,
-        season=show.season,
-    ).first()
+    # v3.9 Person-native roster lookup. During the compatibility window,
+    # legacy entries without an IEAParticipant bridge still fall back to Rider.
+    participant = getattr(instance.rider, "iea_participant_bridge", None)
+    membership = None
+    if participant is not None:
+        membership = SeasonMembership.objects.filter(
+            iea_participant=participant,
+            season=show.season,
+        ).first()
+    if membership is None:
+        membership = SeasonMembership.objects.filter(
+            rider=instance.rider,
+            season=show.season,
+        ).first()
     if not membership:
         raise ValidationError("This rider is not on the roster for this show's season.")
     if catalog.team_level != IEAClassCatalogEntry.TeamLevel.BOTH and membership.team_level != catalog.team_level:
