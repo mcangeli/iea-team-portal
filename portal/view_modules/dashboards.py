@@ -13,6 +13,8 @@ from ..model_modules.lessons import LessonOccurrence
 from ..model_modules.people import LegacyPersonLink, Person, OrganizationRoleAssignment
 from ..model_modules.horses import Horse, HorseCogginsRecord
 from ..services.finance_access import allowed_finance_domains
+from portal.people_services import personal_iea_participants_for_user
+
 from ..models import (
     ActionItem,
     CommitteeAssignment,
@@ -142,18 +144,18 @@ def _general_context(request, team, season):
             visible_to_all=True,
         )
     )
-    rider_list = list(riders)
+    participant_list = list(personal_iea_participants_for_user(request.user, team))
     responded_pairs = set(
         EventRSVP.objects.filter(
             event__in=rsvp_events,
-            rider__in=rider_list,
-        ).exclude(status=EventRSVP.Status.PENDING).values_list("event_id", "rider_id")
+            person_id__in=[participant.person_id for participant in participant_list],
+        ).exclude(status=EventRSVP.Status.PENDING).values_list("event_id", "person_id")
     )
     pending_event_rsvps = sum(
         1
         for event in rsvp_events
-        for rider in rider_list
-        if (event.pk, rider.pk) not in responded_pairs
+        for participant in participant_list
+        if (event.pk, participant.person_id) not in responded_pairs
     )
 
     unclaimed_actions = 0
