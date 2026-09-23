@@ -237,14 +237,18 @@ def facility_space_create(request, facility_pk):
     _require_facility_manager(request.user)
     team = _facility_context(request.user)
     facility = get_object_or_404(Facility, pk=facility_pk, team=team)
-    form = FacilitySpaceForm(request.POST or None, facility=facility)
+    initial = {}
+    if request.method != "POST" and request.GET.get("parent"):
+        parent = get_object_or_404(FacilitySpace, pk=request.GET["parent"], facility=facility)
+        initial["parent"] = parent
+    form = FacilitySpaceForm(request.POST or None, facility=facility, initial=initial)
     if request.method == "POST" and form.is_valid():
         space = form.save()
         _audit_event(team=team, actor=request.user, action=AuditEvent.Action.CREATED, obj=space, summary=f"Created facility space {space.name}")
         messages.success(request, f"{space.name} added to {facility.name}.")
-        return redirect("facility_detail", pk=facility.pk)
+        return redirect("facility_space_detail", pk=space.parent_id) if space.parent_id else redirect("facility_detail", pk=facility.pk)
     return render(request, "portal/facility_space_form.html", {
-        "form": form, "facility": facility, "title": f"Add space — {facility.name}",
+        "form": form, "facility": facility, "parent_space": initial.get("parent"), "title": f"Add space — {facility.name}",
     })
 
 
@@ -260,7 +264,7 @@ def facility_space_edit(request, pk):
         space = form.save()
         _audit_event(team=team, actor=request.user, action=AuditEvent.Action.UPDATED, obj=space, summary=f"Updated facility space {space.name}")
         messages.success(request, f"{space.name} updated.")
-        return redirect("facility_detail", pk=space.facility_id)
+        return redirect("facility_space_detail", pk=space.pk)
     return render(request, "portal/facility_space_form.html", {
         "form": form, "facility": space.facility, "space": space,
         "title": f"Edit {space.name}",
