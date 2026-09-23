@@ -107,6 +107,7 @@ from .show_day_helpers import (
     _shift_schedule_time,
     _show_day_operational_levels,
     _show_day_operational_user,
+    _show_day_participating_participants,
     _show_day_participating_riders,
     _show_update_allowed_audiences,
     _show_update_family_user_ids,
@@ -161,7 +162,7 @@ def my_show_day(request, pk):
 
     classes = list(
         show.classes.select_related("season_class")
-        .prefetch_related("entries__rider", "entries__result")
+        .prefetch_related("entries__rider", "entries__iea_participant__person", "entries__result")
         .order_by("sort_order", "class_number", "name")
     )
     class_rows = []
@@ -225,13 +226,22 @@ def show_day_dashboard(request, pk):
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
     operational = _show_day_operational_user(request.user, show)
 
-    participating = list(_show_day_participating_riders(show).prefetch_related("memberships"))
-    status_map = {
-        obj.rider_id: obj
-        for obj in ShowDayRiderStatus.objects.filter(show=show).select_related("rider", "updated_by")
-    }
+    participating = list(
+        _show_day_participating_participants(show).prefetch_related("season_memberships")
+    )
+    status_map = {}
+    for obj in ShowDayRiderStatus.objects.filter(show=show).select_related(
+        "iea_participant__person", "rider", "updated_by"
+    ):
+        if obj.iea_participant_id:
+            status_map[obj.iea_participant_id] = obj
 
     visible_rider_ids = set(_visible_riders(request.user, team).values_list("id", flat=True))
+    visible_participant_ids = set(
+        participating_participant.pk
+        for participating_participant in participating
+        if participating_participant.legacy_rider_id in visible_rider_ids
+    )
     operational_levels = _show_day_operational_levels(request.user, show) if operational else set()
     rows = []
     counts = {
@@ -242,11 +252,14 @@ def show_day_dashboard(request, pk):
         ShowDayRiderStatus.Status.FINISHED: 0,
     }
 
-    operational_rider_ids = set()
-    membership_by_rider = {}
-    for rider in participating:
-        membership = next((m for m in rider.memberships.all() if m.season_id == show.season_id), None)
-        membership_by_rider[rider.pk] = membership
+    operational_participant_ids = set()
+    membership_by_participant = {}
+    for participant in participating:
+        membership = next(
+            (m for m in participant.season_memberships.all() if m.season_id == show.season_id),
+            None,
+        )
+        membership_by_participant[participant.pk] = membership
 
         in_operational_scope = bool(
             operational
@@ -256,22 +269,24 @@ def show_day_dashboard(request, pk):
             )
         )
         if in_operational_scope:
-            operational_rider_ids.add(rider.pk)
+            operational_participant_ids.add(participant.pk)
 
         if operational:
             if not in_operational_scope:
                 continue
-        elif rider.pk not in visible_rider_ids:
+        elif participant.pk not in visible_participant_ids:
             continue
 
-        status_obj = status_map.get(rider.pk)
+        status_obj = status_map.get(participant.pk)
         status_value = status_obj.status if status_obj else ShowDayRiderStatus.Status.EXPECTED
         if in_operational_scope:
             counts[status_value] = counts.get(status_value, 0) + 1
 
-        can_edit = _can_update_show_day_rider_status(request.user, show, rider)
+        rider = participant.legacy_rider
+        can_edit = bool(rider and _can_update_show_day_rider_status(request.user, show, rider))
         rows.append({
-            "rider": rider,
+            "rider": rider or participant.person,
+            "participant": participant,
             "membership": membership,
             "status_obj": status_obj,
             "status": status_value,
@@ -299,10 +314,12 @@ def show_day_dashboard(request, pk):
 
         if operational:
             relevant_entries = [
-                e for e in active_entries if e.rider_id in operational_rider_ids
+                e for e in active_entries if e.iea_participant_id in operational_participant_ids
             ]
         else:
-            relevant_entries = [e for e in active_entries if e.rider_id in visible_rider_ids]
+            relevant_entries = [
+                e for e in active_entries if e.iea_participant_id in visible_participant_ids
+            ]
         if not relevant_entries:
             continue
 
@@ -312,15 +329,15 @@ def show_day_dashboard(request, pk):
 
         if show.competition_level == Show.CompetitionLevel.REGULAR:
             levels_present = {
-                membership_by_rider[e.rider_id].team_level
+                membership_by_participant[e.iea_participant_id].team_level
                 for e in relevant_entries
-                if membership_by_rider.get(e.rider_id)
+                if membership_by_participant.get(e.iea_participant_id)
             }
             for level in levels_present:
                 has_points_rider = any(
                     e.is_point_rider
-                    and membership_by_rider.get(e.rider_id)
-                    and membership_by_rider[e.rider_id].team_level == level
+                    and membership_by_participant.get(e.iea_participant_id)
+                    and membership_by_participant[e.iea_participant_id].team_level == level
                     for e in relevant_entries
                 )
                 if not has_points_rider and not _is_non_team_scoring_class(show_class):
