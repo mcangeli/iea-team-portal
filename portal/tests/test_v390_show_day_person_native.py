@@ -62,9 +62,9 @@ class V390ShowDayPersonNativeTests(TestCase):
 
     def test_parent_relationship_can_update_person_native_show_day_status(self):
         parent_user = User.objects.create_user(username="person-native-parent", password="test-pass")
-        UserProfile.objects.create(
-            user=parent_user, team=self.team, role=UserProfile.Role.PARENT
-        )
+        parent_user.profile.team = self.team
+        parent_user.profile.role = UserProfile.Role.PARENT
+        parent_user.profile.save(update_fields=["team", "role"])
         parent = Person.objects.create(
             team=self.team, user=parent_user, first_name="Parent", last_name="Person"
         )
