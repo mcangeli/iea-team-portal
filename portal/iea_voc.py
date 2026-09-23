@@ -8,7 +8,7 @@ from portal.models import ShowEntry
 
 @dataclass(frozen=True)
 class VOCCandidate:
-    rider_id: int
+    participant_key: tuple[str, int]
     total_points: Decimal
     h1_place: int | None
     h2_place: int | None
@@ -29,7 +29,7 @@ def voc_candidates(show):
             show_class__class_number__in=["H1", "H2"],
         )
         .exclude(status=ShowEntry.Status.SCRATCHED)
-        .select_related("show_class", "result", "rider")
+        .select_related("show_class", "result", "rider", "iea_participant")
     )
     by_rider = {}
     for entry in rows:
@@ -37,10 +37,15 @@ def voc_candidates(show):
         if not result or result.place is None:
             continue
         code = (entry.show_class.class_number or "").upper()
-        by_rider.setdefault(entry.rider_id, {})[code] = entry
+        participant_key = (
+            ("person", entry.iea_participant.person_id)
+            if entry.iea_participant_id
+            else ("rider", entry.rider_id)
+        )
+        by_rider.setdefault(participant_key, {})[code] = entry
 
     ranked = []
-    for rider_id, entries in by_rider.items():
+    for participant_key, entries in by_rider.items():
         h1 = entries.get("H1")
         h2 = entries.get("H2")
         if not h1 or not h2:
@@ -50,14 +55,14 @@ def voc_candidates(show):
         total = (h1_result.points or Decimal("0")) + (h2_result.points or Decimal("0"))
         ranked.append(
             VOCCandidate(
-                rider_id=rider_id,
+                participant_key=participant_key,
                 total_points=total,
                 h1_place=h1_result.place,
                 h2_place=h2_result.place,
             )
         )
 
-    ranked.sort(key=lambda row: (-row.total_points, row.h1_place or 999, row.rider_id))
+    ranked.sort(key=lambda row: (-row.total_points, row.h1_place or 999, row.participant_key))
     if len(ranked) <= 10:
         return ranked
 
@@ -67,7 +72,7 @@ def voc_candidates(show):
         if row.total_points == cutoff.total_points and row.h1_place == cutoff.h1_place:
             result.append(
                 VOCCandidate(
-                    rider_id=row.rider_id,
+                    participant_key=row.participant_key,
                     total_points=row.total_points,
                     h1_place=row.h1_place,
                     h2_place=row.h2_place,
@@ -79,7 +84,7 @@ def voc_candidates(show):
     if len(result) > 10:
         result = [
             VOCCandidate(
-                rider_id=row.rider_id,
+                participant_key=row.participant_key,
                 total_points=row.total_points,
                 h1_place=row.h1_place,
                 h2_place=row.h2_place,
@@ -93,4 +98,4 @@ def voc_candidates(show):
 
 
 def voc_candidate_ids(show):
-    return [row.rider_id for row in voc_candidates(show)]
+    return [row.participant_key for row in voc_candidates(show)]
