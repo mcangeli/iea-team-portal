@@ -56,3 +56,22 @@ class V390EventRSVPPersonNativeTests(TestCase):
         self.assertIsNone(rsvp.rider_id)
         self.assertEqual(rsvp.status, EventRSVP.Status.GOING)
         self.assertEqual(rsvp.responded_by, self.parent_user)
+
+    def test_my_team_renders_person_native_rsvp_row_without_legacy_rider(self):
+        EventRSVP.objects.create(
+            event=self.event,
+            person=self.child,
+            status=EventRSVP.Status.GOING,
+            responded_by=self.parent_user,
+        )
+        self.client.force_login(self.parent_user)
+
+        response = self.client.get(reverse("my_team"))
+
+        self.assertEqual(response.status_code, 200)
+        event_row = next(row for row in response.context["event_rows"] if row["event"] == self.event)
+        self.assertEqual(len(event_row["responses"]), 1)
+        self.assertEqual(event_row["responses"][0]["rider"], self.child)
+        self.assertEqual(event_row["responses"][0]["participant"], self.participant)
+        self.assertEqual(event_row["responses"][0]["rsvp"].person, self.child)
+        self.assertIsNone(event_row["responses"][0]["rsvp"].rider_id)
