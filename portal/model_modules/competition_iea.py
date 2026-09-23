@@ -199,7 +199,7 @@ _original_show_entry_clean = ShowEntry.clean
 
 def _catalog_aware_show_entry_clean(instance):
     _original_show_entry_clean(instance)
-    if not instance.show_class_id or not instance.rider_id:
+    if not instance.show_class_id or not (instance.iea_participant_id or instance.rider_id):
         return
 
     show_class = instance.show_class
@@ -231,14 +231,16 @@ def _catalog_aware_show_entry_clean(instance):
 
     # v3.9 Person-native roster lookup. During the compatibility window,
     # legacy entries without an IEAParticipant bridge still fall back to Rider.
-    participant = getattr(instance.rider, "iea_participant_bridge", None)
+    participant = instance.iea_participant if instance.iea_participant_id else None
+    if participant is None and instance.rider_id:
+        participant = getattr(instance.rider, "iea_participant_bridge", None)
     membership = None
     if participant is not None:
         membership = SeasonMembership.objects.filter(
             iea_participant=participant,
             season=show.season,
         ).first()
-    if membership is None:
+    if membership is None and instance.rider_id:
         membership = SeasonMembership.objects.filter(
             rider=instance.rider,
             season=show.season,
@@ -252,7 +254,13 @@ def _catalog_aware_show_entry_clean(instance):
     if code == "VOC":
         from portal.iea_voc import voc_candidate_ids
 
-        if instance.rider_id not in voc_candidate_ids(show):
+        candidate_ids = voc_candidate_ids(show)
+        candidate_id = (
+            ("person", participant.person_id)
+            if participant is not None
+            else ("rider", instance.rider_id)
+        )
+        if candidate_id not in candidate_ids:
             raise ValidationError(
                 "This rider is not currently eligible for VOC from completed same-show H1/H2 results."
             )
@@ -263,10 +271,13 @@ def _catalog_aware_show_entry_clean(instance):
     prerequisite_codes = WARMUP_PREREQUISITE_CODES.get(code)
     if prerequisite_codes:
         eligible = ShowEntry.objects.filter(
-            rider=instance.rider,
             show_class__show=show,
             show_class__class_number__in=prerequisite_codes,
         ).exclude(status=ShowEntry.Status.SCRATCHED)
+        if participant is not None:
+            eligible = eligible.filter(iea_participant=participant)
+        else:
+            eligible = eligible.filter(rider=instance.rider)
         if instance.pk:
             eligible = eligible.exclude(pk=instance.pk)
         if not eligible.exists():
