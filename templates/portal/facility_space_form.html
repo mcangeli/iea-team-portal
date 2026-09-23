@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · ArenaLine{% endblock %}
 {% block content %}
+<nav class="page-back-nav" aria-label="Back navigation">{% if space %}<a href="{% url 'facility_space_detail' space.pk %}">← Back to {{ space.name }}</a>{% elif parent_space %}<a href="{% url 'facility_space_detail' parent_space.pk %}">← Back to {{ parent_space.name }}</a>{% else %}<a href="{% url 'facility_detail' facility.pk %}">← Back to {{ facility.name }}</a>{% endif %}</nav>
 <section class="page-intro"><div><div class="eyebrow">ARENALINE · {{ facility.name|upper }}</div><h1>{{ title }}</h1><p>Describe a physical space and the operational capabilities it supports.</p></div></section>
-<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save space</button><a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a></div></form></section>
+<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save space</button>{% if space %}<a class="btn secondary" href="{% url 'facility_space_detail' space.pk %}">Cancel</a>{% elif parent_space %}<a class="btn secondary" href="{% url 'facility_space_detail' parent_space.pk %}">Cancel</a>{% else %}<a class="btn secondary" href="{% url 'facility_detail' facility.pk %}">Cancel</a>{% endif %}</div></form></section>
 {% endblock %}
