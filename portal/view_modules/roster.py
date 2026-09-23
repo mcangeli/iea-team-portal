@@ -209,20 +209,25 @@ def my_team(request):
         .order_by("starts_at")[:12]
     )
     rider_ids = [r.pk for r in riders]
+    personal_participants = list(personal_iea_participants_for_user(request.user, team))
+    participant_person_ids = [participant.person_id for participant in personal_participants]
     rsvp_map = {
-        (rsvp.event_id, rsvp.rider_id): rsvp
+        (rsvp.event_id, rsvp.person_id): rsvp
         for rsvp in EventRSVP.objects.filter(
-            event__in=upcoming_events, rider_id__in=rider_ids
-        ).select_related("rider")
+            event__in=upcoming_events, person_id__in=participant_person_ids
+        ).select_related("person", "rider")
     }
     event_rows = []
     for event in upcoming_events:
         responses = []
         if event.rsvp_requested:
-            for rider in riders:
+            for participant in personal_participants:
                 responses.append({
-                    "rider": rider,
-                    "rsvp": rsvp_map.get((event.pk, rider.pk)),
+                    # Keep the template-facing key stable while its value moves
+                    # to the canonical Person when no legacy Rider exists.
+                    "rider": participant.legacy_rider or participant.person,
+                    "participant": participant,
+                    "rsvp": rsvp_map.get((event.pk, participant.person_id)),
                 })
         event_rows.append({"event": event, "responses": responses})
 
