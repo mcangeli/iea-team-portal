@@ -137,7 +137,21 @@ def _shift_schedule_time(value, minutes):
     anchor = datetime.combine(timezone.localdate(), value)
     return (anchor + timedelta(minutes=minutes)).time().replace(second=0, microsecond=0)
 
+def _participant_team_level_for_show(participant, show):
+    membership = SeasonMembership.objects.filter(
+        iea_participant=participant, season=show.season
+    ).first()
+    if membership is None and participant.legacy_rider_id:
+        membership = SeasonMembership.objects.filter(
+            rider=participant.legacy_rider, season=show.season
+        ).first()
+    return membership.team_level if membership else None
+
+
 def _rider_team_level_for_show(rider, show):
+    participant = getattr(rider, "iea_participant_bridge", None)
+    if participant:
+        return _participant_team_level_for_show(participant, show)
     membership = SeasonMembership.objects.filter(rider=rider, season=show.season).first()
     return membership.team_level if membership else None
 
@@ -198,11 +212,34 @@ def _show_day_operational_levels(user, show):
         levels.add(SeasonMembership.TeamLevel.UPPER)
     return levels
 
-def _show_day_participating_riders(show):
+def _show_day_participating_participants(show):
+    from portal.model_modules.people import IEAParticipant
+
     return (
-        Rider.objects.filter(
+        IEAParticipant.objects.filter(
             show_entries__show_class__show=show,
             show_entries__status__in=[ShowEntry.Status.PLANNED, ShowEntry.Status.ENTERED],
+        )
+        .select_related("person", "legacy_rider")
+        .distinct()
+        .order_by("person__last_name", "person__first_name")
+    )
+
+
+def _show_day_participating_riders(show):
+    """Legacy Rider projection retained while show-day callers migrate to Person identity."""
+    return (
+        Rider.objects.filter(
+            Q(
+                show_entries__show_class__show=show,
+                show_entries__status__in=[ShowEntry.Status.PLANNED, ShowEntry.Status.ENTERED],
+            )
+            | Q(
+                iea_participant_bridge__show_entries__show_class__show=show,
+                iea_participant_bridge__show_entries__status__in=[
+                    ShowEntry.Status.PLANNED, ShowEntry.Status.ENTERED
+                ],
+            )
         )
         .distinct()
         .order_by("last_name", "first_name")
