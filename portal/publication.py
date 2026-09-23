@@ -268,19 +268,27 @@ def public_show_results_payload(publication):
             continue
 
         entries = (
-            show_class.entries.select_related("rider", "result")
+            show_class.entries.select_related("rider", "iea_participant__person", "result")
             .filter(result__place__isnull=False)
-            .order_by("result__place", "rider__last_name", "rider__first_name")
+            .order_by("result__place", "id")
         )
-        results = [
-            {
-                "place": entry.result.place,
-                "place_label": _ordinal_place(entry.result.place),
-                "place_class": f"place-{entry.result.place}" if 1 <= entry.result.place <= 10 else "place-other",
-                "rider_name": f"{entry.rider.display_name} {entry.rider.last_name}".strip(),
-            }
-            for entry in entries
-        ]
+        results = []
+        for entry in entries:
+            if entry.iea_participant_id:
+                person = entry.iea_participant.person
+                rider_name = person.display_name
+            elif entry.rider_id:
+                rider_name = f"{entry.rider.display_name} {entry.rider.last_name}".strip()
+            else:
+                continue
+            results.append(
+                {
+                    "place": entry.result.place,
+                    "place_label": _ordinal_place(entry.result.place),
+                    "place_class": f"place-{entry.result.place}" if 1 <= entry.result.place <= 10 else "place-other",
+                    "rider_name": rider_name,
+                }
+            )
         if results:
             groups.append(
                 {
