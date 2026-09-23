@@ -52,9 +52,18 @@ def rider_list(request):
         ))
     selected = _selected_team(request)
     if season:
-        futures = _attach_public_profiles(qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.FUTURES).distinct())
-        upper = _attach_public_profiles(qs.filter(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.UPPER).distinct())
-        unassigned = _attach_public_profiles(qs.exclude(iea_participant_bridge__season_memberships__season=season).distinct())
+        # Prefer Person-native season participation, while retaining legacy-only
+        # rows until the v3.9 compatibility closeout.
+        futures = _attach_public_profiles(qs.filter(
+            Q(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.FUTURES)
+            | Q(memberships__season=season, memberships__iea_participant__isnull=True, memberships__team_level=SeasonMembership.TeamLevel.FUTURES)
+        ).distinct())
+        upper = _attach_public_profiles(qs.filter(
+            Q(iea_participant_bridge__season_memberships__season=season, iea_participant_bridge__season_memberships__team_level=SeasonMembership.TeamLevel.UPPER)
+            | Q(memberships__season=season, memberships__iea_participant__isnull=True, memberships__team_level=SeasonMembership.TeamLevel.UPPER)
+        ).distinct())
+        assigned_ids = SeasonMembership.objects.filter(season=season).values_list("rider_id", flat=True)
+        unassigned = _attach_public_profiles(qs.exclude(pk__in=assigned_ids).distinct())
     else:
         futures = []; upper = []; unassigned = _attach_public_profiles(qs)
     riders = _attach_public_profiles(qs)
@@ -112,9 +121,19 @@ def rider_detail(request, pk):
         participant = rider.iea_participant_bridge
     except AttributeError:
         participant = None
-    memberships = list(
-        participant.season_memberships.select_related("season", "iea_participant__person").prefetch_related("classes")
-    ) if participant else []
+    # v3.9 prefers Person-native IEA history when the participant bridge exists.
+    # Legacy-only memberships remain visible during the compatibility window so
+    # historical data and pre-v3.9 fixtures are not silently dropped.
+    if participant:
+        memberships = list(
+            participant.season_memberships.select_related(
+                "season", "iea_participant__person"
+            ).prefetch_related("classes")
+        )
+    else:
+        memberships = list(
+            rider.memberships.select_related("season").prefetch_related("classes")
+        )
     current_membership = next((m for m in memberships if active_season and m.season_id == active_season.id), None)
     historical_memberships = [m for m in memberships if not active_season or m.season_id != active_season.id]
     historical_memberships.sort(key=lambda m: (m.season.start_date, m.season.id), reverse=True)
