@@ -181,7 +181,9 @@ def standings_export(request):
 
 def _season_membership_for_entry(entry, season):
     """Resolve IEA season membership through Person-native identity first."""
-    participant = getattr(entry.rider, "iea_participant_bridge", None)
+    participant = entry.iea_participant if entry.iea_participant_id else None
+    if participant is None and entry.rider_id:
+        participant = getattr(entry.rider, "iea_participant_bridge", None)
     if participant is not None:
         membership = SeasonMembership.objects.filter(
             iea_participant=participant,
@@ -189,7 +191,9 @@ def _season_membership_for_entry(entry, season):
         ).first()
         if membership is not None:
             return membership
-    return SeasonMembership.objects.filter(rider=entry.rider, season=season).first()
+    if entry.rider_id:
+        return SeasonMembership.objects.filter(rider=entry.rider, season=season).first()
+    return None
 
 
 @login_required
@@ -202,6 +206,7 @@ def point_rider_set(request, entry_pk):
             "show_class__season_class__catalog_entry",
             "show_class__catalog_entry",
             "rider",
+            "iea_participant__person",
         ),
         pk=entry_pk, show_class__show__team=team,
     )
@@ -229,9 +234,10 @@ def point_rider_set(request, entry_pk):
     if clear:
         entry.is_point_rider = False
         entry.save(update_fields=["is_point_rider"])
-        messages.success(request, f"Cleared {entry.rider} as the points rider for {entry.show_class.display_name}.")
+        participant_name = entry.iea_participant.person if entry.iea_participant_id else entry.rider
+        messages.success(request, f"Cleared {participant_name} as the points rider for {entry.show_class.display_name}.")
         return redirect("show_detail", pk=show.pk)
-    for other in entry.show_class.entries.filter(is_point_rider=True).exclude(pk=entry.pk).select_related("rider"):
+    for other in entry.show_class.entries.filter(is_point_rider=True).exclude(pk=entry.pk).select_related("rider", "iea_participant__person"):
         other_membership = _season_membership_for_entry(other, show.season)
         if other_membership and other_membership.team_level == membership.team_level:
             other.is_point_rider = False
@@ -243,5 +249,6 @@ def point_rider_set(request, entry_pk):
         update_fields.append("entry_type")
     entry.full_clean()
     entry.save(update_fields=update_fields)
-    messages.success(request, f"{entry.rider} is the {membership.get_team_level_display()} points rider for {entry.show_class.display_name}.")
+    participant_name = entry.iea_participant.person if entry.iea_participant_id else entry.rider
+    messages.success(request, f"{participant_name} is the {membership.get_team_level_display()} points rider for {entry.show_class.display_name}.")
     return redirect("show_detail", pk=show.pk)
