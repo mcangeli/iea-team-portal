@@ -752,7 +752,7 @@ class ShowEntry(models.Model):
     notes = models.CharField(max_length=255, blank=True)
 
     class Meta:
-        ordering = ["show_class", "id"]
+        ordering = ["show_class", "rider__last_name", "rider__first_name", "competition_track"]
         constraints = [
             models.UniqueConstraint(
                 fields=["show_class", "rider", "competition_track"],
