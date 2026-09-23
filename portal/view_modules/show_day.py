@@ -220,7 +220,7 @@ def my_show_day(request, pk):
         "recent_updates": updates,
         "my_assignments": my_assignments,
         "open_family_job_count": len(open_family_jobs),
-        "has_personal_riders": bool(personal_rider_ids),
+        "has_personal_riders": bool(personal_participant_ids),
         "participating_count": len(participating),
     })
 
@@ -620,11 +620,15 @@ def show_schedule(request, pk):
 
         return redirect("show_schedule", pk=show.pk)
 
-    visible_rider_ids = set(_visible_riders(request.user, team).values_list("id", flat=True))
+    from portal.people_services import personal_iea_participants_for_user
+
+    personal_participant_ids = set(
+        personal_iea_participants_for_user(request.user, team).values_list("id", flat=True)
+    )
     my_class_ids = set(
         ShowEntry.objects.filter(
             show_class__show=show,
-            rider_id__in=visible_rider_ids,
+            iea_participant_id__in=personal_participant_ids,
         )
         .exclude(status=ShowEntry.Status.SCRATCHED)
         .values_list("show_class_id", flat=True)
