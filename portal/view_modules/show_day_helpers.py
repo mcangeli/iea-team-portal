@@ -155,6 +155,35 @@ def _rider_team_level_for_show(rider, show):
     membership = SeasonMembership.objects.filter(rider=rider, season=show.season).first()
     return membership.team_level if membership else None
 
+def _can_update_show_day_participant_status(user, show, participant):
+    person = participant.person
+    if person.user_id == user.id:
+        return True
+    if _can_manage(user) or _is_show_lead(user, show):
+        return True
+
+    team_level = _participant_team_level_for_show(participant, show)
+    roles = _active_committee_roles(user, show.season)
+    if (
+        team_level == SeasonMembership.TeamLevel.FUTURES
+        and CommitteeAssignment.Role.FUTURES_PARENT in roles
+    ):
+        return True
+    if (
+        team_level == SeasonMembership.TeamLevel.UPPER
+        and CommitteeAssignment.Role.UPPER_PARENT in roles
+    ):
+        return True
+
+    from portal.model_modules.people import PersonRelationship
+    return PersonRelationship.objects.filter(
+        from_person__user=user,
+        to_person=person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).exists()
+
+
 def _can_update_show_day_rider_status(user, show, rider):
     if _is_rider_account(user):
         return rider.user_id == user.id
