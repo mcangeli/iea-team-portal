@@ -53,6 +53,7 @@ from ..models import (
     FundraisingPolicy,
 )
 from ..platform import active_period_for_organization, organization_for_view_user
+from portal.people_services import personal_iea_participants_for_user
 from ..people_compat import ensure_iea_participant_for_rider
 
 from .common import (
@@ -144,15 +145,16 @@ def dashboard(request):
     rsvp_events = list(team.events.filter(
         starts_at__gte=now, rsvp_requested=True, visible_to_all=True
     ))
-    rider_list = list(riders)
+    participant_list = list(personal_iea_participants_for_user(request.user, team))
     responded_pairs = set(
         EventRSVP.objects.filter(
-            event__in=rsvp_events, rider__in=rider_list
-        ).exclude(status=EventRSVP.Status.PENDING).values_list("event_id", "rider_id")
+            event__in=rsvp_events,
+            person_id__in=[participant.person_id for participant in participant_list],
+        ).exclude(status=EventRSVP.Status.PENDING).values_list("event_id", "person_id")
     )
     pending_event_rsvps = sum(
-        1 for event in rsvp_events for rider in rider_list
-        if (event.pk, rider.pk) not in responded_pairs
+        1 for event in rsvp_events for participant in participant_list
+        if (event.pk, participant.person_id) not in responded_pairs
     )
     if _can_manage(request.user):
         unclaimed_actions = action_items.filter(
