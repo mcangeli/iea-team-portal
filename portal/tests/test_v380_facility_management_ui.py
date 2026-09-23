@@ -59,7 +59,7 @@ class FacilityManagementUITests(TestCase):
         space = FacilitySpace.objects.get(facility=self.facility, name="Stall 1")
         self.assertEqual(space.parent, barn)
         self.assertTrue(space.housing_capable)
-        self.assertRedirects(response, reverse("facility_detail", args=[self.facility.pk]))
+        self.assertRedirects(response, reverse("facility_space_detail", args=[barn.pk]))
 
     def test_parent_choices_cannot_cross_organization_boundary(self):
         other_barn = FacilitySpace.objects.create(
