@@ -563,7 +563,14 @@ class ShowDayUpdate(models.Model):
 
 
 class RiderDevelopmentNote(models.Model):
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="development_notes")
+    rider = models.ForeignKey(
+        Rider, on_delete=models.CASCADE, related_name="development_notes",
+        null=True, blank=True,
+    )
+    person = models.ForeignKey(
+        "portal.Person", on_delete=models.CASCADE, related_name="development_notes",
+        null=True, blank=True,
+    )
     season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="development_notes")
     author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="rider_development_notes")
     note = models.TextField()
@@ -573,13 +580,29 @@ class RiderDevelopmentNote(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    def clean(self):
+        super().clean()
+        if not self.person_id and not self.rider_id:
+            raise ValidationError("Development note requires a Person or legacy Rider.")
+
+    @property
+    def participant_identity(self):
+        return self.person if self.person_id else self.rider
+
     def __str__(self):
-        return f"{self.rider} — {self.season.name}"
+        return f"{self.participant_identity} — {self.season.name}"
 
 
 class RiderAward(models.Model):
     season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="awards")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="awards")
+    rider = models.ForeignKey(
+        Rider, on_delete=models.CASCADE, related_name="awards",
+        null=True, blank=True,
+    )
+    person = models.ForeignKey(
+        "portal.Person", on_delete=models.CASCADE, related_name="awards",
+        null=True, blank=True,
+    )
     title = models.CharField(max_length=140)
     description = models.TextField(blank=True)
     presentation_date = models.DateField(null=True, blank=True)
@@ -590,11 +613,29 @@ class RiderAward(models.Model):
     class Meta:
         ordering = ["season__start_date", "title"]
         constraints = [
-            models.UniqueConstraint(fields=["season", "rider", "title"], name="unique_season_rider_award")
+            models.UniqueConstraint(
+                fields=["season", "rider", "title"],
+                condition=models.Q(rider__isnull=False),
+                name="unique_season_rider_award",
+            ),
+            models.UniqueConstraint(
+                fields=["season", "person", "title"],
+                condition=models.Q(person__isnull=False),
+                name="unique_season_person_award",
+            ),
         ]
 
+    def clean(self):
+        super().clean()
+        if not self.person_id and not self.rider_id:
+            raise ValidationError("Award requires a Person or legacy Rider.")
+
+    @property
+    def participant_identity(self):
+        return self.person if self.person_id else self.rider
+
     def __str__(self):
-        return f"{self.title} — {self.rider}"
+        return f"{self.title} — {self.participant_identity}"
 
 
 class CalendarEvent(models.Model):
