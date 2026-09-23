@@ -18,3 +18,25 @@
 html[data-theme="dark"] .action-row,html[data-theme="dark"] .ops-row,html[data-theme="dark"] .committee-card,html[data-theme="dark"] .volunteer-card,html[data-theme="dark"] .notification-card,html[data-theme="dark"] .announcement-card{box-shadow:0 14px 34px rgba(0,0,0,.14)}
 @media(max-width:760px){.action-row{align-items:stretch;flex-direction:column}.action-row-actions{justify-content:flex-start}.action-row-actions form,.action-row-actions .btn{width:100%}.action-row-actions .btn{text-align:center;justify-content:center}.ops-row{grid-template-columns:auto minmax(0,1fr)}.ops-meta{grid-column:2;text-align:left}.committee-card,.volunteer-head{align-items:flex-start;flex-direction:column}.section-calendar .calendar-toolbar{align-items:stretch;flex-direction:column}.section-calendar .calendar-period-nav{display:grid;grid-template-columns:auto 1fr auto}.section-calendar .calendar-today-link{grid-column:1/-1;justify-self:start;margin-left:0}.section-calendar .calendar-view-switch{align-self:stretch}.section-calendar .calendar-view-switch a{flex:1;text-align:center}.section-calendar .calendar-filters{display:grid;grid-template-columns:1fr 1fr}.section-calendar .calendar-filters label{min-width:0}.section-calendar .agenda-event{grid-template-columns:4px 76px 1fr;gap:10px;padding:13px 12px}.section-calendar .agenda-event-arrow{display:none}}
 @media(max-width:480px){.section-calendar .calendar-filters{grid-template-columns:1fr}.section-calendar .agenda-event{grid-template-columns:4px 1fr}.section-calendar .agenda-event-time{grid-column:2;display:flex;gap:6px;align-items:baseline}.section-calendar .agenda-event-main{grid-column:2}}
+
+
+/* v3.8 inventory workspace */
+.inventory-hero { align-items: flex-end; }
+.inventory-card { display: flex; flex-direction: column; min-height: 230px; }
+.inventory-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .75rem; }
+.inventory-card-low { border-color: var(--gold, #b9914a); }
+.inventory-low-pill { white-space: nowrap; }
+.inventory-quantity { display: flex; align-items: baseline; gap: .5rem; margin: .6rem 0; }
+.inventory-quantity strong { font-family: "Cormorant Garamond", serif; font-size: 2rem; line-height: 1; }
+.inventory-card-link { margin-top: auto; }
+.inventory-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.inventory-stat { display: flex; flex-direction: column; gap: .25rem; }
+.inventory-stat > strong { font-family: "Cormorant Garamond", serif; font-size: 2.25rem; line-height: 1; }
+.inventory-history { display: grid; gap: .75rem; }
+.inventory-history-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.inventory-history-row h3, .inventory-history-row p { margin-bottom: .25rem; }
+.inventory-history-quantity { font-weight: 700; white-space: nowrap; }
+@media (max-width: 760px) {
+  .inventory-summary-grid { grid-template-columns: 1fr; }
+  .inventory-history-row { align-items: flex-start; flex-direction: column; }
+}
