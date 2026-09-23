@@ -43,13 +43,19 @@ def rider_list(request):
     season = active_period_for_organization(team)
     qs = _team_roster(request.user, team)
     if season:
-        qs = qs.prefetch_related(Prefetch(
-            "iea_participant_bridge__season_memberships",
-            queryset=SeasonMembership.objects.filter(season=season).select_related(
-                "season", "iea_participant__person"
-            ).prefetch_related("classes"),
-            to_attr="active_season_memberships",
-        ))
+        # The card template reads this compatibility attribute from Rider.
+        # Populate it from the Person-native path when available, then fill
+        # legacy-only memberships during the v3.9 transition.
+        qs = qs.prefetch_related(
+            "iea_participant_bridge__season_memberships__classes",
+            Prefetch(
+                "memberships",
+                queryset=SeasonMembership.objects.filter(season=season).select_related(
+                    "season", "iea_participant__person"
+                ).prefetch_related("classes"),
+                to_attr="active_season_memberships",
+            ),
+        )
     selected = _selected_team(request)
     if season:
         # Prefer Person-native season participation, while retaining legacy-only
