@@ -95,22 +95,37 @@ from .common import (
 )
 
 from .communications_helpers import _deliver_announcement
+from portal.people_services import personal_iea_participants_for_user
 
 
 @login_required
 def event_rsvp(request, pk, rider_pk):
     organization = organization_for_user(request.user, required=True)
     event = get_object_or_404(CalendarEvent, pk=pk, team=organization, rsvp_requested=True)
-    rider = get_object_or_404(_visible_riders(request.user, organization), pk=rider_pk)
-    rsvp, _ = EventRSVP.objects.get_or_create(event=event, rider=rider)
+
+    participants = personal_iea_participants_for_user(request.user, organization)
+    participant = participants.filter(legacy_rider_id=rider_pk).first() or participants.filter(pk=rider_pk).first()
+    if participant is not None:
+        person = participant.person
+        rsvp, _ = EventRSVP.objects.get_or_create(
+            event=event,
+            person=person,
+            defaults={"rider": participant.legacy_rider},
+        )
+        display_name = person.display_name
+    else:
+        rider = get_object_or_404(_visible_riders(request.user, organization), pk=rider_pk)
+        rsvp, _ = EventRSVP.objects.get_or_create(event=event, rider=rider)
+        display_name = rider.display_name
+
     form = EventRSVPForm(request.POST or None, instance=rsvp)
     if form.is_valid():
         obj = form.save(commit=False)
         obj.responded_by = request.user
         obj.save()
-        messages.success(request, f"RSVP updated for {rider.display_name}.")
+        messages.success(request, f"RSVP updated for {display_name}.")
         return redirect("my_team")
-    return render(request, "portal/form.html", {"form": form, "title": f"RSVP · {event.title}", "eyebrow": rider.display_name})
+    return render(request, "portal/form.html", {"form": form, "title": f"RSVP · {event.title}", "eyebrow": display_name})
 
 
 @login_required
