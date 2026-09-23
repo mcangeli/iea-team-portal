@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.model_modules.people import IEAParticipant, Person, PersonRelationship
-from portal.models import Season, SeasonClass, SeasonMembership, Show, ShowClass, ShowDayRiderStatus, ShowEntry, Team
+from portal.models import Season, SeasonClass, SeasonMembership, Show, ShowClass, ShowDayRiderStatus, ShowEntry, Team, UserProfile
 from portal.view_modules.show_day_helpers import _show_day_participating_participants
 
 
@@ -62,6 +62,9 @@ class V390ShowDayPersonNativeTests(TestCase):
 
     def test_parent_relationship_can_update_person_native_show_day_status(self):
         parent_user = User.objects.create_user(username="person-native-parent", password="test-pass")
+        UserProfile.objects.create(
+            user=parent_user, team=self.team, role=UserProfile.Role.PARENT
+        )
         parent = Person.objects.create(
             team=self.team, user=parent_user, first_name="Parent", last_name="Person"
         )
