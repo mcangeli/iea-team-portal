@@ -274,3 +274,34 @@ class FacilityManagementUITests(TestCase):
         response = self.client.get(reverse("facility_space_detail", args=[ring.pk]))
         self.assertContains(response, "Reservation history")
         self.assertContains(response, "Morning schooling")
+
+
+    def test_nested_space_create_honors_parent_navigation_context(self):
+        barn = FacilitySpace.objects.create(
+            facility=self.facility, name="Navigation Barn", space_type=FacilitySpace.SpaceType.BARN
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse("facility_space_create", args=[self.facility.pk]), {"parent": barn.pk}
+        )
+        self.assertEqual(response.context["form"].initial["parent"], barn)
+        self.assertContains(response, reverse("facility_space_detail", args=[barn.pk]))
+
+        response = self.client.post(reverse("facility_space_create", args=[self.facility.pk]), {
+            "parent": barn.pk, "name": "Navigation Stall", "space_type": FacilitySpace.SpaceType.STALL,
+            "housing_capable": "on", "active": "on", "notes": "",
+        })
+        self.assertRedirects(response, reverse("facility_space_detail", args=[barn.pk]))
+
+    def test_space_edit_returns_to_edited_resource(self):
+        space = FacilitySpace.objects.create(
+            facility=self.facility, name="Navigation Storage",
+            space_type=FacilitySpace.SpaceType.STORAGE, inventory_storage_capable=True,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("facility_space_edit", args=[space.pk]), {
+            "parent": "", "name": "Navigation Storage Updated",
+            "space_type": FacilitySpace.SpaceType.STORAGE,
+            "inventory_storage_capable": "on", "active": "on", "notes": "",
+        })
+        self.assertRedirects(response, reverse("facility_space_detail", args=[space.pk]))
