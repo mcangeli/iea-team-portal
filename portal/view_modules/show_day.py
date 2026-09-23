@@ -100,6 +100,7 @@ from .common import (
 
 from .show_day_helpers import (
     _can_publish_show_update,
+    _can_update_show_day_participant_status,
     _can_update_show_day_rider_status,
     _deliver_show_update,
     _parse_schedule_time,
@@ -283,7 +284,7 @@ def show_day_dashboard(request, pk):
             counts[status_value] = counts.get(status_value, 0) + 1
 
         rider = participant.legacy_rider
-        can_edit = bool(rider and _can_update_show_day_rider_status(request.user, show, rider))
+        can_edit = _can_update_show_day_participant_status(request.user, show, participant)
         rows.append({
             "rider": rider or participant.person,
             "participant": participant,
@@ -416,9 +417,14 @@ def show_day_rider_status_update(request, pk, rider_pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
     _ensure_season_open(show.season)
-    rider = get_object_or_404(_show_day_participating_riders(show), pk=rider_pk)
 
-    if not _can_update_show_day_rider_status(request.user, show, rider):
+    participant = _show_day_participating_participants(show).filter(
+        legacy_rider_id=rider_pk
+    ).first()
+    if participant is None:
+        participant = get_object_or_404(_show_day_participating_participants(show), pk=rider_pk)
+
+    if not _can_update_show_day_participant_status(request.user, show, participant):
         raise PermissionDenied
 
     status = request.POST.get("status", ShowDayRiderStatus.Status.EXPECTED)
@@ -432,8 +438,9 @@ def show_day_rider_status_update(request, pk, rider_pk):
     note = (request.POST.get("note") or "").strip()[:180]
     obj, created = ShowDayRiderStatus.objects.get_or_create(
         show=show,
-        rider=rider,
+        iea_participant=participant,
         defaults={
+            "rider": participant.legacy_rider,
             "status": status,
             "note": note,
             "updated_by": request.user,
@@ -443,22 +450,25 @@ def show_day_rider_status_update(request, pk, rider_pk):
         obj.status = status
         obj.note = note
         obj.updated_by = request.user
+        if not obj.rider_id and participant.legacy_rider_id:
+            obj.rider = participant.legacy_rider
         obj.full_clean()
-        obj.save(update_fields=["status", "note", "updated_by", "updated_at"])
+        obj.save(update_fields=["rider", "status", "note", "updated_by", "updated_at"])
     else:
         obj.full_clean()
         obj.save()
 
+    display_name = participant.person.display_name
     _audit_event(
         team=team,
         actor=request.user,
         action=AuditEvent.Action.CREATED if created else AuditEvent.Action.UPDATED,
         obj=obj,
         season=show.season,
-        summary=f"Show-day status: {rider.display_name} → {obj.get_status_display()}",
-        details={"show": show, "rider": rider, "status": obj.status, "note": obj.note},
+        summary=f"Show-day status: {display_name} → {obj.get_status_display()}",
+        details={"show": show, "participant": participant.person, "status": obj.status, "note": obj.note},
     )
-    messages.success(request, f"{rider.display_name} marked {obj.get_status_display()}.")
+    messages.success(request, f"{display_name} marked {obj.get_status_display()}.")
     if request.POST.get("return_to") == "my_show_day":
         return redirect("my_show_day", pk=show.pk)
     return redirect("show_day_dashboard", pk=show.pk)
