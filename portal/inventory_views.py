@@ -48,6 +48,7 @@ def inventory_item_detail(request, pk):
         "item": item,
         "stock": item.stock_balances.select_related("space__facility").order_by("space__facility__name", "space__name"),
         "history": item.transactions.select_related("space__facility").all()[:50],
+        "location_count": item.stock_balances.filter(quantity__gt=0).count(),
         "can_manage": can_manage_organization(request.user),
     })
 
