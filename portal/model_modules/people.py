@@ -233,6 +233,75 @@ class OrganizationGroup(models.Model):
         return self.name
 
 
+class OrganizationGroupMembership(models.Model):
+    """Durable Person membership in an organizational group or program.
+
+    This records where a Person participates. Domain-specific facts remain in
+    their owning models (for example LessonEnrollment or IEA season records).
+    Membership does not grant application authorization by itself.
+    """
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        INACTIVE = "inactive", "Inactive"
+        PENDING = "pending", "Pending"
+        ALUMNI = "alumni", "Alumni"
+
+    team = models.ForeignKey(
+        Team,
+        on_delete=models.CASCADE,
+        related_name="organization_group_memberships",
+    )
+    group = models.ForeignKey(
+        OrganizationGroup,
+        on_delete=models.CASCADE,
+        related_name="memberships",
+    )
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        related_name="organization_group_memberships",
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    role_label = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="Optional program-specific label; this does not grant application permissions.",
+    )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["group__sort_order", "group__name", "person__last_name", "person__first_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group", "person", "start_date"],
+                name="unique_group_person_membership_period",
+            ),
+            models.UniqueConstraint(
+                fields=["group", "person"],
+                condition=models.Q(start_date__isnull=True),
+                name="unique_group_person_membership_null_start",
+            ),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.group_id and self.team_id and self.group.team_id != self.team_id:
+            raise ValidationError("Group membership must belong to the group's organization.")
+        if self.person_id and self.team_id and self.person.team_id != self.team_id:
+            raise ValidationError("Group membership must belong to the person's organization.")
+        if self.group_id and self.person_id and self.group.team_id != self.person.team_id:
+            raise ValidationError("Group and person must belong to the same organization.")
+        if self.start_date and self.end_date and self.end_date < self.start_date:
+            raise ValidationError("Group membership end date cannot be before the start date.")
+
+    def __str__(self):
+        return f"{self.group} — {self.person}"
+
+
 class Committee(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="committees")
     group = models.ForeignKey(
