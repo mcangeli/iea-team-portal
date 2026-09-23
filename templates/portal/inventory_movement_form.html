@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ title }} · ArenaLine{% endblock %}
 {% block content %}
-<nav class="page-back-nav"><a href="{% url 'inventory_item_detail' item.pk %}">← Back to {{ item.name }}</a></nav>
-<section class="page-intro"><div><div class="eyebrow">ARENALINE · INVENTORY</div><h1>{{ title }}</h1><p>{{ item.total_on_hand|floatformat:"-3" }} {{ item.unit }}{{ item.total_on_hand|pluralize }} currently on hand.</p></div></section>
-<section class="content-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save inventory change</button></div></form></section>
+<nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'inventory_item_detail' item.pk %}">← Back to {{ item.name }}</a></nav>
+<section class="page-intro inventory-form-intro"><div><div class="eyebrow">ARENALINE · INVENTORY</div><h1>{{ title }}</h1><p><strong>{{ item.total_on_hand|floatformat:"-3" }}</strong> {{ item.unit }}{{ item.total_on_hand|pluralize }} currently on hand across all storage locations.</p></div></section>
+<section class="content-section inventory-form-section"><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn" type="submit">Save inventory change</button><a class="btn secondary" href="{% url 'inventory_item_detail' item.pk %}">Cancel</a></div></form></section>
 {% endblock %}
