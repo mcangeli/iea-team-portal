@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from portal.model_modules.people import LegacyPersonLink, OrganizationRoleAssignment, Person, PersonRelationship
-from portal.models import Rider, Season, SeasonMembership, Team, UserProfile
+from portal.models import GuardianContact, Rider, RiderGuardian, Season, SeasonMembership, Team, UserProfile
 
 
 class V323RiderFamilyAndIEAStatusTests(TestCase):
@@ -62,6 +62,40 @@ class V323RiderFamilyAndIEAStatusTests(TestCase):
         values = {row["value"] for row in response.context["people"]}
         self.assertNotIn(f"user:{parent_user.pk}", values)
         self.assertNotIn(f"person:{parent_user.arena_person.pk}", values)
+
+    def test_legacy_guardian_edit_route_redirects_to_person_relationship(self):
+        guardian = GuardianContact.objects.create(
+            team=self.team,
+            first_name="Morgan",
+            last_name="Legacy",
+            email="legacy@example.com",
+        )
+        link = RiderGuardian.objects.create(
+            rider=self.rider,
+            guardian=guardian,
+            relationship="Guardian",
+            primary_contact=True,
+        )
+
+        response = self.client.get(
+            reverse("rider_guardian_edit", args=[self.rider.pk, guardian.pk])
+        )
+
+        rider_person = LegacyPersonLink.objects.get(rider=self.rider).person
+        guardian_person = LegacyPersonLink.objects.get(guardian=guardian).person
+        relationship = PersonRelationship.objects.get(
+            from_person=guardian_person,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        )
+        self.assertRedirects(
+            response,
+            reverse(
+                "person_relationship_edit",
+                args=[guardian_person.pk, relationship.pk],
+            ),
+        )
+        link.refresh_from_db()
 
     def test_rider_profile_family_uses_canonical_people_relationship(self):
         self._link_parent(relationship="Mother", primary=True)
