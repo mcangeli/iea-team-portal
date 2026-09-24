@@ -39,7 +39,7 @@
 
     <div class="actions">
       <button class="btn" type="submit">Link to rider</button>
-      <a class="btn secondary" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
+      <a class="btn secondary" href="{% url 'person_create' %}">Add person</a>
       <a class="btn secondary" href="{% url 'rider_detail' rider.pk %}">Cancel</a>
     </div>
   </form>
@@ -47,7 +47,7 @@
   <div class="empty-state">
     <h3>No existing people or accounts available</h3>
     <p>Everyone available is already linked to this rider, or no other active people/accounts exist yet.</p>
-    <a class="btn" href="{% url 'rider_guardian_add' rider.pk %}">Create new person</a>
+    <a class="btn" href="{% url 'person_create' %}">Add person</a>
   </div>
   {% endif %}
 </div>
