@@ -260,6 +260,12 @@ Move IEA show entries/results and scoring/qualification consumers toward Person 
 ### Preview 6 — Generic participation migration
 Move generic Rider-dependent operational features, including RSVP and similar surfaces, to Person.
 
+**Implementation status: complete for active architecture.**
+
+Completed Person-native operational surfaces include event RSVP, volunteer credit/progress/export, rider awards and development history, and show availability UI. Each has explicit regression coverage for canonical Person records without a legacy Rider where applicable.
+
+The modern Lesson Program architecture is already Person-native through LessonEnrollment, LessonOccurrence participation, attendance records, and assignments. The older LessonGroup / Lesson / LessonAttendance stack remains Rider-backed compatibility architecture and is intentionally deferred to Preview 8 rather than migrated into a second Person-native lesson implementation.
+
 ### Preview 7 — Creation/UI consolidation
 Replace separate Add Rider/Add Guardian-style identity workflows with unified Person onboarding and participation management.
 
