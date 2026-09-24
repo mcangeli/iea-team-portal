@@ -167,14 +167,19 @@ def can_view_family_account(user, membership):
         return False
     if _can_finance(user, membership.season):
         return True
-    rider = membership.rider
     viewer = _person_for_login(user)
-    try:
-        rider_person = rider.person_bridge.person
-    except LegacyPersonLink.DoesNotExist:
-        rider_person = None
+    rider = membership.rider
+    participant = getattr(membership, "iea_participant", None)
+    rider_person = participant.person if participant and participant.person_id else None
+    if rider_person is None and rider is not None:
+        try:
+            rider_person = rider.person_bridge.person
+        except LegacyPersonLink.DoesNotExist:
+            rider_person = None
     if has_active_parent_relationship(viewer, rider_person):
         return True
+    if rider is None:
+        return False
     return rider.guardians.filter(pk=user.pk).exists() or rider.guardian_links.filter(guardian__user=user).exists()
 
 
