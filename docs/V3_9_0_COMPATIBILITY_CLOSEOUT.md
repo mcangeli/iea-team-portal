@@ -71,6 +71,16 @@ The v3.4 Lesson Program architecture is canonical for new lesson operations: `Le
 
 For v3.9.0 the legacy lesson schema remains intact to preserve historical records and existing compatibility URLs. Physical migration or deletion of `LessonGroup.riders` / `LessonAttendance.rider` is explicitly deferred until those old records and URLs can be retired without duplicating the modern lesson system.
 
-### Remaining substantive audit
+### Finance Rider reference — historical attribution, not financial identity
 
-The remaining Rider identity reference requiring domain-specific review is `FinancialTransaction.rider`. It must be evaluated against the v3.7 Person-native finance/account relationships before any model or form change. Financial responsibility must remain explicit and must not be inferred from Rider, family, horse, or participation relationships.
+The v3.7 finance architecture already provides the canonical Person-native financial relationship model through `ReceivableAccount` and `ReceivableAccountPerson`. Those links distinguish `PARTICIPANT`, `RESPONSIBLE_PARTY`, and `BILLING_CONTACT`, and `resolve_participant_account()` intentionally resolves only an explicit active PARTICIPANT link. It does not infer an account from `primary_person`, a responsible party, a billing contact, family relationships, Rider, or any other participation record.
+
+`FinancialTransaction.rider` is therefore not the canonical financial identity or responsibility mechanism. In the legacy general-ledger transaction UI it is optional attribution metadata used for transaction filtering, search, CSV export, and reversal preservation. Existing v3.7 receivable/payable workflows use their own explicit account/party models and may link their generated ledger transaction separately.
+
+For v3.9.0, `FinancialTransaction.rider` remains deprecated compatibility/historical attribution storage. It must not be used to infer who owes money, who receives a statement, who is financially responsible, or which receivable account should be charged. Replacing this field with a new Person field inside v3.9.0 would add another attribution concept without improving the explicit finance architecture and would create unnecessary ledger migration risk.
+
+A future ledger-normalization release may replace the optional Rider attribution with a deliberately designed Person/account attribution after reporting, export, reversal, and historical-ledger requirements are specified. That work is outside the People identity migration.
+
+### Preview 8 substantive audit status
+
+The family/account adapters, generic ActionItem migration, legacy lesson isolation, and finance Rider-reference audit are complete. Remaining closeout work is migration/readiness verification, focused compatibility regression, full-suite regression, and final v3.9.0 documentation/release preparation.
