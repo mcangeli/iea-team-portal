@@ -175,10 +175,33 @@ def _can_view_private_rider(user, rider):
     return can_view_private_rider(user, rider)
 
 def _visible_action_items(user, team):
-    qs = ActionItem.objects.filter(team=team).select_related("season", "event", "show", "rider", "assigned_to", "claimed_by")
-    if _can_manage(user): return qs
+    qs = ActionItem.objects.filter(team=team).select_related(
+        "season", "event", "show", "person", "rider", "assigned_to", "claimed_by"
+    )
+    if _can_manage(user):
+        return qs
+
+    from ..people_services import _active_parent_relationships, _person_for_login
+
+    viewer = _person_for_login(user)
+    visible_person_ids = []
+    if viewer and viewer.team_id == team.id:
+        visible_person_ids = [viewer.pk]
+        visible_person_ids.extend(
+            _active_parent_relationships().filter(
+                from_person=viewer,
+                to_person__team=team,
+            ).values_list("to_person_id", flat=True)
+        )
+
     riders = _visible_riders(user, team)
-    return qs.filter(family_visible=True).filter(Q(rider__in=riders) | Q(assigned_to=user) | Q(claimed_by=user) | Q(rider__isnull=True, assigned_to__isnull=True)).distinct()
+    return qs.filter(family_visible=True).filter(
+        Q(person_id__in=visible_person_ids)
+        | Q(person__isnull=True, rider__in=riders)
+        | Q(assigned_to=user)
+        | Q(claimed_by=user)
+        | Q(person__isnull=True, rider__isnull=True, assigned_to__isnull=True)
+    ).distinct()
 
 def _announcement_recipients(announcement):
     users = User.objects.filter(profile__team=announcement.team, is_active=True).select_related("profile")
