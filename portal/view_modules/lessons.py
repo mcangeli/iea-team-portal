@@ -238,17 +238,8 @@ def show_availability(request, show_pk):
         rows.append(response)
     return render(request, "portal/show_availability.html", {"show": show, "responses": rows, "can_manage": _can_manage(request.user)})
 
-@login_required
-def show_availability_edit(request, show_pk, rider_pk):
-    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
-    _ensure_season_open(show.season)
-    participant = IEAParticipant.objects.filter(
-        team=team, active=True, season_memberships__season=show.season
-    ).select_related("person", "legacy_rider").filter(
-        Q(pk=rider_pk) | Q(legacy_rider_id=rider_pk)
-    ).first()
-    if not participant:
-        raise Http404
+def _show_availability_edit_for_participant(request, show, participant):
+    team = organization_for_view_user(request.user)
     if not _can_manage(request.user):
         visible_ids = {item.pk for item in personal_iea_participants_for_user(request.user, team)}
         if participant.pk not in visible_ids:
@@ -264,6 +255,29 @@ def show_availability_edit(request, show_pk, rider_pk):
         obj.responded_at = timezone.now() if obj.status != ShowAvailability.Status.PENDING else None
         obj.save(); messages.success(request, f"Availability updated for {participant.person}."); return redirect("show_availability", show_pk=show.pk)
     return render(request, "portal/form.html", {"form": form, "title": f"Show availability · {participant.person}", "eyebrow": show.name})
+
+
+@login_required
+def show_availability_participant_edit(request, show_pk, participant_pk):
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
+    _ensure_season_open(show.season)
+    participant = get_object_or_404(
+        IEAParticipant.objects.select_related("person", "legacy_rider"),
+        pk=participant_pk, team=team, active=True, season_memberships__season=show.season,
+    )
+    return _show_availability_edit_for_participant(request, show, participant)
+
+
+@login_required
+def show_availability_edit(request, show_pk, rider_pk):
+    """Compatibility route for legacy Rider-keyed availability links."""
+    team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
+    _ensure_season_open(show.season)
+    participant = get_object_or_404(
+        IEAParticipant.objects.select_related("person", "legacy_rider"),
+        legacy_rider_id=rider_pk, team=team, active=True, season_memberships__season=show.season,
+    )
+    return _show_availability_edit_for_participant(request, show, participant)
 
 @login_required
 def volunteer_dashboard(request):
