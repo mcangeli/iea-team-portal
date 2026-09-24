@@ -269,6 +269,14 @@ The modern Lesson Program architecture is already Person-native through LessonEn
 ### Preview 7 — Creation/UI consolidation
 Replace separate Add Rider/Add Guardian-style identity workflows with unified Person onboarding and participation management.
 
+**Implementation status: complete.**
+
+The canonical creation path is now Person onboarding. It can assign multiple organization roles and create Person-native IEA participation in one atomic workflow; selecting an IEA season also establishes Rider involvement. Legacy Add Rider and Add Parent/Guardian routes remain only as compatibility entry points and redirect to Add Person rather than creating new Rider or GuardianContact identities.
+
+Rider Card management now routes profile editing, IEA season participation, login creation, and family management through the bridged Person and canonical Person relationships. The parent directory/export, ShowEntry creation, and Show Availability management likewise use Person/IEAParticipant-native paths, with narrow legacy adapters retained where old URLs or records still require them.
+
+Preview 7 therefore closes new legacy identity creation and removes normal UI write paths that treat Rider or GuardianContact as separate human identities. Remaining legacy models, edit endpoints, old lesson-stack dependencies, and compatibility bridges are Preview 8 audit/closeout work.
+
 ### Preview 8 — Compatibility closeout
 Audit remaining Rider, GuardianContact, RiderGuardian, and LegacyPersonLink dependencies. Removal is considered only after they cease to be authoritative.
 
