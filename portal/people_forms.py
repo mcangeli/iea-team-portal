@@ -15,7 +15,7 @@ from portal.model_modules.people import (
     Person,
     PersonRelationship,
 )
-from portal.models import UserProfile
+from portal.models import Season, SeasonClass, SeasonMembership, UserProfile
 
 
 class PersonForm(forms.ModelForm):
@@ -41,6 +41,38 @@ class PersonForm(forms.ModelForm):
         model = Person
         fields = ["user", "first_name", "last_name", "preferred_name", "email", "phone", "birth_date", "school", "graduation_year", "bio", "photo", "website_url", "instagram_url", "youtube_url", "public_profile_enabled", "active"]
         widgets = {"birth_date": forms.DateInput(attrs={"type": "date"}), "bio": forms.Textarea(attrs={"rows": 5})}
+
+
+class PersonCreateForm(PersonForm):
+    involvement = forms.MultipleChoiceField(
+        choices=OrganizationRoleAssignment.Role.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text="Choose the ways this person is currently involved. You can change these later.",
+    )
+    iea_season = forms.ModelChoiceField(queryset=Season.objects.none(), required=False, label="IEA season", help_text="Optional. Select a season to create IEA participation now.")
+    iea_team_level = forms.ChoiceField(choices=(("", "---------"),) + tuple(SeasonMembership.TeamLevel.choices), required=False, label="IEA team level")
+    iea_classes = forms.ModelMultipleChoiceField(queryset=SeasonClass.objects.none(), required=False, label="IEA classes", widget=forms.CheckboxSelectMultiple)
+
+    def __init__(self, *args, team=None, **kwargs):
+        super().__init__(*args, team=team, **kwargs)
+        self.team = team
+        if team is not None:
+            self.fields["iea_season"].queryset = Season.objects.filter(team=team).order_by("-start_date")
+            self.fields["iea_classes"].queryset = SeasonClass.objects.filter(season__team=team, active=True).order_by("season", "sort_order", "name")
+
+    def clean(self):
+        cleaned = super().clean()
+        season = cleaned.get("iea_season")
+        level = cleaned.get("iea_team_level")
+        classes = cleaned.get("iea_classes")
+        if season and not level:
+            self.add_error("iea_team_level", "Choose the IEA team level for this season.")
+        if classes and not season:
+            self.add_error("iea_season", "Choose an IEA season before assigning classes.")
+        if season and classes and classes.exclude(season=season).exists():
+            self.add_error("iea_classes", "All selected classes must belong to the selected IEA season.")
+        return cleaned
 
 
 class PersonLoginAccessForm(forms.Form):
