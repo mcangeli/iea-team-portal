@@ -291,12 +291,44 @@ def rider_guardian_link(request, rider_pk):
 @login_required
 @require_POST
 def rider_guardian_unlink(request, rider_pk, link_pk):
+    """Compatibility endpoint for stale legacy unlink submissions.
+
+    Canonical family relationships are Person-native. This endpoint only accepts
+    an existing legacy RiderGuardian link, ends the corresponding canonical
+    relationship, and removes the compatibility row.
+    """
     _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team)
-    link = get_object_or_404(RiderGuardian.objects.select_related("guardian"), pk=link_pk, rider=rider, guardian__team=team); guardian = link.guardian
+    link = get_object_or_404(
+        RiderGuardian.objects.select_related("guardian"),
+        pk=link_pk,
+        rider=rider,
+        guardian__team=team,
+    )
+    guardian = link.guardian
+    rider_person = ensure_rider_person(rider)
+    guardian_person = ensure_guardian_person(guardian)
+    relationship = PersonRelationship.objects.filter(
+        from_person=guardian_person,
+        to_person=rider_person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).first()
     with transaction.atomic():
-        end_rider_guardian_relationship(rider=rider, guardian=guardian); link.delete()
+        if relationship is not None:
+            relationship.active = False
+            relationship.end_date = timezone.localdate()
+            relationship.save(update_fields=["active", "end_date"])
+        link.delete()
         if guardian.user_id:
-            still_linked = RiderGuardian.objects.filter(rider=rider, guardian__user_id=guardian.user_id).exists()
-            if not still_linked: rider.guardians.remove(guardian.user)
-    messages.success(request, f"{guardian} unlinked from {rider}; the Person record was kept."); return redirect("rider_detail", pk=rider.pk)
+            still_linked = RiderGuardian.objects.filter(
+                rider=rider,
+                guardian__user_id=guardian.user_id,
+            ).exists()
+            if not still_linked:
+                rider.guardians.remove(guardian.user)
+    messages.success(
+        request,
+        f"{guardian_person.display_name} unlinked from {rider_person.display_name}; both Person records were kept.",
+    )
+    return redirect("rider_detail", pk=rider.pk)
