@@ -96,6 +96,24 @@ class V323PeopleAccountTests(TestCase):
         self.assertEqual(person.last_name, "Coach")
         self.assertFalse(LegacyPersonLink.objects.filter(person=person).exists())
 
+    def test_person_linked_account_editor_hides_legacy_identity_selectors(self):
+        rider = Rider.objects.create(team=self.team, first_name="Jamie", last_name="Canonical", grade=7)
+        person = ensure_rider_person(rider)
+        user = User.objects.create_user(username="jamie-canonical", password="StrongPass123!")
+        profile = user.profile
+        profile.team = self.team
+        profile.role = UserProfile.Role.RIDER
+        profile.save(update_fields=["team", "role"])
+        rider.user = user
+        rider.save(update_fields=["user"])
+        person.user = user
+        person.save(update_fields=["user"])
+
+        form = UserAccountEditForm(team=self.team, actor=self.admin, user_obj=user)
+
+        self.assertNotIn("rider", form.fields)
+        self.assertNotIn("guardian", form.fields)
+
     def test_account_edit_keeps_person_identity_and_syncs_contact_fields(self):
         rider = Rider.objects.create(team=self.team, first_name="Jamie", last_name="Smith", grade=7)
         person = ensure_rider_person(rider)
