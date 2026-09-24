@@ -176,24 +176,31 @@ def rider_guardian_add(request, pk):
 
 @login_required
 def rider_guardian_edit(request, pk, guardian_pk):
+    """Compatibility entry point for legacy Rider/Guardian family edit URLs."""
     _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=pk, team=team)
-    link = get_object_or_404(RiderGuardian.objects.select_related("guardian"), rider=rider, guardian_id=guardian_pk, guardian__team=team)
-    form = GuardianContactForm(request.POST or None, instance=link.guardian, initial={"relationship": link.relationship, "primary_contact": link.primary_contact})
-    if form.is_valid():
-        try:
-            with transaction.atomic():
-                guardian = form.save(); link.relationship = form.cleaned_data.get("relationship", ""); link.primary_contact = form.cleaned_data.get("primary_contact", False); link.save(update_fields=["relationship", "primary_contact"])
-                person = ensure_guardian_person(guardian); changed = []
-                for field, value in (("first_name", guardian.first_name), ("last_name", guardian.last_name), ("email", guardian.email), ("phone", guardian.phone)):
-                    if getattr(person, field) != value: setattr(person, field, value); changed.append(field)
-                if changed: person.save(update_fields=changed)
-                sync_rider_guardian_link(link)
-        except ValidationError as exc: form.add_error(None, exc)
-        else:
-            messages.success(request, "Parent/guardian contact and People relationship updated."); return redirect("rider_detail", pk=rider.pk)
-    return render(request, "portal/form.html", {"form": form, "title": f"Edit {link.guardian.display_name}", "eyebrow": "FAMILY CONTACT"})
-
+    link = get_object_or_404(
+        RiderGuardian.objects.select_related("guardian"),
+        rider=rider,
+        guardian_id=guardian_pk,
+        guardian__team=team,
+    )
+    rider_person = ensure_rider_person(rider)
+    guardian_person = ensure_guardian_person(link.guardian)
+    relationship = PersonRelationship.objects.filter(
+        from_person=guardian_person,
+        to_person=rider_person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).first()
+    if relationship is None:
+        relationship = sync_rider_guardian_link(link)
+    messages.info(request, "Family relationships are now managed on the Person record.")
+    return redirect(
+        "person_relationship_edit",
+        pk=guardian_person.pk,
+        relationship_pk=relationship.pk,
+    )
 
 def _family_link_candidates(team, rider_person, linked_person_ids):
     """Return existing People plus unmigrated login accounts as one simple picker."""
