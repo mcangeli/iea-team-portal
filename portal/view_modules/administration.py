@@ -53,6 +53,7 @@ from ..models import (
     FundraisingPolicy,
 )
 from ..platform import active_period_for_organization, organization_for_view_user
+from ..people_compat import ensure_guardian_person, ensure_rider_person
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
@@ -160,9 +161,21 @@ def user_list(request):
 def user_create(request, rider_pk=None, guardian_pk=None):
     _require_manage(request.user)
     team = organization_for_view_user(request.user)
-    rider = get_object_or_404(Rider, pk=rider_pk, team=team, user__isnull=True) if rider_pk else None
-    guardian = get_object_or_404(GuardianContact, pk=guardian_pk, team=team, user__isnull=True) if guardian_pk else None
-    form = UserOnboardingForm(request.POST or None, team=team, actor=request.user, initial_rider=rider, initial_guardian=guardian)
+
+    # Compatibility adapters for pre-v3.9 Rider/Guardian account-creation URLs.
+    # Canonical login creation is Person-native.
+    if rider_pk is not None:
+        rider = get_object_or_404(Rider, pk=rider_pk, team=team)
+        person = ensure_rider_person(rider)
+        messages.info(request, "Login access is now created from the Person record.")
+        return redirect("person_login_create", pk=person.pk)
+    if guardian_pk is not None:
+        guardian = get_object_or_404(GuardianContact, pk=guardian_pk, team=team)
+        person = ensure_guardian_person(guardian)
+        messages.info(request, "Login access is now created from the Person record.")
+        return redirect("person_login_create", pk=person.pk)
+
+    form = UserOnboardingForm(request.POST or None, team=team, actor=request.user)
     if form.is_valid():
         try:
             user = form.save()
