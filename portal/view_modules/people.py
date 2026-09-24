@@ -138,6 +138,10 @@ def person_detail(request, pk):
     can_manage = can_manage_people(request.user)
     can_view_private = can_view_private_person(request.user, person)
     can_view_work_history = _can_view_work_history(request.user, person)
+    iea_participant = IEAParticipant.objects.filter(team=person.team, person=person).first()
+    iea_memberships = SeasonMembership.objects.none()
+    if iea_participant:
+        iea_memberships = iea_participant.season_memberships.select_related("season", "home_barn").prefetch_related("classes").order_by("-season__start_date")
     work_summary = None
     recent_work_shifts = []
     incoming_family_relationships = _effective_today(PersonRelationship.objects.filter(
@@ -185,6 +189,8 @@ def person_detail(request, pk):
             "can_manage_people": can_manage,
             "can_view_private": can_view_private,
             "can_view_work_history": can_view_work_history,
+            "iea_participant": iea_participant,
+            "iea_memberships": iea_memberships,
             "work_summary": work_summary,
             "recent_work_shifts": recent_work_shifts,
             "incoming_family_relationships": incoming_family_relationships,
