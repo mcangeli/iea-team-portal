@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from portal.forms import GuardianContactForm
-from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
+from portal.model_modules.people import LegacyPersonLink, OrganizationRoleAssignment, Person, PersonRelationship
 from portal.models import GuardianContact, Rider, RiderGuardian, SeasonMembership
 from portal.people_compat import (
     end_rider_guardian_relationship,
@@ -278,6 +278,12 @@ def rider_guardian_link(request, rider_pk):
                 relationship_obj.end_date = None
                 relationship_obj.full_clean()
                 relationship_obj.save(update_fields=["label", "primary_contact", "active", "end_date"])
+                OrganizationRoleAssignment.objects.get_or_create(
+                    team=team,
+                    person=parent_person,
+                    role=OrganizationRoleAssignment.Role.PARENT_GUARDIAN,
+                    active=True,
+                )
         except ValidationError as exc:
             messages.error(request, str(exc)); return redirect("rider_guardian_link", rider_pk=rider.pk)
         messages.success(request, f"{parent_person.display_name} linked to {rider_person} as {relationship}."); return redirect("rider_detail", pk=rider.pk)
