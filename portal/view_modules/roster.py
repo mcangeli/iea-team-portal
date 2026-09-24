@@ -54,6 +54,7 @@ from ..models import (
 )
 from ..platform import active_period_for_organization, organization_for_view_user
 from portal.people_services import personal_iea_participants_for_user
+from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
 from ..people_compat import ensure_iea_participant_for_rider
 
 from .common import (
@@ -511,39 +512,53 @@ def rider_guardian_link(request, rider_pk):
     _require_manage(request.user)
     team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team)
+    try:
+        rider_person = rider.person_bridge.person
+    except LegacyPersonLink.DoesNotExist:
+        raise Http404("This legacy rider is not linked to a Person.")
 
-    existing_ids = RiderGuardian.objects.filter(rider=rider).values_list("guardian_id", flat=True)
-    guardians = GuardianContact.objects.filter(team=team).exclude(pk__in=existing_ids).order_by("last_name", "first_name")
+    existing_person_ids = PersonRelationship.objects.filter(
+        to_person=rider_person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).values_list("from_person_id", flat=True)
+    people = Person.objects.filter(team=team, active=True).exclude(pk=rider_person.pk).exclude(pk__in=existing_person_ids).order_by("last_name", "first_name")
 
     if request.method == "POST":
-        guardian_id = request.POST.get("guardian")
-        if not guardian_id:
+        person_id = request.POST.get("person")
+        if not person_id:
             messages.error(request, "Choose a parent/guardian to link.")
             return redirect("rider_guardian_link", rider_pk=rider.pk)
         relationship = (request.POST.get("relationship") or "Parent/Guardian").strip()
         primary_contact = request.POST.get("primary_contact") == "on"
-        guardian = get_object_or_404(GuardianContact, pk=guardian_id, team=team)
+        parent_person = get_object_or_404(Person, pk=person_id, team=team, active=True)
 
-        link, created = RiderGuardian.objects.get_or_create(
-            rider=rider,
-            guardian=guardian,
-            defaults={
-                "relationship": relationship,
-                "primary_contact": primary_contact,
-            },
+        relationship_obj, created = PersonRelationship.objects.get_or_create(
+            from_person=parent_person,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            defaults={"label": relationship, "primary_contact": primary_contact, "active": True},
         )
         if not created:
-            messages.info(request, f"{guardian} is already linked to {rider}.")
-        else:
-            if guardian.user_id:
-                rider.guardians.add(guardian.user)
-            messages.success(request, f"{guardian} linked to {rider}.")
+            relationship_obj.label = relationship
+            relationship_obj.primary_contact = primary_contact
+            relationship_obj.active = True
+            relationship_obj.end_date = None
+            relationship_obj.full_clean()
+            relationship_obj.save(update_fields=["label", "primary_contact", "active", "end_date"])
+
+        messages.success(request, f"{parent_person} linked to {rider_person}.")
         return redirect("rider_detail", pk=rider.pk)
 
     return render(request, "portal/rider_guardian_link.html", {
         "rider": rider,
-        "guardians": guardians,
+        "people": [
+            {"value": person.pk, "name": person.display_name, "email": person.email,
+             "role": "Person", "has_login": bool(person.user_id)}
+            for person in people
+        ],
     })
+
 
 @login_required
 @require_POST
