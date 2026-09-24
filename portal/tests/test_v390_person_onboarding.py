@@ -25,6 +25,27 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_rider_card_management_links_use_canonical_person_routes(self):
+        rider = Rider.objects.create(team=self.team, first_name="Casey", last_name="Canonical")
+        person = Person.objects.create(team=self.team, first_name="Casey", last_name="Canonical")
+        LegacyPersonLink.objects.create(person=person, rider=rider)
+        participant = IEAParticipant.objects.create(team=self.team, person=person, legacy_rider=rider)
+        SeasonMembership.objects.create(
+            season=self.season,
+            rider=rider,
+            iea_participant=participant,
+            team_level=SeasonMembership.TeamLevel.UPPER,
+        )
+
+        response = self.client.get(reverse("rider_detail", args=[rider.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("person_edit", args=[person.pk]))
+        self.assertContains(response, reverse("person_iea_membership_edit", args=[person.pk]))
+        self.assertContains(response, reverse("person_login_create", args=[person.pk]))
+        self.assertNotContains(response, reverse("rider_edit", args=[rider.pk]))
+        self.assertNotContains(response, reverse("rider_membership_edit", args=[rider.pk]))
+
     def test_legacy_guardian_create_route_redirects_to_person_onboarding(self):
         rider = Rider.objects.create(team=self.team, first_name="Legacy", last_name="Rider")
         before_people = Person.objects.count()
