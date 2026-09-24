@@ -4,8 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.model_modules.people import IEAParticipant, OrganizationRoleAssignment, Person
-from portal.models import Season, SeasonClass, SeasonMembership, Team, UserProfile
+from portal.model_modules.people import IEAParticipant, LegacyPersonLink, OrganizationRoleAssignment, Person, PersonRelationship
+from portal.models import Rider, RiderGuardian, Season, SeasonClass, SeasonMembership, Team, UserProfile
 
 
 class V390PersonOnboardingTests(TestCase):
@@ -80,3 +80,38 @@ class V390PersonOnboardingTests(TestCase):
         response = self.client.get(reverse("people_directory"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, reverse("person_create"))
+
+
+    def test_link_existing_parent_creates_canonical_person_relationship(self):
+        rider_person = Person.objects.create(team=self.team, first_name="Casey", last_name="Rider")
+        legacy_rider = Rider.objects.create(team=self.team, first_name="Casey", last_name="Rider")
+        LegacyPersonLink.objects.create(person=rider_person, rider=legacy_rider)
+        parent = Person.objects.create(team=self.team, first_name="Morgan", last_name="Parent")
+
+        response = self.client.post(reverse("rider_guardian_link", args=[legacy_rider.pk]), {
+            "person": parent.pk,
+            "relationship": "Mother",
+            "primary_contact": "on",
+        })
+
+        self.assertEqual(response.status_code, 302)
+        relationship = PersonRelationship.objects.get(
+            from_person=parent,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        )
+        self.assertEqual(relationship.label, "Mother")
+        self.assertTrue(relationship.primary_contact)
+        self.assertFalse(RiderGuardian.objects.filter(rider=legacy_rider).exists())
+
+    def test_link_parent_page_offers_people_not_guardian_contacts(self):
+        rider_person = Person.objects.create(team=self.team, first_name="Taylor", last_name="Rider")
+        legacy_rider = Rider.objects.create(team=self.team, first_name="Taylor", last_name="Rider")
+        LegacyPersonLink.objects.create(person=rider_person, rider=legacy_rider)
+        parent = Person.objects.create(team=self.team, first_name="Alex", last_name="Parent", email="alex@example.com")
+
+        response = self.client.get(reverse("rider_guardian_link", args=[legacy_rider.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Alex Parent")
+        self.assertContains(response, 'value="' + str(parent.pk) + '"')
