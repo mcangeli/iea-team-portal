@@ -55,7 +55,7 @@ from ..models import (
 from ..platform import active_period_for_organization, organization_for_view_user
 from portal.people_services import personal_iea_participants_for_user
 from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
-from ..people_compat import ensure_iea_participant_for_rider
+from ..people_compat import ensure_iea_participant_for_rider, ensure_rider_person
 
 from .common import (
     FINANCE_AUDIT_ENTITY_TYPES,
