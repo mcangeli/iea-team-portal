@@ -43,6 +43,10 @@ class V390ShowAvailabilityUITests(TestCase):
             show=self.show, iea_participant=self.participant
         )
         self.assertIsNone(availability.rider_id)
+        self.assertContains(
+            response,
+            reverse("show_availability_participant_edit", args=[self.show.pk, self.participant.pk]),
+        )
         self.assertEqual(availability.participant_identity, self.person)
 
     def test_parent_can_edit_person_native_availability_without_rider(self):
@@ -61,7 +65,7 @@ class V390ShowAvailabilityUITests(TestCase):
         self.client.force_login(parent_user)
 
         response = self.client.post(
-            reverse("show_availability_edit", args=[self.show.pk, self.participant.pk]),
+            reverse("show_availability_participant_edit", args=[self.show.pk, self.participant.pk]),
             {"status": ShowAvailability.Status.AVAILABLE, "notes": "Ready to ride"},
         )
 
@@ -72,3 +76,28 @@ class V390ShowAvailabilityUITests(TestCase):
         self.assertEqual(availability.status, ShowAvailability.Status.AVAILABLE)
         self.assertEqual(availability.notes, "Ready to ride")
         self.assertIsNone(availability.rider_id)
+
+
+    def test_legacy_rider_availability_url_remains_a_compatibility_adapter(self):
+        from portal.model_modules.people import LegacyPersonLink
+        from portal.models import Rider
+
+        rider = Rider.objects.create(
+            team=self.team, first_name="Legacy", last_name="Available", active=True
+        )
+        self.participant.legacy_rider = rider
+        self.participant.save(update_fields=["legacy_rider"])
+        LegacyPersonLink.objects.create(person=self.person, rider=rider)
+        self.client.force_login(self.manager)
+
+        response = self.client.post(
+            reverse("show_availability_edit", args=[self.show.pk, rider.pk]),
+            {"status": ShowAvailability.Status.AVAILABLE, "notes": "Compatibility path"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        availability = ShowAvailability.objects.get(
+            show=self.show, iea_participant=self.participant
+        )
+        self.assertEqual(availability.status, ShowAvailability.Status.AVAILABLE)
+        self.assertEqual(availability.notes, "Compatibility path")
