@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from portal.model_modules.people import LegacyPersonLink, Person, PersonRelationship
+from portal.model_modules.people import IEAParticipant, LegacyPersonLink, Person, PersonRelationship
 from portal.models import GuardianContact, Rider, RiderGuardian, Season, SeasonMembership, Team, UserProfile
 from portal.people_services import (
     can_view_family_account, can_view_private_person, can_view_private_rider,
@@ -102,3 +102,26 @@ class V323PeopleAuthorizationTests(TestCase):
         self.assertTrue(can_view_private_rider(coach, rider))
         self.assertFalse(can_view_family_account(coach, membership))
         self.assertFalse(_can_view_family_account(coach, membership))
+
+
+    def test_person_native_family_account_uses_canonical_relationship_without_rider(self):
+        self._relationship()
+        participant = IEAParticipant.objects.create(team=self.team, person=self.rider)
+        membership = SeasonMembership.objects.create(
+            season=self._season(),
+            iea_participant=participant,
+            team_level=SeasonMembership.TeamLevel.FUTURES,
+        )
+        self.assertIsNone(membership.rider_id)
+        self.assertTrue(can_view_family_account(self.parent_user, membership))
+        self.assertTrue(_can_view_family_account(self.parent_user, membership))
+
+    def test_unrelated_parent_cannot_view_person_native_family_account(self):
+        participant = IEAParticipant.objects.create(team=self.team, person=self.rider)
+        membership = SeasonMembership.objects.create(
+            season=self._season(),
+            iea_participant=participant,
+            team_level=SeasonMembership.TeamLevel.FUTURES,
+        )
+        self.assertFalse(can_view_family_account(self.parent_user, membership))
+        self.assertFalse(_can_view_family_account(self.parent_user, membership))
