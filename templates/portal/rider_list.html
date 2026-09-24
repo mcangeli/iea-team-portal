@@ -3,8 +3,8 @@
 {% block content %}
 <div class="people-roster">
 <div class="page-title">
-  <div><div class="eyebrow">ARENALINE · PEOPLE{% if season %} · {{ season.name }}{% endif %}</div><h1>Riders</h1><p>Manage the people in your program while IEA season assignments continue to determine each rider’s Futures or Upper School team and classes.</p></div>
-  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'former_rider_list' %}">Alumni / Former Riders</a><a class="btn secondary" href="{% url 'rider_export' %}?team={{ selected_team }}">Export CSV</a><a class="btn secondary" href="{% url 'season_setup' %}">Season setup</a><a class="btn" href="{% url 'rider_create' %}">Add rider</a></div>{% endif %}
+  <div><div class="eyebrow">ARENALINE · PEOPLE{% if season %} · {{ season.name }}{% endif %}</div><h1>Riders</h1><p>View riders in your program while People remains the canonical place to add identities and configure participation. IEA season assignments continue to determine Futures or Upper School team and classes.</p></div>
+  {% if can_manage %}<div class="actions"><a class="btn secondary" href="{% url 'former_rider_list' %}">Alumni / Former Riders</a><a class="btn secondary" href="{% url 'rider_export' %}?team={{ selected_team }}">Export CSV</a><a class="btn secondary" href="{% url 'season_setup' %}">Season setup</a><a class="btn" href="{% url 'person_create' %}">Add person</a></div>{% endif %}
 </div>
 <nav class="filter-tabs" aria-label="Roster filters"><a class="{% if selected_team == 'all' %}active{% endif %}" href="?team=all">All</a><a class="{% if selected_team == 'futures' %}active{% endif %}" href="?team=futures">Futures</a><a class="{% if selected_team == 'upper' %}active{% endif %}" href="?team=upper">Upper School</a><a class="{% if selected_team == 'unassigned' %}active{% endif %}" href="?team=unassigned">Unassigned</a></nav>
 
