@@ -7,6 +7,7 @@ startup-time monkey patches.
 
 from django import forms
 from django.db import transaction
+from django.db.models import Q
 
 from .forms_legacy import *  # noqa: F401,F403
 from .forms_legacy import ReimbursementRequestForm as _LegacyReimbursementRequestForm
@@ -349,48 +350,83 @@ class ShowClassForm(_LegacyShowClassForm):
         return obj
 
 
-class ShowEntryForm(_LegacyShowEntryForm):
-    """Catalog-aware rider entry form, including same-show VOC eligibility."""
+class ShowEntryForm(forms.ModelForm):
+    """Person-native IEA show entry form backed by IEAParticipant."""
+
+    iea_participant = forms.ModelChoiceField(
+        queryset=IEAParticipant.objects.none(),
+        label="Rider",
+    )
+
+    class Meta:
+        model = ShowEntry
+        fields = ["show_class", "iea_participant", "competition_track", "entry_type", "status", "notes"]
 
     def __init__(self, *args, show=None, team=None, **kwargs):
-        super().__init__(*args, show=show, team=team, **kwargs)
-        if not show:
+        super().__init__(*args, **kwargs)
+        self.show = show
+        if show is None:
             return
-
-        selected_class_id = self.data.get("show_class") if self.is_bound else getattr(self.instance, "show_class_id", None)
-        if not selected_class_id:
-            return
-        try:
-            selected = show.classes.select_related("catalog_entry", "season_class").get(pk=selected_class_id)
-        except (ShowClass.DoesNotExist, ValueError, TypeError):
-            return
-
-        catalog = getattr(selected, "catalog_entry", None)
-        if not catalog or (catalog.class_code or "").upper() != "VOC":
-            return
-
-        from portal.iea_voc import voc_candidate_ids
-
-        candidate_ids = voc_candidate_ids(show)
-        legacy_rider_ids = [
-            value for kind, value in candidate_ids if kind == "rider"
-        ]
-        person_ids = [
-            value for kind, value in candidate_ids if kind == "person"
-        ]
-        participant_rider_ids = IEAParticipant.objects.filter(
-            person_id__in=person_ids,
-            legacy_rider__isnull=False,
-        ).values_list("legacy_rider_id", flat=True)
-        self.fields["rider"].queryset = Rider.objects.filter(
-            pk__in=set(legacy_rider_ids) | set(participant_rider_ids),
+        self.fields["show_class"].queryset = show.classes.select_related("season_class")
+        participants = IEAParticipant.objects.filter(
             team=team,
             active=True,
-        )
-        self.fields["rider"].help_text = (
-            "VOC candidates come from completed same-show H1/H2 results. "
-            "ArenaLine keeps unresolved cutoff ties visible because judge-card scores are not stored."
-        )
+            season_memberships__season=show.season,
+        ).select_related("person")
+
+        selected_class_id = self.data.get("show_class") if self.is_bound else getattr(self.instance, "show_class_id", None)
+        selected = None
+        if selected_class_id:
+            try:
+                selected = show.classes.select_related("catalog_entry", "season_class").get(pk=selected_class_id)
+            except (ShowClass.DoesNotExist, ValueError, TypeError):
+                pass
+        if selected and selected.season_class_id:
+            participants = participants.filter(season_memberships__classes=selected.season_class)
+            if selected.season_class.team_level != SeasonClass.TeamLevel.BOTH:
+                participants = participants.filter(season_memberships__team_level=selected.season_class.team_level)
+
+        catalog = getattr(selected, "catalog_entry", None) if selected else None
+        if catalog and (catalog.class_code or "").upper() == "VOC":
+            from portal.iea_voc import voc_candidate_ids
+            person_ids = [value for kind, value in voc_candidate_ids(show) if kind == "person"]
+            legacy_rider_ids = [value for kind, value in voc_candidate_ids(show) if kind == "rider"]
+            participants = participants.filter(
+                Q(person_id__in=person_ids) | Q(legacy_rider_id__in=legacy_rider_ids)
+            )
+            self.fields["iea_participant"].help_text = (
+                "VOC candidates come from completed same-show H1/H2 results. "
+                "ArenaLine keeps unresolved cutoff ties visible because judge-card scores are not stored."
+            )
+        self.fields["iea_participant"].queryset = participants.distinct().order_by("person__last_name", "person__first_name")
+
+        if show.competition_level == Show.CompetitionLevel.REGULAR:
+            self.fields.pop("competition_track", None)
+        else:
+            self.fields.pop("entry_type", None)
+            self.fields["competition_track"].choices = [
+                (ShowEntry.CompetitionTrack.INDIVIDUAL, "Individual"),
+                (ShowEntry.CompetitionTrack.TEAM, "Team"),
+            ]
+
+    def clean(self):
+        cleaned = super().clean()
+        show_class = cleaned.get("show_class")
+        participant = cleaned.get("iea_participant")
+        if show_class and participant and self.show:
+            entry = self.instance
+            entry.show_class = show_class
+            entry.iea_participant = participant
+            entry.rider = participant.legacy_rider
+            if self.show.competition_level == Show.CompetitionLevel.REGULAR:
+                entry.competition_track = ShowEntry.CompetitionTrack.REGULAR
+            else:
+                entry.competition_track = cleaned.get("competition_track")
+                entry.entry_type = ShowEntry.EntryType.INDIVIDUAL if entry.competition_track == ShowEntry.CompetitionTrack.INDIVIDUAL else ShowEntry.EntryType.TEAM
+                entry.is_point_rider = False
+            entry.clean()
+        return cleaned
+
 
 
 class UserOnboardingForm(_LegacyUserOnboardingForm):
