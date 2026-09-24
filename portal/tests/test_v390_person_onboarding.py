@@ -25,6 +25,29 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_legacy_rider_edit_route_redirects_to_person(self):
+        rider = Rider.objects.create(team=self.team, first_name="Legacy", last_name="Edit")
+        person = Person.objects.create(team=self.team, first_name="Legacy", last_name="Edit")
+        LegacyPersonLink.objects.create(person=person, rider=rider)
+
+        response = self.client.get(reverse("rider_edit", args=[rider.pk]))
+
+        self.assertRedirects(response, reverse("person_edit", args=[person.pk]))
+
+    def test_legacy_rider_membership_routes_redirect_to_person_iea(self):
+        rider = Rider.objects.create(team=self.team, first_name="Legacy", last_name="Season")
+        person = Person.objects.create(team=self.team, first_name="Legacy", last_name="Season")
+        LegacyPersonLink.objects.create(person=person, rider=rider)
+
+        response = self.client.get(reverse("rider_membership_edit", args=[rider.pk]))
+        self.assertRedirects(response, reverse("person_iea_membership_edit", args=[person.pk]))
+
+        response = self.client.get(reverse("rider_membership_edit_season", args=[rider.pk, self.season.pk]))
+        self.assertRedirects(
+            response,
+            reverse("person_iea_membership_edit_season", args=[person.pk, self.season.pk]),
+        )
+
     def test_rider_card_management_links_use_canonical_person_routes(self):
         rider = Rider.objects.create(team=self.team, first_name="Casey", last_name="Canonical")
         person = Person.objects.create(team=self.team, first_name="Casey", last_name="Canonical")
