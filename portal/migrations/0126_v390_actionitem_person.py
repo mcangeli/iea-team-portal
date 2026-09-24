@@ -17,7 +17,7 @@ def backfill_action_item_people(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("portal", "0125_v390_volunteerlog_person"),
+        ("portal", "0125_v390_volunteer_person"),
     ]
 
     operations = [
