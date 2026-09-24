@@ -365,6 +365,14 @@ class ActionItem(models.Model):
     event = models.ForeignKey("CalendarEvent", on_delete=models.CASCADE, null=True, blank=True, related_name="action_items")
     show = models.ForeignKey("Show", on_delete=models.CASCADE, null=True, blank=True, related_name="action_items")
     rider = models.ForeignKey(Rider, on_delete=models.CASCADE, null=True, blank=True, related_name="action_items")
+    person = models.ForeignKey(
+        "Person",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="action_items",
+        help_text="Canonical participant for this action item. Rider is retained only for compatibility.",
+    )
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_action_items")
     claimed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="claimed_action_items")
     family_visible = models.BooleanField(default=True)
