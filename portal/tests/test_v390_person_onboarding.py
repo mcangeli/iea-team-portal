@@ -89,7 +89,7 @@ class V390PersonOnboardingTests(TestCase):
         parent = Person.objects.create(team=self.team, first_name="Morgan", last_name="Parent")
 
         response = self.client.post(reverse("rider_guardian_link", args=[legacy_rider.pk]), {
-            "person": parent.pk,
+            "person": f"person:{parent.pk}",
             "relationship": "Mother",
             "primary_contact": "on",
         })
@@ -114,4 +114,4 @@ class V390PersonOnboardingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Alex Parent")
-        self.assertContains(response, 'value="' + str(parent.pk) + '"')
+        self.assertContains(response, 'value="person:' + str(parent.pk) + '"')
