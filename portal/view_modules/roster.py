@@ -342,53 +342,10 @@ def rider_detail(request, pk):
 @login_required
 @friendly_integrity_errors
 def rider_create(request):
-    _require_manage(request.user); team = organization_for_view_user(request.user)
-    form = RiderForm(
-        request.POST or None,
-        request.FILES or None,
-        team=team,
-        include_season=True,
-    )
-    if form.is_valid():
-        try:
-            with transaction.atomic():
-                obj = form.save(commit=False)
-                obj.team = team
-                obj.full_clean()
-                obj.save()
-
-                season = form.cleaned_data.get("season")
-                if season:
-                    participant, _ = ensure_iea_participant_for_rider(obj)
-                    membership = SeasonMembership.objects.create(
-                        rider=obj,
-                        iea_participant=participant,
-                        season=season,
-                        team_level=form.cleaned_data["team_level"],
-                        home_barn=form.cleaned_data.get("home_barn"),
-                        notes=form.cleaned_data.get("season_notes", ""),
-                    )
-                    membership.classes.set(form.cleaned_data.get("classes"))
-        except ValidationError as exc:
-            form.add_error(None, exc)
-        else:
-            if season:
-                messages.success(
-                    request,
-                    f"Rider added and enrolled in {season.name}. The rider record will remain available for future seasons."
-                )
-            else:
-                messages.success(
-                    request,
-                    "Rider added. No season enrollment was created; you can assign this rider to a season at any time."
-                )
-            return redirect("rider_detail", pk=obj.pk)
-    return render(request, "portal/rider_form.html", {
-        "form": form,
-        "title": "Add rider",
-        "eyebrow": "ROSTER",
-        "creating": True,
-    })
+    """Compatibility entry point: new human records are created through People."""
+    _require_manage(request.user)
+    messages.info(request, "Riders are now created as People. Add the Person once, then assign rider and IEA participation as needed.")
+    return redirect("person_create")
 
 @login_required
 def rider_edit(request, pk):
