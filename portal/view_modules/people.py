@@ -210,26 +210,39 @@ def person_create(request):
     team = _team(request.user)
     form = PersonCreateForm(request.POST or None, request.FILES or None, team=team)
     if request.method == "POST" and form.is_valid():
-        person = form.save(commit=False)
-        person.team = team
-        person.full_clean()
-        person.save()
+        with transaction.atomic():
+            person = form.save(commit=False)
+            person.team = team
+            person.full_clean()
+            person.save()
 
-        today = timezone.localdate()
-        for role in form.cleaned_data.get("involvement", []):
-            OrganizationRoleAssignment.objects.create(
-                team=team, person=person, role=role, start_date=today, active=True
-            )
+            today = timezone.localdate()
+            involvement = set(form.cleaned_data.get("involvement", []))
+            season = form.cleaned_data.get("iea_season")
+            if season:
+                involvement.add(OrganizationRoleAssignment.Role.RIDER)
 
-        season = form.cleaned_data.get("iea_season")
-        if season:
-            participant, _ = IEAParticipant.objects.get_or_create(team=team, person=person)
-            membership = SeasonMembership.objects.create(
-                season=season,
-                iea_participant=participant,
-                team_level=form.cleaned_data["iea_team_level"],
-            )
-            membership.classes.set(form.cleaned_data.get("iea_classes"))
+            for role in involvement:
+                assignment, _ = OrganizationRoleAssignment.objects.get_or_create(
+                    team=team,
+                    person=person,
+                    role=role,
+                    start_date=today,
+                    defaults={"active": True},
+                )
+                if not assignment.active or assignment.end_date is not None:
+                    assignment.active = True
+                    assignment.end_date = None
+                    assignment.save(update_fields=["active", "end_date"])
+
+            if season:
+                participant, _ = IEAParticipant.objects.get_or_create(team=team, person=person)
+                membership = SeasonMembership.objects.create(
+                    season=season,
+                    iea_participant=participant,
+                    team_level=form.cleaned_data["iea_team_level"],
+                )
+                membership.classes.set(form.cleaned_data.get("iea_classes"))
 
         messages.success(request, f"Added {person.display_name} to People.")
         return redirect("person_detail", pk=person.pk)
