@@ -165,3 +165,48 @@ class V390PersonOnboardingTests(TestCase):
         )
         self.assertContains(response, reverse("person_login_create", args=[parent.pk]))
         self.assertNotContains(response, "Unlink from rider")
+
+
+    def test_parent_directory_uses_person_relationship_without_legacy_guardian(self):
+        rider_person = Person.objects.create(team=self.team, first_name="Taylor", last_name="Rider")
+        parent = Person.objects.create(
+            team=self.team, first_name="Jordan", last_name="Parent",
+            email="jordan@example.com", phone="555-0199",
+        )
+        PersonRelationship.objects.create(
+            from_person=parent,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            label="Parent",
+            active=True,
+        )
+
+        response = self.client.get(reverse("parent_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, parent.display_name)
+        self.assertContains(response, rider_person.display_name)
+        self.assertContains(response, reverse("person_detail", args=[parent.pk]))
+        self.assertContains(response, reverse("person_login_create", args=[parent.pk]))
+
+    def test_parent_export_uses_person_relationship_without_legacy_guardian(self):
+        rider_person = Person.objects.create(team=self.team, first_name="Taylor", last_name="Export Rider")
+        parent = Person.objects.create(
+            team=self.team, first_name="Jordan", last_name="Export Parent",
+            email="export-parent@example.com", phone="555-0188",
+        )
+        PersonRelationship.objects.create(
+            from_person=parent,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            label="Guardian",
+            active=True,
+        )
+
+        response = self.client.get(reverse("parent_export"))
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn(parent.display_name, content)
+        self.assertIn(rider_person.display_name, content)
+        self.assertIn("Guardian", content)
