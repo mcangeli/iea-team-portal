@@ -137,6 +137,11 @@ def person_detail(request, pk):
     can_view_work_history = _can_view_work_history(request.user, person)
     work_summary = None
     recent_work_shifts = []
+    incoming_family_relationships = _effective_today(PersonRelationship.objects.filter(
+        to_person=person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        from_person__active=True,
+    )).select_related("from_person").order_by("-primary_contact", "from_person__last_name", "from_person__first_name")
     if can_view_work_history:
         shifts = list(
             WorkShiftEntry.objects.filter(team=person.team, person=person)
@@ -179,6 +184,7 @@ def person_detail(request, pk):
             "can_view_work_history": can_view_work_history,
             "work_summary": work_summary,
             "recent_work_shifts": recent_work_shifts,
+            "incoming_family_relationships": incoming_family_relationships,
         },
     )
 
