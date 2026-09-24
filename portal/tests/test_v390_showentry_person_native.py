@@ -129,7 +129,7 @@ class V390ShowEntryPersonNativeTests(TestCase):
         response = self.client.post(reverse("show_entry_create", args=[self.show.pk]), {
             "show_class": self.show_class.pk,
             "iea_participant": self.participant.pk,
-            "entry_type": ShowEntry.EntryType.REGULAR,
+            "entry_type": ShowEntry.EntryType.INDIVIDUAL,
             "status": ShowEntry.Status.PLANNED,
             "notes": "",
         })
