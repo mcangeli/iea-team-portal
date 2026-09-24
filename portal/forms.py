@@ -461,6 +461,28 @@ class UserAccountEditForm(_LegacyUserAccountEditForm):
             self.fields.pop("rider", None)
             self.fields.pop("guardian", None)
 
+    def clean(self):
+        # The legacy parent class validates Rider/Guardian selectors. Once a
+        # login is Person-linked those fields are intentionally absent, so only
+        # retain the account-level validation that still applies.
+        if "rider" not in self.fields and "guardian" not in self.fields:
+            cleaned = forms.Form.clean(self)
+            role = cleaned.get("role")
+            if self.user_obj and self.user_obj == self.actor and not cleaned.get("is_active"):
+                self.add_error("is_active", "You cannot deactivate your own account.")
+            if role in {UserProfile.Role.ADMIN, UserProfile.Role.COACH}:
+                is_admin_actor = self.actor and (
+                    self.actor.is_superuser
+                    or (
+                        hasattr(self.actor, "profile")
+                        and self.actor.profile.role == UserProfile.Role.ADMIN
+                    )
+                )
+                if not is_admin_actor:
+                    self.add_error("role", "Only administrators can assign Coach or Administrator roles.")
+            return cleaned
+        return super().clean()
+
     @transaction.atomic
     def save(self):
         if "rider" not in self.fields and "guardian" not in self.fields:
