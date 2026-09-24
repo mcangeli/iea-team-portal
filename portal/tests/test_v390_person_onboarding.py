@@ -25,6 +25,11 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_generic_login_create_get_redirects_to_person_onboarding(self):
+        response = self.client.get(reverse("user_create"))
+
+        self.assertRedirects(response, reverse("person_create"))
+
     def test_legacy_rider_login_create_route_redirects_to_person_access(self):
         rider = Rider.objects.create(team=self.team, first_name="Legacy", last_name="Login")
         person = Person.objects.create(team=self.team, first_name="Legacy", last_name="Login")
