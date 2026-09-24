@@ -142,3 +142,26 @@ class V390PersonOnboardingTests(TestCase):
         self.assertContains(response, "IEA PARTICIPATION")
         self.assertContains(response, "2026-2027")
         self.assertContains(response, "Upper School")
+
+
+    def test_rider_family_card_uses_canonical_person_relationship_actions(self):
+        rider = Rider.objects.create(team=self.team, first_name="Casey", last_name="Rider", active=True)
+        rider_person = Person.objects.create(team=self.team, first_name="Casey", last_name="Rider")
+        LegacyPersonLink.objects.create(person=rider_person, rider=rider)
+        parent = Person.objects.create(team=self.team, first_name="Alex", last_name="Parent")
+        relationship = PersonRelationship.objects.create(
+            from_person=parent,
+            to_person=rider_person,
+            relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+            active=True,
+        )
+
+        response = self.client.get(reverse("rider_detail", args=[rider.pk]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse("person_relationship_edit", args=[parent.pk, relationship.pk]),
+        )
+        self.assertContains(response, reverse("person_login_create", args=[parent.pk]))
+        self.assertNotContains(response, "Unlink from rider")
