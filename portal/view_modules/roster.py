@@ -454,25 +454,55 @@ def rider_guardian_edit(request, pk, guardian_pk):
     return render(request, "portal/form.html", {"form": form, "title": f"Edit {link.guardian.display_name}", "eyebrow": "FAMILY CONTACT"})
 
 @login_required
+def _parent_directory_rows(team, season, selected):
+    relationships = PersonRelationship.objects.filter(
+        from_person__team=team,
+        to_person__team=team,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).filter(Q(end_date__isnull=True) | Q(end_date__gte=timezone.localdate())).select_related(
+        "from_person", "to_person"
+    )
+    if season and selected in TEAM_LEVELS:
+        relationships = relationships.filter(
+            to_person__iea_participant__season_memberships__season=season,
+            to_person__iea_participant__season_memberships__team_level=selected,
+        )
+    rows = {}
+    for relationship in relationships.order_by(
+        "from_person__last_name", "from_person__first_name", "to_person__last_name", "to_person__first_name"
+    ).distinct():
+        row = rows.setdefault(
+            relationship.from_person_id,
+            {"person": relationship.from_person, "relationships": []},
+        )
+        row["relationships"].append(relationship)
+    return list(rows.values())
+
+
+@login_required
 def parent_list(request):
     _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
-    guardians = team.guardian_contacts.prefetch_related("rider_links__rider").all()
-    if season and selected in TEAM_LEVELS:
-        guardians = guardians.filter(rider_links__rider__memberships__season=season, rider_links__rider__memberships__team_level=selected).distinct()
-    return render(request, "portal/parent_list.html", {"guardians": guardians, "selected_team": selected, "season": season})
+    parent_rows = _parent_directory_rows(team, season, selected)
+    return render(request, "portal/parent_list.html", {"parent_rows": parent_rows, "selected_team": selected, "season": season})
+
 
 @login_required
 def parent_export(request):
     _require_manage(request.user); team = organization_for_view_user(request.user); season = active_period_for_organization(team); selected = _selected_team(request)
-    guardians = team.guardian_contacts.prefetch_related("rider_links__rider").all()
-    if season and selected in TEAM_LEVELS:
-        guardians = guardians.filter(rider_links__rider__memberships__season=season, rider_links__rider__memberships__team_level=selected).distinct()
+    parent_rows = _parent_directory_rows(team, season, selected)
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = 'attachment; filename="parent-guardian-directory.csv"'
     writer = csv.writer(response); writer.writerow(["Parent/Guardian", "Email", "Phone", "Riders", "Relationships"])
-    for g in guardians:
-        links = list(g.rider_links.select_related("rider").all())
-        writer.writerow([g.display_name, g.email, g.phone, "; ".join(str(x.rider) for x in links), "; ".join(x.relationship for x in links if x.relationship)])
+    for row in parent_rows:
+        person = row["person"]; relationships = row["relationships"]
+        writer.writerow([
+            person.display_name,
+            person.email,
+            person.phone,
+            "; ".join(relationship.to_person.display_name for relationship in relationships),
+            "; ".join(relationship.label or relationship.get_relationship_type_display() for relationship in relationships),
+        ])
     return response
 
 @login_required
