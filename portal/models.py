@@ -1172,7 +1172,15 @@ class VolunteerLog(models.Model):
         REJECTED = "rejected", "Rejected"
 
     season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="volunteer_logs")
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE, related_name="volunteer_logs")
+    rider = models.ForeignKey(
+        Rider, on_delete=models.CASCADE, related_name="volunteer_logs",
+        null=True, blank=True,
+    )
+    person = models.ForeignKey(
+        "portal.Person", on_delete=models.CASCADE, related_name="volunteer_logs",
+        null=True, blank=True,
+        help_text="Participant/family account receiving volunteer-hour credit.",
+    )
     service_date = models.DateField()
     hours = models.DecimalField(max_digits=5, decimal_places=2)
     category = models.CharField(max_length=30, choices=Category.choices, default=Category.TEAM)
@@ -1192,11 +1200,19 @@ class VolunteerLog(models.Model):
         super().clean()
         if self.hours is not None and self.hours <= 0:
             raise ValidationError("Volunteer hours must be greater than zero.")
+        if not self.person_id and not self.rider_id:
+            raise ValidationError("Volunteer hours require a Person or legacy Rider.")
+        if self.person_id and self.season_id and self.person.team_id != self.season.team_id:
+            raise ValidationError("Person and season must belong to the same team.")
         if self.rider_id and self.season_id and self.rider.team_id != self.season.team_id:
             raise ValidationError("Rider and season must belong to the same team.")
 
+    @property
+    def participant_identity(self):
+        return self.person if self.person_id else self.rider
+
     def __str__(self):
-        return f"{self.rider} — {self.hours} hours"
+        return f"{self.participant_identity} — {self.hours} hours"
 
 class FinancialAccount(models.Model):
     class AccountType(models.TextChoices):
