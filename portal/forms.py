@@ -445,10 +445,38 @@ class UserOnboardingForm(_LegacyUserOnboardingForm):
 
 
 class UserAccountEditForm(_LegacyUserAccountEditForm):
-    """Compatibility account editor that keeps canonical Person synchronized."""
+    """Account editor with Person identity authoritative over legacy links."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        person = None
+        if self.user_obj is not None:
+            try:
+                person = self.user_obj.arena_person
+            except Exception:
+                person = None
+        if person is not None:
+            # Existing Person-linked accounts must not be rewired through legacy
+            # Rider/Guardian selectors. Those bridges are compatibility data.
+            self.fields.pop("rider", None)
+            self.fields.pop("guardian", None)
 
     @transaction.atomic
     def save(self):
+        if "rider" not in self.fields and "guardian" not in self.fields:
+            data = self.cleaned_data
+            user = self.user_obj
+            user.first_name = data["first_name"]
+            user.last_name = data["last_name"]
+            user.email = data["email"]
+            user.is_active = data["is_active"]
+            user.save()
+            user.profile.role = data["role"]
+            user.profile.team = self.team
+            user.profile.save(update_fields=["role", "team"])
+            sync_user_person_after_account_edit(user, self.team)
+            return user
+
         user = super().save()
         sync_user_person_after_account_edit(
             user,
