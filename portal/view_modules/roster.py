@@ -453,7 +453,6 @@ def rider_guardian_edit(request, pk, guardian_pk):
         messages.success(request, "Parent/guardian contact updated."); return redirect("rider_detail", pk=rider.pk)
     return render(request, "portal/form.html", {"form": form, "title": f"Edit {link.guardian.display_name}", "eyebrow": "FAMILY CONTACT"})
 
-@login_required
 def _parent_directory_rows(team, season, selected):
     relationships = PersonRelationship.objects.filter(
         from_person__team=team,
