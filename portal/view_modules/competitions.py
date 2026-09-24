@@ -309,8 +309,8 @@ def show_entry_create(request, show_pk):
     form = ShowEntryForm(request.POST or None, show=show, team=team)
     if form.is_valid():
         entry = form.save(commit=False)
-        if entry.show_class.show_id != show.id or entry.rider.team_id != team.id: raise PermissionDenied
-        entry.full_clean(); entry.save(); messages.success(request, "Rider entry added from season class assignment."); return redirect("show_detail", pk=show.pk)
+        if entry.show_class.show_id != show.id or not entry.iea_participant_id or entry.iea_participant.team_id != team.id: raise PermissionDenied
+        entry.full_clean(); entry.save(); messages.success(request, "Rider entry added from Person-native season participation."); return redirect("show_detail", pk=show.pk)
     return render(request, "portal/form.html", {"form": form, "title": "Add rider entry", "eyebrow": show.name})
 
 @login_required
