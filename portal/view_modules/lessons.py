@@ -52,6 +52,7 @@ from ..models import (
     ShowTransactionAllocation, AuditEvent, FundraisingCampaign, FundraisingContribution,
     FundraisingPolicy,
 )
+from portal.people_services import personal_iea_participants_for_user
 from ..platform import active_period_for_organization, organization_for_view_user
 
 from .common import (
@@ -250,9 +251,17 @@ def volunteer_dashboard(request):
     team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season before tracking volunteer hours."); return redirect("season_setup")
-    riders = team.riders.filter(active=True, memberships__season=season).distinct() if _can_manage(request.user) else _visible_riders(request.user, team).filter(active=True, memberships__season=season).distinct()
-    rows = _volunteer_progress_rows(season, riders)
-    logs = VolunteerLog.objects.filter(season=season, rider__in=riders).select_related("rider", "submitted_by", "approved_by")
+    if _can_manage(request.user):
+        participants = list(
+            season.memberships.filter(iea_participant__isnull=False)
+            .select_related("iea_participant__person")
+        )
+        participants = [membership.iea_participant for membership in participants]
+    else:
+        participants = list(personal_iea_participants_for_user(request.user, team))
+    rows = _volunteer_progress_rows(season, participants)
+    person_ids = [participant.person_id for participant in participants]
+    logs = VolunteerLog.objects.filter(season=season, person_id__in=person_ids).select_related("person", "rider", "submitted_by", "approved_by")
     return render(request, "portal/volunteer_dashboard.html", {
         "season": season, "rows": rows, "logs": logs[:60], "can_manage": _can_manage(request.user),
         "pending_count": logs.filter(status=VolunteerLog.Status.PENDING).count(),
@@ -263,8 +272,15 @@ def volunteer_submit(request):
     team = organization_for_view_user(request.user); season = active_period_for_organization(team)
     if not season:
         messages.error(request, "Create or activate a season first."); return redirect("season_setup")
-    visible = team.riders.filter(active=True) if _can_manage(request.user) else _visible_riders(request.user, team).filter(active=True)
-    form = VolunteerLogForm(request.POST or None, team=team, season=season, visible_riders=visible)
+    if _can_manage(request.user):
+        visible_people = Person.objects.filter(
+            team=team, active=True, iea_participant__season_memberships__season=season
+        ).distinct()
+    else:
+        visible_people = Person.objects.filter(
+            pk__in=[participant.person_id for participant in personal_iea_participants_for_user(request.user, team)]
+        )
+    form = VolunteerLogForm(request.POST or None, team=team, season=season, visible_people=visible_people)
     if form.is_valid():
         log = form.save(commit=False); log.season = season; log.submitted_by = request.user
         if _can_manage(request.user):
@@ -277,7 +293,7 @@ def volunteer_submit(request):
 @login_required
 def volunteer_review(request, pk):
     _require_manage(request.user)
-    team = organization_for_view_user(request.user); log = get_object_or_404(VolunteerLog.objects.select_related("rider", "season"), pk=pk, season__team=team)
+    team = organization_for_view_user(request.user); log = get_object_or_404(VolunteerLog.objects.select_related("person", "rider", "season"), pk=pk, season__team=team)
     _ensure_season_open(log.season)
     form = VolunteerReviewForm(request.POST or None, instance=log)
     if form.is_valid():
@@ -287,7 +303,7 @@ def volunteer_review(request, pk):
         else:
             obj.approved_by = None; obj.approved_at = None
         obj.save(); messages.success(request, "Volunteer entry reviewed."); return redirect("volunteer_dashboard")
-    return render(request, "portal/form.html", {"form": form, "title": f"Review volunteer hours · {log.rider}", "eyebrow": f"{log.hours} hours · {log.service_date:%b %d, %Y}"})
+    return render(request, "portal/form.html", {"form": form, "title": f"Review volunteer hours · {log.participant_identity}", "eyebrow": f"{log.hours} hours · {log.service_date:%b %d, %Y}"})
 
 @login_required
 def volunteer_requirements(request):
