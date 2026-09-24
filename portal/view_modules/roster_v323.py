@@ -167,20 +167,11 @@ def rider_detail(request, pk):
 
 @login_required
 def rider_guardian_add(request, pk):
+    """Compatibility entry point: new family members are created through People."""
     _require_manage(request.user); team = organization_for_view_user(request.user)
-    rider = get_object_or_404(Rider, pk=pk, team=team)
-    form = GuardianContactForm(request.POST or None)
-    if form.is_valid():
-        relationship = form.cleaned_data.get("relationship", ""); primary = form.cleaned_data.get("primary_contact", False)
-        try:
-            with transaction.atomic():
-                guardian = form.save(commit=False); guardian.team = team; guardian.save()
-                link = RiderGuardian.objects.create(rider=rider, guardian=guardian, relationship=relationship, primary_contact=primary)
-                sync_rider_guardian_link(link)
-        except ValidationError as exc: form.add_error(None, exc)
-        else:
-            messages.success(request, "Parent/guardian added to People and linked to this rider."); return redirect("rider_detail", pk=rider.pk)
-    return render(request, "portal/form.html", {"form": form, "title": f"Add parent/guardian · {rider.display_name}", "eyebrow": "FAMILY CONTACT"})
+    get_object_or_404(Rider, pk=pk, team=team)
+    messages.info(request, "Parents and guardians are now created as People. Add the Person once, then link the family relationship.")
+    return redirect("person_create")
 
 
 @login_required
