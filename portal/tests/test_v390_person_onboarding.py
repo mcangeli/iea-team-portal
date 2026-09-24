@@ -25,6 +25,17 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_legacy_guardian_create_route_redirects_to_person_onboarding(self):
+        rider = Rider.objects.create(team=self.team, first_name="Legacy", last_name="Rider")
+        before_people = Person.objects.count()
+        before_guardians = self.team.guardian_contacts.count()
+
+        response = self.client.get(reverse("rider_guardian_add", args=[rider.pk]))
+
+        self.assertRedirects(response, reverse("person_create"))
+        self.assertEqual(Person.objects.count(), before_people)
+        self.assertEqual(self.team.guardian_contacts.count(), before_guardians)
+
     def test_legacy_rider_create_route_redirects_to_person_onboarding(self):
         before_riders = Rider.objects.count()
         response = self.client.get(reverse("rider_create"))
