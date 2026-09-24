@@ -452,19 +452,21 @@ class ShowAvailabilityForm(forms.ModelForm):
 class VolunteerLogForm(forms.ModelForm):
     class Meta:
         model = VolunteerLog
-        fields = ["rider", "service_date", "hours", "category", "performed_by", "description"]
+        fields = ["person", "service_date", "hours", "category", "performed_by", "description"]
         widgets = {"service_date": DateInput()}
 
-    def __init__(self, *args, team=None, season=None, visible_riders=None, **kwargs):
+    def __init__(self, *args, team=None, season=None, visible_people=None, visible_riders=None, **kwargs):
         super().__init__(*args, **kwargs)
-        qs = Rider.objects.none()
-        if visible_riders is not None:
-            qs = visible_riders
+        qs = Person.objects.none()
+        if visible_people is not None:
+            qs = visible_people
+        elif visible_riders is not None:
+            qs = Person.objects.filter(legacy_identity__rider__in=visible_riders)
         elif team:
-            qs = Rider.objects.filter(team=team, active=True)
+            qs = Person.objects.filter(team=team, active=True)
         if season:
-            qs = qs.filter(memberships__season=season)
-        self.fields["rider"].queryset = qs.distinct()
+            qs = qs.filter(iea_participant__season_memberships__season=season)
+        self.fields["person"].queryset = qs.distinct().order_by("last_name", "first_name")
 
 
 class VolunteerReviewForm(forms.ModelForm):
