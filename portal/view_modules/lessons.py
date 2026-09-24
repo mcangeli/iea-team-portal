@@ -53,6 +53,7 @@ from ..models import (
     FundraisingPolicy,
 )
 from portal.people_services import personal_iea_participants_for_user
+from portal.model_modules.people import IEAParticipant, Person
 from ..platform import active_period_for_organization, organization_for_view_user
 
 from .common import (
@@ -222,12 +223,18 @@ def lesson_attendance_edit(request, attendance_pk):
 @login_required
 def show_availability(request, show_pk):
     team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
-    roster = Rider.objects.filter(team=team, active=True, memberships__season=show.season).distinct().order_by("last_name", "first_name")
+    roster = IEAParticipant.objects.filter(
+        team=team, active=True, person__active=True, season_memberships__season=show.season
+    ).select_related("person", "legacy_rider").distinct().order_by("person__last_name", "person__first_name")
     if not _can_manage(request.user):
-        roster = roster.filter(pk__in=_visible_riders(request.user, team).values("pk"))
+        roster = roster.filter(pk__in=[participant.pk for participant in personal_iea_participants_for_user(request.user, team)])
     rows = []
-    for rider in roster:
-        response, _ = ShowAvailability.objects.get_or_create(show=show, rider=rider)
+    for participant in roster:
+        response, _ = ShowAvailability.objects.get_or_create(
+            show=show,
+            iea_participant=participant,
+            defaults={"rider": participant.legacy_rider},
+        )
         rows.append(response)
     return render(request, "portal/show_availability.html", {"show": show, "responses": rows, "can_manage": _can_manage(request.user)})
 
@@ -235,16 +242,28 @@ def show_availability(request, show_pk):
 def show_availability_edit(request, show_pk, rider_pk):
     team = organization_for_view_user(request.user); show = get_object_or_404(Show, pk=show_pk, team=team)
     _ensure_season_open(show.season)
-    rider = get_object_or_404(Rider, pk=rider_pk, team=team, memberships__season=show.season)
-    if not _can_manage(request.user) and not _visible_riders(request.user, team).filter(pk=rider.pk).exists():
-        raise PermissionDenied
-    response, _ = ShowAvailability.objects.get_or_create(show=show, rider=rider)
+    participant = IEAParticipant.objects.filter(
+        team=team, active=True, season_memberships__season=show.season
+    ).select_related("person", "legacy_rider").filter(
+        Q(pk=rider_pk) | Q(legacy_rider_id=rider_pk)
+    ).first()
+    if not participant:
+        raise Http404
+    if not _can_manage(request.user):
+        visible_ids = {item.pk for item in personal_iea_participants_for_user(request.user, team)}
+        if participant.pk not in visible_ids:
+            raise PermissionDenied
+    response, _ = ShowAvailability.objects.get_or_create(
+        show=show,
+        iea_participant=participant,
+        defaults={"rider": participant.legacy_rider},
+    )
     form = ShowAvailabilityForm(request.POST or None, instance=response)
     if form.is_valid():
         obj = form.save(commit=False); obj.responded_by = request.user
         obj.responded_at = timezone.now() if obj.status != ShowAvailability.Status.PENDING else None
-        obj.save(); messages.success(request, f"Availability updated for {rider}."); return redirect("show_availability", show_pk=show.pk)
-    return render(request, "portal/form.html", {"form": form, "title": f"Show availability · {rider}", "eyebrow": show.name})
+        obj.save(); messages.success(request, f"Availability updated for {participant.person}."); return redirect("show_availability", show_pk=show.pk)
+    return render(request, "portal/form.html", {"form": form, "title": f"Show availability · {participant.person}", "eyebrow": show.name})
 
 @login_required
 def volunteer_dashboard(request):
