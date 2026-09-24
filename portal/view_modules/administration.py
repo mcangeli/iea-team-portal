@@ -175,6 +175,13 @@ def user_create(request, rider_pk=None, guardian_pk=None):
         messages.info(request, "Login access is now created from the Person record.")
         return redirect("person_login_create", pk=person.pk)
 
+    # New identities and login access are created through People. Keep this
+    # generic URL as a compatibility/navigation adapter rather than a second
+    # identity-creation workflow.
+    if request.method == "GET":
+        messages.info(request, "Create the Person first, then add ArenaLine login access from their People profile.")
+        return redirect("person_create")
+
     form = UserOnboardingForm(request.POST or None, team=team, actor=request.user)
     if form.is_valid():
         try:
