@@ -12,6 +12,7 @@ from portal.model_modules.people import (
     OrganizationGroup,
     OrganizationRoleAssignment,
     PersonRelationship,
+    IEAParticipant,
 )
 from portal.model_modules.station import WorkShiftEntry
 from portal.people_forms import (
@@ -20,9 +21,11 @@ from portal.people_forms import (
     OrganizationGroupForm,
     OrganizationRoleAssignmentForm,
     PersonForm,
+    PersonCreateForm,
     PersonRelationshipForm,
     PersonRolesForm,
 )
+from portal.models import SeasonMembership
 from portal.people_services import (
     can_manage_people,
     can_view_private_person,
@@ -190,12 +193,29 @@ def _managed_person(request, pk):
 def person_create(request):
     require_people_manager(request.user)
     team = _team(request.user)
-    form = PersonForm(request.POST or None, request.FILES or None, team=team)
+    form = PersonCreateForm(request.POST or None, request.FILES or None, team=team)
     if request.method == "POST" and form.is_valid():
         person = form.save(commit=False)
         person.team = team
         person.full_clean()
         person.save()
+
+        today = timezone.localdate()
+        for role in form.cleaned_data.get("involvement", []):
+            OrganizationRoleAssignment.objects.create(
+                team=team, person=person, role=role, start_date=today, active=True
+            )
+
+        season = form.cleaned_data.get("iea_season")
+        if season:
+            participant, _ = IEAParticipant.objects.get_or_create(team=team, person=person)
+            membership = SeasonMembership.objects.create(
+                season=season,
+                iea_participant=participant,
+                team_level=form.cleaned_data["iea_team_level"],
+            )
+            membership.classes.set(form.cleaned_data.get("iea_classes"))
+
         messages.success(request, f"Added {person.display_name} to People.")
         return redirect("person_detail", pk=person.pk)
     return render(request, "portal/people/form.html", {"form": form, "title": "Add person", "eyebrow": "PEOPLE"})
