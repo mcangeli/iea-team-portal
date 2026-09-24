@@ -167,6 +167,32 @@ class V390PersonOnboardingTests(TestCase):
         self.assertNotContains(response, "Unlink from rider")
 
 
+    def test_iea_onboarding_assigns_rider_role_even_when_not_checked_explicitly(self):
+        response = self.client.post(reverse("person_create"), {
+            "first_name": "Morgan",
+            "last_name": "Season",
+            "active": "on",
+            "iea_season": self.season.pk,
+            "iea_team_level": SeasonMembership.TeamLevel.UPPER,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        person = Person.objects.get(first_name="Morgan", last_name="Season")
+        self.assertTrue(
+            OrganizationRoleAssignment.objects.filter(
+                team=self.team,
+                person=person,
+                role=OrganizationRoleAssignment.Role.RIDER,
+                active=True,
+            ).exists()
+        )
+        self.assertTrue(
+            SeasonMembership.objects.filter(
+                season=self.season,
+                iea_participant__person=person,
+            ).exists()
+        )
+
     def test_parent_directory_uses_person_relationship_without_legacy_guardian(self):
         rider_person = Person.objects.create(team=self.team, first_name="Taylor", last_name="Rider")
         parent = Person.objects.create(
