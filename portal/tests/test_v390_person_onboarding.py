@@ -69,3 +69,14 @@ class V390PersonOnboardingTests(TestCase):
         self.assertIsNone(membership.rider_id)
         self.assertEqual(membership.team_level, SeasonMembership.TeamLevel.UPPER)
         self.assertEqual(list(membership.classes.all()), [self.season_class])
+
+    def test_rider_list_routes_new_identity_creation_to_people(self):
+        response = self.client.get(reverse("rider_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("person_create"))
+        self.assertNotContains(response, 'href="' + reverse("rider_create") + '"')
+
+    def test_primary_navigation_exposes_add_person(self):
+        response = self.client.get(reverse("people_directory"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse("person_create"))
