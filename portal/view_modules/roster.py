@@ -349,42 +349,23 @@ def rider_create(request):
 
 @login_required
 def rider_edit(request, pk):
+    """Compatibility entry point for bookmarks into the legacy Rider editor."""
     _require_manage(request.user); team = organization_for_view_user(request.user)
-    obj = get_object_or_404(Rider, pk=pk, team=team)
-    form = RiderForm(request.POST or None, request.FILES or None, instance=obj, team=team)
-    if form.is_valid():
-        form.save(); messages.success(request, "Rider updated."); return redirect("rider_detail", pk=obj.pk)
-    return render(request, "portal/rider_form.html", {
-        "form": form,
-        "title": "Edit rider",
-        "eyebrow": "ROSTER",
-        "creating": False,
-    })
+    rider = get_object_or_404(Rider, pk=pk, team=team)
+    person = ensure_rider_person(rider)
+    messages.info(request, "Rider profile details are now managed on the Person record.")
+    return redirect("person_edit", pk=person.pk)
 
 @login_required
 def rider_membership_edit(request, pk, season_pk=None):
+    """Compatibility entry point for legacy Rider season-assignment URLs."""
     _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=pk, team=team)
-    season = get_object_or_404(Season, pk=season_pk, team=team) if season_pk else active_period_for_organization(team)
-    if not season:
-        messages.error(request, "Create or activate a season first."); return redirect("rider_detail", pk=rider.pk)
-    _ensure_season_open(season)
-    participant, _ = ensure_iea_participant_for_rider(rider)
-    membership, created = SeasonMembership.objects.get_or_create(
-        iea_participant=participant,
-        season=season,
-        defaults={"rider": rider},
-    )
-    if membership.rider_id != rider.id:
-        raise ValidationError("Season membership is linked to a different legacy rider.")
-    if not membership.iea_participant_id:
-        membership.iea_participant = participant
-        membership.save(update_fields=["iea_participant"])
-    form = SeasonMembershipForm(request.POST or None, instance=membership, season=season)
-    if form.is_valid():
-        form.save(); messages.success(request, f"{season.name} team and class assignments updated.")
-        return redirect("rider_detail", pk=rider.pk)
-    return render(request, "portal/form.html", {"form": form, "title": f"{rider.display_name} · {season.name}", "eyebrow": "SEASON ASSIGNMENT"})
+    person = ensure_rider_person(rider)
+    messages.info(request, "IEA season participation is now managed on the Person record.")
+    if season_pk is not None:
+        return redirect("person_iea_membership_edit_season", pk=person.pk, season_pk=season_pk)
+    return redirect("person_iea_membership_edit", pk=person.pk)
 
 @login_required
 def rider_guardian_add(request, pk):
