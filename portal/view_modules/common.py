@@ -245,13 +245,37 @@ def _volunteer_requirement(membership):
     if membership.team_level == SeasonMembership.TeamLevel.UPPER: return membership.season.upper_volunteer_hours_required
     return 0
 
-def _volunteer_progress_rows(season, riders):
-    memberships = SeasonMembership.objects.filter(season=season, rider__in=riders).select_related("rider", "season").order_by("rider__last_name", "rider__first_name"); rows = []
+def _volunteer_progress_rows(season, participants):
+    """Return volunteer progress keyed by canonical Person, with Rider fallback."""
+    participant_list = list(participants)
+    person_ids = {
+        getattr(item, "person_id", None)
+        for item in participant_list
+        if getattr(item, "person_id", None)
+    }
+    rider_ids = {
+        getattr(item, "pk", None)
+        for item in participant_list
+        if isinstance(item, Rider)
+    }
+    memberships = SeasonMembership.objects.filter(season=season).filter(
+        Q(iea_participant__person_id__in=person_ids) | Q(rider_id__in=rider_ids)
+    ).select_related("iea_participant__person", "rider", "season").distinct()
+    memberships = sorted(
+        memberships,
+        key=lambda membership: (
+            (membership.iea_participant.person.last_name if membership.iea_participant_id else membership.rider.last_name).lower(),
+            (membership.iea_participant.person.first_name if membership.iea_participant_id else membership.rider.first_name).lower(),
+        ),
+    )
+    rows = []
     for membership in memberships:
-        approved = VolunteerLog.objects.filter(season=season, rider=membership.rider, status=VolunteerLog.Status.APPROVED).aggregate(total=Sum("hours"))["total"] or 0
-        pending = VolunteerLog.objects.filter(season=season, rider=membership.rider, status=VolunteerLog.Status.PENDING).aggregate(total=Sum("hours"))["total"] or 0
+        person = membership.iea_participant.person if membership.iea_participant_id else None
+        identity_filter = Q(person=person) if person else Q(rider=membership.rider)
+        approved = VolunteerLog.objects.filter(identity_filter, season=season, status=VolunteerLog.Status.APPROVED).aggregate(total=Sum("hours"))["total"] or 0
+        pending = VolunteerLog.objects.filter(identity_filter, season=season, status=VolunteerLog.Status.PENDING).aggregate(total=Sum("hours"))["total"] or 0
         required = _volunteer_requirement(membership); remaining = max(required - approved, 0)
-        rows.append({"membership": membership, "rider": membership.rider, "required": required, "approved": approved, "pending": pending, "remaining": remaining, "complete": required <= 0 or approved >= required})
+        rows.append({"membership": membership, "person": person, "rider": membership.rider or person, "required": required, "approved": approved, "pending": pending, "remaining": remaining, "complete": required <= 0 or approved >= required})
     return rows
 
 def _rider_class_point_rows(season, rider):
