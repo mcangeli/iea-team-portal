@@ -326,11 +326,15 @@ def volunteer_export(request):
     response["Content-Disposition"] = f'attachment; filename="{season.name}-volunteer-hours.csv"'
     writer = csv.writer(response)
     writer.writerow(["Team", "Rider", "Required", "Approved", "Pending", "Remaining", "Complete"])
-    riders = team.riders.filter(active=True, memberships__season=season).distinct()
-    for row in _volunteer_progress_rows(season, riders):
+    participants = [
+        membership.iea_participant
+        for membership in season.memberships.filter(iea_participant__isnull=False)
+        .select_related("iea_participant__person")
+    ]
+    for row in _volunteer_progress_rows(season, participants):
         writer.writerow([row["membership"].get_team_level_display(), row["rider"], row["required"], row["approved"], row["pending"], row["remaining"], "Yes" if row["complete"] else "No"])
     writer.writerow([])
     writer.writerow(["Rider", "Date", "Hours", "Category", "Performed by", "Description", "Status", "Submitted by", "Approved by"])
-    for log in season.volunteer_logs.select_related("rider", "submitted_by", "approved_by"):
-        writer.writerow([log.rider, log.service_date, log.hours, log.get_category_display(), log.performed_by, log.description, log.get_status_display(), log.submitted_by or "", log.approved_by or ""])
+    for log in season.volunteer_logs.select_related("person", "rider", "submitted_by", "approved_by"):
+        writer.writerow([log.participant_identity, log.service_date, log.hours, log.get_category_display(), log.performed_by, log.description, log.get_status_display(), log.submitted_by or "", log.approved_by or ""])
     return response
