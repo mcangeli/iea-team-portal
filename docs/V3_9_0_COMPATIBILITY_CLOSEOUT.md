@@ -51,3 +51,26 @@ Legacy financial transaction Rider references remain in the model. Financial res
 5. Audit historical/reporting/finance consumers before considering any schema removal.
 6. Run migration-readiness and full regression suites.
 7. Only then decide whether any legacy columns/models can be removed in v3.9.0 or must remain deprecated compatibility storage for a later release.
+
+
+## Preview 8 progress
+
+### Family and account compatibility — closed
+
+Legacy Rider/Guardian profile, season, family-edit, family-unlink, and login-creation entry points now adapt or redirect into canonical Person-native workflows. Person-linked account editing no longer rewires legacy Rider/Guardian identity. RiderGuardian remains compatibility storage only; normal family management is authoritative through PersonRelationship.
+
+### Action items — Person-native authoritative
+
+ActionItem now has a canonical nullable Person participant with the legacy Rider field retained for historical compatibility. Migration 0126 backfills Person deterministically through LegacyPersonLink. Normal ActionItem forms select Person, and family visibility resolves through canonical Person parent/guardian relationships first with Rider visibility retained only for legacy rows.
+
+### Legacy lesson stack — isolated compatibility architecture
+
+The active legacy routes `lesson_list`, `lesson_group_*`, `lesson_*`, and `lesson_attendance_edit` still operate on the pre-v3.4 `LessonGroup`, `Lesson`, and `LessonAttendance` models and therefore retain Rider identity. They are not the canonical lesson architecture and must not be extended for new Person-native behavior.
+
+The v3.4 Lesson Program architecture is canonical for new lesson operations: `LessonProgram`, `LessonSeries`, `LessonEnrollment`, `LessonOccurrence`, `IEALessonOccurrenceParticipant`, `LessonAttendanceRecord`, and `LessonAssignment` are Person-native. IEA lesson screens may still display legacy lessons for historical continuity, but new architecture and new identity work belongs only in the Lesson Program stack.
+
+For v3.9.0 the legacy lesson schema remains intact to preserve historical records and existing compatibility URLs. Physical migration or deletion of `LessonGroup.riders` / `LessonAttendance.rider` is explicitly deferred until those old records and URLs can be retired without duplicating the modern lesson system.
+
+### Remaining substantive audit
+
+The remaining Rider identity reference requiring domain-specific review is `FinancialTransaction.rider`. It must be evaluated against the v3.7 Person-native finance/account relationships before any model or form change. Financial responsibility must remain explicit and must not be inferred from Rider, family, horse, or participation relationships.
