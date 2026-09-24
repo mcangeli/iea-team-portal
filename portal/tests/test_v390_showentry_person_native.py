@@ -1,7 +1,9 @@
 from datetime import date
 
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
 
 from portal.model_modules.people import IEAParticipant, Person
 from portal.models import (
@@ -12,6 +14,7 @@ from portal.models import (
     ShowClass,
     ShowEntry,
     Team,
+    UserProfile,
 )
 
 
@@ -62,6 +65,11 @@ class V390ShowEntryPersonNativeTests(TestCase):
             team_level=SeasonMembership.TeamLevel.UPPER,
         )
         self.membership.classes.add(self.season_class)
+        self.admin = User.objects.create_user(username="show-admin", password="test-pass")
+        self.admin.profile.team = self.team
+        self.admin.profile.role = UserProfile.Role.ADMIN
+        self.admin.profile.save(update_fields=["team", "role"])
+        self.client.force_login(self.admin)
 
     def test_show_entry_validates_without_legacy_rider(self):
         entry = ShowEntry(
@@ -115,3 +123,23 @@ class V390ShowEntryPersonNativeTests(TestCase):
         )
         with self.assertRaises(ValidationError):
             duplicate.full_clean()
+
+
+    def test_show_entry_create_ui_uses_iea_participant_without_legacy_rider(self):
+        response = self.client.post(reverse("show_entry_create", args=[self.show.pk]), {
+            "show_class": self.show_class.pk,
+            "iea_participant": self.participant.pk,
+            "entry_type": ShowEntry.EntryType.REGULAR,
+            "status": ShowEntry.Status.PLANNED,
+            "notes": "",
+        })
+        self.assertEqual(response.status_code, 302)
+        entry = ShowEntry.objects.get(show_class=self.show_class, iea_participant=self.participant)
+        self.assertIsNone(entry.rider_id)
+
+    def test_show_entry_create_form_offers_person_native_participant(self):
+        response = self.client.get(reverse("show_entry_create", args=[self.show.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.person.display_name)
+        self.assertContains(response, 'name="iea_participant"')
+        self.assertNotContains(response, 'name="rider"')
