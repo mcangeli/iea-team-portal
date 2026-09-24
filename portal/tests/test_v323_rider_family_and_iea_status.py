@@ -97,6 +97,36 @@ class V323RiderFamilyAndIEAStatusTests(TestCase):
         )
         link.refresh_from_db()
 
+    def test_legacy_guardian_unlink_ends_canonical_relationship_and_keeps_people(self):
+        guardian = GuardianContact.objects.create(
+            team=self.team,
+            first_name="Morgan",
+            last_name="Unlink",
+            email="unlink@example.com",
+        )
+        link = RiderGuardian.objects.create(
+            rider=self.rider,
+            guardian=guardian,
+            relationship="Guardian",
+            primary_contact=True,
+        )
+        from portal.people_compat import sync_rider_guardian_link
+        relationship = sync_rider_guardian_link(link)
+        rider_person = relationship.to_person
+        guardian_person = relationship.from_person
+
+        response = self.client.post(
+            reverse("rider_guardian_unlink", args=[self.rider.pk, link.pk])
+        )
+
+        self.assertRedirects(response, reverse("rider_detail", args=[self.rider.pk]))
+        relationship.refresh_from_db()
+        self.assertFalse(relationship.active)
+        self.assertIsNotNone(relationship.end_date)
+        self.assertFalse(RiderGuardian.objects.filter(pk=link.pk).exists())
+        self.assertTrue(Person.objects.filter(pk=rider_person.pk).exists())
+        self.assertTrue(Person.objects.filter(pk=guardian_person.pk).exists())
+
     def test_rider_profile_family_uses_canonical_people_relationship(self):
         self._link_parent(relationship="Mother", primary=True)
         relationship = PersonRelationship.objects.get(from_person=self.parent_person, relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN)
