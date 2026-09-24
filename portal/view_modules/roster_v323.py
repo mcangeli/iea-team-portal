@@ -250,9 +250,11 @@ def _person_for_family_selection(selection, team):
 def rider_guardian_link(request, rider_pk):
     _require_manage(request.user); team = organization_for_view_user(request.user)
     rider = get_object_or_404(Rider, pk=rider_pk, team=team); rider_person = ensure_rider_person(rider)
-    linked_person_ids = set()
-    for link in RiderGuardian.objects.filter(rider=rider).select_related("guardian", "guardian__user"):
-        linked_person_ids.add(ensure_guardian_person(link.guardian).pk)
+    linked_person_ids = set(PersonRelationship.objects.filter(
+        to_person=rider_person,
+        relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+        active=True,
+    ).values_list("from_person_id", flat=True))
     candidates = _family_link_candidates(team, rider_person, linked_person_ids)
     if request.method == "POST":
         selection = request.POST.get("person")
@@ -264,15 +266,21 @@ def rider_guardian_link(request, rider_pk):
                 parent_person = _person_for_family_selection(selection, team)
                 if parent_person.pk == rider_person.pk:
                     raise ValidationError("A rider cannot be their own parent/guardian relationship.")
-                guardian = ensure_guardian_contact_for_person(parent_person)
-                link, created = RiderGuardian.objects.get_or_create(rider=rider, guardian=guardian, defaults={"relationship": relationship, "primary_contact": primary_contact})
-                if not created:
-                    link.relationship = relationship; link.primary_contact = primary_contact; link.save(update_fields=["relationship", "primary_contact"])
-                sync_rider_guardian_link(link)
-                if guardian.user_id: rider.guardians.add(guardian.user)
+                relationship_obj, _created = PersonRelationship.objects.get_or_create(
+                    from_person=parent_person,
+                    to_person=rider_person,
+                    relationship_type=PersonRelationship.RelationshipType.PARENT_GUARDIAN,
+                    defaults={"label": relationship, "primary_contact": primary_contact, "active": True},
+                )
+                relationship_obj.label = relationship
+                relationship_obj.primary_contact = primary_contact
+                relationship_obj.active = True
+                relationship_obj.end_date = None
+                relationship_obj.full_clean()
+                relationship_obj.save(update_fields=["label", "primary_contact", "active", "end_date"])
         except ValidationError as exc:
             messages.error(request, str(exc)); return redirect("rider_guardian_link", rider_pk=rider.pk)
-        messages.success(request, f"{parent_person.display_name} linked to {rider} as {relationship}."); return redirect("rider_detail", pk=rider.pk)
+        messages.success(request, f"{parent_person.display_name} linked to {rider_person} as {relationship}."); return redirect("rider_detail", pk=rider.pk)
     return render(request, "portal/rider_guardian_link.html", {"rider": rider, "people": candidates})
 
 
