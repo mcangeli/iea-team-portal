@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,8 +25,10 @@ from portal.people_forms import (
     PersonCreateForm,
     PersonRelationshipForm,
     PersonRolesForm,
+
 )
-from portal.models import SeasonMembership
+from portal.forms import SeasonMembershipForm
+from portal.models import Season, SeasonMembership
 from portal.people_services import (
     can_manage_people,
     can_view_private_person,
@@ -225,6 +228,45 @@ def person_create(request):
         messages.success(request, f"Added {person.display_name} to People.")
         return redirect("person_detail", pk=person.pk)
     return render(request, "portal/people/form.html", {"form": form, "title": "Add person", "eyebrow": "PEOPLE"})
+
+
+
+@login_required
+def person_iea_membership_edit(request, pk, season_pk=None):
+    person = _managed_person(request, pk)
+    season = get_object_or_404(Season, pk=season_pk, team=person.team) if season_pk else Season.objects.filter(team=person.team, is_active=True).order_by("-start_date").first()
+    if not season:
+        messages.error(request, "Create or activate an IEA season first.")
+        return redirect("person_detail", pk=person.pk)
+
+    participant, _ = IEAParticipant.objects.get_or_create(team=person.team, person=person)
+    membership, _ = SeasonMembership.objects.get_or_create(
+        season=season,
+        iea_participant=participant,
+    )
+    form = SeasonMembershipForm(request.POST or None, instance=membership, season=season)
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            membership = form.save(commit=False)
+            membership.iea_participant = participant
+            membership.full_clean()
+            membership.save()
+            form.save_m2m()
+            OrganizationRoleAssignment.objects.get_or_create(
+                team=person.team,
+                person=person,
+                role=OrganizationRoleAssignment.Role.RIDER,
+                active=True,
+            )
+        messages.success(request, f"{season.name} IEA participation updated for {person.display_name}.")
+        return redirect("person_detail", pk=person.pk)
+    return render(request, "portal/people/subrecord_form.html", {
+        "person": person,
+        "form": form,
+        "title": f"{season.name} IEA participation",
+        "eyebrow": "IEA PARTICIPATION",
+        "description": "Manage this Person's team level, classes, home barn, and season notes without creating a separate Rider identity.",
+    })
 
 
 @login_required
