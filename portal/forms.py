@@ -17,7 +17,11 @@ from .forms_legacy import ShowEntryForm as _LegacyShowEntryForm
 from .forms_legacy import UserOnboardingForm as _LegacyUserOnboardingForm
 from .forms_legacy import UserAccountEditForm as _LegacyUserAccountEditForm
 from .model_modules.competition_iea import IEAClassCatalogEntry
-from .model_modules.people import IEAParticipant
+from .model_modules.people import IEAParticipant, Person
+from .models import ActionItem
+from django.contrib.auth.models import User
+from django.utils import timezone
+from .forms_legacy import DateTimeLocalInput
 from .people_accounts import sync_user_person_after_account_edit, sync_user_person_identity
 
 
@@ -507,3 +511,44 @@ class UserAccountEditForm(_LegacyUserAccountEditForm):
             guardian=self.cleaned_data.get("guardian"),
         )
         return user
+
+
+class ActionItemForm(forms.ModelForm):
+    """Person-native action-item editor with legacy Rider compatibility."""
+
+    class Meta:
+        model = ActionItem
+        fields = [
+            "title", "category", "details", "due_at", "event", "show", "person",
+            "assigned_to", "claimable", "family_visible", "completed",
+        ]
+        widgets = {"due_at": DateTimeLocalInput(format="%Y-%m-%dT%H:%M")}
+
+    def __init__(self, *args, team=None, season=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.team = team
+        self.season = season
+        if team:
+            self.fields["event"].queryset = team.events.filter(starts_at__gte=timezone.now()).order_by("starts_at")
+            self.fields["show"].queryset = team.shows.order_by("-show_date")
+            self.fields["person"].queryset = Person.objects.filter(team=team, active=True).order_by("last_name", "first_name")
+            self.fields["assigned_to"].queryset = User.objects.filter(
+                profile__team=team, is_active=True
+            ).order_by("last_name", "first_name", "username")
+        self.fields["person"].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        event = cleaned.get("event")
+        show = cleaned.get("show")
+        person = cleaned.get("person")
+        assigned = cleaned.get("assigned_to")
+        if event and self.team and event.team_id != self.team.id:
+            self.add_error("event", "Choose an event for this team.")
+        if show and self.team and show.team_id != self.team.id:
+            self.add_error("show", "Choose a show for this team.")
+        if person and self.team and person.team_id != self.team.id:
+            self.add_error("person", "Choose a person for this team.")
+        if assigned and hasattr(assigned, "profile") and self.team and assigned.profile.team_id != self.team.id:
+            self.add_error("assigned_to", "Choose a team member.")
+        return cleaned
