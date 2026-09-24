@@ -25,6 +25,13 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_legacy_rider_create_route_redirects_to_person_onboarding(self):
+        before_riders = Rider.objects.count()
+        response = self.client.get(reverse("rider_create"))
+
+        self.assertRedirects(response, reverse("person_create"))
+        self.assertEqual(Rider.objects.count(), before_riders)
+
     def test_create_person_can_assign_multiple_involvements_without_legacy_rider(self):
         response = self.client.post(reverse("person_create"), {
             "first_name": "Jordan",
