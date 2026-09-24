@@ -119,7 +119,6 @@ class V390PersonOnboardingTests(TestCase):
 
     def test_person_profile_can_create_iea_membership_without_legacy_rider(self):
         person = Person.objects.create(team=self.team, first_name="Jordan", last_name="Rider")
-        season = Season.objects.create(team=self.team, name="2026-2027", start_date=date(2026, 8, 1), end_date=date(2027, 6, 30), is_active=True)
         response = self.client.post(reverse("person_iea_membership_edit", args=[person.pk]), {
             "team_level": SeasonMembership.TeamLevel.FUTURES,
             "classes": [],
@@ -127,7 +126,7 @@ class V390PersonOnboardingTests(TestCase):
         })
         self.assertEqual(response.status_code, 302)
         participant = IEAParticipant.objects.get(person=person, team=self.team)
-        membership = SeasonMembership.objects.get(season=season, iea_participant=participant)
+        membership = SeasonMembership.objects.get(season=self.season, iea_participant=participant)
         self.assertIsNone(membership.rider_id)
         self.assertEqual(membership.team_level, SeasonMembership.TeamLevel.FUTURES)
         self.assertTrue(OrganizationRoleAssignment.objects.filter(
@@ -137,8 +136,7 @@ class V390PersonOnboardingTests(TestCase):
     def test_person_profile_lists_iea_season_assignment(self):
         person = Person.objects.create(team=self.team, first_name="Avery", last_name="Rider")
         participant = IEAParticipant.objects.create(team=self.team, person=person)
-        season = Season.objects.create(team=self.team, name="2026-2027", start_date=date(2026, 8, 1), end_date=date(2027, 6, 30), is_active=True)
-        SeasonMembership.objects.create(season=season, iea_participant=participant, team_level=SeasonMembership.TeamLevel.UPPER)
+        SeasonMembership.objects.create(season=self.season, iea_participant=participant, team_level=SeasonMembership.TeamLevel.UPPER)
         response = self.client.get(reverse("person_detail", args=[person.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "IEA PARTICIPATION")
