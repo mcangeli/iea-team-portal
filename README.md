@@ -264,7 +264,7 @@ cd /opt/iea-team-portal/app
 Or install v3.7.2 explicitly:
 
 ```bash
-./portalctl update v3.7.2
+./portalctl update v3.8.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
