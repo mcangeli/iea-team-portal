@@ -98,6 +98,8 @@ from .common import (
 )
 
 
+from portal.people_services import personal_iea_participants_for_user
+
 from .show_day_helpers import (
     _can_publish_show_update,
     _can_update_show_day_participant_status,
@@ -120,8 +122,6 @@ from .show_day_helpers import (
 def my_show_day(request, pk):
     team = _team(request.user)
     show = get_object_or_404(Show.objects.select_related("season"), pk=pk, team=team)
-
-    from portal.people_services import personal_iea_participants_for_user
 
     personal_participant_ids = set(
         personal_iea_participants_for_user(request.user, team).values_list("id", flat=True)
@@ -439,16 +439,29 @@ def show_day_rider_status_update(request, pk, rider_pk):
         return redirect("show_day_dashboard", pk=show.pk)
 
     note = (request.POST.get("note") or "").strip()[:180]
-    obj, created = ShowDayRiderStatus.objects.get_or_create(
+    legacy_rider = participant.legacy_rider
+    obj = ShowDayRiderStatus.objects.filter(
         show=show,
         iea_participant=participant,
-        defaults={
-            "rider": participant.legacy_rider,
-            "status": status,
-            "note": note,
-            "updated_by": request.user,
-        },
-    )
+    ).first()
+    if obj is None and legacy_rider is not None:
+        obj = ShowDayRiderStatus.objects.filter(
+            show=show,
+            rider=legacy_rider,
+            iea_participant__isnull=True,
+        ).first()
+        if obj is not None:
+            obj.iea_participant = participant
+    created = obj is None
+    if created:
+        obj = ShowDayRiderStatus(
+            show=show,
+            iea_participant=participant,
+            rider=legacy_rider,
+            status=status,
+            note=note,
+            updated_by=request.user,
+        )
     if not created:
         obj.status = status
         obj.note = note
@@ -456,7 +469,10 @@ def show_day_rider_status_update(request, pk, rider_pk):
         if not obj.rider_id and participant.legacy_rider_id:
             obj.rider = participant.legacy_rider
         obj.full_clean()
-        obj.save(update_fields=["rider", "status", "note", "updated_by", "updated_at"])
+        update_fields = ["rider", "status", "note", "updated_by", "updated_at"]
+        if obj.iea_participant_id:
+            update_fields.append("iea_participant")
+        obj.save(update_fields=update_fields)
     else:
         obj.full_clean()
         obj.save()
