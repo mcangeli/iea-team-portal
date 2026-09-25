@@ -27,7 +27,8 @@ def bridge_legacy_rider(rider):
 def bridge_legacy_parent(parent_user, rider):
     """Mirror an old Rider.guardians fixture into the canonical family graph."""
     participant = bridge_legacy_rider(rider)
-    parent_person, _created = parent_user.team.people.get_or_create(
+    team = parent_user.profile.team
+    parent_person, _created = team.people.get_or_create(
         user=parent_user,
         defaults={
             "first_name": parent_user.first_name or parent_user.username,
