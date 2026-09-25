@@ -93,8 +93,14 @@ class EquineAccessTests(TestCase):
         response = self.client.get(reverse("horse_detail", args=[self.horse.pk]))
         self.assertContains(response, "Edit horse")
         self.assertContains(response, "Record care")
-        self.assertNotContains(response, "Add person")
-        self.assertNotContains(response, "Manage eligibility")
+        self.assertNotContains(
+            response,
+            reverse("horse_person_relationship_add", args=[self.horse.pk]),
+        )
+        self.assertNotContains(
+            response,
+            reverse("horse_season_profile", args=[self.horse.pk]),
+        )
 
     def test_explicit_manage_horses_capability_is_organization_wide(self):
         self._grant_manage_horses()
