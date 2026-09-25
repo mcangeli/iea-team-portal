@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
+from portal.tests.v390_compat import bridge_legacy_rider
+
 from portal.models import (
     CommitteeAssignment,
     Rider,
@@ -99,6 +101,8 @@ class V197ReleaseCandidateTests(TestCase):
             rider=self.upper_rider,
             status=ShowEntry.Status.ENTERED,
         )
+        bridge_legacy_rider(self.futures_rider)
+        bridge_legacy_rider(self.upper_rider)
 
     def make_user(self, username, role):
         user = User.objects.create_user(username=username, password="testpass")
