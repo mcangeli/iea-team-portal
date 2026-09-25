@@ -48,4 +48,11 @@ class V199ErrorHardeningTests(TestCase):
 
         second = self.client.post(url, payload, follow=True)
         self.assertEqual(second.status_code, 200)
-        self.assertEqual(self.rider.guardian_links.count(), 1)
+        self.assertEqual(
+            self.parent.outgoing_relationships.filter(
+                to_person=self.rider.person_bridge.person,
+                relationship_type="parent_guardian",
+                active=True,
+            ).count(),
+            1,
+        )
