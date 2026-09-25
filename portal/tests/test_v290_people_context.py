@@ -43,14 +43,14 @@ class ArenaLinePeopleContextTests(SimpleTestCase):
         self.assertIn("SeasonMembership.TeamLevel.FUTURES", roster)
         self.assertIn("SeasonMembership.TeamLevel.UPPER", roster)
         self.assertIn('writer.writerow(["Rider", "Email", "Grade", "School", "Team", "Season classes", "IEA member number"])', roster)
-        self.assertIn("rider.iea_member_number", roster)
-        self.assertIn("team_level=form.cleaned_data", roster)
-        self.assertIn("team and class assignments updated", roster)
+        self.assertIn("rider.iea_participant_bridge.iea_member_number", roster)
+        self.assertIn("iea_participant_bridge__season_memberships__team_level", roster)
+        self.assertIn("person_iea_membership_edit", roster)
 
     def test_persisted_team_and_season_fields_stay_behind_boundary(self):
         roster = (Path(settings.BASE_DIR) / "portal/view_modules/roster.py").read_text()
 
-        self.assertIn("obj.team = team", roster)
-        self.assertIn("guardian.team = team", roster)
+        self.assertIn("organization_for_view_user", roster)
+        self.assertIn("pk=pk, team=team", roster)
         self.assertIn("season__team=team", roster)
-        self.assertIn("GuardianContact.objects.filter(team=team)", roster)
+        self.assertIn("Person.objects.filter(team=team", roster)
