@@ -19,6 +19,7 @@ from portal.models import (
     UserProfile,
 )
 from portal.publication import public_show_schedule_payload
+from portal.tests.v390_compat import bridge_legacy_rider
 
 
 class ShowClassLiveStatusTests(TestCase):
@@ -66,6 +67,7 @@ class ShowClassLiveStatusTests(TestCase):
             rider=self.rider,
             status=ShowEntry.Status.ENTERED,
         )
+        bridge_legacy_rider(self.rider)
 
         self.admin = self.make_user("class-admin", UserProfile.Role.ADMIN)
         self.coach = self.make_user("class-coach", UserProfile.Role.COACH)
