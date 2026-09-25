@@ -6,6 +6,8 @@ from django.test import TestCase
 
 from portal.forms import ShowClassForm, ShowEntryForm
 from portal.iea_voc import voc_candidates
+from portal.tests.v390_compat import bridge_legacy_rider
+
 from portal.models import (
     Rider,
     Season,
@@ -103,6 +105,7 @@ class IEAVOCWorkflowTests(TestCase):
         h2_entry = ShowEntry.objects.create(show_class=self.h2_show, rider=rider)
         ShowResult.objects.create(entry=h1_entry, place=h1_place)
         ShowResult.objects.create(entry=h2_entry, place=h2_place)
+        bridge_legacy_rider(rider)
         return rider
 
     def test_voc_catalog_is_show_only_and_non_scoring(self):
@@ -165,9 +168,13 @@ class IEAVOCWorkflowTests(TestCase):
             show=self.show,
             team=self.team,
         )
-        rider_ids = set(form.fields["rider"].queryset.values_list("pk", flat=True))
-        self.assertIn(eligible.pk, rider_ids)
-        self.assertNotIn(ineligible.pk, rider_ids)
+        participant_ids = set(
+            form.fields["iea_participant"].queryset.values_list("pk", flat=True)
+        )
+        eligible_participant = bridge_legacy_rider(eligible)
+        ineligible_participant = bridge_legacy_rider(ineligible)
+        self.assertIn(eligible_participant.pk, participant_ids)
+        self.assertNotIn(ineligible_participant.pk, participant_ids)
 
     def test_model_rejects_ineligible_voc_entry(self):
         rider = Rider.objects.create(
