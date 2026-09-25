@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
-from portal.tests.v390_compat import bridge_legacy_rider
+from portal.tests.v390_compat import bridge_legacy_parent, bridge_legacy_rider
 
 from portal.models import (
     Rider,
@@ -101,8 +101,8 @@ class MyShowDayTests(TestCase):
             rider=self.other_rider,
             status=ShowEntry.Status.ENTERED,
         )
-        bridge_legacy_rider(self.rider)
-        bridge_legacy_rider(self.other_rider)
+        bridge_legacy_parent(self.parent, self.rider)
+        bridge_legacy_parent(self.other_parent, self.other_rider)
 
     def test_parent_sees_only_linked_rider_and_classes(self):
         self.client.force_login(self.parent)
