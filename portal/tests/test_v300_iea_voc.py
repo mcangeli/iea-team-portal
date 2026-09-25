@@ -152,7 +152,10 @@ class IEAVOCWorkflowTests(TestCase):
         lower = self._rider_with_results("Lower", 3, 3)
         higher = self._rider_with_results("Higher", 1, 2)
         rows = voc_candidates(self.show)
-        self.assertEqual([row.rider_id for row in rows[:2]], [higher.pk, lower.pk])
+        self.assertEqual(
+            [row.person_id for row in rows[:2]],
+            [higher.person_bridge.person_id, lower.person_bridge.person_id],
+        )
         self.assertGreater(rows[0].total_points, rows[1].total_points)
 
     def test_voc_entry_form_only_offers_current_candidates(self):
