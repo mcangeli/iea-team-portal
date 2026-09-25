@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 
+from portal.tests.v390_compat import bridge_legacy_rider
+
 from portal.models import (
     CommitteeAssignment,
     Rider,
@@ -52,6 +54,7 @@ class ShowDayDashboardTests(TestCase):
             show_class=self.show_class, rider=self.rider,
             status=ShowEntry.Status.ENTERED,
         )
+        bridge_legacy_rider(self.rider)
 
         self.coach = self.make_user("coach", UserProfile.Role.COACH)
         self.parent = self.make_user("teamparent", UserProfile.Role.PARENT)
