@@ -25,6 +25,25 @@ class V390PersonOnboardingTests(TestCase):
         self.admin.profile.save(update_fields=["team", "role"])
         self.client.force_login(self.admin)
 
+    def test_add_person_navigation_matches_creation_permission(self):
+        for role, allowed in (
+            (UserProfile.Role.ADMIN, True),
+            (UserProfile.Role.COACH, True),
+            (UserProfile.Role.PARENT, False),
+            (UserProfile.Role.RIDER, False),
+        ):
+            with self.subTest(role=role):
+                self.admin.profile.role = role
+                self.admin.profile.save(update_fields=["role"])
+                response = self.client.get(reverse("people_directory"))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    'href="' + reverse("person_create") + '">Add person</a>' in response.content.decode(),
+                    allowed,
+                )
+                creation = self.client.get(reverse("person_create"))
+                self.assertEqual(creation.status_code, 200 if allowed else 403)
+
     def test_generic_login_create_get_redirects_to_person_onboarding(self):
         response = self.client.get(reverse("user_create"))
 
