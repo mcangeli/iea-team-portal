@@ -1,6 +1,8 @@
 from datetime import date, time
 
 from django.test import TestCase
+from django.utils import timezone
+from datetime import timedelta
 from django.urls import reverse
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
@@ -26,7 +28,7 @@ class PublicPublicationFoundationTests(TestCase):
             team=self.team,
             season=self.season,
             name="Autumn Invitational",
-            show_date=date(2026, 10, 10),
+            show_date=timezone.localdate() + timedelta(days=7),
             start_time=time(8, 30),
             venue="Private Venue Name",
             address="123 Private Barn Road",
