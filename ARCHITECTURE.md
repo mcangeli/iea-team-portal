@@ -67,6 +67,10 @@ Person
 
 A single Person may hold multiple simultaneous roles. Role labels must not automatically become permissions.
 
+## v3.9 Person-native identity boundary
+
+Person is the canonical human identity; User login is optional. IEAParticipant represents IEA-specific participation, PersonRelationship family links, and group membership generic involvement. Rider Card is a projection. Legacy Rider/Guardian and pre-v3.4 lessons remain historical compatibility, not the foundation for new workflows. Financial responsibility requires explicit ReceivableAccountPerson links and cannot be inferred from family or rider status. See `docs/V3_9_0_PEOPLE_RIDER_ARCHITECTURE.md` and `docs/V3_9_0_COMPATIBILITY_CLOSEOUT.md`.
+
 ## v3.3 equine care and compliance boundary
 
 v3.3 keeps `Horse` as the durable generic equine identity and layers operational records around it rather than expanding the Horse row into a mutable snapshot of current care state.
