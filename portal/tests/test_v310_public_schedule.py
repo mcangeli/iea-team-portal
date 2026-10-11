@@ -1,6 +1,8 @@
 from datetime import date, time
 
 from django.test import TestCase
+from django.utils import timezone
+from datetime import timedelta
 from django.urls import reverse
 
 from portal.model_modules.public_site import PublicShowPublication, PublicSiteProfile
@@ -81,10 +83,10 @@ class PublicScheduleTests(TestCase):
 
     def test_home_previews_only_next_three_upcoming_published_shows(self):
         self._published_show("Past Show", date(2026, 8, 15), "past-show")
-        self._published_show("October Show", date(2026, 10, 3), "october-show")
-        self._published_show("November Show", date(2026, 11, 7), "november-show")
-        self._published_show("December Show", date(2026, 12, 5), "december-show")
-        self._published_show("January Show", date(2027, 1, 9), "january-show")
+        self._published_show("October Show", timezone.localdate() + timedelta(days=7), "october-show")
+        self._published_show("November Show", timezone.localdate() + timedelta(days=35), "november-show")
+        self._published_show("December Show", timezone.localdate() + timedelta(days=63), "december-show")
+        self._published_show("January Show", timezone.localdate() + timedelta(days=91), "january-show")
 
         response = self.client.get(reverse("public_site_home", args=[self.site.slug]))
         self.assertEqual(response.status_code, 200)
@@ -122,7 +124,7 @@ class PublicScheduleTests(TestCase):
     def test_schedule_cards_respect_field_level_publication_controls(self):
         self._published_show(
             "Allowlisted Show",
-            date(2026, 10, 10),
+            timezone.localdate() + timedelta(days=7),
             "allowlisted-show",
             publish_time=True,
             publish_venue=True,
