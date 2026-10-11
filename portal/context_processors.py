@@ -12,6 +12,7 @@ from .platform import (
 )
 from .services.lesson_permissions import is_barn_lesson_manager, is_iea_lesson_manager
 from .model_modules.people import OrganizationRoleAssignment
+from .people_services import can_manage_people
 from django.conf import settings
 from .services.finance_access import allowed_finance_domains
 
@@ -104,6 +105,7 @@ def portal_context(request):
         "portal_team": organization,
         "portal_role": role,
         "portal_can_manage": can_manage,
+        "portal_can_manage_people": can_manage_people(request.user) if request.user.is_authenticated else False,
         "portal_can_finance": can_finance,
         "portal_finance_domains": finance_domains,
         "portal_can_manage_barn_lessons": can_manage_barn_lessons,
