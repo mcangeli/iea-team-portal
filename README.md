@@ -1,6 +1,8 @@
 # ArenaLine
 
-**Current version: v3.9.0 (release candidate)**
+**Current version: v3.9.0**
+
+**Release status:** Candidate on staging; not yet promoted to production.
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
