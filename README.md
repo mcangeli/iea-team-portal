@@ -4,7 +4,7 @@
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
-v3.8.0 adds Barn, Facility & Resource Operations: canonical facilities and nested physical spaces, horse stall/turnout assignments, reservable lesson resources, and location-aware inventory operations while preserving established lesson, horse, calendar, show, and finance ownership boundaries.
+v3.9.0 establishes Person as the canonical human identity across ArenaLine while retaining historical Rider/Guardian compatibility.
 
 > ArenaLine is independent software. The included IEA competition workflows are not an official IEA website or IEA product.
 
@@ -270,7 +270,7 @@ cd /opt/iea-team-portal/app
 Or install v3.7.2 explicitly:
 
 ```bash
-./portalctl update v3.8.0
+./portalctl update v3.9.0
 ```
 
 `portalctl update` requires a clean Git tree, fetches stable tags, creates a validated database backup, switches to the selected release, rebuilds, runs deployment/schema preflight, starts the release, and performs health checks.
