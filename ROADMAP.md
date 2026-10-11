@@ -18,7 +18,8 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.6.0 — Dashboard Refresh & Account Security:** released.
 - **3.7.0 — Barn Finance Completion:** released.
 - **3.8.0 — Barn, Facility & Resource Operations:** released.
-- **3.9.x — Operations, Communications & Boarding Completion:** tentative.
+- **3.9.0 — People & Rider Architecture:** release candidate, staging validated.
+- **3.9.1–3.9.4 — Communications & Operations Completion:** proposed.
 - **3.10.x — Analytics & History:** tentative.
 - **3.11.x — 3.x Platform Stabilization & Completion:** tentative.
 
@@ -325,7 +326,15 @@ Architectural principles:
 
 Before migrations are written, inventory existing Calendar, Lessons, Horses, Shows, People/Station, Finance, location/facility, and storage concepts and lock the canonical v3.8 model/regression boundaries.
 
-## 3.9.x — Operations, Communications & Boarding Completion
+## 3.9.0 — People & Rider Architecture
+
+**Status: release candidate, staging validated.** Person is canonical across IEA participation, family relationships, Rider Card and generic operations; historical Rider/Guardian references remain compatibility storage. Full suite **1552/1552 green**, migration and Django checks clean. Stable promotion pending. See `docs/releases/v3.9.0.md`.
+
+## 3.9.1–3.9.4 — Communications & Operations Completion
+
+**Status: proposed.** v3.9.1 Community & Posts; v3.9.2 Conversations & Chat; v3.9.3 Delivery, Notifications & Email; v3.9.4 Operational Communications & Boarding. Lock scope before implementation.
+
+### Earlier planning context
 
 **Status: tentative.**
 
