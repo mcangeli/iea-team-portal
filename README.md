@@ -27,7 +27,7 @@ The README intentionally remains an overview/instructions document; roadmap deci
 
 Person is now the canonical human identity across active workflows. IEA participation, Rider Cards, family relationships and generic operational participation resolve through Person-native records while legacy Rider/Guardian data remains for historical compatibility. Financial responsibility continues to require explicit account relationships.
 
-Staging: **1552/1552 tests passing**, no model drift, no pending migrations, clean Django checks. Production promotion is pending. See `docs/releases/v3.9.0.md`.
+Staging: **1553/1553 tests passing**, no model drift, no pending migrations, clean Django checks. Production promotion is pending. See `docs/releases/v3.9.0.md`.
 
 ## v3.8.0 highlights
 
