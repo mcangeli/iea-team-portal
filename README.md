@@ -1,6 +1,6 @@
 # ArenaLine
 
-**Current version: v3.8.0**
+**Current version: v3.9.0 (release candidate)**
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
@@ -15,11 +15,17 @@ v3.8.0 adds Barn, Facility & Resource Operations: canonical facilities and neste
 - `CHANGELOG.md` — concise release history/changelog.
 - `ARCHITECTURE.md` — technical/domain boundaries and compatibility strategy.
 - `docs/PRODUCT_AND_UI_GUIDE.md` — standing ArenaLine branding, UI, privacy, and documentation rules.
-- `docs/releases/` — detailed release-specific notes; current release notes: `docs/releases/v3.8.0.md`.
+- `docs/releases/` — detailed release-specific notes; v3.9.0 candidate notes: `docs/releases/v3.9.0.md`.
 - `RELEASE_CHECKLIST.md` — release-promotion gates.
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
+
+## v3.9.0 highlights
+
+Person is now the canonical human identity across active workflows. IEA participation, Rider Cards, family relationships and generic operational participation resolve through Person-native records while legacy Rider/Guardian data remains for historical compatibility. Financial responsibility continues to require explicit account relationships.
+
+Staging: **1552/1552 tests passing**, no model drift, no pending migrations, clean Django checks. Production promotion is pending. See `docs/releases/v3.9.0.md`.
 
 ## v3.8.0 highlights
 
