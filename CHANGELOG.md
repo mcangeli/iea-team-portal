@@ -6,7 +6,7 @@ Older detailed release notes that predate this changelog remain available in `RE
 
 ## v3.9.0 — People & Rider Architecture
 
-**Release candidate, October 2026.** Person is canonical for human identity, IEA participation, family relationships and generic operations. Historical Rider/Guardian links remain additive compatibility, not competing identity. Full staging suite: **1552/1552 passing**; no model drift or pending migrations; clean Django checks. Production promotion pending. Details: `docs/releases/v3.9.0.md`.
+**Release candidate, October 2026.** Person is canonical for human identity, IEA participation, family relationships and generic operations. Historical Rider/Guardian links remain additive compatibility, not competing identity. Full staging suite: **1553/1553 passing**; no model drift or pending migrations; clean Django checks. Production promotion pending. Details: `docs/releases/v3.9.0.md`.
 
 ## v3.8.0 — Barn, Facility & Resource Operations
 
