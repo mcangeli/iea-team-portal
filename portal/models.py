@@ -2088,3 +2088,60 @@ class ReimbursementRequest(models.Model):
 
     def __str__(self):
         return f"{self.payee_name} — {self.description} — ${self.amount}"
+
+
+# v3.9.1 Community foundation. Existing IEA Announcements remain independent.
+class CommunityPost(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+        REMOVED = "removed", "Removed"
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="community_posts")
+    author = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="community_posts")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_community_posts")
+    title = models.CharField(max_length=180)
+    body = models.TextField()
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
+    published_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-pk"]
+
+    def clean(self):
+        super().clean()
+        if self.author_id and self.team_id and self.author.team_id != self.team_id:
+            raise ValidationError("Post author must belong to the organization.")
+        if self.created_by_id and self.author_id and self.author.user_id != self.created_by_id:
+            raise ValidationError("Post actor must be the author's login.")
+        if self.expires_at and self.published_at and self.expires_at <= self.published_at:
+            raise ValidationError("Expiry must follow publication.")
+
+
+class CommunityPostAudience(models.Model):
+    class Scope(models.TextChoices):
+        ORGANIZATION = "organization", "Organization"
+        PERSON = "person", "Selected person"
+        GROUP = "group", "Organization group"
+
+    post = models.ForeignKey(CommunityPost, on_delete=models.CASCADE, related_name="audiences")
+    scope = models.CharField(max_length=16, choices=Scope.choices)
+    person = models.ForeignKey("portal.Person", on_delete=models.CASCADE, null=True, blank=True)
+    group = models.ForeignKey("portal.OrganizationGroup", on_delete=models.CASCADE, null=True, blank=True)
+
+    def clean(self):
+        super().clean()
+        if self.scope == self.Scope.ORGANIZATION and (self.person_id or self.group_id):
+            raise ValidationError("Organization audience cannot specify a person or group.")
+        if self.scope == self.Scope.PERSON and (not self.person_id or self.group_id):
+            raise ValidationError("Person audience requires only a person.")
+        if self.scope == self.Scope.GROUP and (not self.group_id or self.person_id):
+            raise ValidationError("Group audience requires only a group.")
+        if self.person_id and self.post_id and self.person.team_id != self.post.team_id:
+            raise ValidationError("Audience person must belong to the post organization.")
+        if self.group_id and self.post_id and self.group.team_id != self.post.team_id:
+            raise ValidationError("Audience group must belong to the post organization.")
