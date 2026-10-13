@@ -50,3 +50,37 @@ class CommunityManagementTests(TestCase):
         other_post = CommunityPost.objects.create(team=self.other, author=other_person, created_by=self.staff, title="Other", body="Secret")
         self.client.force_login(self.staff)
         self.assertEqual(self.client.get(reverse("community_edit", args=[other_post.pk])).status_code, 404)
+
+    def test_coach_can_create_draft_but_not_publish(self):
+        coach = User.objects.create_user(username="community-coach", password="test123")
+        UserProfile.objects.update_or_create(user=coach, defaults={"team": self.team, "role": UserProfile.Role.COACH})
+        Person.objects.create(team=self.team, user=coach, first_name="Coach", last_name="One")
+        self.client.force_login(coach)
+        response = self.client.post(reverse("community_create"), {
+            "title": "Coach draft", "body": "Waiting for review",
+            "audience_scope": "organization", "publish": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        draft = CommunityPost.objects.get(title="Coach draft")
+        self.assertEqual(draft.status, CommunityPost.Status.DRAFT)
+        self.assertIsNone(draft.published_at)
+        self.assertEqual(self.client.post(reverse("community_archive", args=[draft.pk])).status_code, 403)
+        self.assertEqual(self.client.get(reverse("community_edit", args=[self.post.pk])).status_code, 403)
+
+    def test_non_staff_organization_admin_can_publish(self):
+        admin = User.objects.create_user(username="community-admin", password="test123")
+        UserProfile.objects.update_or_create(user=admin, defaults={"team": self.team, "role": UserProfile.Role.ADMIN})
+        Person.objects.create(team=self.team, user=admin, first_name="Admin", last_name="One")
+        self.client.force_login(admin)
+        response = self.client.post(reverse("community_create"), {
+            "title": "Admin published", "body": "Ready",
+            "audience_scope": "organization", "publish": "on",
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(CommunityPost.objects.get(title="Admin published").status, CommunityPost.Status.PUBLISHED)
+
+    def test_staff_without_organization_role_cannot_manage(self):
+        UserProfile.objects.filter(user=self.staff).update(role=UserProfile.Role.PARENT)
+        self.client.force_login(self.staff)
+        self.assertEqual(self.client.get(reverse("community_manage")).status_code, 403)
+        self.assertEqual(self.client.post(reverse("community_archive", args=[self.post.pk])).status_code, 403)
