@@ -70,4 +70,4 @@ def community_create(request):
             post=post, scope=CommunityPostAudience.Scope.ORGANIZATION
         )
         return redirect("community_detail", pk=post.pk) if post.status == CommunityPost.Status.PUBLISHED else redirect("community_feed")
-    return render(request, "portal/form.html", {"form": form, "title": "Create community post", "eyebrow": "COMMUNITY"})
+    return render(request, "portal/community_editor.html", {"form": form})
