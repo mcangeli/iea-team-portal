@@ -173,7 +173,7 @@ def _general_context(request, team, season):
         ).count()
 
     person = Person.objects.filter(team=team, user=request.user, active=True).first()
-    community_posts = visible_community_posts(organization=team, person=person).select_related("author").order_by("-published_at", "-pk")[:3]
+    community_posts = visible_community_posts(organization=team, person=person, user=request.user).select_related("author").order_by("-published_at", "-pk")[:3]
     active_roles = []
     if person:
         active_roles = list(
