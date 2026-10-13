@@ -1,7 +1,11 @@
 from django.urls import path
 from . import views
+from . import community_views
 
 urlpatterns = [
+    path("community/", community_views.community_feed, name="community_feed"),
+    path("community/new/", community_views.community_create, name="community_create"),
+    path("community/<int:pk>/", community_views.community_detail, name="community_detail"),
     path("finance/transactions/<int:pk>/allocations/", views.finance_transaction_allocations, name="finance_transaction_allocations"),
     path("finance/transactions/<int:pk>/allocations/add/", views.finance_transaction_allocation_add, name="finance_transaction_allocation_add"),
     path("finance/allocations/<int:allocation_pk>/edit/", views.finance_transaction_allocation_edit, name="finance_transaction_allocation_edit"),
