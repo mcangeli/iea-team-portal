@@ -67,9 +67,11 @@ def _identity(request):
 @login_required
 def community_feed(request):
     organization, person = _identity(request)
-    posts = visible_community_posts(organization=organization, person=person, user=request.user).select_related("author")[:100]
+    posts = list(visible_community_posts(organization=organization, person=person, user=request.user).select_related("author")[:100])
+    notices = [post for post in posts if post.notice_rank]
+    regular_posts = [post for post in posts if not post.notice_rank]
     can_author, can_publish = community_permissions(request.user, organization)
-    return render(request, "portal/community_feed.html", {"posts": posts, "now": timezone.now(), "can_author": can_author})
+    return render(request, "portal/community_feed.html", {"notices": notices, "posts": regular_posts, "now": timezone.now(), "can_author": can_author})
 
 
 @login_required
@@ -158,8 +160,10 @@ def community_manage(request):
     posts = CommunityPost.objects.filter(team=organization)
     if not can_publish:
         posts = posts.filter(created_by=request.user, status=CommunityPost.Status.DRAFT)
-    posts = posts.select_related("author").order_by("-created_at", "-pk")[:150]
-    return render(request, "portal/community_manage.html", {"posts": posts, "now": timezone.now(), "can_publish": can_publish})
+    posts = list(posts.select_related("author").order_by("-created_at", "-pk")[:150])
+    now = timezone.now()
+    posts.sort(key=lambda post: (not (post.status == CommunityPost.Status.PUBLISHED and post.published_at and post.published_at <= now and post.is_notice and (post.notice_until is None or post.notice_until > now)), -(post.created_at.timestamp()), -post.pk))
+    return render(request, "portal/community_manage.html", {"posts": posts, "now": now, "can_publish": can_publish})
 
 
 @login_required
