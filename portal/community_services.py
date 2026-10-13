@@ -6,7 +6,7 @@ from .models import CommunityPost, CommunityPostAudience
 from .model_modules.people import OrganizationGroupMembership
 
 
-def visible_community_posts(*, organization, person, at=None):
+def visible_community_posts(*, organization, person, at=None, user=None):
     """Return published posts visible to a canonical Person in this organization.
 
     This is a read-scope helper, not publishing or moderation authorization.
@@ -25,14 +25,17 @@ def visible_community_posts(*, organization, person, at=None):
         Q(start_date__isnull=True) | Q(start_date__lte=day),
         Q(end_date__isnull=True) | Q(end_date__gt=day),
     ).values("group_id")
-    return CommunityPost.objects.filter(
+    posts = CommunityPost.objects.filter(
         team=organization,
         status=CommunityPost.Status.PUBLISHED,
         published_at__isnull=False,
         published_at__lte=at,
     ).filter(
         Q(expires_at__isnull=True) | Q(expires_at__gt=at),
-    ).filter(
+    )
+    if user is not None and user.is_authenticated and (user.is_staff or user.is_superuser):
+        return posts.order_by("-published_at", "-pk")
+    return posts.filter(
         Q(audiences__scope=CommunityPostAudience.Scope.ORGANIZATION)
         | Q(audiences__scope=CommunityPostAudience.Scope.PERSON, audiences__person=person)
         | Q(audiences__scope=CommunityPostAudience.Scope.GROUP, audiences__group_id__in=active_group_ids)
