@@ -2162,7 +2162,7 @@ class Conversation(models.Model):
     created_by = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="created_conversations")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-updated_at", "-pk"]
@@ -2179,8 +2179,8 @@ class ConversationMember(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="members")
     person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="conversation_memberships")
     joined_at = models.DateTimeField(default=timezone.now)
-    left_at = models.DateTimeField(null=True, blank=True)
-    last_read_at = models.DateTimeField(null=True, blank=True)
+    left_at = models.DateTimeField(blank=True, null=True)
+    last_read_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         constraints = [
@@ -2200,8 +2200,8 @@ class ConversationMessage(models.Model):
     sender = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="sent_conversation_messages")
     body = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    edited_at = models.DateTimeField(null=True, blank=True)
-    removed_at = models.DateTimeField(null=True, blank=True)
+    edited_at = models.DateTimeField(blank=True, null=True)
+    removed_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["created_at", "pk"]
