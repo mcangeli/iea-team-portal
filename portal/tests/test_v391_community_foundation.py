@@ -71,6 +71,7 @@ class CommunityAudienceFoundationTests(TestCase):
         group = OrganizationGroup.objects.create(team=self.org, name="IEA Program")
         CommunityPostAudience.objects.create(post=self.post, scope=CommunityPostAudience.Scope.GROUP, group=group)
         UserProfile.objects.update_or_create(user=self.user, defaults={"team": self.org, "role": UserProfile.Role.ADMIN})
+        self.user.refresh_from_db()  # Clear the profile relation cached during user creation.
         self.assertTrue(visible_community_posts(organization=self.org, person=self.person, user=self.user).filter(pk=self.post.pk).exists())
         self.assertFalse(visible_community_posts(organization=self.org, person=self.person).filter(pk=self.post.pk).exists())
         self.assertFalse(visible_community_posts(organization=self.other_org, person=self.other_person, user=self.user).filter(pk=self.post.pk).exists())
