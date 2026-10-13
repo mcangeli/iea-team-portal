@@ -2147,3 +2147,74 @@ class CommunityPostAudience(models.Model):
             raise ValidationError("Audience person must belong to the post organization.")
         if self.group_id and self.post_id and self.group.team_id != self.post.team_id:
             raise ValidationError("Audience group must belong to the post organization.")
+
+
+class Conversation(models.Model):
+    """Private organization-scoped conversation, separate from Community posts."""
+
+    class Kind(models.TextChoices):
+        DIRECT = "direct", "Direct"
+        GROUP = "group", "Group"
+
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="conversations")
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    title = models.CharField(max_length=180, blank=True)
+    created_by = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="created_conversations")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-pk"]
+
+    def clean(self):
+        super().clean()
+        if self.created_by_id and self.team_id and self.created_by.team_id != self.team_id:
+            raise ValidationError("Conversation creator must belong to the organization.")
+        if self.kind == self.Kind.DIRECT and self.title:
+            raise ValidationError("Direct conversations cannot have a group title.")
+
+
+class ConversationMember(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="members")
+    person = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="conversation_memberships")
+    joined_at = models.DateTimeField(default=timezone.now)
+    left_at = models.DateTimeField(null=True, blank=True)
+    last_read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["conversation", "person"], name="unique_conversation_person"),
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.conversation_id and self.person_id and self.conversation.team_id != self.person.team_id:
+            raise ValidationError("Conversation member must belong to the organization.")
+        if self.left_at and self.joined_at and self.left_at < self.joined_at:
+            raise ValidationError("Leave time cannot precede join time.")
+
+
+class ConversationMessage(models.Model):
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name="messages")
+    sender = models.ForeignKey("portal.Person", on_delete=models.PROTECT, related_name="sent_conversation_messages")
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    removed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "pk"]
+
+    def clean(self):
+        super().clean()
+        if self.conversation_id and self.sender_id:
+            if self.conversation.team_id != self.sender.team_id:
+                raise ValidationError("Message sender must belong to the organization.")
+            if not ConversationMember.objects.filter(
+                conversation_id=self.conversation_id, person_id=self.sender_id,
+                left_at__isnull=True,
+            ).exists():
+                raise ValidationError("Message sender must be an active conversation member.")
+        if not self.body.strip():
+            raise ValidationError("Message body cannot be empty.")
