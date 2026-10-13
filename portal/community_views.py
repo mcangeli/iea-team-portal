@@ -59,7 +59,7 @@ def _identity(request):
 @login_required
 def community_feed(request):
     organization, person = _identity(request)
-    posts = visible_community_posts(organization=organization, person=person).select_related("author")[:100]
+    posts = visible_community_posts(organization=organization, person=person, user=request.user).select_related("author")[:100]
     return render(request, "portal/community_feed.html", {"posts": posts})
 
 
@@ -67,7 +67,7 @@ def community_feed(request):
 def community_detail(request, pk):
     organization, person = _identity(request)
     post = get_object_or_404(
-        visible_community_posts(organization=organization, person=person).select_related("author"),
+        visible_community_posts(organization=organization, person=person, user=request.user).select_related("author"),
         pk=pk,
     )
     return render(request, "portal/community_detail.html", {"post": post})
