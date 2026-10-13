@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Create Community post · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'community_feed' %}">← Community</a></nav>
+<div class="form-card">
+<div class="eyebrow">ARENALINE · COMMUNITY</div>
+<h1>Create community post</h1>
+<form method="post">{% csrf_token %}
+{{ form.non_field_errors }}
+<p>{{ form.title.label_tag }} {{ form.title.errors }} {{ form.title }}</p>
+<p><label for="{{ form.body.id_for_label }}">Post content (BBCode)</label></p>
+<div class="community-toolbar" role="toolbar" aria-label="BBCode formatting">
+<button type="button" data-bb-open="[b]" data-bb-close="[/b]"><strong>B</strong></button>
+<button type="button" data-bb-open="[i]" data-bb-close="[/i]"><em>I</em></button>
+<button type="button" data-bb-open="[u]" data-bb-close="[/u]"><u>U</u></button>
+<button type="button" data-bb-open="[url=https://example.com]" data-bb-close="[/url]">Link</button>
+<button type="button" data-bb-open="[quote]" data-bb-close="[/quote]">Quote</button>
+<button type="button" data-bb-open="[list][*]" data-bb-close="[/list]">List</button>
+<button type="button" data-bb-open="[code]" data-bb-close="[/code]">Code</button>
+</div>
+<p>{{ form.body.errors }} {{ form.body }}</p>
+<p><button type="button" class="btn" id="community-preview-toggle" aria-expanded="false">Preview post</button></p>
+<div id="community-preview" class="card" hidden aria-live="polite"><div class="eyebrow">PREVIEW</div><div id="community-preview-content"></div></div>
+<p>{{ form.publish }} {{ form.publish.label_tag }}</p>
+<button class="btn" type="submit">Save post</button>
+</form></div>
+<style>
+.community-toolbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0}
+.community-toolbar button{padding:.4rem .75rem;border:1px solid currentColor;border-radius:5px;background:transparent;color:inherit;cursor:pointer}
+#community-preview{padding:1rem;margin-bottom:1rem;white-space:pre-wrap}
+</style>
+<script>
+(function(){
+const editor=document.getElementById('id_body'),toggle=document.getElementById('community-preview-toggle'),panel=document.getElementById('community-preview'),content=document.getElementById('community-preview-content');
+if(!editor)return;
+document.querySelectorAll('[data-bb-open]').forEach(button=>button.addEventListener('click',()=>{
+const start=editor.selectionStart,end=editor.selectionEnd,open=button.dataset.bbOpen,close=button.dataset.bbClose,selected=editor.value.slice(start,end);
+editor.setRangeText(open+selected+close,start,end,'select');
+editor.focus();editor.setSelectionRange(start+open.length,start+open.length+selected.length);
+}));
+function preview(){
+const source=editor.value;
+const escaped=source.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+let output=escaped;
+for(const [tag,html] of Object.entries({b:'strong',i:'em',u:'u',s:'s',quote:'blockquote',code:'code'})){
+const pattern=new RegExp('\\['+tag+'\\]([\\s\\S]*?)\\[/'+tag+'\\]','gi');
+output=output.replace(pattern,'<'+html+'>$1</'+html+'>');
+}
+content.innerHTML=output.replace(/\n/g,'<br>');
+}
+toggle.addEventListener('click',()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));if(!panel.hidden)preview();});
+editor.addEventListener('input',()=>{if(!panel.hidden)preview();});
+})();
+</script>
+{% endblock %}
