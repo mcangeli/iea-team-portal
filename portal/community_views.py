@@ -14,7 +14,11 @@ from .platform import organization_for_user
 
 
 class CommunityPostForm(forms.ModelForm):
-    publish = forms.BooleanField(required=False, label="Publish now")
+    publish = forms.BooleanField(required=False, label="Publish / schedule")
+    publish_at = forms.SplitDateTimeField(required=False, label="Publish at (blank means now)", widget=forms.SplitDateTimeWidget(date_attrs={"type":"date"}, time_attrs={"type":"time"}))
+    is_notice = forms.BooleanField(required=False, label="Priority notice")
+    notice_until = forms.SplitDateTimeField(required=False, label="Priority until (optional)", widget=forms.SplitDateTimeWidget(date_attrs={"type":"date"}, time_attrs={"type":"time"}))
+
 
 
     audience_scope = forms.ChoiceField(label="Audience", choices=CommunityPostAudience.Scope.choices, initial="organization")
@@ -40,6 +44,10 @@ class CommunityPostForm(forms.ModelForm):
             self.add_error("audience_people", "People are only allowed for a people audience.")
         if scope != "group" and groups:
             self.add_error("audience_groups", "Groups are only allowed for a group audience.")
+        if data.get("publish_at") and not data.get("publish"):
+            self.add_error("publish_at", "Enable publishing to schedule this post.")
+        if data.get("notice_until") and not data.get("is_notice"):
+            self.add_error("notice_until", "Enable priority notice first.")
         return data
 
     class Meta:
@@ -89,7 +97,9 @@ def community_create(request):
         post.created_by = request.user
         if form.cleaned_data["publish"]:
             post.status = CommunityPost.Status.PUBLISHED
-            post.published_at = timezone.now()
+            post.published_at = form.cleaned_data["publish_at"] or timezone.now()
+        post.is_notice = form.cleaned_data["is_notice"]
+        post.notice_until = form.cleaned_data["notice_until"]
         post.full_clean()
         post.save()
         scope = form.cleaned_data["audience_scope"]
@@ -101,7 +111,7 @@ def community_create(request):
         else:
             for group in form.cleaned_data["audience_groups"]:
                 CommunityPostAudience.objects.create(post=post, scope=scope, group=group)
-        return redirect("community_detail", pk=post.pk) if post.status == CommunityPost.Status.PUBLISHED else redirect("community_feed")
+        return redirect("community_manage")
     return render(request, "portal/community_editor.html", {"form": form, "editing": False})
 
 
@@ -120,6 +130,9 @@ def _audience_initial(post):
         "audience_people": list(audiences.filter(scope="person").values_list("person_id", flat=True)),
         "audience_groups": list(audiences.filter(scope="group").values_list("group_id", flat=True)),
         "publish": post.status == CommunityPost.Status.PUBLISHED,
+        "publish_at": post.published_at,
+        "is_notice": post.is_notice,
+        "notice_until": post.notice_until,
     }
 
 
@@ -158,10 +171,12 @@ def community_edit(request, pk):
         updated = form.save(commit=False)
         publishing = form.cleaned_data["publish"]
         updated.status = CommunityPost.Status.PUBLISHED if publishing else CommunityPost.Status.DRAFT
-        if publishing and not updated.published_at:
-            updated.published_at = timezone.now()
+        if publishing:
+            updated.published_at = form.cleaned_data["publish_at"] or updated.published_at or timezone.now()
         if not publishing:
             updated.published_at = None
+        updated.is_notice = form.cleaned_data["is_notice"]
+        updated.notice_until = form.cleaned_data["notice_until"]
         updated.full_clean()
         updated.save()
         _replace_audiences(updated, form.cleaned_data)
