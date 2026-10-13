@@ -7,6 +7,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
+from ..community_services import visible_community_posts
 from ..host_show_models import ShowManagerAssignment
 from ..branding_models import TeamBranding
 from ..model_modules.lessons import LessonOccurrence
@@ -172,6 +173,7 @@ def _general_context(request, team, season):
         ).count()
 
     person = Person.objects.filter(team=team, user=request.user, active=True).first()
+    community_posts = visible_community_posts(organization=team, person=person).select_related("author").order_by("-published_at", "-pk")[:3]
     active_roles = []
     if person:
         active_roles = list(
@@ -329,6 +331,7 @@ def _general_context(request, team, season):
         # IEA role workspaces belong to My Team, not the general barn dashboard.
         "workspace_links": [],
         "arena_person": person,
+        "community_posts": community_posts,
         "active_barn_roles": tuple(active_roles),
         "upcoming_lesson_occurrences": lesson_occurrences[:5],
         "finance_domains": finance_domains,
