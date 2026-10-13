@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
-{% block title %}Create Community post · ArenaLine{% endblock %}
+{% block title %}{% if editing %}Edit{% else %}Create{% endif %} Community post · ArenaLine{% endblock %}
 {% block content %}
 <nav class="page-back-nav"><a href="{% url 'community_feed' %}">← Community</a></nav>
 <div class="form-card">
 <div class="eyebrow">ARENALINE · COMMUNITY</div>
-<h1>Create community post</h1>
+<h1>{% if editing %}Edit community post{% else %}Create community post{% endif %}</h1>
 <form method="post">{% csrf_token %}
 {{ form.non_field_errors }}
 <p>{{ form.title.label_tag }} {{ form.title.errors }} {{ form.title }}</p>
@@ -22,7 +22,7 @@
 <p><button type="button" class="btn" id="community-preview-toggle" aria-expanded="false">Preview post</button></p>
 <div id="community-preview" class="card" hidden aria-live="polite"><div class="eyebrow">PREVIEW</div><div id="community-preview-content"></div></div>
 <fieldset><legend>Post audience</legend><p>{{ form.audience_scope.label_tag }} {{ form.audience_scope.errors }} {{ form.audience_scope }}</p><div id="audience-people"><p>{{ form.audience_people.label_tag }} {{ form.audience_people.errors }} {{ form.audience_people }}</p></div><div id="audience-groups"><p>{{ form.audience_groups.label_tag }} {{ form.audience_groups.errors }} {{ form.audience_groups }}</p></div></fieldset><p>{{ form.publish }} {{ form.publish.label_tag }}</p>
-<button class="btn" type="submit">Save post</button>
+<button class="btn" type="submit">{% if editing %}Save changes{% else %}Save post{% endif %}</button>
 </form></div>
 <style>
 .community-toolbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0}
