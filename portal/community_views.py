@@ -7,7 +7,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .community_services import visible_community_posts
+from .community_services import (visible_community_posts, community_permissions, can_manage_community_post, can_archive_community_post)
 from .model_modules.people import Person, OrganizationGroup
 from .models import CommunityPost, CommunityPostAudience
 from .platform import organization_for_user
@@ -68,7 +68,8 @@ def _identity(request):
 def community_feed(request):
     organization, person = _identity(request)
     posts = visible_community_posts(organization=organization, person=person, user=request.user).select_related("author")[:100]
-    return render(request, "portal/community_feed.html", {"posts": posts, "now": timezone.now()})
+    can_author, can_publish = community_permissions(request.user, organization)
+    return render(request, "portal/community_feed.html", {"posts": posts, "now": timezone.now(), "can_author": can_author})
 
 
 @login_required
@@ -85,11 +86,12 @@ def community_detail(request, pk):
 @transaction.atomic
 def community_create(request):
     organization, person = _identity(request)
-    # First preview: authoring restricted to staff; finer organization-specific
-    # publishing capabilities will be added before general availability.
-    if not request.user.is_staff:
+    can_author, can_publish = community_permissions(request.user, organization)
+    if not can_author:
         raise PermissionDenied
     form = CommunityPostForm(request.POST or None, organization=organization)
+    if not can_publish:
+        form.fields["publish"].disabled = True
     if request.method == "POST" and form.is_valid():
         post = form.save(commit=False)
         post.team = organization
@@ -112,12 +114,12 @@ def community_create(request):
             for group in form.cleaned_data["audience_groups"]:
                 CommunityPostAudience.objects.create(post=post, scope=scope, group=group)
         return redirect("community_manage")
-    return render(request, "portal/community_editor.html", {"form": form, "editing": False})
+    return render(request, "portal/community_editor.html", {"form": form, "editing": False, "can_publish": can_publish})
 
 
 def _require_editor(request):
     organization, person = _identity(request)
-    if not request.user.is_staff:
+    if not community_permissions(request.user, organization)[0]:
         raise PermissionDenied
     return organization, person
 
@@ -152,8 +154,12 @@ def _replace_audiences(post, cleaned):
 @login_required
 def community_manage(request):
     organization, _ = _require_editor(request)
-    posts = CommunityPost.objects.filter(team=organization).select_related("author").order_by("-created_at", "-pk")[:150]
-    return render(request, "portal/community_manage.html", {"posts": posts})
+    can_publish = community_permissions(request.user, organization)[1]
+    posts = CommunityPost.objects.filter(team=organization)
+    if not can_publish:
+        posts = posts.filter(created_by=request.user, status=CommunityPost.Status.DRAFT)
+    posts = posts.select_related("author").order_by("-created_at", "-pk")[:150]
+    return render(request, "portal/community_manage.html", {"posts": posts, "now": timezone.now(), "can_publish": can_publish})
 
 
 @login_required
@@ -161,12 +167,17 @@ def community_manage(request):
 def community_edit(request, pk):
     organization, _ = _require_editor(request)
     post = get_object_or_404(CommunityPost, team=organization, pk=pk)
+    if not can_manage_community_post(request.user, organization, post):
+        raise PermissionDenied
+    can_publish = community_permissions(request.user, organization)[1]
     if post.status in (CommunityPost.Status.ARCHIVED, CommunityPost.Status.REMOVED):
         raise PermissionDenied("Archived or removed posts cannot be edited.")
     form = CommunityPostForm(
         request.POST or None, instance=post, organization=organization,
         initial=_audience_initial(post) if request.method != "POST" else None,
     )
+    if not can_publish:
+        form.fields["publish"].disabled = True
     if request.method == "POST" and form.is_valid():
         updated = form.save(commit=False)
         publishing = form.cleaned_data["publish"]
@@ -181,7 +192,7 @@ def community_edit(request, pk):
         updated.save()
         _replace_audiences(updated, form.cleaned_data)
         return redirect("community_manage")
-    return render(request, "portal/community_editor.html", {"form": form, "editing": True, "post": post})
+    return render(request, "portal/community_editor.html", {"form": form, "editing": True, "post": post, "can_publish": can_publish})
 
 
 @login_required
@@ -189,6 +200,8 @@ def community_edit(request, pk):
 def community_archive(request, pk):
     organization, _ = _require_editor(request)
     post = get_object_or_404(CommunityPost, team=organization, pk=pk)
+    if not can_archive_community_post(request.user, organization, post):
+        raise PermissionDenied
     if request.method != "POST":
         raise PermissionDenied("Archiving requires confirmation by POST.")
     if post.status not in (CommunityPost.Status.ARCHIVED, CommunityPost.Status.REMOVED):
