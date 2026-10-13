@@ -15,8 +15,11 @@
 
 <section class="content-section dashboard-community-section">
   <div class="section-head"><div><div class="eyebrow">STAY CONNECTED</div><h2>Community updates</h2><p>News and updates shared with you.</p></div><a class="text-link" href="{% url 'community_feed' %}">All community posts →</a></div>
-  {% if community_posts %}
+  {% if community_posts or community_notices %}
   <div class="action-stack">
+    {% for post in community_notices %}
+    <article class="card action-row"><div class="action-copy"><strong>Notice</strong><h3 style="font-size:1.3rem;font-weight:750;line-height:1.3;margin:0 0 .4rem"><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h3><small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small><div class="community-dashboard-body">{{ post.body|community_bbcode }}</div></div></article>
+    {% endfor %}
     {% for post in community_posts %}
     <article class="card action-row">
       <div class="action-copy">
