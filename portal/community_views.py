@@ -102,4 +102,81 @@ def community_create(request):
             for group in form.cleaned_data["audience_groups"]:
                 CommunityPostAudience.objects.create(post=post, scope=scope, group=group)
         return redirect("community_detail", pk=post.pk) if post.status == CommunityPost.Status.PUBLISHED else redirect("community_feed")
-    return render(request, "portal/community_editor.html", {"form": form})
+    return render(request, "portal/community_editor.html", {"form": form, "editing": False})
+
+
+def _require_editor(request):
+    organization, person = _identity(request)
+    if not request.user.is_staff:
+        raise PermissionDenied
+    return organization, person
+
+
+def _audience_initial(post):
+    audiences = post.audiences.all()
+    first = audiences.first()
+    return {
+        "audience_scope": first.scope if first else CommunityPostAudience.Scope.ORGANIZATION,
+        "audience_people": list(audiences.filter(scope="person").values_list("person_id", flat=True)),
+        "audience_groups": list(audiences.filter(scope="group").values_list("group_id", flat=True)),
+        "publish": post.status == CommunityPost.Status.PUBLISHED,
+    }
+
+
+def _replace_audiences(post, cleaned):
+    scope = cleaned["audience_scope"]
+    post.audiences.all().delete()
+    if scope == "organization":
+        CommunityPostAudience.objects.create(post=post, scope=scope)
+    elif scope == "person":
+        for person in cleaned["audience_people"]:
+            CommunityPostAudience.objects.create(post=post, scope=scope, person=person)
+    else:
+        for group in cleaned["audience_groups"]:
+            CommunityPostAudience.objects.create(post=post, scope=scope, group=group)
+
+
+@login_required
+def community_manage(request):
+    organization, _ = _require_editor(request)
+    posts = CommunityPost.objects.filter(team=organization).select_related("author").order_by("-created_at", "-pk")[:150]
+    return render(request, "portal/community_manage.html", {"posts": posts})
+
+
+@login_required
+@transaction.atomic
+def community_edit(request, pk):
+    organization, _ = _require_editor(request)
+    post = get_object_or_404(CommunityPost, team=organization, pk=pk)
+    if post.status in (CommunityPost.Status.ARCHIVED, CommunityPost.Status.REMOVED):
+        raise PermissionDenied("Archived or removed posts cannot be edited.")
+    form = CommunityPostForm(
+        request.POST or None, instance=post, organization=organization,
+        initial=_audience_initial(post) if request.method != "POST" else None,
+    )
+    if request.method == "POST" and form.is_valid():
+        updated = form.save(commit=False)
+        publishing = form.cleaned_data["publish"]
+        updated.status = CommunityPost.Status.PUBLISHED if publishing else CommunityPost.Status.DRAFT
+        if publishing and not updated.published_at:
+            updated.published_at = timezone.now()
+        if not publishing:
+            updated.published_at = None
+        updated.full_clean()
+        updated.save()
+        _replace_audiences(updated, form.cleaned_data)
+        return redirect("community_manage")
+    return render(request, "portal/community_editor.html", {"form": form, "editing": True, "post": post})
+
+
+@login_required
+@transaction.atomic
+def community_archive(request, pk):
+    organization, _ = _require_editor(request)
+    post = get_object_or_404(CommunityPost, team=organization, pk=pk)
+    if request.method != "POST":
+        raise PermissionDenied("Archiving requires confirmation by POST.")
+    if post.status not in (CommunityPost.Status.ARCHIVED, CommunityPost.Status.REMOVED):
+        post.status = CommunityPost.Status.ARCHIVED
+        post.save(update_fields=["status", "updated_at"])
+    return redirect("community_manage")
