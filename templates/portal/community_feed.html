@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Community · ArenaLine{% endblock %}
+{% block content %}
+<div class="section-head"><div><div class="eyebrow">ARENALINE · COMMUNITY</div><h1>Community</h1><p>Updates shared with your organization.</p></div>
+{% if request.user.is_staff %}<a class="btn" href="{% url 'community_create' %}">New post</a>{% endif %}</div>
+<div class="action-stack">
+{% for post in posts %}
+<article class="card action-row"><div class="action-copy"><small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small><h3><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h3><p>{{ post.body|truncatewords:55 }}</p></div></article>
+{% empty %}
+<article class="card"><h3>No posts yet</h3><p>Community updates published for you will appear here.</p></article>
+{% endfor %}
+</div>
+{% endblock %}
