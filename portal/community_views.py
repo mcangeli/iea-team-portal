@@ -68,7 +68,7 @@ def _identity(request):
 def community_feed(request):
     organization, person = _identity(request)
     posts = visible_community_posts(organization=organization, person=person, user=request.user).select_related("author")[:100]
-    return render(request, "portal/community_feed.html", {"posts": posts})
+    return render(request, "portal/community_feed.html", {"posts": posts, "now": timezone.now()})
 
 
 @login_required
