@@ -6,7 +6,8 @@
 <div class="action-stack">
 {% for post in posts %}
 <article class="card action-row"><div class="action-copy">
-<h3>{{ post.title }}</h3><small>{{ post.author.display_name }} · {{ post.get_status_display }}{% if post.status == "published" and post.published_at > now %} (Scheduled for {{ post.published_at|date:"M j, Y, g:i A" }}){% endif %} · {{ post.created_at|date:"M j, Y" }}</small>
+{% if post.status == "published" and post.published_at <= now and post.is_notice %}{% if not post.notice_until or post.notice_until > now %}<strong>Notice</strong>{% endif %}{% endif %}
+<h3 style="font-size:1.3rem;font-weight:750;line-height:1.3;margin:0 0 .4rem">{{ post.title }}</h3><small>{{ post.author.display_name }} · {{ post.get_status_display }}{% if post.status == "published" and post.published_at > now %} (Scheduled for {{ post.published_at|date:"M j, Y, g:i A" }}){% endif %} · {{ post.created_at|date:"M j, Y" }}</small>
 <p>{% if post.status != 'archived' and post.status != 'removed' %}<a href="{% url 'community_edit' post.pk %}">Edit post</a>{% endif %}{% if post.status == 'published' and post.published_at <= now %} · <a href="{% url 'community_detail' post.pk %}">View post</a>{% endif %}</p>
 {% if can_publish and post.status != 'archived' and post.status != 'removed' %}<form method="post" action="{% url 'community_archive' post.pk %}" onsubmit="return confirm('Archive this post? It will disappear from feeds and dashboards.');">{% csrf_token %}<button type="submit">Archive</button></form>{% endif %}
 </div></article>
