@@ -4,7 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from portal.model_modules.people import Person
-from portal.models import Team, CommunityPost, CommunityPostAudience
+from portal.models import Team, UserProfile, CommunityPost, CommunityPostAudience
 
 
 class CommunityManagementTests(TestCase):
@@ -13,6 +13,8 @@ class CommunityManagementTests(TestCase):
         self.other = Team.objects.create(name="Other Management Barn")
         self.staff = User.objects.create_user(username="community-editor", password="test123", is_staff=True)
         self.reader = User.objects.create_user(username="community-nonstaff", password="test123")
+        UserProfile.objects.update_or_create(user=self.staff, defaults={"team": self.team, "role": UserProfile.Role.ADMIN})
+        UserProfile.objects.update_or_create(user=self.reader, defaults={"team": self.team, "role": UserProfile.Role.PARENT})
         self.person = Person.objects.create(team=self.team, user=self.staff, first_name="Editor", last_name="One")
         self.reader_person = Person.objects.create(team=self.team, user=self.reader, first_name="Reader", last_name="One")
         self.post = CommunityPost.objects.create(team=self.team, author=self.person, created_by=self.staff, title="Original", body="[b]Original[/b]", status=CommunityPost.Status.PUBLISHED, published_at=timezone.now())
