@@ -86,3 +86,22 @@ class CommunityAudienceFoundationTests(TestCase):
         self.post.expires_at = timezone.now() - timedelta(minutes=1)
         self.post.save(update_fields=["status", "expires_at"])
         self.assertFalse(visible_community_posts(organization=self.org, person=self.person, user=self.user).exists())
+
+    def test_scheduled_post_stays_hidden_until_publication(self):
+        CommunityPostAudience.objects.create(post=self.post, scope="organization")
+        now = timezone.now()
+        self.post.published_at = now + timedelta(hours=2)
+        self.post.save(update_fields=["published_at"])
+        self.assertFalse(visible_community_posts(organization=self.org, person=self.person, at=now).exists())
+        self.assertTrue(visible_community_posts(organization=self.org, person=self.person, at=now + timedelta(hours=3)).exists())
+
+    def test_notice_priority_expires_without_hiding_post(self):
+        CommunityPostAudience.objects.create(post=self.post, scope="organization")
+        now = timezone.now()
+        self.post.is_notice = True
+        self.post.notice_until = now + timedelta(hours=1)
+        self.post.save(update_fields=["is_notice", "notice_until"])
+        active = visible_community_posts(organization=self.org, person=self.person, at=now).get()
+        self.assertEqual(active.notice_rank, 1)
+        later = visible_community_posts(organization=self.org, person=self.person, at=now + timedelta(hours=2)).get()
+        self.assertEqual(later.notice_rank, 0)
