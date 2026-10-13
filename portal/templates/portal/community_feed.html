@@ -1,0 +1,18 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><p class="text-uppercase text-muted mb-1">ArenaLine</p><h1>Community</h1><p>Updates shared with your organization.</p></div>
+    {% if request.user.is_staff %}<a class="btn btn-primary" href="{% url 'community_create' %}">New post</a>{% endif %}
+  </div>
+  {% for post in posts %}
+    <article class="card mb-3"><div class="card-body">
+      <h2 class="h4"><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h2>
+      <p class="text-muted">{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</p>
+      <p>{{ post.body|truncatewords:55 }}</p>
+    </div></article>
+  {% empty %}
+    <div class="card"><div class="card-body"><h2 class="h5">No posts yet</h2><p>Community updates will appear here when they're published for you.</p></div></div>
+  {% endfor %}
+</div>
+{% endblock %}
