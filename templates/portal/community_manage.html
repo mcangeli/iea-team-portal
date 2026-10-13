@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Manage Community · ArenaLine{% endblock %}
+{% block content %}
+<nav class="page-back-nav"><a href="{% url 'community_feed' %}">← Community</a></nav>
+<div class="section-head"><div><div class="eyebrow">ARENALINE · COMMUNITY</div><h1>Manage posts</h1><p>Edit, publish, or archive posts in your organization.</p></div><a class="btn" href="{% url 'community_create' %}">New post</a></div>
+<div class="action-stack">
+{% for post in posts %}
+<article class="card action-row"><div class="action-copy">
+<h3>{{ post.title }}</h3><small>{{ post.author.display_name }} · {{ post.get_status_display }} · {{ post.created_at|date:"M j, Y" }}</small>
+<p><a href="{% url 'community_edit' post.pk %}">Edit post</a>{% if post.status == 'published' %} · <a href="{% url 'community_detail' post.pk %}">View post</a>{% endif %}</p>
+{% if post.status != 'archived' and post.status != 'removed' %}<form method="post" action="{% url 'community_archive' post.pk %}" onsubmit="return confirm('Archive this post? It will disappear from feeds and dashboards.');">{% csrf_token %}<button type="submit">Archive</button></form>{% endif %}
+</div></article>
+{% empty %}<article class="card">No Community posts to manage yet.</article>{% endfor %}
+</div>
+{% endblock %}
