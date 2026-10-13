@@ -17,9 +17,13 @@
   {% if community_posts %}
   <div class="action-stack">
     {% for post in community_posts %}
-    <a class="card action-row" href="{% url 'community_detail' post.pk %}">
-      <div class="action-copy"><small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small><h3>{{ post.title }}</h3><p>{{ post.body|striptags|truncatewords:24 }}</p></div>
-    </a>
+    <article class="card action-row">
+      <div class="action-copy">
+        <small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small>
+        <h3><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h3>
+        <p>{{ post.body|striptags|truncatewords:24 }}</p>
+      </div>
+    </article>
     {% endfor %}
   </div>
   {% else %}
