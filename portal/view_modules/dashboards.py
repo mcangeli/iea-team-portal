@@ -174,8 +174,9 @@ def _general_context(request, team, season):
 
     person = Person.objects.filter(team=team, user=request.user, active=True).first()
     community_visible = visible_community_posts(organization=team, person=person, user=request.user).select_related("author")
-    community_notices = community_visible.filter(notice_rank=1)[:3]
-    community_posts = community_visible.filter(notice_rank=0)[:5]
+    community_now = timezone.now()
+    community_notices = community_visible.filter(is_notice=True).filter(Q(notice_until__isnull=True) | Q(notice_until__gt=community_now)).order_by("-published_at", "-pk")[:3]
+    community_posts = community_visible.filter(Q(is_notice=False) | Q(notice_until__lte=community_now)).order_by("-published_at", "-pk")[:5]
     active_roles = []
     if person:
         active_roles = list(
