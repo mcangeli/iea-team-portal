@@ -66,3 +66,23 @@ class CommunityAudienceFoundationTests(TestCase):
         self.post.expires_at = timezone.now() - timedelta(seconds=1)
         self.post.save(update_fields=["status", "expires_at"])
         self.assertFalse(visible_community_posts(organization=self.org, person=self.person).exists())
+
+    def test_staff_can_oversee_targeted_post_in_own_organization(self):
+        group = OrganizationGroup.objects.create(team=self.org, name="IEA Program")
+        CommunityPostAudience.objects.create(post=self.post, scope=CommunityPostAudience.Scope.GROUP, group=group)
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        self.assertTrue(visible_community_posts(organization=self.org, person=self.person, user=self.user).filter(pk=self.post.pk).exists())
+        self.assertFalse(visible_community_posts(organization=self.org, person=self.person).filter(pk=self.post.pk).exists())
+        self.assertFalse(visible_community_posts(organization=self.other_org, person=self.other_person, user=self.user).filter(pk=self.post.pk).exists())
+
+    def test_staff_cannot_see_drafts_or_expired_posts(self):
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        self.post.status = CommunityPost.Status.DRAFT
+        self.post.save(update_fields=["status"])
+        self.assertFalse(visible_community_posts(organization=self.org, person=self.person, user=self.user).exists())
+        self.post.status = CommunityPost.Status.PUBLISHED
+        self.post.expires_at = timezone.now() - timedelta(minutes=1)
+        self.post.save(update_fields=["status", "expires_at"])
+        self.assertFalse(visible_community_posts(organization=self.org, person=self.person, user=self.user).exists())
