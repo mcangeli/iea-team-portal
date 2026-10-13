@@ -4,6 +4,10 @@ This is the canonical concise release history for ArenaLine. Detailed implementa
 
 Older detailed release notes that predate this changelog remain available in `RELEASE_NOTES.md` and are preserved as historical documentation.
 
+## v3.9.1 — Community Posts
+
+**Release candidate, October 2026.** Adds tenant-scoped Community publishing, organization/person/group audience targeting, safe BBCode, scheduled publishing, drafts, notice priority with expiration, and administrative archiving. Organization admins publish and archive; coaches can author and edit their own drafts. The dashboard displays up to **three active priority notices plus five regular posts**. Staging validation: **1,576 tests passing**, no model drift or pending migrations, and clean Django system checks. Production promotion pending.
+
 ## v3.9.0 — People & Rider Architecture
 
 **Release candidate, October 2026.** Person is canonical for human identity, IEA participation, family relationships and generic operations. Historical Rider/Guardian links remain additive compatibility, not competing identity. Full staging suite: **1553/1553 passing**; no model drift or pending migrations; clean Django checks. Production promotion pending. Details: `docs/releases/v3.9.0.md`.
