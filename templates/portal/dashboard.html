@@ -20,6 +20,7 @@
     {% for post in community_posts %}
     <article class="card action-row">
       <div class="action-copy">
+        {% if post.notice_rank %}<strong>Notice</strong>{% endif %}
         <h3 style="font-size:1.3rem;font-weight:750;line-height:1.3;margin:0 0 .4rem"><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h3>
         <small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small>
         <div class="community-dashboard-body">{{ post.body|community_bbcode }}</div>
