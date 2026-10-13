@@ -173,7 +173,9 @@ def _general_context(request, team, season):
         ).count()
 
     person = Person.objects.filter(team=team, user=request.user, active=True).first()
-    community_posts = visible_community_posts(organization=team, person=person, user=request.user).select_related("author").order_by("-published_at", "-pk")[:3]
+    community_visible = visible_community_posts(organization=team, person=person, user=request.user).select_related("author")
+    community_notices = community_visible.filter(notice_rank=1)[:3]
+    community_posts = community_visible.filter(notice_rank=0)[:5]
     active_roles = []
     if person:
         active_roles = list(
@@ -331,6 +333,7 @@ def _general_context(request, team, season):
         # IEA role workspaces belong to My Team, not the general barn dashboard.
         "workspace_links": [],
         "arena_person": person,
+        "community_notices": community_notices,
         "community_posts": community_posts,
         "active_barn_roles": tuple(active_roles),
         "upcoming_lesson_occurrences": lesson_occurrences[:5],
