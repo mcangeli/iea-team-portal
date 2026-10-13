@@ -3,7 +3,7 @@
 {% block title %}Community · ArenaLine{% endblock %}
 {% block content %}
 <div class="section-head"><div><div class="eyebrow">ARENALINE · COMMUNITY</div><h1>Community</h1><p>Updates shared with your organization.</p></div>
-{% if request.user.is_staff %}<a class="btn" href="{% url 'community_create' %}">New post</a>{% endif %}</div>
+{% if request.user.is_staff %}<div><a class="btn" href="{% url 'community_create' %}">New post</a> <a class="text-link" href="{% url 'community_manage' %}">Manage posts →</a></div>{% endif %}</div>
 <div class="action-stack">
 {% for post in posts %}
 <article class="card action-row"><div class="action-copy"><small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small><h3><a href="{% url 'community_detail' post.pk %}">{{ post.title }}</a></h3><p>{{ post.body|truncatewords:55|community_bbcode }}</p></div></article>
