@@ -12,6 +12,21 @@
   {% if team_logo %}<div class="hero-mark"><img src="{{ team_logo }}" alt="{{ portal_team.name }}"></div>{% endif %}
 </section>
 
+<section class="content-section dashboard-community-section">
+  <div class="section-head"><div><div class="eyebrow">STAY CONNECTED</div><h2>Community updates</h2><p>News and updates shared with you.</p></div><a class="text-link" href="{% url 'community_feed' %}">All community posts →</a></div>
+  {% if community_posts %}
+  <div class="action-stack">
+    {% for post in community_posts %}
+    <a class="card action-row" href="{% url 'community_detail' post.pk %}">
+      <div class="action-copy"><small>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</small><h3>{{ post.title }}</h3><p>{{ post.body|striptags|truncatewords:24 }}</p></div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="dashboard-empty"><strong>Nothing new in Community.</strong><span>Updates shared with you will appear here.</span><a href="{% url 'community_feed' %}">Open Community →</a></div>
+  {% endif %}
+</section>
+
 <section class="content-section dashboard-glance">
   <div class="section-head"><div><div class="eyebrow">TODAY &amp; COMING UP</div><h2>Your program at a glance</h2></div><a class="text-link" href="{% url 'calendar' %}">Full calendar →</a></div>
   <div class="club-summary">
