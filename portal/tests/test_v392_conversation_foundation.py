@@ -67,3 +67,36 @@ class ConversationFoundationTests(TestCase):
         membership.save()
         with self.assertRaises(PermissionDenied):
             send_message(conversation=thread, sender=self.bob, body="No longer a member")
+
+    def test_new_member_cannot_see_earlier_messages(self):
+        from django.utils import timezone
+        from datetime import timedelta
+        from portal.conversation_services import visible_messages
+        thread = create_conversation(
+            organization=self.team, creator=self.alice,
+            participants=[self.bob], kind=Conversation.Kind.GROUP,
+        )
+        old = send_message(conversation=thread, sender=self.alice, body="Earlier")
+        member = ConversationMember.objects.create(
+            conversation=thread, person=self.charlie,
+            joined_at=timezone.now() + timedelta(seconds=1),
+        )
+        self.assertNotIn(old, visible_messages(conversation=thread, person=self.charlie))
+
+    def test_nonmember_cannot_access_message_history(self):
+        from portal.conversation_services import visible_messages
+        thread = create_conversation(
+            organization=self.team, creator=self.alice,
+            participants=[self.bob], kind=Conversation.Kind.DIRECT,
+        )
+        send_message(conversation=thread, sender=self.alice, body="Private")
+        with self.assertRaises(PermissionDenied):
+            list(visible_messages(conversation=thread, person=self.charlie))
+
+    def test_cross_tenant_sender_cannot_post(self):
+        thread = create_conversation(
+            organization=self.team, creator=self.alice,
+            participants=[self.bob], kind=Conversation.Kind.DIRECT,
+        )
+        with self.assertRaises(PermissionDenied):
+            send_message(conversation=thread, sender=self.outsider, body="Blocked")
