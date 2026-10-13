@@ -21,7 +21,7 @@
 <p>{{ form.body.errors }} {{ form.body }}</p>
 <p><button type="button" class="btn" id="community-preview-toggle" aria-expanded="false">Preview post</button></p>
 <div id="community-preview" class="card" hidden aria-live="polite"><div class="eyebrow">PREVIEW</div><div id="community-preview-content"></div></div>
-<p>{{ form.publish }} {{ form.publish.label_tag }}</p>
+<fieldset><legend>Post audience</legend><p>{{ form.audience_scope.label_tag }} {{ form.audience_scope.errors }} {{ form.audience_scope }}</p><div id="audience-people"><p>{{ form.audience_people.label_tag }} {{ form.audience_people.errors }} {{ form.audience_people }}</p></div><div id="audience-groups"><p>{{ form.audience_groups.label_tag }} {{ form.audience_groups.errors }} {{ form.audience_groups }}</p></div></fieldset><p>{{ form.publish }} {{ form.publish.label_tag }}</p>
 <button class="btn" type="submit">Save post</button>
 </form></div>
 <style>
@@ -33,6 +33,11 @@
 (function(){
 const editor=document.getElementById('id_body'),toggle=document.getElementById('community-preview-toggle'),panel=document.getElementById('community-preview'),content=document.getElementById('community-preview-content');
 if(!editor)return;
+const scope=document.getElementById('id_audience_scope');
+if(scope){
+const update=()=>{document.getElementById('audience-people').hidden=scope.value!=='person';document.getElementById('audience-groups').hidden=scope.value!=='group';};
+scope.addEventListener('change',update);update();
+}
 document.querySelectorAll('[data-bb-open]').forEach(button=>button.addEventListener('click',()=>{
 const start=editor.selectionStart,end=editor.selectionEnd,open=button.dataset.bbOpen,close=button.dataset.bbClose,selected=editor.value.slice(start,end);
 editor.setRangeText(open+selected+close,start,end,'select');
