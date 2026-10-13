@@ -18,8 +18,10 @@ This roadmap is the canonical product-direction document. Completed releases are
 - **3.6.0 — Dashboard Refresh & Account Security:** released.
 - **3.7.0 — Barn Finance Completion:** released.
 - **3.8.0 — Barn, Facility & Resource Operations:** released.
-- **3.9.0 — People & Rider Architecture:** release candidate, staging validated.
-- **3.9.1–3.9.4 — Communications & Operations Completion:** proposed.
+- **3.9.0 — People & Rider Architecture:** released.
+- **3.9.1 — Community Posts & Priority Notices:** released.
+- **3.9.2 — Conversations & Chat:** planning on `feature/3.9.2-conversations-chat`.
+- **3.9.3–3.9.4 — Communications & Operations Completion:** proposed.
 - **3.10.x — Analytics & History:** tentative.
 - **3.11.x — 3.x Platform Stabilization & Completion:** tentative.
 
@@ -328,11 +330,22 @@ Before migrations are written, inventory existing Calendar, Lessons, Horses, Sho
 
 ## 3.9.0 — People & Rider Architecture
 
-**Status: release candidate, staging validated.** Person is canonical across IEA participation, family relationships, Rider Card and generic operations; historical Rider/Guardian references remain compatibility storage. Full suite **1552/1552 green**, migration and Django checks clean. Stable promotion pending. See `docs/releases/v3.9.0.md`.
+**Status: released.** Person is canonical across IEA participation, family relationships, Rider Card and generic operations; historical Rider/Guardian references remain compatibility storage. Release validated and promoted to production. See `docs/releases/v3.9.0.md`.
 
 ## 3.9.1–3.9.4 — Communications & Operations Completion
 
-**Status: proposed.** v3.9.1 Community & Posts; v3.9.2 Conversations & Chat; v3.9.3 Delivery, Notifications & Email; v3.9.4 Operational Communications & Boarding. Lock scope before implementation.
+**Status: in progress.** v3.9.1 Community Posts & Priority Notices is released, with audience targeting, scheduled publishing, expiration, management permissions, and dashboard visibility. v3.9.2 Conversations & Chat is the active planning release; v3.9.3 Delivery, Notifications & Email and v3.9.4 Operational Communications & Boarding remain proposed. Lock each release's detailed scope after inventorying the released baseline.
+
+### v3.9.2 planning boundaries
+
+- Person-based one-to-one and group conversation identity, membership, and authorization;
+- organization/tenant isolation, privacy, and durable message history;
+- conversation lists, unread state, and accessible responsive messaging presentation;
+- compatibility with existing Community Posts and People workflows without duplicating their ownership;
+- identify delivery and notification hooks without implementing the v3.9.3 notification/email scope prematurely;
+- regression tests for membership changes, access controls, cross-organization isolation, and existing Community behavior.
+
+These are architecture-review candidates, not yet committed implementation details.
 
 ### Earlier planning context
 
