@@ -1,8 +1,8 @@
 # ArenaLine
 
-**Current version: v3.9.0**
+**Current version: v3.9.1**
 
-**Release status:** Candidate on staging; not yet promoted to production.
+**Release status:** v3.9.1 candidate validated on staging; not yet promoted to production.
 
 ArenaLine is a private, self-hosted equestrian operations platform with discipline-specific competition modules. The included IEA module supports team administration, riders and families, horses and Hoofprint workflows, shows, scoring, qualification, operations, finance, communications, history, hosted-show management, and an explicitly published public spectator experience.
 
@@ -22,6 +22,10 @@ v3.9.0 establishes Person as the canonical human identity across ArenaLine while
 - `RELEASE_NOTES.md` — retained detailed historical release notes for earlier releases.
 
 The README intentionally remains an overview/instructions document; roadmap decisions and changelog history belong in their dedicated files.
+
+## v3.9.1 highlights
+
+Community Posts add organization-scoped publishing, audience targeting for people and groups, BBCode formatting, drafts, scheduled publishing, active priority notices, and archive controls. The general dashboard displays up to three active notices separately from five regular updates. Admins can publish and archive; coaches can prepare and edit their own drafts. Full staging regression suite passed: 1,576 tests, with clean migration and system checks.
 
 ## v3.9.0 highlights
 
