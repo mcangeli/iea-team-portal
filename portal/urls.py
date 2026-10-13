@@ -5,6 +5,9 @@ from . import community_views
 urlpatterns = [
     path("community/", community_views.community_feed, name="community_feed"),
     path("community/new/", community_views.community_create, name="community_create"),
+    path("community/manage/", community_views.community_manage, name="community_manage"),
+    path("community/<int:pk>/edit/", community_views.community_edit, name="community_edit"),
+    path("community/<int:pk>/archive/", community_views.community_archive, name="community_archive"),
     path("community/<int:pk>/", community_views.community_detail, name="community_detail"),
     path("finance/transactions/<int:pk>/allocations/", views.finance_transaction_allocations, name="finance_transaction_allocations"),
     path("finance/transactions/<int:pk>/allocations/add/", views.finance_transaction_allocation_add, name="finance_transaction_allocation_add"),
