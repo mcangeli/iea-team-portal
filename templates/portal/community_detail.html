@@ -1,7 +1,8 @@
 {% extends 'base.html' %}
+{% load community_bbcode %}
 {% block title %}{{ post.title }} · Community · ArenaLine{% endblock %}
 {% block content %}
 <nav class="page-back-nav" aria-label="Back navigation"><a href="{% url 'community_feed' %}">← Community</a></nav>
 <div class="section-head"><div><div class="eyebrow">ARENALINE · COMMUNITY</div><h1>{{ post.title }}</h1><p>{{ post.author.display_name }} · {{ post.published_at|date:"M j, Y" }}</p></div></div>
-<article class="card"><div style="white-space:pre-wrap">{{ post.body }}</div></article>
+<article class="card"><div style="white-space:pre-wrap">{{ post.body|community_bbcode }}</div></article>
 {% endblock %}
